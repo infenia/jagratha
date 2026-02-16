@@ -136,7 +136,7 @@ public class JagrathaService {
     }
   }
 
-  private static class UncheckedFileIOException extends RuntimeException {
+  private static final class UncheckedFileIOException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     private UncheckedFileIOException(String message, Throwable cause) {
