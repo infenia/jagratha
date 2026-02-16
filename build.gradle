@@ -75,6 +75,7 @@ check.dependsOn jacocoTestCoverageVerification
 
 spotless {
 	java {
+		target 'src/*/java/**/*.java'
 		googleJavaFormat()
 		removeUnusedImports()
 		trimTrailingWhitespace()
