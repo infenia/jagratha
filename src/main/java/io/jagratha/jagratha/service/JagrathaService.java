@@ -14,14 +14,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @Service
+@Validated
 @RequiredArgsConstructor
 public class JagrathaService {
 
@@ -29,7 +32,7 @@ public class JagrathaService {
 
   private static final String FAILURE_STATUS = "FAILURE";
 
-  public Mono<Void> saveFile(String relativePath, String content) {
+  public Mono<Void> saveFile(@NotBlank String relativePath, @NotBlank String content) {
     return Mono.fromRunnable(
             () -> {
               try {

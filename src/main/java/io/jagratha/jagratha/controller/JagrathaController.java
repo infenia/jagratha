@@ -3,6 +3,7 @@ package io.jagratha.jagratha.controller;
 import io.jagratha.jagratha.model.FileRequest;
 import io.jagratha.jagratha.model.TaskResponse;
 import io.jagratha.jagratha.service.JagrathaService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +22,7 @@ public class JagrathaController {
   private static final String SUCCESS_STATUS = "SUCCESS";
 
   @PostMapping("/files")
-  public Mono<ResponseEntity<String>> saveFile(@RequestBody FileRequest request) {
+  public Mono<ResponseEntity<String>> saveFile(@Valid @RequestBody FileRequest request) {
     return service
         .saveFile(request.path(), request.content())
         .thenReturn(ResponseEntity.ok("File saved successfully"))
