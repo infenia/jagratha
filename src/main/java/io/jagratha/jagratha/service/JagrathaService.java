@@ -33,29 +33,33 @@ public class JagrathaService {
   private static final String FAILURE_STATUS = "FAILURE";
 
   public Mono<Void> saveFile(@NotBlank String relativePath, @NotBlank String content) {
-    return Mono.fromRunnable(
+    return Mono.defer(
             () -> {
-              try {
-                String projectRoot = getProjectRoot();
-                if (projectRoot == null || projectRoot.isEmpty()) {
-                  throw new IllegalStateException("External project path is not configured");
-                }
-                Path fullPath = Paths.get(projectRoot).resolve(relativePath).normalize();
-
-                // Security check: ensure the path is within the project root
-                if (!fullPath.startsWith(Paths.get(projectRoot).normalize())) {
-                  throw new IllegalArgumentException("Invalid file path: " + relativePath);
-                }
-
-                Files.createDirectories(fullPath.getParent());
-                Files.writeString(fullPath, content);
-                log.info("Saved file to {}", fullPath);
-              } catch (IOException e) {
-                log.error("Failed to save file", e);
-                throw new UncheckedFileIOException("Failed to save file: " + e.getMessage(), e);
+              String projectRoot = getProjectRoot();
+              if (projectRoot == null || projectRoot.isEmpty()) {
+                return Mono.error(new IllegalStateException("External project path is not configured"));
               }
+              Path fullPath = Paths.get(projectRoot).resolve(relativePath).normalize();
+
+              // Security check: ensure the path is within the project root
+              if (!fullPath.startsWith(Paths.get(projectRoot).normalize())) {
+                return Mono.error(new IllegalArgumentException("Invalid file path: " + relativePath));
+              }
+
+              return Mono.fromRunnable(
+                      () -> {
+                        try {
+                          Files.createDirectories(fullPath.getParent());
+                          Files.writeString(fullPath, content);
+                          log.info("Saved file to {}", fullPath);
+                        } catch (IOException e) {
+                          log.error("Failed to save file", e);
+                          throw new UncheckedFileIOException(
+                              "Failed to save file: " + e.getMessage(), e);
+                        }
+                      })
+                  .subscribeOn(Schedulers.boundedElastic());
             })
-        .subscribeOn(Schedulers.boundedElastic())
         .then();
   }
 
