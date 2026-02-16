@@ -3,11 +3,9 @@ package io.jagratha.jagratha.service;
 import io.jagratha.jagratha.config.JagrathaConfig;
 import io.jagratha.jagratha.model.TaskResponse;
 import jakarta.validation.constraints.NotBlank;
-
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,16 +28,16 @@ public class JagrathaService {
 
   private static final String FAILURE_STATUS = "FAILURE";
 
-  public Mono<Void> saveFile(@NotBlank String relativePath, @NotBlank String content) {
+  public Mono<Void> saveFile(@NotBlank String relativePath, @NotBlank final String content) {
     return Mono.defer(
             () -> {
-              String projectRoot = getProjectRoot();
+              final var projectRoot = getProjectRoot();
               if (projectRoot == null || projectRoot.isEmpty()) {
                 return Mono.error(
                     new IllegalStateException("External project path is not configured"));
               }
-                final var path = Paths.get(projectRoot);
-                Path fullPath = path.resolve(relativePath).normalize();
+              final var path = Paths.get(projectRoot);
+              final var fullPath = path.resolve(relativePath).normalize();
 
               // Security check: ensure the path is within the project root
               if (!fullPath.startsWith(path.normalize())) {
@@ -74,7 +72,7 @@ public class JagrathaService {
       return new TaskResponse(FAILURE_STATUS, "External project path is not configured");
     }
 
-    File projectDir = new File(projectRoot);
+    final var projectDir = new File(projectRoot);
     if (!projectDir.exists() || !projectDir.isDirectory()) {
       return new TaskResponse(
           FAILURE_STATUS, "External project directory does not exist: " + projectRoot);
@@ -136,10 +134,9 @@ public class JagrathaService {
   }
 
   private static final class UncheckedFileIOException extends RuntimeException {
-    @Serial
-    private static final long serialVersionUID = 1L;
+    @Serial private static final long serialVersionUID = 1L;
 
-    private UncheckedFileIOException(String message, Throwable cause) {
+    private UncheckedFileIOException(final String message, final Throwable cause) {
       super(message, cause);
     }
   }
