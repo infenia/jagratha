@@ -2,11 +2,12 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.2'
 	id 'io.spring.dependency-management' version '1.1.7'
-	id 'org.graalvm.buildtools.native' version '0.10.4'
-	id 'com.diffplug.spotless' version '7.0.2'
+	id 'org.graalvm.buildtools.native' version '0.11.4'
+	id 'com.diffplug.spotless' version '8.2.1'
+    id 'io.freefair.lombok' version '9.2.0'
 	id 'checkstyle'
 	id 'pmd'
-	id 'com.github.spotbugs' version '6.1.7'
+	id 'com.github.spotbugs' version '6.4.8'
 	id 'jacoco'
 }
 
@@ -76,16 +77,19 @@ check.dependsOn jacocoTestCoverageVerification
 
 spotless {
 	java {
-		target 'src/*/java/**/*.java'
-		googleJavaFormat('1.31.0')
-		removeUnusedImports()
+        importOrder()
+        removeUnusedImports()
+        cleanthat()
+        googleJavaFormat().reflowLongStrings()
+        leadingTabsToSpaces(4)
 		trimTrailingWhitespace()
 		endWithNewline()
+        targetExclude("bin/**", "build/**", "out/**")
 	}
 }
 
 checkstyle {
-	toolVersion = '10.21.2'
+	toolVersion = '13.2.0'
 	configFile = file("${project.rootDir}/config/checkstyle/checkstyle.xml")
 	ignoreFailures = false
 	showViolations = true
@@ -96,12 +100,6 @@ pmd {
 	ruleSets = ["${project.rootDir}/config/pmd/ruleset.xml"]
 	ignoreFailures = false
 	consoleOutput = true
-}
-
-spotbugs {
-	toolVersion = '4.9.8'
-	ignoreFailures = false
-	showProgress = true
 }
 
 // Disable quality tasks for everything except main

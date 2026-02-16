@@ -22,6 +22,7 @@ import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+/** Service for managing files and running quality checks on external projects. */
 @Slf4j
 @Service
 @Validated
@@ -32,15 +33,22 @@ public class JagrathaService {
 
   private static final String FAILURE_STATUS = "FAILURE";
 
-  public Mono<Void> saveFile(@NotBlank String relativePath, @NotBlank String content) {
+  /**
+   * Save a file to the external project.
+   *
+   * @param relativePath the relative path of the file
+   * @param content the content to write to the file
+   * @return Mono that completes when the file is saved
+   */
+  public Mono<Void> saveFile(@NotBlank final String relativePath, @NotBlank final String content) {
     return Mono.defer(
             () -> {
-              String projectRoot = getProjectRoot();
+              final String projectRoot = getProjectRoot();
               if (projectRoot == null || projectRoot.isEmpty()) {
                 return Mono.error(
                     new IllegalStateException("External project path is not configured"));
               }
-              Path fullPath = Paths.get(projectRoot).resolve(relativePath).normalize();
+              final Path fullPath = Paths.get(projectRoot).resolve(relativePath).normalize();
 
               // Security check: ensure the path is within the project root
               if (!fullPath.startsWith(Paths.get(projectRoot).normalize())) {
@@ -56,7 +64,7 @@ public class JagrathaService {
                           log.info("Saved file to {}", fullPath);
                         } catch (IOException e) {
                           log.error("Failed to save file", e);
-                          throw new UncheckedFileIOException(
+                          throw new UncheckedIoException(
                               "Failed to save file: " + e.getMessage(), e);
                         }
                       })
@@ -65,51 +73,74 @@ public class JagrathaService {
         .then();
   }
 
+  /**
+   * Run quality checks on the external project.
+   *
+   * @return Mono containing the task response with status and output
+   */
   public Mono<TaskResponse> runQualityChecks() {
     return Mono.fromCallable(this::executeQualityChecks).subscribeOn(Schedulers.boundedElastic());
   }
 
   private TaskResponse executeQualityChecks() {
-    String projectRoot = getProjectRoot();
+    final String projectRoot = getProjectRoot();
+    final TaskResponse response;
+
     if (projectRoot == null || projectRoot.isEmpty()) {
-      return new TaskResponse(FAILURE_STATUS, "External project path is not configured");
-    }
-
-    File projectDir = new File(projectRoot);
-    if (!projectDir.exists() || !projectDir.isDirectory()) {
-      return new TaskResponse(
-          FAILURE_STATUS, "External project directory does not exist: " + projectRoot);
-    }
-
-    List<String> command = buildGradleCommand();
-    log.info("Running quality checks in {}: {}", projectRoot, String.join(" ", command));
-
-    try {
-      ProcessBuilder pb = new ProcessBuilder(command);
-      pb.directory(projectDir);
-      pb.redirectErrorStream(true);
-      Process process = pb.start();
-
-      String output = readProcessOutput(process);
-      boolean finished = process.waitFor(10, TimeUnit.MINUTES);
-
-      if (!finished) {
-        process.destroyForcibly();
-        return new TaskResponse(FAILURE_STATUS, "Timeout while running quality checks.\n" + output);
+      response = new TaskResponse(FAILURE_STATUS, "External project path is not configured");
+    } else {
+      final File projectDir = new File(projectRoot);
+      if (projectDir.exists() && projectDir.isDirectory()) {
+        response = executeGradleChecks(projectDir);
+      } else {
+        response =
+            new TaskResponse(
+                FAILURE_STATUS, "External project directory does not exist: " + projectRoot);
       }
+    }
 
-      int exitCode = process.exitValue();
-      log.info("Quality checks finished with exit code {}", exitCode);
-      return new TaskResponse(exitCode == 0 ? "SUCCESS" : FAILURE_STATUS, output);
+    return response;
+  }
+
+  @SuppressWarnings("PMD.DoNotUseThreads")
+  private TaskResponse executeGradleChecks(final File projectDir) {
+    final List<String> command = buildGradleCommand();
+    final String projectRoot = projectDir.getAbsolutePath();
+
+    if (log.isInfoEnabled()) {
+      log.info("Running quality checks in {}: {}", projectRoot, String.join(" ", command));
+    }
+
+    TaskResponse response;
+    try {
+      final ProcessBuilder processBuilder = new ProcessBuilder(command);
+      processBuilder.directory(projectDir);
+      processBuilder.redirectErrorStream(true);
+      final Process process = processBuilder.start();
+
+      final String output = readProcessOutput(process);
+      final boolean finished = process.waitFor(10, TimeUnit.MINUTES);
+
+      if (finished) {
+        final int exitCode = process.exitValue();
+        log.info("Quality checks finished with exit code {}", exitCode);
+        response = new TaskResponse(exitCode == 0 ? "SUCCESS" : FAILURE_STATUS, output);
+      } else {
+        process.destroyForcibly();
+        response =
+            new TaskResponse(FAILURE_STATUS, "Timeout while running quality checks.\n" + output);
+      }
 
     } catch (IOException e) {
       log.error("Error executing Gradle", e);
-      return new TaskResponse(FAILURE_STATUS, "Error executing Gradle: " + e.getMessage());
+      response = new TaskResponse(FAILURE_STATUS, "Error executing Gradle: " + e.getMessage());
     } catch (InterruptedException e) {
       log.error("Quality checks interrupted", e);
       Thread.currentThread().interrupt();
-      return new TaskResponse(FAILURE_STATUS, "Execution interrupted: " + e.getMessage());
+      response = new TaskResponse(FAILURE_STATUS, "Execution interrupted: " + e.getMessage());
     }
+
+    return response;
   }
 
   private String getProjectRoot() {
@@ -117,9 +148,9 @@ public class JagrathaService {
   }
 
   private List<String> buildGradleCommand() {
-    String gradlePath =
+    final String gradlePath =
         config.externalProject() != null ? config.externalProject().gradlePath() : null;
-    List<String> command = new ArrayList<>();
+    final List<String> command = new ArrayList<>();
     command.add(gradlePath != null ? gradlePath : "./gradlew");
     command.add("spotlessApply");
     command.add("spotlessCheck");
@@ -128,7 +159,7 @@ public class JagrathaService {
     return command;
   }
 
-  private String readProcessOutput(Process process) throws IOException {
+  private String readProcessOutput(final Process process) throws IOException {
     try (BufferedReader reader =
         new BufferedReader(
             new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
@@ -136,10 +167,10 @@ public class JagrathaService {
     }
   }
 
-  private static final class UncheckedFileIOException extends RuntimeException {
+  private static final class UncheckedIoException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
-    private UncheckedFileIOException(String message, Throwable cause) {
+    private UncheckedIoException(final String message, final Throwable cause) {
       super(message, cause);
     }
   }
