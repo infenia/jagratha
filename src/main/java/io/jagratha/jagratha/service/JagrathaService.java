@@ -2,6 +2,7 @@ package io.jagratha.jagratha.service;
 
 import io.jagratha.jagratha.config.JagrathaConfig;
 import io.jagratha.jagratha.model.TaskResponse;
+import jakarta.validation.constraints.NotBlank;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -14,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,13 +37,15 @@ public class JagrathaService {
             () -> {
               String projectRoot = getProjectRoot();
               if (projectRoot == null || projectRoot.isEmpty()) {
-                return Mono.error(new IllegalStateException("External project path is not configured"));
+                return Mono.error(
+                    new IllegalStateException("External project path is not configured"));
               }
               Path fullPath = Paths.get(projectRoot).resolve(relativePath).normalize();
 
               // Security check: ensure the path is within the project root
               if (!fullPath.startsWith(Paths.get(projectRoot).normalize())) {
-                return Mono.error(new IllegalArgumentException("Invalid file path: " + relativePath));
+                return Mono.error(
+                    new IllegalArgumentException("Invalid file path: " + relativePath));
               }
 
               return Mono.fromRunnable(
@@ -137,7 +139,7 @@ public class JagrathaService {
   private static class UncheckedFileIOException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
-    UncheckedFileIOException(String message, Throwable cause) {
+    private UncheckedFileIOException(String message, Throwable cause) {
       super(message, cause);
     }
   }
