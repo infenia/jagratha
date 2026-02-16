@@ -3,10 +3,8 @@ package io.jagratha.jagratha.service;
 import io.jagratha.jagratha.config.JagrathaConfig;
 import io.jagratha.jagratha.model.TaskResponse;
 import jakarta.validation.constraints.NotBlank;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,10 +38,11 @@ public class JagrathaService {
                 return Mono.error(
                     new IllegalStateException("External project path is not configured"));
               }
-              Path fullPath = Paths.get(projectRoot).resolve(relativePath).normalize();
+                final var path = Paths.get(projectRoot);
+                Path fullPath = path.resolve(relativePath).normalize();
 
               // Security check: ensure the path is within the project root
-              if (!fullPath.startsWith(Paths.get(projectRoot).normalize())) {
+              if (!fullPath.startsWith(path.normalize())) {
                 return Mono.error(
                     new IllegalArgumentException("Invalid file path: " + relativePath));
               }
@@ -137,6 +136,7 @@ public class JagrathaService {
   }
 
   private static final class UncheckedFileIOException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private UncheckedFileIOException(String message, Throwable cause) {
