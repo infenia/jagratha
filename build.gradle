@@ -3,6 +3,11 @@ plugins {
 	id 'org.springframework.boot' version '4.0.2'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'org.graalvm.buildtools.native' version '0.10.4'
+	id 'com.diffplug.spotless' version '7.0.2'
+	id 'checkstyle'
+	id 'pmd'
+	id 'com.github.spotbugs' version '6.1.7'
+	id 'jacoco'
 }
 
 group = 'io.jagratha'
@@ -30,7 +35,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
 
-	// Spring AI MCP Server
 	implementation 'org.springframework.ai:spring-ai-starter-mcp-server:2.0.0-M2'
 
 	compileOnly 'org.projectlombok:lombok'
@@ -46,6 +50,62 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+	dependsOn test
+	reports {
+		xml.required = true
+		html.required = true
+	}
+}
+
+jacocoTestCoverageVerification {
+	violationRules {
+		rule {
+			limit {
+				minimum = 0.80
+			}
+		}
+	}
+}
+
+check.dependsOn jacocoTestCoverageVerification
+
+spotless {
+	java {
+		googleJavaFormat()
+		removeUnusedImports()
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
+}
+
+checkstyle {
+	toolVersion = '10.21.2'
+	configFile = file("${project.rootDir}/config/checkstyle/checkstyle.xml")
+	ignoreFailures = false
+	showViolations = true
+}
+
+pmd {
+	toolVersion = '7.10.0'
+	ruleSets = ["${project.rootDir}/config/pmd/ruleset.xml"]
+	ignoreFailures = false
+	consoleOutput = true
+}
+
+spotbugs {
+	ignoreFailures = false
+	showProgress = true
+}
+
+// Disable quality tasks for everything except main
+tasks.configureEach { task ->
+    if ((task.name.contains("Aot") || task.name.contains("Test")) && (task instanceof Checkstyle || task instanceof Pmd || task.class.name.contains("SpotBugs"))) {
+        task.enabled = false
+    }
 }
 
 graalvmNative {
