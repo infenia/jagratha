@@ -3,9 +3,13 @@ package io.jagratha.jagratha.service;
 import io.jagratha.jagratha.config.JagrathaConfig;
 import io.jagratha.jagratha.model.TaskResponse;
 import jakarta.validation.constraints.NotBlank;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,19 +32,18 @@ public class JagrathaService {
 
   private static final String FAILURE_STATUS = "FAILURE";
 
-  public Mono<Void> saveFile(@NotBlank String relativePath, @NotBlank final String content) {
+  public Mono<Void> saveFile(@NotBlank String relativePath, @NotBlank String content) {
     return Mono.defer(
             () -> {
-              final var projectRoot = getProjectRoot();
+              String projectRoot = getProjectRoot();
               if (projectRoot == null || projectRoot.isEmpty()) {
                 return Mono.error(
                     new IllegalStateException("External project path is not configured"));
               }
-              final var path = Paths.get(projectRoot);
-              final var fullPath = path.resolve(relativePath).normalize();
+              Path fullPath = Paths.get(projectRoot).resolve(relativePath).normalize();
 
               // Security check: ensure the path is within the project root
-              if (!fullPath.startsWith(path.normalize())) {
+              if (!fullPath.startsWith(Paths.get(projectRoot).normalize())) {
                 return Mono.error(
                     new IllegalArgumentException("Invalid file path: " + relativePath));
               }
@@ -72,7 +75,7 @@ public class JagrathaService {
       return new TaskResponse(FAILURE_STATUS, "External project path is not configured");
     }
 
-    final var projectDir = new File(projectRoot);
+    File projectDir = new File(projectRoot);
     if (!projectDir.exists() || !projectDir.isDirectory()) {
       return new TaskResponse(
           FAILURE_STATUS, "External project directory does not exist: " + projectRoot);
@@ -134,9 +137,9 @@ public class JagrathaService {
   }
 
   private static final class UncheckedFileIOException extends RuntimeException {
-    @Serial private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-    private UncheckedFileIOException(final String message, final Throwable cause) {
+    private UncheckedFileIOException(String message, Throwable cause) {
       super(message, cause);
     }
   }

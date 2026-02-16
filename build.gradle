@@ -75,26 +75,13 @@ jacocoTestCoverageVerification {
 check.dependsOn jacocoTestCoverageVerification
 
 spotless {
-    java {
-
-        // 1. Import organization and cleanup
-        importOrder()
-        removeUnusedImports()
-
-        // 2. Code formatting
-        cleanthat()
-        googleJavaFormat().reflowLongStrings()
-
-        // 3. Indentation consistency (4 spaces per Java/Google standards)
-        leadingTabsToSpaces(4)
-
-        // 7. Whitespace cleanup
-        trimTrailingWhitespace()
-        endWithNewline()
-
-        // Exclude generated sources from formatting
-        targetExclude("build/**/*.java")
-    }
+	java {
+		target 'src/*/java/**/*.java'
+		googleJavaFormat('1.31.0')
+		removeUnusedImports()
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
 }
 
 checkstyle {

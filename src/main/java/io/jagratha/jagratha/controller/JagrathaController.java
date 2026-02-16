@@ -22,7 +22,7 @@ public class JagrathaController {
   private static final String SUCCESS_STATUS = "SUCCESS";
 
   @PostMapping("/files")
-  public Mono<ResponseEntity<String>> saveFile(@Valid @RequestBody final FileRequest request) {
+  public Mono<ResponseEntity<String>> saveFile(@Valid @RequestBody FileRequest request) {
     return service
         .saveFile(request.path(), request.content())
         .thenReturn(ResponseEntity.ok("File saved successfully"))
