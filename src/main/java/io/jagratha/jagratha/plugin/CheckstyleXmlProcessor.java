@@ -135,7 +135,10 @@ public class CheckstyleXmlProcessor implements OutputProcessorPlugin {
             input.taskName());
     final Path artifactPath =
         Path.of(input.resultsDir()).resolve(input.sessionId()).resolve(artifactName);
-    Files.createDirectories(artifactPath.getParent());
+    final Path parentDir = artifactPath.getParent();
+    if (parentDir != null) {
+      Files.createDirectories(parentDir);
+    }
     Files.write(artifactPath, jsonLines);
 
     return new ProcessorResult(

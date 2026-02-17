@@ -27,7 +27,22 @@ public interface OutputProcessorPlugin {
       String taskName,
       String taskOutput,
       String resultsDir,
-      Map<String, Object> config) {}
+      Map<String, Object> config) {
+    /**
+     * Compact constructor to ensure configuration is immutable.
+     *
+     * @param sessionId the session identifier
+     * @param projectRoot the project root
+     * @param module the module identifier
+     * @param taskName the task name
+     * @param taskOutput the task output
+     * @param resultsDir the results directory
+     * @param config the processor configuration
+     */
+    public ProcessorInput {
+      config = config != null ? Map.copyOf(config) : Map.of();
+    }
+  }
 
   /** Result of output processing. */
   record ProcessorResult(String status, String output, String artifactPath) {}
