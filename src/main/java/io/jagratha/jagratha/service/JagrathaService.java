@@ -1,6 +1,6 @@
 package io.jagratha.jagratha.service;
 
-import io.jagratha.jagratha.config.JagrathaConfig;
+import io.jagratha.jagratha.config.JagrathaConfigService;
 import io.jagratha.jagratha.model.TaskResponse;
 import jakarta.validation.constraints.NotBlank;
 import java.io.BufferedReader;
@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -29,62 +30,59 @@ import reactor.core.scheduler.Schedulers;
 @RequiredArgsConstructor
 public class JagrathaService {
 
-  private final JagrathaConfig config;
+  private final JagrathaConfigService configService;
 
   private static final String FAILURE_STATUS = "FAILURE";
+  private static final String SUCCESS_STATUS = "SUCCESS";
 
   /**
-   * Save a file to the external project.
+   * Log a file path to a session-specific file.
    *
-   * @param relativePath the relative path of the file
-   * @param content the content to write to the file
-   * @return Mono that completes when the file is saved
+   * @param path the file path to log
+   * @param sessionId the session identifier
+   * @return Mono that completes when the file path is logged
    */
-  public Mono<Void> saveFile(@NotBlank final String relativePath, @NotBlank final String content) {
-    return Mono.defer(
+  public Mono<Void> saveFile(@NotBlank final String path, @NotBlank final String sessionId) {
+    return Mono.fromRunnable(
             () -> {
-              final String projectRoot = getProjectRoot();
-              if (projectRoot == null || projectRoot.isEmpty()) {
-                return Mono.error(
-                    new IllegalStateException("External project path is not configured"));
-              }
-              final Path fullPath = Paths.get(projectRoot).resolve(relativePath).normalize();
-
-              // Security check: ensure the path is within the project root
-              if (!fullPath.startsWith(Paths.get(projectRoot).normalize())) {
-                return Mono.error(
-                    new IllegalArgumentException("Invalid file path: " + relativePath));
+              final String logsDir = configService.getModifiedFilesLogDir();
+              if (logsDir == null || logsDir.isEmpty()) {
+                throw new IllegalStateException("Modified files log directory is not configured");
               }
 
-              return Mono.fromRunnable(
-                      () -> {
-                        try {
-                          Files.createDirectories(fullPath.getParent());
-                          Files.writeString(fullPath, content);
-                          log.info("Saved file to {}", fullPath);
-                        } catch (IOException e) {
-                          log.error("Failed to save file", e);
-                          throw new UncheckedIoException(
-                              "Failed to save file: " + e.getMessage(), e);
-                        }
-                      })
-                  .subscribeOn(Schedulers.boundedElastic());
+              try {
+                final Path dirPath = Paths.get(logsDir);
+                Files.createDirectories(dirPath);
+                final Path logFile = dirPath.resolve(sessionId + ".log");
+                Files.writeString(
+                    logFile,
+                    path + System.lineSeparator(),
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND);
+                log.info("Logged file path {} for session {}", path, sessionId);
+              } catch (IOException e) {
+                log.error("Failed to log file path", e);
+                throw new UncheckedIoException("Failed to log file path: " + e.getMessage(), e);
+              }
             })
+        .subscribeOn(Schedulers.boundedElastic())
         .then();
   }
 
   /**
-   * Run quality checks on the external project.
+   * Run quality checks on the external project and log results.
    *
-   * @return Mono containing the task response with status and output
+   * @param sessionId the session identifier
+   * @return Mono containing the task response
    */
-  public Mono<TaskResponse> runQualityChecks() {
-    return Mono.fromCallable(this::executeQualityChecks).subscribeOn(Schedulers.boundedElastic());
+  public Mono<TaskResponse> runQualityChecks(@NotBlank final String sessionId) {
+    return Mono.fromCallable(() -> executeQualityChecks(sessionId))
+        .subscribeOn(Schedulers.boundedElastic());
   }
 
-  private TaskResponse executeQualityChecks() {
-    final String projectRoot = getProjectRoot();
-    final TaskResponse response;
+  private TaskResponse executeQualityChecks(final String sessionId) {
+    final String projectRoot = configService.getExternalProjectPath();
+    TaskResponse response;
 
     if (projectRoot == null || projectRoot.isEmpty()) {
       response = new TaskResponse(FAILURE_STATUS, "External project path is not configured");
@@ -99,7 +97,28 @@ public class JagrathaService {
       }
     }
 
+    logResults(sessionId, response);
     return response;
+  }
+
+  private void logResults(final String sessionId, final TaskResponse response) {
+    final String logsDir = configService.getGradleResultsLogDir();
+    if (logsDir == null || logsDir.isEmpty()) {
+      log.warn("Gradle results log directory is not configured, skipping result logging");
+      return;
+    }
+
+    try {
+      final Path dirPath = Paths.get(logsDir);
+      Files.createDirectories(dirPath);
+      final Path logFile = dirPath.resolve(sessionId + ".log");
+      final String content = "Status: " + response.status() + "\n\nOutput:\n" + response.output();
+      Files.writeString(
+          logFile, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+      log.info("Logged Gradle results for session {}", sessionId);
+    } catch (IOException e) {
+      log.error("Failed to log Gradle results", e);
+    }
   }
 
   @SuppressWarnings("PMD.DoNotUseThreads")
@@ -119,12 +138,13 @@ public class JagrathaService {
       final Process process = processBuilder.start();
 
       final String output = readProcessOutput(process);
-      final boolean finished = process.waitFor(10, TimeUnit.MINUTES);
+      final Long timeout = configService.getExecutionTimeout();
+      final boolean finished = process.waitFor(timeout != null ? timeout : 600, TimeUnit.SECONDS);
 
       if (finished) {
         final int exitCode = process.exitValue();
         log.info("Quality checks finished with exit code {}", exitCode);
-        response = new TaskResponse(exitCode == 0 ? "SUCCESS" : FAILURE_STATUS, output);
+        response = new TaskResponse(exitCode == 0 ? SUCCESS_STATUS : FAILURE_STATUS, output);
       } else {
         process.destroyForcibly();
         response =
@@ -143,19 +163,20 @@ public class JagrathaService {
     return response;
   }
 
-  private String getProjectRoot() {
-    return config.externalProject() != null ? config.externalProject().path() : null;
-  }
-
   private List<String> buildGradleCommand() {
-    final String gradlePath =
-        config.externalProject() != null ? config.externalProject().gradlePath() : null;
+    final String gradlePath = configService.getGradlePath();
     final List<String> command = new ArrayList<>();
     command.add(gradlePath != null ? gradlePath : "./gradlew");
-    command.add("spotlessApply");
-    command.add("spotlessCheck");
-    command.add("checkstyleMain");
-    command.add("test");
+
+    final List<String> tasks = configService.getTasks();
+    if (tasks != null && !tasks.isEmpty()) {
+      command.addAll(tasks);
+    } else {
+      command.add("spotlessApply");
+      command.add("spotlessCheck");
+      command.add("checkstyleMain");
+      command.add("test");
+    }
     return command;
   }
 
