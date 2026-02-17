@@ -8,10 +8,16 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -98,10 +104,10 @@ public class JagrathaService {
 
   private Map<String, String> readLogFile(final Path logFile) throws IOException {
     if (!Files.exists(logFile)) {
-      return new java.util.LinkedHashMap<>();
+      return new LinkedHashMap<>();
     }
     try (Stream<String> lines = Files.lines(logFile, StandardCharsets.UTF_8)) {
-      final Map<String, String> result = new java.util.LinkedHashMap<>();
+      final Map<String, String> result = new LinkedHashMap<>();
       lines
           .filter(line -> !line.isBlank())
           .forEach(
@@ -154,8 +160,8 @@ public class JagrathaService {
   private String tryNormalize(final String path, final String root) {
     String result = path;
     try {
-      final Path rootPath = Paths.get(root).toAbsolutePath().normalize();
-      final Path filePath = Paths.get(path).toAbsolutePath().normalize();
+      final Path rootPath = Path.of(root).toAbsolutePath().normalize();
+      final Path filePath = Path.of(path).toAbsolutePath().normalize();
       if (filePath.startsWith(rootPath)) {
         result = rootPath.relativize(filePath).toString();
       }
@@ -389,8 +395,7 @@ public class JagrathaService {
           .append(res.status())
           .append('\n')
           .append(res.output())
-          .append('\n')
-          .append('\n');
+          .append("\n\n");
 
       if (FAILURE_STATUS.equals(res.status())) {
         return res;
