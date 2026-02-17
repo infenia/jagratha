@@ -15,6 +15,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record JagrathaConfig(
     ExternalProject externalProject, List<String> tasks, Long executionTimeout, Logs logs) {
 
+  /** Compact constructor to ensure tasks list is immutable. */
+  public JagrathaConfig {
+    tasks = tasks != null ? List.copyOf(tasks) : List.of();
+  }
+
   /**
    * Configuration for the external project.
    *

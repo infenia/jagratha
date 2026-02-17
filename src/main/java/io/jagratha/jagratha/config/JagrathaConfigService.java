@@ -86,7 +86,7 @@ public class JagrathaConfigService {
   public List<String> getTasks() {
     final List<String> override = tasks.get();
     final List<String> result;
-    if (override != null) {
+    if (override != null && !override.isEmpty()) {
       result = override;
     } else {
       result = staticConfig.tasks();
@@ -100,7 +100,11 @@ public class JagrathaConfigService {
    * @param tasksList the list of tasks
    */
   public void setTasks(final List<String> tasksList) {
-    tasks.set(tasksList);
+    if (tasksList != null) {
+      tasks.set(List.copyOf(tasksList));
+    } else {
+      tasks.set(List.of());
+    }
   }
 
   /**
