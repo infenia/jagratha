@@ -1,5 +1,7 @@
 package io.jagratha.jagratha.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jagratha.jagratha.config.JagrathaConfigService;
 import io.jagratha.jagratha.model.TaskResponse;
 import jakarta.validation.constraints.NotBlank;
@@ -13,7 +15,8 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.AbstractMap;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,6 +42,7 @@ import reactor.core.scheduler.Schedulers;
 public class JagrathaService {
 
   private final JagrathaConfigService configService;
+  private final ObjectMapper objectMapper;
 
   private static final String FAILURE_STATUS = "FAILURE";
   private static final String SUCCESS_STATUS = "SUCCESS";
@@ -71,8 +75,9 @@ public class JagrathaService {
               final ReentrantLock lock = getLock(sessionId);
               lock.lock();
               try {
-                final Path logFile = Paths.get(logsDir).resolve(sessionId + ".log");
-                Files.createDirectories(logFile.getParent());
+                final Path sessionDir = Paths.get(logsDir).resolve(sessionId);
+                Files.createDirectories(sessionDir);
+                final Path logFile = sessionDir.resolve(sessionId + ".log");
 
                 final Map<String, String> files = readLogFile(logFile);
                 files.put(normalizePath(path), PENDING_STATUS);
@@ -97,30 +102,42 @@ public class JagrathaService {
       return new LinkedHashMap<>();
     }
     try (Stream<String> lines = Files.lines(logFile, StandardCharsets.UTF_8)) {
-      return lines
+      final Map<String, String> result = new LinkedHashMap<>();
+      lines
           .filter(line -> !line.isBlank())
-          .map(this::parseLogLine)
-          .collect(
-              Collectors.toMap(
-                  Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v2, LinkedHashMap::new));
+          .forEach(
+              line -> {
+                try {
+                  final LogEntry entry = objectMapper.readValue(line, LogEntry.class);
+                  result.put(entry.getPath(), entry.getStatus());
+                } catch (JsonProcessingException e) {
+                  log.warn("Failed to parse log line: {}", line, e);
+                }
+              });
+      return result;
     }
-  }
-
-  private Map.Entry<String, String> parseLogLine(final String line) {
-    final int sepIdx = line.lastIndexOf('|');
-    if (sepIdx == -1) {
-      return new AbstractMap.SimpleEntry<>(line, PENDING_STATUS);
-    }
-    return new AbstractMap.SimpleEntry<>(line.substring(0, sepIdx), line.substring(sepIdx + 1));
   }
 
   private void writeLogFile(final Path logFile, final Map<String, String> files)
       throws IOException {
-    final List<String> lines =
-        files.entrySet().stream()
-            .map(entry -> entry.getKey() + "|" + entry.getValue())
-            .collect(Collectors.toList());
+    final List<String> lines = new ArrayList<>();
+    for (final Map.Entry<String, String> entry : files.entrySet()) {
+      try {
+        lines.add(objectMapper.writeValueAsString(new LogEntry(entry.getKey(), entry.getValue())));
+      } catch (JsonProcessingException e) {
+        log.error("Failed to serialize log entry for file: {}", entry.getKey(), e);
+      }
+    }
     Files.write(logFile, lines, StandardCharsets.UTF_8);
+  }
+
+  @lombok.Getter
+  @lombok.Setter
+  @lombok.NoArgsConstructor
+  @lombok.AllArgsConstructor
+  static class LogEntry {
+    private String path;
+    private String status;
   }
 
   private String normalizePath(final String path) {
@@ -153,6 +170,92 @@ public class JagrathaService {
    */
   public Mono<TaskResponse> runQualityChecks(@NotBlank final String sessionId) {
     return Mono.fromCallable(() -> executeQualityChecks(sessionId))
+        .subscribeOn(Schedulers.boundedElastic());
+  }
+
+  /**
+   * List all log files for a given session.
+   *
+   * @param sessionId the session identifier
+   * @return Mono containing a list of log filenames
+   */
+  public Mono<List<String>> listLogs(@NotBlank final String sessionId) {
+    return Mono.fromCallable(
+            () -> {
+              if (sessionId.contains("..")) {
+                throw new IllegalArgumentException("Invalid sessionId");
+              }
+              final List<String> logFiles = new ArrayList<>();
+              final String resultsDir = configService.getResultLogDir();
+              final String fileLogDir = configService.getFileLogDir();
+
+              addLogsFromDir(logFiles, resultsDir, sessionId);
+              addLogsFromDir(logFiles, fileLogDir, sessionId);
+
+              return logFiles.stream().distinct().sorted().collect(Collectors.toList());
+            })
+        .subscribeOn(Schedulers.boundedElastic());
+  }
+
+  private void addLogsFromDir(
+      final List<String> logFiles, final String baseDir, final String sessionId) {
+    if (baseDir == null || baseDir.isEmpty()) {
+      return;
+    }
+    try {
+      final Path sessionDir = Paths.get(baseDir).resolve(sessionId);
+      if (Files.exists(sessionDir) && Files.isDirectory(sessionDir)) {
+        try (Stream<Path> files = Files.list(sessionDir)) {
+          files
+              .filter(Files::isRegularFile)
+              .map(path -> path.getFileName().toString())
+              .forEach(logFiles::add);
+        }
+      }
+    } catch (IOException e) {
+      log.warn("Failed to list logs from directory: {}", baseDir, e);
+    }
+  }
+
+  /**
+   * Get the content of a specific log file.
+   *
+   * @param sessionId the session identifier
+   * @param fileName the log filename
+   * @return Mono containing the log content
+   */
+  public Mono<String> getLogContent(
+      @NotBlank final String sessionId, @NotBlank final String fileName) {
+    return Mono.fromCallable(
+            () -> {
+              if (sessionId.contains("..")
+                  || fileName.contains("..")
+                  || fileName.contains("/")
+                  || fileName.contains("\\")) {
+                throw new IllegalArgumentException("Invalid sessionId or fileName");
+              }
+              final String resultsDir = configService.getResultLogDir();
+              final String fileLogDir = configService.getFileLogDir();
+
+              Path logFile = null;
+              if (resultsDir != null && !resultsDir.isEmpty()) {
+                final Path path = Paths.get(resultsDir).resolve(sessionId).resolve(fileName);
+                if (Files.exists(path)) {
+                  logFile = path;
+                }
+              }
+              if (logFile == null && fileLogDir != null && !fileLogDir.isEmpty()) {
+                final Path path = Paths.get(fileLogDir).resolve(sessionId).resolve(fileName);
+                if (Files.exists(path)) {
+                  logFile = path;
+                }
+              }
+
+              if (logFile == null || !Files.exists(logFile)) {
+                throw new IOException("Log file not found: " + fileName);
+              }
+              return Files.readString(logFile, StandardCharsets.UTF_8);
+            })
         .subscribeOn(Schedulers.boundedElastic());
   }
 
@@ -192,7 +295,7 @@ public class JagrathaService {
     final ReentrantLock lock = getLock(sessionId);
     lock.lock();
     try {
-      final Path logFile = Paths.get(logsDir).resolve(sessionId + ".log");
+      final Path logFile = Paths.get(logsDir).resolve(sessionId).resolve(sessionId + ".log");
       final Map<String, String> files = readLogFile(logFile);
       final Map<String, List<String>> pendingByModule =
           files.entrySet().stream()
@@ -206,7 +309,8 @@ public class JagrathaService {
       if (pendingByModule.isEmpty()) {
         return new TaskResponse(SUCCESS_STATUS, "No pending changes to process.");
       }
-      final TaskResponse response = runChecksForModules(projectDir, pendingByModule, files);
+      final TaskResponse response =
+          runChecksForModules(projectDir, pendingByModule, files, sessionId);
       writeLogFile(logFile, files);
       return response;
     } catch (IOException e) {
@@ -220,32 +324,62 @@ public class JagrathaService {
   private TaskResponse runChecksForModules(
       final File projectDir,
       final Map<String, List<String>> pendingByModule,
-      final Map<String, String> allFiles) {
+      final Map<String, String> allFiles,
+      final String sessionId) {
 
     String overallStatus = SUCCESS_STATUS;
     final StringBuilder combinedOutput = new StringBuilder(SB_CAPACITY);
+    final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
     for (final Map.Entry<String, List<String>> entry : pendingByModule.entrySet()) {
       final String module = entry.getKey();
       final List<String> moduleFiles = entry.getValue();
-      final List<String> command = buildGradleCommand(module);
 
-      if (log.isInfoEnabled()) {
-        log.info("Running quality checks for module {}: {}", module, String.join(" ", command));
+      List<String> tasks = configService.getTasks();
+      if (tasks == null || tasks.isEmpty()) {
+        tasks = List.of("spotlessApply", "spotlessCheck", "checkstyleMain", "test");
       }
 
       combinedOutput
           .append("--- Module: ")
           .append(module.isEmpty() ? "root" : module)
           .append(" ---\n");
-      final TaskResponse res = tryExecuteGradleChecks(command, projectDir);
-      combinedOutput.append(res.output()).append("\n\n");
 
-      if (FAILURE_STATUS.equals(res.status())) {
-        overallStatus = FAILURE_STATUS;
+      for (final String task : tasks) {
+        final List<String> command = buildSingleGradleCommand(module, task);
+        final String timestamp = LocalDateTime.now().format(formatter);
+        final String logFileName =
+            String.format(
+                "%s-%s-%s.log",
+                module.isEmpty() ? "root" : module.replace(":", "-").substring(1), task, timestamp);
+
+        if (log.isInfoEnabled()) {
+          log.info("Running quality check: {}", String.join(" ", command));
+        }
+
+        final TaskResponse res = tryExecuteGradleChecks(command, projectDir);
+        saveTaskLog(sessionId, logFileName, res);
+
+        combinedOutput
+            .append("Task: ")
+            .append(task)
+            .append(" - ")
+            .append(res.status())
+            .append("\n");
+        combinedOutput.append(res.output()).append("\n\n");
+
+        if (FAILURE_STATUS.equals(res.status())) {
+          overallStatus = FAILURE_STATUS;
+          break;
+        }
       }
+
       for (final String file : moduleFiles) {
-        allFiles.put(file, res.status());
+        allFiles.put(file, overallStatus);
+      }
+
+      if (FAILURE_STATUS.equals(overallStatus)) {
+        break;
       }
     }
     return new TaskResponse(overallStatus, combinedOutput.toString());
@@ -276,13 +410,29 @@ public class JagrathaService {
     return result;
   }
 
+  private void saveTaskLog(final String sessionId, final String fileName, final TaskResponse res) {
+    final String logsDir = configService.getResultLogDir();
+    if (logsDir != null && !logsDir.isEmpty()) {
+      try {
+        final Path dirPath = Paths.get(logsDir).resolve(sessionId);
+        Files.createDirectories(dirPath);
+        final Path logFile = dirPath.resolve(fileName);
+        final String content = "Status: " + res.status() + "\n\nOutput:\n" + res.output();
+        Files.writeString(
+            logFile, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+      } catch (IOException e) {
+        log.error("Failed to log task result", e);
+      }
+    }
+  }
+
   private void logResults(final String sessionId, final TaskResponse response) {
     final String logsDir = configService.getResultLogDir();
     if (logsDir != null && !logsDir.isEmpty()) {
       try {
-        final Path dirPath = Paths.get(logsDir);
+        final Path dirPath = Paths.get(logsDir).resolve(sessionId);
         Files.createDirectories(dirPath);
-        final Path logFile = dirPath.resolve(sessionId + ".log");
+        final Path logFile = dirPath.resolve("summary.log");
         final String content = "Status: " + response.status() + "\n\nOutput:\n" + response.output();
         Files.writeString(
             logFile, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
@@ -329,24 +479,17 @@ public class JagrathaService {
     return response;
   }
 
-  private List<String> buildGradleCommand(final String module) {
+  private List<String> buildSingleGradleCommand(final String module, final String task) {
     final String gradlePath = configService.getGradlePath();
     final List<String> command = new ArrayList<>();
-    command.add(gradlePath != null ? gradlePath : "./gradlew");
+    command.add(gradlePath != null && !gradlePath.isEmpty() ? gradlePath : "./gradlew");
 
-    List<String> tasks = configService.getTasks();
-    if (tasks == null || tasks.isEmpty()) {
-      tasks = List.of("spotlessApply", "spotlessCheck", "checkstyleMain", "test");
-    }
-
-    for (final String task : tasks) {
-      if (module.isEmpty()) {
-        command.add(task);
-      } else if (task.startsWith(":")) {
-        command.add(task);
-      } else {
-        command.add(module + ":" + task);
-      }
+    if (module.isEmpty()) {
+      command.add(task);
+    } else if (task.startsWith(":")) {
+      command.add(task);
+    } else {
+      command.add(module + ":" + task);
     }
     return command;
   }
