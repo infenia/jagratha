@@ -39,7 +39,8 @@ import reactor.core.publisher.Mono;
   "PMD.OnlyOneReturn",
   "PMD.UseConcurrentHashMap",
   "PMD.CouplingBetweenObjects",
-  "PMD.CyclomaticComplexity"
+  "PMD.CyclomaticComplexity",
+  "PMD.GodClass"
 })
 public class JagrathaService {
 

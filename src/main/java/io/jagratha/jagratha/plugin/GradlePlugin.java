@@ -15,6 +15,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class GradlePlugin implements JagrathaPlugin {
 
+  /** Public constructor for PMD. */
+  public GradlePlugin() {
+    super();
+  }
+
   @Override
   public String getName() {
     return "gradle";
