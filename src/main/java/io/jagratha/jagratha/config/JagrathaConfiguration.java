@@ -9,6 +9,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class JagrathaConfiguration {
 
+  /** Public constructor for PMD. */
+  public JagrathaConfiguration() {
+    super();
+  }
+
   /**
    * Provide an ObjectMapper bean if not already present.
    *
