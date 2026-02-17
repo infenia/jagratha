@@ -13,47 +13,47 @@ class JagrathaConfigServiceTest {
 
   @BeforeEach
   void setUp() {
-    staticConfig = new JagrathaConfig(
-        new JagrathaConfig.ExternalProject("/static/path", "/static/gradle"),
-        List.of("staticTask"),
-        100L,
-        new JagrathaConfig.Logs("/static/files", "/static/results")
-    );
+    staticConfig =
+        new JagrathaConfig(
+            new JagrathaConfig.ExternalProject("/static/path", "/static/gradle"),
+            List.of("staticTask"),
+            100L,
+            new JagrathaConfig.Logs("/static/files", "/static/results"));
     configService = new JagrathaConfigService(staticConfig);
   }
 
   @Test
   void testDefaultValues() {
-    assertEquals("/static/path", configService.getExternalProjectPath());
+    assertEquals("/static/path", configService.getProjectPath());
     assertEquals("/static/gradle", configService.getGradlePath());
     assertEquals(List.of("staticTask"), configService.getTasks());
     assertEquals(100L, configService.getExecutionTimeout());
-    assertEquals("/static/files", configService.getModifiedFilesLogDir());
-    assertEquals("/static/results", configService.getGradleResultsLogDir());
+    assertEquals("/static/files", configService.getFileLogDir());
+    assertEquals("/static/results", configService.getResultLogDir());
   }
 
   @Test
   void testApiOverrides() {
-    configService.setExternalProjectPath("/api/path");
+    configService.setProjectPath("/api/path");
     configService.setGradlePath("/api/gradle");
     configService.setTasks(List.of("apiTask"));
     configService.setExecutionTimeout(200L);
-    configService.setModifiedFilesLogDir("/api/files");
-    configService.setGradleResultsLogDir("/api/results");
+    configService.setFileLogDir("/api/files");
+    configService.setResultLogDir("/api/results");
 
-    assertEquals("/api/path", configService.getExternalProjectPath());
+    assertEquals("/api/path", configService.getProjectPath());
     assertEquals("/api/gradle", configService.getGradlePath());
     assertEquals(List.of("apiTask"), configService.getTasks());
     assertEquals(200L, configService.getExecutionTimeout());
-    assertEquals("/api/files", configService.getModifiedFilesLogDir());
-    assertEquals("/api/results", configService.getGradleResultsLogDir());
+    assertEquals("/api/files", configService.getFileLogDir());
+    assertEquals("/api/results", configService.getResultLogDir());
   }
 
   @Test
   void testPartialApiOverrides() {
-    configService.setExternalProjectPath("/api/path");
+    configService.setProjectPath("/api/path");
 
-    assertEquals("/api/path", configService.getExternalProjectPath());
+    assertEquals("/api/path", configService.getProjectPath());
     assertEquals("/static/gradle", configService.getGradlePath()); // still static
   }
 }

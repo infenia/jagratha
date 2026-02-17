@@ -13,10 +13,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "jagratha")
 public record JagrathaConfig(
-    ExternalProject externalProject,
-    List<String> tasks,
-    Long executionTimeout,
-    Logs logs) {
+    ExternalProject externalProject, List<String> tasks, Long executionTimeout, Logs logs) {
 
   /**
    * Configuration for the external project.

@@ -45,7 +45,7 @@ public class JagrathaService {
   public Mono<Void> saveFile(@NotBlank final String path, @NotBlank final String sessionId) {
     return Mono.fromRunnable(
             () -> {
-              final String logsDir = configService.getModifiedFilesLogDir();
+              final String logsDir = configService.getFileLogDir();
               if (logsDir == null || logsDir.isEmpty()) {
                 throw new IllegalStateException("Modified files log directory is not configured");
               }
@@ -81,8 +81,8 @@ public class JagrathaService {
   }
 
   private TaskResponse executeQualityChecks(final String sessionId) {
-    final String projectRoot = configService.getExternalProjectPath();
-    TaskResponse response;
+    final String projectRoot = configService.getProjectPath();
+    final TaskResponse response;
 
     if (projectRoot == null || projectRoot.isEmpty()) {
       response = new TaskResponse(FAILURE_STATUS, "External project path is not configured");
@@ -102,7 +102,7 @@ public class JagrathaService {
   }
 
   private void logResults(final String sessionId, final TaskResponse response) {
-    final String logsDir = configService.getGradleResultsLogDir();
+    final String logsDir = configService.getResultLogDir();
     if (logsDir == null || logsDir.isEmpty()) {
       log.warn("Gradle results log directory is not configured, skipping result logging");
       return;
@@ -121,7 +121,6 @@ public class JagrathaService {
     }
   }
 
-  @SuppressWarnings("PMD.DoNotUseThreads")
   private TaskResponse executeGradleChecks(final File projectDir) {
     final List<String> command = buildGradleCommand();
     final String projectRoot = projectDir.getAbsolutePath();
@@ -130,6 +129,11 @@ public class JagrathaService {
       log.info("Running quality checks in {}: {}", projectRoot, String.join(" ", command));
     }
 
+    return tryExecuteGradleChecks(command, projectDir);
+  }
+
+  @SuppressWarnings("PMD.DoNotUseThreads")
+  private TaskResponse tryExecuteGradleChecks(final List<String> command, final File projectDir) {
     TaskResponse response;
     try {
       final ProcessBuilder processBuilder = new ProcessBuilder(command);
@@ -159,7 +163,6 @@ public class JagrathaService {
       Thread.currentThread().interrupt();
       response = new TaskResponse(FAILURE_STATUS, "Execution interrupted: " + e.getMessage());
     }
-
     return response;
   }
 

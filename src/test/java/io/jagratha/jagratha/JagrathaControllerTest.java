@@ -130,8 +130,7 @@ class JagrathaControllerTest {
 
   @Test
   void testUpdateConfig() {
-    ConfigRequest request =
-        new ConfigRequest("/new/path", null, List.of("test"), 300L, null, null);
+    ConfigRequest request = new ConfigRequest("/new/path", null, List.of("test"), 300L, null, null);
 
     webTestClient
         .post()

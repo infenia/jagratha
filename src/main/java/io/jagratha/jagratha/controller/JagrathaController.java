@@ -80,8 +80,8 @@ public class JagrathaController {
    */
   @PostMapping("/config")
   public ResponseEntity<String> updateConfig(@RequestBody final ConfigRequest request) {
-    if (request.externalProjectPath() != null) {
-      configService.setExternalProjectPath(request.externalProjectPath());
+    if (request.projectPath() != null) {
+      configService.setProjectPath(request.projectPath());
     }
     if (request.gradlePath() != null) {
       configService.setGradlePath(request.gradlePath());
@@ -92,11 +92,11 @@ public class JagrathaController {
     if (request.executionTimeout() != null) {
       configService.setExecutionTimeout(request.executionTimeout());
     }
-    if (request.modifiedFilesLogDir() != null) {
-      configService.setModifiedFilesLogDir(request.modifiedFilesLogDir());
+    if (request.fileLogDir() != null) {
+      configService.setFileLogDir(request.fileLogDir());
     }
-    if (request.gradleResultsLogDir() != null) {
-      configService.setGradleResultsLogDir(request.gradleResultsLogDir());
+    if (request.resultLogDir() != null) {
+      configService.setResultLogDir(request.resultLogDir());
     }
     return ResponseEntity.ok("Configuration updated successfully");
   }

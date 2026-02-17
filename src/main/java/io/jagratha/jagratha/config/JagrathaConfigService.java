@@ -6,92 +6,179 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * Service for managing Jagratha configuration with runtime overrides.
- * Provides a way to update configuration via API while maintaining
- * precedence: API > Command Line > Environment > application.yaml.
+ * Service for managing Jagratha configuration with runtime overrides. Provides a way to update
+ * configuration via API while maintaining precedence: API > Command Line > Environment >
+ * application.yaml.
  */
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.DataClass")
 public class JagrathaConfigService {
 
   private final JagrathaConfig staticConfig;
 
-  private final AtomicReference<String> externalProjectPath = new AtomicReference<>();
+  private final AtomicReference<String> projectPath = new AtomicReference<>();
   private final AtomicReference<String> gradlePath = new AtomicReference<>();
   private final AtomicReference<List<String>> tasks = new AtomicReference<>();
   private final AtomicReference<Long> executionTimeout = new AtomicReference<>();
-  private final AtomicReference<String> modifiedFilesLogDir = new AtomicReference<>();
-  private final AtomicReference<String> gradleResultsLogDir = new AtomicReference<>();
+  private final AtomicReference<String> fileLogDir = new AtomicReference<>();
+  private final AtomicReference<String> resultLogDir = new AtomicReference<>();
 
-  public String getExternalProjectPath() {
-    String override = externalProjectPath.get();
+  /**
+   * Get the external project path.
+   *
+   * @return the project path
+   */
+  public String getProjectPath() {
+    final String override = projectPath.get();
+    final String result;
     if (override != null) {
-      return override;
+      result = override;
+    } else if (staticConfig.externalProject() != null) {
+      result = staticConfig.externalProject().path();
+    } else {
+      result = "";
     }
-    return staticConfig.externalProject() != null ? staticConfig.externalProject().path() : null;
+    return result;
   }
 
-  public void setExternalProjectPath(String path) {
-    externalProjectPath.set(path);
+  /**
+   * Set the external project path override.
+   *
+   * @param path the project path
+   */
+  public void setProjectPath(final String path) {
+    projectPath.set(path);
   }
 
+  /**
+   * Get the Gradle path.
+   *
+   * @return the Gradle path
+   */
   public String getGradlePath() {
-    String override = gradlePath.get();
+    final String override = gradlePath.get();
+    final String result;
     if (override != null) {
-      return override;
+      result = override;
+    } else if (staticConfig.externalProject() != null) {
+      result = staticConfig.externalProject().gradlePath();
+    } else {
+      result = "";
     }
-    return staticConfig.externalProject() != null ? staticConfig.externalProject().gradlePath() : null;
+    return result;
   }
 
-  public void setGradlePath(String path) {
+  /**
+   * Set the Gradle path override.
+   *
+   * @param path the Gradle path
+   */
+  public void setGradlePath(final String path) {
     gradlePath.set(path);
   }
 
+  /**
+   * Get the list of Gradle tasks.
+   *
+   * @return the list of tasks
+   */
   public List<String> getTasks() {
-    List<String> override = tasks.get();
+    final List<String> override = tasks.get();
+    final List<String> result;
     if (override != null) {
-      return override;
+      result = override;
+    } else {
+      result = staticConfig.tasks();
     }
-    return staticConfig.tasks();
+    return result;
   }
 
-  public void setTasks(List<String> tasksList) {
+  /**
+   * Set the Gradle tasks override.
+   *
+   * @param tasksList the list of tasks
+   */
+  public void setTasks(final List<String> tasksList) {
     tasks.set(tasksList);
   }
 
+  /**
+   * Get the execution timeout in seconds.
+   *
+   * @return the timeout
+   */
   public Long getExecutionTimeout() {
-    Long override = executionTimeout.get();
+    final Long override = executionTimeout.get();
+    final Long result;
     if (override != null) {
-      return override;
+      result = override;
+    } else {
+      result = staticConfig.executionTimeout();
     }
-    return staticConfig.executionTimeout();
+    return result;
   }
 
-  public void setExecutionTimeout(Long timeout) {
+  /**
+   * Set the execution timeout override.
+   *
+   * @param timeout the timeout in seconds
+   */
+  public void setExecutionTimeout(final Long timeout) {
     executionTimeout.set(timeout);
   }
 
-  public String getModifiedFilesLogDir() {
-    String override = modifiedFilesLogDir.get();
+  /**
+   * Get the modified files log directory.
+   *
+   * @return the log directory
+   */
+  public String getFileLogDir() {
+    final String override = fileLogDir.get();
+    final String result;
     if (override != null) {
-      return override;
+      result = override;
+    } else if (staticConfig.logs() != null) {
+      result = staticConfig.logs().modifiedFilesDir();
+    } else {
+      result = "";
     }
-    return staticConfig.logs() != null ? staticConfig.logs().modifiedFilesDir() : null;
+    return result;
   }
 
-  public void setModifiedFilesLogDir(String dir) {
-    modifiedFilesLogDir.set(dir);
+  /**
+   * Set the modified files log directory override.
+   *
+   * @param dir the log directory
+   */
+  public void setFileLogDir(final String dir) {
+    fileLogDir.set(dir);
   }
 
-  public String getGradleResultsLogDir() {
-    String override = gradleResultsLogDir.get();
+  /**
+   * Get the Gradle results log directory.
+   *
+   * @return the log directory
+   */
+  public String getResultLogDir() {
+    final String override = resultLogDir.get();
+    final String result;
     if (override != null) {
-      return override;
+      result = override;
+    } else if (staticConfig.logs() != null) {
+      result = staticConfig.logs().gradleResultsDir();
+    } else {
+      result = "";
     }
-    return staticConfig.logs() != null ? staticConfig.logs().gradleResultsDir() : null;
+    return result;
   }
 
-  public void setGradleResultsLogDir(String dir) {
-    gradleResultsLogDir.set(dir);
+  /**
+   * Set the Gradle results log directory override.
+   *
+   * @param dir the log directory
+   */
+  public void setResultLogDir(final String dir) {
+    resultLogDir.set(dir);
   }
 }

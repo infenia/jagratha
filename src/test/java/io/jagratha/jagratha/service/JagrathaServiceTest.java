@@ -26,9 +26,9 @@ class JagrathaServiceTest {
     configService = mock(JagrathaConfigService.class);
     service = new JagrathaService(configService);
 
-    when(configService.getModifiedFilesLogDir()).thenReturn(tempDir.resolve("files").toString());
-    when(configService.getGradleResultsLogDir()).thenReturn(tempDir.resolve("results").toString());
-    when(configService.getExternalProjectPath()).thenReturn(tempDir.toString());
+    when(configService.getFileLogDir()).thenReturn(tempDir.resolve("files").toString());
+    when(configService.getResultLogDir()).thenReturn(tempDir.resolve("results").toString());
+    when(configService.getProjectPath()).thenReturn(tempDir.toString());
     when(configService.getGradlePath()).thenReturn("./gradlew");
     when(configService.getExecutionTimeout()).thenReturn(600L);
   }
@@ -47,7 +47,7 @@ class JagrathaServiceTest {
 
   @Test
   void testSaveFileNoPathConfigured() {
-    when(configService.getModifiedFilesLogDir()).thenReturn(null);
+    when(configService.getFileLogDir()).thenReturn(null);
     StepVerifier.create(service.saveFile("test.java", "session-1"))
         .expectError(IllegalStateException.class)
         .verify();
@@ -55,7 +55,7 @@ class JagrathaServiceTest {
 
   @Test
   void testRunQualityChecksPathNotConfigured() {
-    when(configService.getExternalProjectPath()).thenReturn(null);
+    when(configService.getProjectPath()).thenReturn(null);
 
     StepVerifier.create(service.runQualityChecks("session-1"))
         .assertNext(
@@ -68,7 +68,7 @@ class JagrathaServiceTest {
 
   @Test
   void testRunQualityChecksDirectoryDoesNotExist() {
-    when(configService.getExternalProjectPath()).thenReturn("/non/existent/path");
+    when(configService.getProjectPath()).thenReturn("/non/existent/path");
 
     StepVerifier.create(service.runQualityChecks("session-1"))
         .assertNext(
