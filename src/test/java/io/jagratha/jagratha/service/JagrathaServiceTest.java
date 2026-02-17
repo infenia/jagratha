@@ -40,7 +40,9 @@ class JagrathaServiceTest {
     Files.createDirectories(projectDir);
 
     configService = mock(JagrathaConfigService.class);
-    service = new JagrathaService(configService, new ObjectMapper(), List.of(new GradlePlugin()));
+    service =
+        new JagrathaService(
+            configService, new ObjectMapper(), List.of(new GradlePlugin()), List.of(), List.of());
 
     when(configService.getFileLogDir()).thenReturn(filesDir.toString());
     when(configService.getResultLogDir()).thenReturn(resultsDir.toString());
