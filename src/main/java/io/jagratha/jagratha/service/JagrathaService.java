@@ -48,7 +48,8 @@ public class JagrathaService {
               final String logsDir = configService.getFileLogDir();
               if (logsDir == null || logsDir.isEmpty()) {
                 throw new IllegalStateException(
-                    "Modified files log directory is not configured. Please use the /api/config endpoint to initialize the project configuration.");
+                    "Modified files log directory is not configured. Please use the /api/config "
+                        + "endpoint to initialize the project configuration.");
               }
 
               try {
@@ -89,7 +90,8 @@ public class JagrathaService {
       response =
           new TaskResponse(
               FAILURE_STATUS,
-              "External project path is not configured. Please use the /api/config endpoint to initialize the project configuration.");
+              "External project path is not configured. Please use the /api/config endpoint to "
+                  + "initialize the project configuration.");
     } else {
       final File projectDir = new File(projectRoot);
       if (projectDir.exists() && projectDir.isDirectory()) {
