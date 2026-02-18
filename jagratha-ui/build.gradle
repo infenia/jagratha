@@ -1,0 +1,46 @@
+plugins {
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.lombok)
+    alias(libs.plugins.jte)
+}
+
+dependencies {
+    implementation project(':jagratha-core')
+    implementation libs.jte.starter
+    implementation libs.jte.core
+    implementation libs.spring.boot.starter.webflux
+
+    compileOnly libs.lombok
+    annotationProcessor libs.lombok
+
+    testImplementation libs.spring.boot.starter.test
+    testImplementation libs.spring.boot.starter.webflux.test
+    testImplementation libs.reactor.test
+}
+
+jte {
+    generate()
+    precompile()
+    binaryStaticContent = true
+}
+
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+}
+
+// Tailwind CSS task
+task tailwind(type: Exec) {
+    workingDir projectDir
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'npx', '@tailwindcss/cli', '-i', './src/main/resources/static/css/input.css', '-o', './src/main/resources/static/css/style.css', '--minify'
+    } else {
+        commandLine 'npx', '@tailwindcss/cli', '-i', './src/main/resources/static/css/input.css', '-o', './src/main/resources/static/css/style.css', '--minify'
+    }
+}
+
+processResources.dependsOn tailwind

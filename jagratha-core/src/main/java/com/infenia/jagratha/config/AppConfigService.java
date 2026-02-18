@@ -283,4 +283,22 @@ public class AppConfigService {
       resultLogDirs.put(sessionId, dir);
     }
   }
+
+  /**
+   * Get all configurations for a session as a map.
+   *
+   * @param sessionId the session identifier
+   * @return map of configurations
+   */
+  public Map<String, Object> getAllConfigs(final String sessionId) {
+    final Map<String, Object> configs = new java.util.LinkedHashMap<>();
+    configs.put("projectPath", getProjectPath(sessionId));
+    configs.put("pluginName", getPluginName(sessionId));
+    configs.put("pluginConfig", getPluginConfig(sessionId));
+    configs.put("tasks", getTasks(sessionId));
+    configs.put("executionTimeout", getExecutionTimeout(sessionId));
+    configs.put("fileLogDir", getFileLogDir(sessionId));
+    configs.put("resultLogDir", getResultLogDir(sessionId));
+    return configs;
+  }
 }
