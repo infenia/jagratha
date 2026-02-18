@@ -20,6 +20,9 @@ dependencies {
 }
 
 jte {
+    sourceDirectory = file("src/main/jte").toPath()
+    targetDirectory = file("build/jte-classes").toPath()
+    compilePath = sourceSets.main.compileClasspath
     generate()
     precompile()
     binaryStaticContent = true
@@ -28,6 +31,8 @@ jte {
 bootJar {
     enabled = false
 }
+
+sourceSets.main.output.dir(file("build/jte-classes"), builtBy: 'precompileJte')
 
 jar {
     enabled = true
