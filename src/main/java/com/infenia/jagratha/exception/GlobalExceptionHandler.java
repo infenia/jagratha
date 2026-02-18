@@ -1,56 +1,82 @@
 package com.infenia.jagratha.exception;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.server.RequestPath;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
+import org.springframework.web.reactive.result.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
 /** Global exception handler for the application. */
 @Slf4j
 @RestControllerAdvice
 @SuppressWarnings("PMD.LawOfDemeter")
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
   /** Default constructor. */
   public GlobalExceptionHandler() {
-    // Default constructor for Spring
+    super();
   }
 
-  /**
-   * Handle validation exceptions from @RequestBody validation.
-   *
-   * @param exception the exception
-   * @param request the current request
-   * @return structured error response
-   */
-  @ExceptionHandler(WebExchangeBindException.class)
-  public ResponseEntity<ErrorResponse> handleValidationException(
-      final WebExchangeBindException exception, final ServerHttpRequest request) {
+  @Override
+  protected Mono<ResponseEntity<Object>> handleWebExchangeBindException(
+      final WebExchangeBindException exception,
+      final HttpHeaders headers,
+      final HttpStatusCode status,
+      final ServerWebExchange exchange) {
     final List<ErrorResponse.FieldError> errors =
         exception.getFieldErrors().stream()
             .map(err -> new ErrorResponse.FieldError(err.getField(), err.getDefaultMessage()))
             .collect(Collectors.toList());
 
-    final RequestPath requestPath = request.getPath();
-    final String path = requestPath.value();
+    final String path = exchange.getRequest().getPath().value();
     final ErrorResponse errorResponse =
         new ErrorResponse(
             LocalDateTime.now(),
-            HttpStatus.BAD_REQUEST.value(),
-            HttpStatus.BAD_REQUEST.getReasonPhrase(),
+            status.value(),
+            HttpStatus.valueOf(status.value()).getReasonPhrase(),
             "Validation failed",
             path,
             errors);
 
-    return ResponseEntity.badRequest().body(errorResponse);
+    return Mono.just(ResponseEntity.status(status).headers(headers).body(errorResponse));
+  }
+
+  @Override
+  protected Mono<ResponseEntity<Object>> createResponseEntity(
+      @Nullable final Object body,
+      final HttpHeaders headers,
+      final HttpStatusCode status,
+      final ServerWebExchange exchange) {
+
+    Object responseBody = body;
+    if (!(body instanceof ErrorResponse)) {
+      final String path = exchange.getRequest().getPath().value();
+      final String message = (body instanceof String stringBody) ? stringBody : status.toString();
+
+      responseBody =
+          new ErrorResponse(
+              LocalDateTime.now(),
+              status.value(),
+              HttpStatus.valueOf(status.value()).getReasonPhrase(),
+              message,
+              path,
+              List.of());
+    }
+
+    return super.createResponseEntity(responseBody, headers, status, exchange);
   }
 
   /**
@@ -132,8 +158,7 @@ public class GlobalExceptionHandler {
 
   private ResponseEntity<ErrorResponse> buildErrorResponse(
       final HttpStatus status, final String message, final ServerHttpRequest request) {
-    final RequestPath requestPath = request.getPath();
-    final String path = requestPath.value();
+    final String path = request.getPath().value();
     final ErrorResponse errorResponse =
         new ErrorResponse(
             LocalDateTime.now(),
