@@ -12,7 +12,7 @@ checkstyle = "13.2.0"
 pmd = "7.21.0"
 spotbugs = "6.4.8"
 jacksonDataformatYaml = "2.18.2"
-jte = "3.1.12"
+jte = "3.2.3"
 
 [libraries]
 spring-boot-starter = { group = "org.springframework.boot", name = "spring-boot-starter", version.ref = "springBoot" }
