@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -60,13 +61,13 @@ class AppServiceTest {
             List.of(mockProcessor),
             List.of(mockAiPlugin));
 
-    when(configService.getFileLogDir()).thenReturn(filesDir.toString());
-    when(configService.getResultLogDir()).thenReturn(resultsDir.toString());
-    when(configService.getProjectPath()).thenReturn(projectDir.toString());
-    when(configService.getPluginName()).thenReturn("gradle");
-    when(configService.getPluginConfig()).thenReturn(Map.of("gradlePath", "./gradlew"));
-    when(configService.getExecutionTimeout()).thenReturn(600L);
-    when(configService.getTasks()).thenReturn(List.of("test"));
+    when(configService.getFileLogDir(anyString())).thenReturn(filesDir.toString());
+    when(configService.getResultLogDir(anyString())).thenReturn(resultsDir.toString());
+    when(configService.getProjectPath(anyString())).thenReturn(projectDir.toString());
+    when(configService.getPluginName(anyString())).thenReturn("gradle");
+    when(configService.getPluginConfig(anyString())).thenReturn(Map.of("gradlePath", "./gradlew"));
+    when(configService.getExecutionTimeout(anyString())).thenReturn(600L);
+    when(configService.getTasks(anyString())).thenReturn(List.of("test"));
   }
 
   @Test
@@ -115,7 +116,7 @@ class AppServiceTest {
 
   @Test
   void testSaveFileNoPathConfigured() {
-    when(configService.getFileLogDir()).thenReturn(null);
+    when(configService.getFileLogDir(anyString())).thenReturn(null);
     StepVerifier.create(service.saveFile("test.java", "session-1"))
         .expectError(IllegalStateException.class)
         .verify();
@@ -136,7 +137,7 @@ class AppServiceTest {
 
   @Test
   void testRunQualityChecksPathNotConfigured() {
-    when(configService.getProjectPath()).thenReturn(null);
+    when(configService.getProjectPath(anyString())).thenReturn(null);
 
     StepVerifier.create(service.runQualityChecks("session-1"))
         .assertNext(
@@ -225,7 +226,7 @@ class AppServiceTest {
   @Test
   void testFailImmediately() throws IOException {
     String sessionId = "session-fail-fast";
-    when(configService.getTasks()).thenReturn(List.of("task1", "task2"));
+    when(configService.getTasks(anyString())).thenReturn(List.of("task1", "task2"));
 
     Path sessionDir = filesDir.resolve(sessionId);
     Files.createDirectories(sessionDir);
@@ -257,7 +258,7 @@ class AppServiceTest {
             new WorkflowConfig.ProcessorStepConfig("test-processor", Map.of()),
             new WorkflowConfig.AiStepConfig("test-ai", Map.of()));
 
-    when(configService.getWorkflows()).thenReturn(List.of(workflow));
+    when(configService.getWorkflows(anyString())).thenReturn(List.of(workflow));
     when(mockProcessor.process(any()))
         .thenReturn(new OutputProcessorPlugin.ProcessorResult("SUCCESS", "proc output", null));
     when(mockAiPlugin.execute(any(), any())).thenReturn("ai response");
