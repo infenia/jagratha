@@ -5,8 +5,6 @@ import com.infenia.jagratha.service.AppService;
 import com.infenia.jagratha.service.TaskTrackerService;
 import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
-import java.time.Duration;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -27,12 +25,18 @@ public class UiController {
 
   private final AppService appService;
   private final AppConfigService configService;
-  private final TaskTrackerService taskTrackerService;
+  private final TaskTrackerService tracker;
   private final TemplateEngine templateEngine;
 
+  /**
+   * Render the index page.
+   *
+   * @param model the UI model
+   * @return the rendered HTML
+   */
   @GetMapping(produces = MediaType.TEXT_HTML_VALUE)
   @ResponseBody
-  public Mono<String> index(Model model) {
+  public Mono<String> index(final Model model) {
     model.addAttribute("sessions", appService.getAllSessions());
     return Mono.fromCallable(
             () -> {
@@ -43,14 +47,21 @@ public class UiController {
         .subscribeOn(Schedulers.boundedElastic());
   }
 
+  /**
+   * Render the session detail page.
+   *
+   * @param sessionId the session identifier
+   * @param model the UI model
+   * @return the rendered HTML
+   */
   @GetMapping(value = "/sessions/{sessionId}", produces = MediaType.TEXT_HTML_VALUE)
   @ResponseBody
-  public Mono<String> session(@PathVariable String sessionId, Model model) {
+  public Mono<String> session(@PathVariable final String sessionId, final Model model) {
     model.addAttribute("sessionId", sessionId);
     model.addAttribute("config", configService.getAllConfigs(sessionId));
     model.addAttribute("workflows", configService.getWorkflows(sessionId));
     model.addAttribute("modifiedFiles", appService.getModifiedFiles(sessionId));
-    model.addAttribute("progress", taskTrackerService.getProgress(sessionId));
+    model.addAttribute("progress", tracker.getProgress(sessionId));
 
     return appService
         .listLogs(sessionId)
@@ -64,15 +75,31 @@ public class UiController {
         .subscribeOn(Schedulers.boundedElastic());
   }
 
-    @GetMapping(value = "/api/sessions/{sessionId}/logs/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @ResponseBody
-    public Flux<String> streamLogs(@PathVariable String sessionId) {
-        return taskTrackerService.getLogStream(sessionId);
-    }
+  /**
+   * Stream logs for a session via SSE.
+   *
+   * @param sessionId the session identifier
+   * @return a flux of log lines
+   */
+  @GetMapping(
+      value = "/api/sessions/{sessionId}/logs/stream",
+      produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @ResponseBody
+  public Flux<String> streamLogs(@PathVariable final String sessionId) {
+    return tracker.getLogStream(sessionId);
+  }
 
-    @GetMapping(value = "/api/sessions/{sessionId}/status/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @ResponseBody
-    public Flux<String> streamStatus(@PathVariable String sessionId) {
-        return taskTrackerService.getStatusStream(sessionId);
-    }
+  /**
+   * Stream status updates for a session via SSE.
+   *
+   * @param sessionId the session identifier
+   * @return a flux of status update events
+   */
+  @GetMapping(
+      value = "/api/sessions/{sessionId}/status/stream",
+      produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @ResponseBody
+  public Flux<String> streamStatus(@PathVariable final String sessionId) {
+    return tracker.getStatusStream(sessionId);
+  }
 }

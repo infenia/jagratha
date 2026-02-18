@@ -51,7 +51,7 @@ public class AppService {
   private final List<JagrathaPlugin> plugins;
   private final List<OutputProcessorPlugin> processorPlugins;
   private final List<AiPlugin> aiPlugins;
-  private final TaskTrackerService taskTrackerService;
+  private final TaskTrackerService tracker;
 
   private static final String FAILURE_STATUS = "FAILURE";
   private static final String SUCCESS_STATUS = "SUCCESS";
@@ -264,12 +264,6 @@ public class AppService {
   }
 
   /**
-   * List all log files for a given session.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing a list of log filenames
-   */
-  /**
    * List all session IDs that have logs or configurations.
    *
    * @return list of session IDs
@@ -285,6 +279,12 @@ public class AppService {
     return sessions.stream().toList();
   }
 
+  /**
+   * Scan a directory for session IDs.
+   *
+   * @param sessions set to add session IDs to
+   * @param baseDir the directory to scan
+   */
   private void addSessionIds(final java.util.Set<String> sessions, final String baseDir) {
     if (baseDir == null || baseDir.isEmpty()) {
       return;
@@ -304,6 +304,12 @@ public class AppService {
     }
   }
 
+  /**
+   * List all log files for a given session.
+   *
+   * @param sessionId the session identifier
+   * @return Mono containing a list of log filenames
+   */
   public Mono<List<String>> listLogs(
       @NotBlank @Pattern(regexp = SESS_ID_PATTERN, message = SESS_ID_MSG) final String sessionId) {
     return Mono.fromCallable(
@@ -406,7 +412,7 @@ public class AppService {
 
     final TaskResponse response = processSessionLogs(sessionId, projectRoot, projectDir, logsDir);
     logResults(sessionId, response);
-    taskTrackerService.finishWorkflow(sessionId, response.status());
+    tracker.finishWorkflow(sessionId, response.status());
     return response;
   }
 
@@ -466,7 +472,7 @@ public class AppService {
         }
         taskNames.addAll(tasks);
       }
-      taskTrackerService.startWorkflow(sessionId, taskNames);
+      tracker.startWorkflow(sessionId, taskNames);
 
       final TaskResponse response =
           runChecksForModules(projectDir, pendingByModule, files, sessionId);
@@ -556,7 +562,7 @@ public class AppService {
     }
 
     for (final String task : tasks) {
-      taskTrackerService.updateTaskStatus(sessionId, task, module, "RUNNING");
+      tracker.updateTaskStatus(sessionId, task, module, "RUNNING");
       final TaskResponse res =
           executeSingleTask(
               projectDir,
@@ -565,7 +571,7 @@ public class AppService {
               module,
               task,
               configService.getPluginConfig(sessionId));
-      taskTrackerService.updateTaskStatus(sessionId, task, module, res.status());
+      tracker.updateTaskStatus(sessionId, task, module, res.status());
       combinedOutput
           .append("Task: ")
           .append(task)
@@ -590,7 +596,7 @@ public class AppService {
       final String module,
       final WorkflowConfig workflow) {
 
-    taskTrackerService.updateTaskStatus(sessionId, workflow.task(), module, "RUNNING");
+    tracker.updateTaskStatus(sessionId, workflow.task(), module, "RUNNING");
     final TaskResponse taskRes =
         executeSingleTask(
             projectDir,
@@ -599,7 +605,7 @@ public class AppService {
             module,
             workflow.task(),
             configService.getPluginConfig(sessionId));
-    taskTrackerService.updateTaskStatus(sessionId, workflow.task(), module, taskRes.status());
+    tracker.updateTaskStatus(sessionId, workflow.task(), module, taskRes.status());
 
     combinedOutput
         .append("Task: ")
@@ -803,10 +809,11 @@ public class AppService {
 
       final StringBuilder output = new StringBuilder();
       try (BufferedReader reader = process.inputReader(StandardCharsets.UTF_8)) {
-        String line;
-        while ((line = reader.readLine()) != null) {
+        String line = reader.readLine();
+        while (line != null) {
           output.append(line).append('\n');
-          taskTrackerService.appendLog(sessionId, line);
+          tracker.appendLog(sessionId, line);
+          line = reader.readLine();
         }
       }
 

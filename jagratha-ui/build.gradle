@@ -46,11 +46,18 @@ task pnpmInstall(type: Exec) {
 task tailwind(type: Exec) {
     dependsOn pnpmInstall
     workingDir projectDir
+    inputs.file("./src/main/resources/static/css/input.css")
+    outputs.file("$buildDir/tailwind/style.css")
     if (System.getProperty('os.name').toLowerCase().contains('windows')) {
-        commandLine 'cmd', '/c', 'pnpm', 'exec', 'tailwindcss', '-i', './src/main/resources/static/css/input.css', '-o', './src/main/resources/static/css/style.css', '--minify'
+        commandLine 'cmd', '/c', 'pnpm', 'exec', 'tailwindcss', '-i', './src/main/resources/static/css/input.css', '-o', "$buildDir/tailwind/style.css", '--minify'
     } else {
-        commandLine 'pnpm', 'exec', 'tailwindcss', '-i', './src/main/resources/static/css/input.css', '-o', './src/main/resources/static/css/style.css', '--minify'
+        commandLine 'pnpm', 'exec', 'tailwindcss', '-i', './src/main/resources/static/css/input.css', '-o', "$buildDir/tailwind/style.css", '--minify'
     }
 }
 
-processResources.dependsOn tailwind
+processResources {
+    dependsOn tailwind
+    from("$buildDir/tailwind") {
+        into "static/css"
+    }
+}

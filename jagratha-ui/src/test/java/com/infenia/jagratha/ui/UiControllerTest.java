@@ -8,12 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import reactor.core.publisher.Mono;
-
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 @WebFluxTest(UiController.class)
 class UiControllerTest {
@@ -28,19 +22,27 @@ class UiControllerTest {
 
   @MockitoBean private gg.jte.TemplateEngine templateEngine;
 
-    @Test
-    void testStreamLogs() {
-        webTestClient.get().uri("/ui/api/sessions/session1/logs/stream")
-            .exchange()
-            .expectStatus().isOk()
-            .expectHeader().contentTypeCompatibleWith("text/event-stream");
-    }
+  @Test
+  void testStreamLogs() {
+    webTestClient
+        .get()
+        .uri("/ui/api/sessions/session1/logs/stream")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectHeader()
+        .contentTypeCompatibleWith("text/event-stream");
+  }
 
-    @Test
-    void testStreamStatus() {
-        webTestClient.get().uri("/ui/api/sessions/session1/status/stream")
-            .exchange()
-            .expectStatus().isOk()
-            .expectHeader().contentTypeCompatibleWith("text/event-stream");
-    }
+  @Test
+  void testStreamStatus() {
+    webTestClient
+        .get()
+        .uri("/ui/api/sessions/session1/status/stream")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectHeader()
+        .contentTypeCompatibleWith("text/event-stream");
+  }
 }

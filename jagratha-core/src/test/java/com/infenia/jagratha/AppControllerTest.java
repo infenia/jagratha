@@ -85,7 +85,7 @@ class AppControllerTest {
         .is5xxServerError()
         .expectBody()
         .jsonPath("$.message")
-        .value(containsString("IO error"));
+        .isEqualTo("IO error");
   }
 
   @Test
