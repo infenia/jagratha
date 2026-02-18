@@ -33,13 +33,23 @@ jar {
     enabled = true
 }
 
-// Tailwind CSS task
-task tailwind(type: Exec) {
+task pnpmInstall(type: Exec) {
     workingDir projectDir
     if (System.getProperty('os.name').toLowerCase().contains('windows')) {
-        commandLine 'cmd', '/c', 'npx', '@tailwindcss/cli', '-i', './src/main/resources/static/css/input.css', '-o', './src/main/resources/static/css/style.css', '--minify'
+        commandLine 'cmd', '/c', 'pnpm', 'install'
     } else {
-        commandLine 'npx', '@tailwindcss/cli', '-i', './src/main/resources/static/css/input.css', '-o', './src/main/resources/static/css/style.css', '--minify'
+        commandLine 'pnpm', 'install'
+    }
+}
+
+// Tailwind CSS task
+task tailwind(type: Exec) {
+    dependsOn pnpmInstall
+    workingDir projectDir
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'pnpm', 'exec', 'tailwindcss', '-i', './src/main/resources/static/css/input.css', '-o', './src/main/resources/static/css/style.css', '--minify'
+    } else {
+        commandLine 'pnpm', 'exec', 'tailwindcss', '-i', './src/main/resources/static/css/input.css', '-o', './src/main/resources/static/css/style.css', '--minify'
     }
 }
 
