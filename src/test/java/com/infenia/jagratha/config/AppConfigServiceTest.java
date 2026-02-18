@@ -1,6 +1,7 @@
 package com.infenia.jagratha.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ class AppConfigServiceTest {
     assertEquals(100L, configService.getExecutionTimeout(sessionId));
     assertEquals("/static/files", configService.getFileLogDir(sessionId));
     assertEquals("/static/results", configService.getResultLogDir(sessionId));
+    assertTrue(configService.getWorkflows(sessionId).isEmpty());
   }
 
   @Test
@@ -48,6 +50,7 @@ class AppConfigServiceTest {
     configService.setExecutionTimeout(sessionId, 200L);
     configService.setFileLogDir(sessionId, "/api/files");
     configService.setResultLogDir(sessionId, "/api/results");
+    configService.setWorkflows(sessionId, List.of());
 
     assertEquals("/api/path", configService.getProjectPath(sessionId));
     assertEquals("maven", configService.getPluginName(sessionId));
@@ -56,10 +59,42 @@ class AppConfigServiceTest {
     assertEquals(200L, configService.getExecutionTimeout(sessionId));
     assertEquals("/api/files", configService.getFileLogDir(sessionId));
     assertEquals("/api/results", configService.getResultLogDir(sessionId));
+    assertTrue(configService.getWorkflows(sessionId).isEmpty());
 
     // Another session should still have defaults
     String otherSession = "sess-2";
     assertEquals("/static/path", configService.getProjectPath(otherSession));
+  }
+
+  @Test
+  void testNullSessionId() {
+    // Should fallback to static config
+    assertEquals("/static/path", configService.getProjectPath(null));
+    assertEquals("gradle", configService.getPluginName(null));
+    assertEquals(Map.of("gradlePath", "/static/gradle"), configService.getPluginConfig(null));
+    assertEquals(List.of("staticTask"), configService.getTasks(null));
+    assertEquals(100L, configService.getExecutionTimeout(null));
+    assertEquals("/static/files", configService.getFileLogDir(null));
+    assertEquals("/static/results", configService.getResultLogDir(null));
+  }
+
+  @Test
+  void testClearOverrides() {
+    String sessionId = "sess-1";
+    configService.setPluginConfig(sessionId, Map.of("k", "v"));
+    assertEquals(Map.of("k", "v"), configService.getPluginConfig(sessionId));
+
+    configService.setPluginConfig(sessionId, null);
+    assertEquals(Map.of("gradlePath", "/static/gradle"), configService.getPluginConfig(sessionId));
+
+    configService.setTasks(sessionId, List.of("t1"));
+    assertEquals(List.of("t1"), configService.getTasks(sessionId));
+    configService.setTasks(sessionId, null);
+    assertEquals(List.of("staticTask"), configService.getTasks(sessionId));
+
+    configService.setWorkflows(sessionId, List.of());
+    configService.setWorkflows(sessionId, null);
+    assertTrue(configService.getWorkflows(sessionId).isEmpty());
   }
 
   @Test
@@ -79,9 +114,29 @@ class AppConfigServiceTest {
     AppConfigService emptyService = new AppConfigService(emptyConfig);
     String sessionId = "sess-1";
 
+    assertEquals("", emptyService.getProjectPath(sessionId));
     assertEquals(300L, emptyService.getExecutionTimeout(sessionId));
     String home = System.getProperty("user.home");
     assertEquals(home + "/.jagratha/modified-files", emptyService.getFileLogDir(sessionId));
     assertEquals(home + "/.jagratha/results", emptyService.getResultLogDir(sessionId));
+  }
+
+  @Test
+  void testSetNullValues() {
+    String sessionId = "sess-1";
+    configService.setProjectPath(sessionId, null); // should not change anything
+    assertEquals("/static/path", configService.getProjectPath(sessionId));
+
+    configService.setPluginName(sessionId, null);
+    assertEquals("gradle", configService.getPluginName(sessionId));
+
+    configService.setExecutionTimeout(sessionId, null);
+    assertEquals(100L, configService.getExecutionTimeout(sessionId));
+
+    configService.setFileLogDir(sessionId, null);
+    assertEquals("/static/files", configService.getFileLogDir(sessionId));
+
+    configService.setResultLogDir(sessionId, null);
+    assertEquals("/static/results", configService.getResultLogDir(sessionId));
   }
 }
