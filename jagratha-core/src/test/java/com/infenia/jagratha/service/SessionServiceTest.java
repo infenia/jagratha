@@ -16,17 +16,16 @@ import com.infenia.jagratha.model.WorkflowConfig;
 import com.infenia.jagratha.plugin.AiPlugin;
 import com.infenia.jagratha.plugin.OutputProcessorPlugin;
 import com.infenia.jagratha.plugin.gradle.GradlePlugin;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class SessionServiceTest {

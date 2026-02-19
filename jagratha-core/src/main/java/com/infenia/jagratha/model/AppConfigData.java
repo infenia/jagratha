@@ -16,9 +16,7 @@ import java.util.List;
  */
 public record AppConfigData(
     @NotBlank(message = "Session ID is required")
-        @Pattern(
-            regexp = "^(?!.*\\.\\.)[^/\\\\]*$",
-            message = "Invalid session ID format")
+        @Pattern(regexp = "^(?!.*\\.\\.)[^/\\\\]*$", message = "Invalid session ID format")
         String sessionId,
     @NotBlank(message = "Project path is required") String projectPath,
     @NotEmpty(message = "Plugins list cannot be empty") @Valid List<PluginRegistration> plugins,

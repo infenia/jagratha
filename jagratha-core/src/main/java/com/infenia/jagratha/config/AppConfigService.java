@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
  * and updated via API.
  */
 @Service
-@SuppressWarnings("PMD.UseConcurrentHashMap")
+@SuppressWarnings({"PMD.UseConcurrentHashMap", "PMD.LinguisticNaming"})
 public class AppConfigService {
 
   private static final String DEFAULT_BASE_DIR = System.getProperty("user.home") + "/.jagratha";

@@ -9,6 +9,7 @@ import com.infenia.jagratha.plugin.AiPlugin;
 import com.infenia.jagratha.plugin.JagrathaPlugin;
 import com.infenia.jagratha.plugin.OutputProcessorPlugin;
 import com.infenia.jagratha.plugin.ValidationResult;
+import jakarta.validation.Valid;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -18,7 +19,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -152,9 +152,7 @@ public class SessionService {
                                       configFile, objectMapper.writeValueAsString(configs));
                                 } catch (IOException e) {
                                   log.error(
-                                      "Failed to save config to disk for session {}",
-                                      sessionId,
-                                      e);
+                                      "Failed to save config to disk for session {}", sessionId, e);
                                 }
                               }));
             })
@@ -245,40 +243,34 @@ public class SessionService {
               if (Boolean.TRUE.equals(active)) {
                 return configService.getAllConfigs(sessionId);
               }
-
-              return configService
-                  .getResultLogDir(sessionId)
-                  .flatMap(
-                      resultsDir ->
-                          Mono.fromCallable(
-                                  () -> {
-                                    final Path configFile =
-                                        Path.of(resultsDir).resolve(sessionId).resolve("config.json");
-                                    if (Files.exists(configFile)) {
-                                      try {
-                                        return (Map<String, Object>)
-                                            objectMapper.readValue(
-                                                Files.readString(
-                                                    configFile, StandardCharsets.UTF_8),
-                                                Map.class);
-                                      } catch (IOException e) {
-                                        log.warn(
-                                            "Failed to read config.json for session {}",
-                                            sessionId,
-                                            e);
-                                      }
-                                    }
-                                    return null;
-                                  })
-                              .flatMap(
-                                  config -> {
-                                    if (config != null) {
-                                      return Mono.just(config);
-                                    }
-                                    return configService.getAllConfigs(sessionId);
-                                  }));
+              return readConfigFromDisk(sessionId)
+                  .switchIfEmpty(configService.getAllConfigs(sessionId));
             })
         .subscribeOn(Schedulers.boundedElastic());
+  }
+
+  @SuppressWarnings("unchecked")
+  private Mono<Map<String, Object>> readConfigFromDisk(final String sessionId) {
+    return configService
+        .getResultLogDir(sessionId)
+        .flatMap(
+            resultsDir ->
+                Mono.fromCallable(
+                    () -> {
+                      final Path configFile =
+                          Path.of(resultsDir).resolve(sessionId).resolve("config.json");
+                      if (Files.exists(configFile)) {
+                        try {
+                          return (Map<String, Object>)
+                              objectMapper.readValue(
+                                  Files.readString(configFile, StandardCharsets.UTF_8), Map.class);
+                        } catch (IOException e) {
+                          log.warn("Failed to read config.json for session {}", sessionId, e);
+                        }
+                      }
+                      return null;
+                    }))
+        .flatMap(config -> config != null ? Mono.just(config) : Mono.empty());
   }
 
   /**
@@ -312,9 +304,7 @@ public class SessionService {
                             return Mono.just(list);
                           } catch (IOException e) {
                             log.warn(
-                                "Failed to parse workflows from disk for session {}",
-                                sessionId,
-                                e);
+                                "Failed to parse workflows from disk for session {}", sessionId, e);
                           }
                         }
                         return configService.getWorkflows(sessionId).collectList();

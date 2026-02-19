@@ -52,26 +52,27 @@ class ValidationTest {
 
   @Test
   void testAppConfigDataValid() {
-    AppConfigData data = new AppConfigData(
-        "session-1",
-        "/path",
-        List.of(new PluginRegistration("gradle", Map.of("k", "v"))),
-        List.of(new WorkflowConfig("test", null, null))
-    );
+    AppConfigData data =
+        new AppConfigData(
+            "session-1",
+            "/path",
+            List.of(new PluginRegistration("gradle", Map.of("k", "v"))),
+            List.of(new WorkflowConfig("test", null, null)));
     Set<ConstraintViolation<AppConfigData>> violations = validator.validate(data);
     assertTrue(violations.isEmpty());
   }
 
   @Test
   void testAppConfigDataInvalidSession() {
-    AppConfigData data = new AppConfigData(
-        "../session",
-        "/path",
-        List.of(new PluginRegistration("gradle", Map.of("k", "v"))),
-        List.of(new WorkflowConfig("test", null, null))
-    );
+    AppConfigData data =
+        new AppConfigData(
+            "../session",
+            "/path",
+            List.of(new PluginRegistration("gradle", Map.of("k", "v"))),
+            List.of(new WorkflowConfig("test", null, null)));
     Set<ConstraintViolation<AppConfigData>> violations = validator.validate(data);
     assertFalse(violations.isEmpty());
-    assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Invalid session ID format")));
+    assertTrue(
+        violations.stream().anyMatch(v -> v.getMessage().contains("Invalid session ID format")));
   }
 }

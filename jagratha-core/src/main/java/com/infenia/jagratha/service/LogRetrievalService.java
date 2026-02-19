@@ -30,7 +30,8 @@ public class LogRetrievalService {
    * @return Mono containing a list of log filenames
    */
   public Mono<List<String>> listLogs(final String sessionId) {
-    return Mono.zip(configService.getResultLogDir(sessionId), configService.getFileLogDir(sessionId))
+    return Mono.zip(
+            configService.getResultLogDir(sessionId), configService.getFileLogDir(sessionId))
         .flatMap(
             tuple ->
                 Mono.fromCallable(
@@ -79,7 +80,8 @@ public class LogRetrievalService {
   }
 
   private Mono<String> fetchLogContent(final String sessionId, final String fileName) {
-    return Mono.zip(configService.getResultLogDir(sessionId), configService.getFileLogDir(sessionId))
+    return Mono.zip(
+            configService.getResultLogDir(sessionId), configService.getFileLogDir(sessionId))
         .flatMap(
             tuple ->
                 Mono.fromCallable(
