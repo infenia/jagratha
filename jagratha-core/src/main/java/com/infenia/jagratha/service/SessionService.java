@@ -142,16 +142,17 @@ public class SessionService {
    */
   public Flux<String> getAllSessionsOnDisk() {
     return Flux.defer(
-        () -> {
-          final Set<String> sessions = new TreeSet<>();
-          final String resultsDir = configService.getResultLogDir(null);
-          final String fileLogDir = configService.getFileLogDir(null);
+            () -> {
+              final Set<String> sessions = new TreeSet<>();
+              final String resultsDir = configService.getResultLogDir(null);
+              final String fileLogDir = configService.getFileLogDir(null);
 
-          addSessionIds(sessions, resultsDir);
-          addSessionIds(sessions, fileLogDir);
+              addSessionIds(sessions, resultsDir);
+              addSessionIds(sessions, fileLogDir);
 
-          return Flux.fromIterable(sessions);
-        }).subscribeOn(Schedulers.boundedElastic());
+              return Flux.fromIterable(sessions);
+            })
+        .subscribeOn(Schedulers.boundedElastic());
   }
 
   private void addSessionIds(final Set<String> sessions, final String baseDir) {

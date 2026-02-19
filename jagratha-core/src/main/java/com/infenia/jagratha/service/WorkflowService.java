@@ -33,11 +33,7 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({
-  "PMD.TooManyMethods",
-  "PMD.OnlyOneReturn",
-  "PMD.CouplingBetweenObjects"
-})
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.OnlyOneReturn", "PMD.CouplingBetweenObjects"})
 public class WorkflowService {
 
   private final AppConfigService configService;
@@ -185,25 +181,27 @@ public class WorkflowService {
 
     // Using Flux to process modules sequentially
     return Flux.fromIterable(pendingByModule.entrySet())
-        .concatMap(entry -> {
-          final String module = entry.getKey();
-          return executeModuleTasks(projectDir, sessionId, combinedOutput, module)
-              .doOnNext(
-                  moduleRes -> {
-                    for (final String file : entry.getValue()) {
-                      allFiles.put(file, moduleRes.status());
-                    }
-                  });
-        })
+        .concatMap(
+            entry -> {
+              final String module = entry.getKey();
+              return executeModuleTasks(projectDir, sessionId, combinedOutput, module)
+                  .doOnNext(
+                      moduleRes -> {
+                        for (final String file : entry.getValue()) {
+                          allFiles.put(file, moduleRes.status());
+                        }
+                      });
+            })
         .takeUntil(res -> FAILURE_STATUS.equals(res.status()))
         .collectList()
-        .map(results -> {
-          String overallStatus = SUCCESS_STATUS;
-          if (results.stream().anyMatch(res -> FAILURE_STATUS.equals(res.status()))) {
-            overallStatus = FAILURE_STATUS;
-          }
-          return new TaskResponse(overallStatus, combinedOutput.toString());
-        });
+        .map(
+            results -> {
+              String overallStatus = SUCCESS_STATUS;
+              if (results.stream().anyMatch(res -> FAILURE_STATUS.equals(res.status()))) {
+                overallStatus = FAILURE_STATUS;
+              }
+              return new TaskResponse(overallStatus, combinedOutput.toString());
+            });
   }
 
   private Mono<TaskResponse> executeModuleTasks(
@@ -236,12 +234,13 @@ public class WorkflowService {
             workflow -> executeWorkflow(projectDir, sessionId, combinedOutput, module, workflow))
         .takeUntil(res -> FAILURE_STATUS.equals(res.status()))
         .collectList()
-        .map(results -> {
-          if (results.stream().anyMatch(res -> FAILURE_STATUS.equals(res.status()))) {
-            return new TaskResponse(FAILURE_STATUS, "");
-          }
-          return new TaskResponse(SUCCESS_STATUS, "");
-        });
+        .map(
+            results -> {
+              if (results.stream().anyMatch(res -> FAILURE_STATUS.equals(res.status()))) {
+                return new TaskResponse(FAILURE_STATUS, "");
+              }
+              return new TaskResponse(SUCCESS_STATUS, "");
+            });
   }
 
   private Mono<TaskResponse> runSimpleTasks(
@@ -252,34 +251,33 @@ public class WorkflowService {
     final List<String> tasks = configService.getTasks(sessionId);
 
     return Flux.fromIterable(tasks)
-        .concatMap(task -> {
-          tracker.updateTaskStatus(sessionId, task, module, "RUNNING");
-          return executeSingleTask(
-              projectDir,
-              sessionId,
-              module,
-              task,
-              configService.getPluginConfig(sessionId))
-              .doOnNext(res -> {
-                tracker.updateTaskStatus(sessionId, task, module, res.status());
-                combinedOutput
-                    .append("Task: ")
-                    .append(task)
-                    .append(" - ")
-                    .append(res.status())
-                    .append('\n')
-                    .append(res.output())
-                    .append("\n\n");
-              });
-        })
+        .concatMap(
+            task -> {
+              tracker.updateTaskStatus(sessionId, task, module, "RUNNING");
+              return executeSingleTask(
+                      projectDir, sessionId, module, task, configService.getPluginConfig(sessionId))
+                  .doOnNext(
+                      res -> {
+                        tracker.updateTaskStatus(sessionId, task, module, res.status());
+                        combinedOutput
+                            .append("Task: ")
+                            .append(task)
+                            .append(" - ")
+                            .append(res.status())
+                            .append('\n')
+                            .append(res.output())
+                            .append("\n\n");
+                      });
+            })
         .takeUntil(res -> FAILURE_STATUS.equals(res.status()))
         .collectList()
-        .map(results -> {
-          if (results.stream().anyMatch(res -> FAILURE_STATUS.equals(res.status()))) {
-            return new TaskResponse(FAILURE_STATUS, "");
-          }
-          return new TaskResponse(SUCCESS_STATUS, "");
-        });
+        .map(
+            results -> {
+              if (results.stream().anyMatch(res -> FAILURE_STATUS.equals(res.status()))) {
+                return new TaskResponse(FAILURE_STATUS, "");
+              }
+              return new TaskResponse(SUCCESS_STATUS, "");
+            });
   }
 
   private Mono<TaskResponse> executeWorkflow(
@@ -296,91 +294,93 @@ public class WorkflowService {
             module,
             workflow.task(),
             configService.getPluginConfig(sessionId))
-        .flatMap(taskRes -> {
-          tracker.updateTaskStatus(sessionId, workflow.task(), module, taskRes.status());
+        .flatMap(
+            taskRes -> {
+              tracker.updateTaskStatus(sessionId, workflow.task(), module, taskRes.status());
 
-          combinedOutput
-              .append("Task: ")
-              .append(workflow.task())
-              .append(" - ")
-              .append(taskRes.status())
-              .append('\n')
-              .append(taskRes.output())
-              .append('\n');
+              combinedOutput
+                  .append("Task: ")
+                  .append(workflow.task())
+                  .append(" - ")
+                  .append(taskRes.status())
+                  .append('\n')
+                  .append(taskRes.output())
+                  .append('\n');
 
-          if (FAILURE_STATUS.equals(taskRes.status()) && workflow.processor() == null) {
-            return Mono.just(new TaskResponse(FAILURE_STATUS, combinedOutput.toString()));
-          }
+              if (FAILURE_STATUS.equals(taskRes.status()) && workflow.processor() == null) {
+                return Mono.just(new TaskResponse(FAILURE_STATUS, combinedOutput.toString()));
+              }
 
-          Mono<String> artifactPathMono = Mono.justOrEmpty(null);
-          Mono<String> procStatusMono = Mono.just(SUCCESS_STATUS);
+              Mono<String> artifactPathMono = Mono.justOrEmpty(null);
+              Mono<String> procStatusMono = Mono.just(SUCCESS_STATUS);
 
-          if (workflow.processor() != null) {
-            final OutputProcessorPlugin processor = findProcessor(workflow.processor().name());
-            final OutputProcessorPlugin.ProcessorResult procRes =
-                processor.process(
-                    new OutputProcessorPlugin.ProcessorInput(
-                        sessionId,
-                        configService.getProjectPath(sessionId),
-                        module,
-                        workflow.task(),
-                        taskRes.output(),
-                        configService.getResultLogDir(sessionId),
-                        workflow.processor().config()));
+              if (workflow.processor() != null) {
+                final OutputProcessorPlugin processor = findProcessor(workflow.processor().name());
+                final OutputProcessorPlugin.ProcessorResult procRes =
+                    processor.process(
+                        new OutputProcessorPlugin.ProcessorInput(
+                            sessionId,
+                            configService.getProjectPath(sessionId),
+                            module,
+                            workflow.task(),
+                            taskRes.output(),
+                            configService.getResultLogDir(sessionId),
+                            workflow.processor().config()));
 
-            artifactPathMono = Mono.justOrEmpty(procRes.artifactPath());
-            procStatusMono = Mono.just(procRes.status());
+                artifactPathMono = Mono.justOrEmpty(procRes.artifactPath());
+                procStatusMono = Mono.just(procRes.status());
 
-            combinedOutput
-                .append("Processor: ")
-                .append(workflow.processor().name())
-                .append(" - ")
-                .append(procRes.status())
-                .append('\n')
-                .append(procRes.output())
-                .append('\n');
+                combinedOutput
+                    .append("Processor: ")
+                    .append(workflow.processor().name())
+                    .append(" - ")
+                    .append(procRes.status())
+                    .append('\n')
+                    .append(procRes.output())
+                    .append('\n');
 
-            if (FAILURE_STATUS.equals(procRes.status())) {
-              return Mono.just(new TaskResponse(FAILURE_STATUS, combinedOutput.toString()));
-            }
-          }
+                if (FAILURE_STATUS.equals(procRes.status())) {
+                  return Mono.just(new TaskResponse(FAILURE_STATUS, combinedOutput.toString()));
+                }
+              }
 
-          return Mono.zip(artifactPathMono.defaultIfEmpty(""), procStatusMono)
-              .flatMap(
-                  tuple -> {
-                    final String artifactPath = tuple.getT1();
-                    if (workflow.aiStep() != null) {
-                      final AiPlugin aiPlugin = findAiPlugin(workflow.aiStep().name());
-                      return constructPrompt(
-                              workflow.aiStep().config(), taskRes.output(), artifactPath)
-                          .flatMap(
-                              prompt -> {
-                                final String aiResponse =
-                                    aiPlugin.execute(prompt, workflow.aiStep().config());
+              return Mono.zip(artifactPathMono.defaultIfEmpty(""), procStatusMono)
+                  .flatMap(
+                      tuple -> {
+                        final String artifactPath = tuple.getT1();
+                        if (workflow.aiStep() != null) {
+                          final AiPlugin aiPlugin = findAiPlugin(workflow.aiStep().name());
+                          return constructPrompt(
+                                  workflow.aiStep().config(), taskRes.output(), artifactPath)
+                              .flatMap(
+                                  prompt -> {
+                                    final String aiResponse =
+                                        aiPlugin.execute(prompt, workflow.aiStep().config());
 
-                                combinedOutput
-                                    .append("AI (")
-                                    .append(workflow.aiStep().name())
-                                    .append("):\n")
-                                    .append(aiResponse)
-                                    .append('\n');
+                                    combinedOutput
+                                        .append("AI (")
+                                        .append(workflow.aiStep().name())
+                                        .append("):\n")
+                                        .append(aiResponse)
+                                        .append('\n');
 
-                                saveAiLog(
-                                    sessionId,
-                                    module,
-                                    workflow.task(),
-                                    workflow.aiStep().name(),
-                                    aiResponse);
-                                return Mono.just(SUCCESS_STATUS);
-                              });
-                    }
-                    return Mono.just(SUCCESS_STATUS);
-                  })
-              .map(ignored -> {
-                combinedOutput.append('\n');
-                return new TaskResponse(SUCCESS_STATUS, "");
-              });
-        });
+                                    saveAiLog(
+                                        sessionId,
+                                        module,
+                                        workflow.task(),
+                                        workflow.aiStep().name(),
+                                        aiResponse);
+                                    return Mono.just(SUCCESS_STATUS);
+                                  });
+                        }
+                        return Mono.just(SUCCESS_STATUS);
+                      })
+                  .map(
+                      ignored -> {
+                        combinedOutput.append('\n');
+                        return new TaskResponse(SUCCESS_STATUS, "");
+                      });
+            });
   }
 
   private OutputProcessorPlugin findProcessor(final String name) {
@@ -399,29 +399,32 @@ public class WorkflowService {
 
   private Mono<String> constructPrompt(
       final Map<String, Object> config, final String taskOutput, final String artifactPath) {
-    return Mono.fromCallable(() -> {
-      String template = (String) config.get("promptTemplate");
-      if (template == null || template.isEmpty()) {
-        template = "Task Output:\n{{taskOutput}}\n\nProcessor Output:\n{{processorOutput}}";
-      }
+    return Mono.fromCallable(
+            () -> {
+              String template = (String) config.get("promptTemplate");
+              if (template == null || template.isEmpty()) {
+                template = "Task Output:\n{{taskOutput}}\n\nProcessor Output:\n{{processorOutput}}";
+              }
 
-      String result = template.replace("{{taskOutput}}", taskOutput);
-      if (artifactPath != null && !artifactPath.isEmpty()) {
-        try {
-          final String artifactContent =
-              Files.readString(Path.of(artifactPath), StandardCharsets.UTF_8);
-          result = result.replace("{{processorOutput}}", artifactContent);
-        } catch (IOException e) {
-          log.warn("Failed to read artifact for prompt: {}", artifactPath, e);
-          result =
-              result.replace(
-                  "{{processorOutput}}", "Error reading processor artifact: " + e.getMessage());
-        }
-      } else {
-        result = result.replace("{{processorOutput}}", "No processor output available.");
-      }
-      return result;
-    }).subscribeOn(Schedulers.boundedElastic());
+              String result = template.replace("{{taskOutput}}", taskOutput);
+              if (artifactPath != null && !artifactPath.isEmpty()) {
+                try {
+                  final String artifactContent =
+                      Files.readString(Path.of(artifactPath), StandardCharsets.UTF_8);
+                  result = result.replace("{{processorOutput}}", artifactContent);
+                } catch (IOException e) {
+                  log.warn("Failed to read artifact for prompt: {}", artifactPath, e);
+                  result =
+                      result.replace(
+                          "{{processorOutput}}",
+                          "Error reading processor artifact: " + e.getMessage());
+                }
+              } else {
+                result = result.replace("{{processorOutput}}", "No processor output available.");
+              }
+              return result;
+            })
+        .subscribeOn(Schedulers.boundedElastic());
   }
 
   private void saveAiLog(
@@ -517,49 +520,51 @@ public class WorkflowService {
               return processBuilder.start();
             })
         .subscribeOn(Schedulers.boundedElastic())
-        .flatMap(process -> {
-          final StringBuilder output = new StringBuilder();
+        .flatMap(
+            process -> {
+              final StringBuilder output = new StringBuilder();
 
-          // Use DataBufferUtils to read the process output stream reactively
-          final Flux<String> outputFlux =
-              DataBufferUtils.readInputStream(
-                      process::getInputStream, DefaultDataBufferFactory.sharedInstance, 4096)
-                  .transform(
-                      flux -> StringDecoder.textPlainOnly().decode(flux, null, null, Map.of()));
+              // Use DataBufferUtils to read the process output stream reactively
+              final Flux<String> outputFlux =
+                  DataBufferUtils.readInputStream(
+                          process::getInputStream, DefaultDataBufferFactory.sharedInstance, 4096)
+                      .transform(
+                          flux -> StringDecoder.textPlainOnly().decode(flux, null, null, Map.of()));
 
-          final Mono<String> readOutputMono =
-              outputFlux
-                  .doOnNext(
-                      line -> {
-                        output.append(line).append('\n');
-                        tracker.appendLog(sessionId, line);
-                      })
-                  .then(Mono.fromSupplier(output::toString));
+              final Mono<String> readOutputMono =
+                  outputFlux
+                      .doOnNext(
+                          line -> {
+                            output.append(line).append('\n');
+                            tracker.appendLog(sessionId, line);
+                          })
+                      .then(Mono.fromSupplier(output::toString));
 
-          final Long timeoutVal = configService.getExecutionTimeout(sessionId);
-          final Mono<Integer> exitCodeMono =
-              Mono.fromFuture(process.onExit())
-                  .map(Process::exitValue)
-                  .timeout(Duration.ofSeconds(timeoutVal != null ? timeoutVal : 600))
+              final Long timeoutVal = configService.getExecutionTimeout(sessionId);
+              final Mono<Integer> exitCodeMono =
+                  Mono.fromFuture(process.onExit())
+                      .map(Process::exitValue)
+                      .timeout(Duration.ofSeconds(timeoutVal != null ? timeoutVal : 600))
+                      .onErrorResume(
+                          TimeoutException.class,
+                          e -> {
+                            process.destroyForcibly();
+                            return Mono.error(
+                                new TimeoutException("Timeout while running checks."));
+                          });
+
+              return Mono.zip(exitCodeMono, readOutputMono)
+                  .map(
+                      tuple ->
+                          new TaskResponse(
+                              tuple.getT1() == 0 ? SUCCESS_STATUS : FAILURE_STATUS, tuple.getT2()))
                   .onErrorResume(
                       TimeoutException.class,
-                      e -> {
-                        process.destroyForcibly();
-                        return Mono.error(new TimeoutException("Timeout while running checks."));
-                      });
-
-          return Mono.zip(exitCodeMono, readOutputMono)
-              .map(
-                  tuple ->
-                      new TaskResponse(
-                          tuple.getT1() == 0 ? SUCCESS_STATUS : FAILURE_STATUS, tuple.getT2()))
-              .onErrorResume(
-                  TimeoutException.class,
-                  e ->
-                      Mono.just(
-                          new TaskResponse(
-                              FAILURE_STATUS, "Timeout while running checks.\n" + output)));
-        })
+                      e ->
+                          Mono.just(
+                              new TaskResponse(
+                                  FAILURE_STATUS, "Timeout while running checks.\n" + output)));
+            })
         .onErrorResume(
             IOException.class,
             e ->

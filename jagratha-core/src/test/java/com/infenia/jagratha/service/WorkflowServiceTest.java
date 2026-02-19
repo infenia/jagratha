@@ -8,13 +8,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.jagratha.config.AppConfigService;
-import com.infenia.jagratha.model.TaskResponse;
 import com.infenia.jagratha.model.WorkflowConfig;
 import com.infenia.jagratha.plugin.AiPlugin;
 import com.infenia.jagratha.plugin.JagrathaPlugin;
 import com.infenia.jagratha.plugin.OutputProcessorPlugin;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -22,7 +20,6 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class WorkflowServiceTest {
@@ -81,7 +78,8 @@ class WorkflowServiceTest {
     when(configService.getTasks(any())).thenReturn(List.of("test"));
 
     // Default lock behavior
-    when(mockFileLogService.withLock(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(1));
+    when(mockFileLogService.withLock(anyString(), any()))
+        .thenAnswer(invocation -> invocation.getArgument(1));
   }
 
   @Test

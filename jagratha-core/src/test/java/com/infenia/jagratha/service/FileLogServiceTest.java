@@ -101,10 +101,11 @@ class FileLogServiceTest {
     Files.writeString(logFile, "{\"path\":\"file1.java\",\"status\":\"PENDING\"}\n");
 
     StepVerifier.create(service.getModifiedFiles(sessionId))
-        .assertNext(files -> {
-          assertEquals(1, files.size());
-          assertEquals("PENDING", files.get("file1.java"));
-        })
+        .assertNext(
+            files -> {
+              assertEquals(1, files.size());
+              assertEquals("PENDING", files.get("file1.java"));
+            })
         .verifyComplete();
   }
 }
