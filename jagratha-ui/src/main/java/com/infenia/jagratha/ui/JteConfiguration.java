@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
 public class JteConfiguration {
 
   @Value("${jte.usePrecompiledTemplates:false}")
-  private boolean usePrecompiledTemplates;
+  private boolean usePrecompiled;
 
   /** Default constructor. */
   public JteConfiguration() {
@@ -30,12 +30,11 @@ public class JteConfiguration {
    */
   @Bean
   public TemplateEngine templateEngine() {
-    final TemplateEngine templateEngine;
-    if (usePrecompiledTemplates) {
+    final TemplateEngine engine;
+    if (usePrecompiled) {
       // This will look for precompiled templates in the classpath
-      templateEngine = TemplateEngine.createPrecompiled(ContentType.Html);
+      engine = TemplateEngine.createPrecompiled(ContentType.Html);
     } else {
-
       // Development mode: load templates from the source directory for hot-reloading
       Path path = Paths.get("jagratha-ui/src/main/jte");
       if (!Files.exists(path)) {
@@ -46,9 +45,9 @@ public class JteConfiguration {
       }
 
       final CodeResolver codeResolver = new DirectoryCodeResolver(path);
-      templateEngine = TemplateEngine.create(codeResolver, ContentType.Html);
-      templateEngine.setBinaryStaticContent(true);
+      engine = TemplateEngine.create(codeResolver, ContentType.Html);
+      engine.setBinaryStaticContent(true);
     }
-    return templateEngine;
+    return engine;
   }
 }
