@@ -23,10 +23,7 @@ class AppConfigMapperTest {
     List<PluginRegistration> plugins = List.of(new PluginRegistration("p1", Map.of("k", "v")));
     ConfigRequest request =
         new ConfigRequest(
-            "sess-1",
-            "/path",
-            plugins,
-            List.of(new WorkflowConfig("w1", null, null)));
+            "sess-1", "/path", plugins, List.of(new WorkflowConfig("w1", null, null)));
 
     AppConfigData data = mapper.toData(request);
 

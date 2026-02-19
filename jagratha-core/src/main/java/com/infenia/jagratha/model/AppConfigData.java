@@ -11,7 +11,10 @@ import java.util.List;
  * @param workflows the list of workflows
  */
 public record AppConfigData(
-    String sessionId, String projectPath, List<PluginRegistration> plugins, List<WorkflowConfig> workflows) {
+    String sessionId,
+    String projectPath,
+    List<PluginRegistration> plugins,
+    List<WorkflowConfig> workflows) {
 
   /** Compact constructor to ensure lists are immutable. */
   public AppConfigData {

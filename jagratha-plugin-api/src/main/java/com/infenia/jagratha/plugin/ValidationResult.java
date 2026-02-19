@@ -1,7 +1,6 @@
 package com.infenia.jagratha.plugin;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Result of plugin configuration validation.

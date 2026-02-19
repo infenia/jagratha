@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,10 +81,7 @@ class AppServiceTest {
     List<PluginRegistration> plugins = List.of(new PluginRegistration("gradle", Map.of()));
     AppConfigData data =
         new AppConfigData(
-            "session-1",
-            "/new/path",
-            plugins,
-            List.of(new WorkflowConfig("task1", null, null)));
+            "session-1", "/new/path", plugins, List.of(new WorkflowConfig("task1", null, null)));
 
     service.applyConfigOverrides(data);
 

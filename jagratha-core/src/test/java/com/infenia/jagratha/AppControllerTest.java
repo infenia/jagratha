@@ -183,8 +183,7 @@ class AppControllerTest {
   void testUpdateConfigValidationError() {
     ConfigRequest request =
         new ConfigRequest(
-            "sess",
-            "", // empty project path
+            "sess", "", // empty project path
             List.of(), // empty plugins
             List.of()); // empty workflows
 
