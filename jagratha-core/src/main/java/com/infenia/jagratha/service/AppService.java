@@ -332,7 +332,8 @@ public class AppService {
     final Path configFile = Path.of(resultsDir).resolve(sessionId).resolve("config.json");
     if (Files.exists(configFile)) {
       try {
-        return objectMapper.readValue(Files.readString(configFile, StandardCharsets.UTF_8), Map.class);
+        return objectMapper.readValue(
+            Files.readString(configFile, StandardCharsets.UTF_8), Map.class);
       } catch (IOException e) {
         log.warn("Failed to read config.json for session {}", sessionId, e);
       }
@@ -359,7 +360,9 @@ public class AppService {
         final String json = objectMapper.writeValueAsString(workflows);
         return objectMapper.readValue(
             json,
-            objectMapper.getTypeFactory().constructCollectionType(List.class, WorkflowConfig.class));
+            objectMapper
+                .getTypeFactory()
+                .constructCollectionType(List.class, WorkflowConfig.class));
       } catch (IOException e) {
         log.warn("Failed to parse workflows from disk for session {}", sessionId, e);
       }

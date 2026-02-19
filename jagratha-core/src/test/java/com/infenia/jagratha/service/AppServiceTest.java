@@ -366,8 +366,7 @@ class AppServiceTest {
     when(configService.isActive(sessionId)).thenReturn(true);
 
     service.applyConfigOverrides(
-        new AppConfigData(
-            sessionId, "/path/to/project", null, null, null, null, null, null, null));
+        new AppConfigData(sessionId, "/path/to/project", null, null, null, null, null, null, null));
 
     Path configFile = resultsDir.resolve(sessionId).resolve("config.json");
     assertTrue(Files.exists(configFile));
