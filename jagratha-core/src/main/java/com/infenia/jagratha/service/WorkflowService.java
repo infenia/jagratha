@@ -1,6 +1,7 @@
 package com.infenia.jagratha.service;
 
 import com.infenia.jagratha.config.AppConfigService;
+import com.infenia.jagratha.exception.UncheckedIoException;
 import com.infenia.jagratha.model.TaskResponse;
 import com.infenia.jagratha.model.WorkflowConfig;
 import com.infenia.jagratha.plugin.AiPlugin;
@@ -62,56 +63,67 @@ public class WorkflowService {
   }
 
   private Mono<TaskResponse> executeQualityChecks(final String sessionId) {
-    final String projectRoot = configService.getProjectPath(sessionId);
-    final String logsDir = configService.getFileLogDir(sessionId);
-    final String pluginName = configService.getPluginName(sessionId);
-
-    if (projectRoot == null || projectRoot.isEmpty()) {
-      return respondAndLog(sessionId, FAILURE_STATUS, "External project path not configured.");
-    }
-    if (logsDir == null || logsDir.isEmpty()) {
-      return respondAndLog(sessionId, FAILURE_STATUS, "File log directory not configured.");
-    }
-    if (pluginName == null || pluginName.isEmpty()) {
-      return respondAndLog(
-          sessionId,
-          FAILURE_STATUS,
-          "No plugins configured. Please use the /api/config endpoint to initialize the "
-              + "project configuration.");
-    }
-
-    final File projectDir = new File(projectRoot);
-    if (!projectDir.exists() || !projectDir.isDirectory()) {
-      return respondAndLog(sessionId, FAILURE_STATUS, "Project directory does not exist.");
-    }
-
-    return processSessionLogs(sessionId, projectRoot, projectDir, logsDir)
+    return Mono.zip(
+            configService.getProjectPath(sessionId),
+            configService.getFileLogDir(sessionId),
+            configService.getPluginName(sessionId))
         .flatMap(
-            response -> {
-              logResults(sessionId, response);
-              tracker.finishWorkflow(sessionId, response.status());
-              return Mono.just(response);
-            });
+            tuple -> {
+              final String projectRoot = tuple.getT1();
+              final String logsDir = tuple.getT2();
+              final String pluginName = tuple.getT3();
+
+              if (projectRoot == null || projectRoot.isEmpty()) {
+                return respondAndLog(sessionId, FAILURE_STATUS, "External project path not configured.");
+              }
+              if (logsDir == null || logsDir.isEmpty()) {
+                return respondAndLog(sessionId, FAILURE_STATUS, "File log directory not configured.");
+              }
+              if (pluginName == null || pluginName.isEmpty()) {
+                return respondAndLog(
+                    sessionId,
+                    FAILURE_STATUS,
+                    "No plugins configured. Please use the /api/config endpoint to initialize the "
+                        + "project configuration.");
+              }
+
+              final File projectDir = new File(projectRoot);
+              if (!projectDir.exists() || !projectDir.isDirectory()) {
+                return respondAndLog(sessionId, FAILURE_STATUS, "Project directory does not exist.");
+              }
+
+              return processSessionLogs(sessionId, projectRoot, projectDir, logsDir);
+            })
+        .flatMap(
+            response ->
+                logResults(sessionId, response)
+                    .then(
+                        Mono.fromRunnable(
+                            () -> tracker.finishWorkflow(sessionId, response.status())))
+                    .thenReturn(response));
   }
 
   private Mono<TaskResponse> respondAndLog(
       final String sessionId, final String status, final String msg) {
     final TaskResponse response = new TaskResponse(status, msg);
-    logResults(sessionId, response);
-    return Mono.just(response);
+    return logResults(sessionId, response).thenReturn(response);
   }
 
-  private JagrathaPlugin getActivePlugin(final String sessionId) {
-    final String pluginName = configService.getPluginName(sessionId);
-    if (pluginName == null || pluginName.isEmpty()) {
-      throw new IllegalStateException(
-          "No plugins configured. Please use the /api/config endpoint to initialize the project"
-              + " configuration.");
-    }
-    return plugins.stream()
-        .filter(p -> pluginName.equals(p.getName()))
-        .findFirst()
-        .orElseThrow(() -> new IllegalStateException("Plugin not found: " + pluginName));
+  private Mono<JagrathaPlugin> getActivePlugin(final String sessionId) {
+    return configService
+        .getPluginName(sessionId)
+        .map(
+            pluginName -> {
+              if (pluginName == null || pluginName.isEmpty()) {
+                throw new IllegalStateException(
+                    "No plugins configured. Please use the /api/config endpoint to initialize "
+                        + "the project configuration.");
+              }
+              return plugins.stream()
+                  .filter(p -> pluginName.equals(p.getName()))
+                  .findFirst()
+                  .orElseThrow(() -> new IllegalStateException("Plugin not found: " + pluginName));
+            });
   }
 
   private Mono<TaskResponse> processSessionLogs(
@@ -125,50 +137,82 @@ public class WorkflowService {
     return fileLogService.withLock(
         sessionId,
         Mono.defer(
-            () -> {
-              try {
-                final Map<String, String> files = fileLogService.readLogFileSync(logFile);
-                final JagrathaPlugin plugin = getActivePlugin(sessionId);
-
-                final Map<String, List<String>> pendingByModule =
-                    files.entrySet().stream()
-                        .filter(entry -> !SUCCESS_STATUS.equals(entry.getValue()))
-                        .collect(
-                            Collectors.groupingBy(
-                                entry -> plugin.identifyModule(projectRoot, entry.getKey()),
-                                java.util.LinkedHashMap::new,
-                                Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
-
-                if (pendingByModule.isEmpty()) {
-                  return Mono.just(
-                      new TaskResponse(SUCCESS_STATUS, "No pending changes to process."));
-                }
-
-                final List<String> taskNames = new ArrayList<>();
-                final List<WorkflowConfig> workflows = configService.getWorkflows(sessionId);
-                if (workflows != null && !workflows.isEmpty()) {
-                  workflows.forEach(w -> taskNames.add(w.task()));
-                } else {
-                  taskNames.addAll(configService.getTasks(sessionId));
-                }
-                tracker.startWorkflow(sessionId, taskNames);
-
-                return runChecksForModules(projectDir, pendingByModule, files, sessionId)
+            () ->
+                Mono.fromCallable(() -> fileLogService.readLogFileSync(logFile))
                     .flatMap(
-                        response -> {
-                          try {
-                            fileLogService.writeLogFileSync(logFile, files);
-                            return Mono.just(response);
-                          } catch (IOException e) {
-                            return Mono.error(e);
-                          }
-                        });
-              } catch (IOException e) {
-                log.error("Failed to manage session logs", e);
-                return Mono.just(
-                    new TaskResponse(FAILURE_STATUS, "Error managing logs: " + e.getMessage()));
-              }
-            }));
+                        files ->
+                            getActivePlugin(sessionId)
+                                .flatMap(
+                                    plugin -> {
+                                      final Map<String, List<String>> pendingByModule =
+                                          files.entrySet().stream()
+                                              .filter(
+                                                  entry ->
+                                                      !SUCCESS_STATUS.equals(entry.getValue()))
+                                              .collect(
+                                                  Collectors.groupingBy(
+                                                      entry ->
+                                                          plugin.identifyModule(
+                                                              projectRoot, entry.getKey()),
+                                                      java.util.LinkedHashMap::new,
+                                                      Collectors.mapping(
+                                                          Map.Entry::getKey,
+                                                          Collectors.toList())));
+
+                                      if (pendingByModule.isEmpty()) {
+                                        return Mono.just(
+                                            new TaskResponse(
+                                                SUCCESS_STATUS, "No pending changes to process."));
+                                      }
+
+                                      return Mono.zip(
+                                              configService.getWorkflows(sessionId).collectList(),
+                                              configService.getTasks(sessionId).collectList())
+                                          .flatMap(
+                                              tuple -> {
+                                                final List<WorkflowConfig> workflows =
+                                                    tuple.getT1();
+                                                final List<String> tasks = tuple.getT2();
+
+                                                final List<String> taskNames = new ArrayList<>();
+                                                if (!workflows.isEmpty()) {
+                                                  workflows.forEach(w -> taskNames.add(w.task()));
+                                                } else {
+                                                  taskNames.addAll(tasks);
+                                                }
+                                                tracker.startWorkflow(sessionId, taskNames);
+
+                                                return runChecksForModules(
+                                                        projectDir,
+                                                        pendingByModule,
+                                                        files,
+                                                        sessionId)
+                                                    .flatMap(
+                                                        response ->
+                                                            Mono.fromRunnable(
+                                                                    () -> {
+                                                                      try {
+                                                                        fileLogService
+                                                                            .writeLogFileSync(
+                                                                                logFile, files);
+                                                                      } catch (IOException e) {
+                                                                        throw new UncheckedIoException(
+                                                                            "Failed to write log file",
+                                                                            e);
+                                                                      }
+                                                                    })
+                                                                .subscribeOn(
+                                                                    Schedulers.boundedElastic())
+                                                                .thenReturn(response));
+                                              });
+                                    }))
+                    .onErrorResume(
+                        e -> {
+                          log.error("Failed to manage session logs", e);
+                          return Mono.just(
+                              new TaskResponse(
+                                  FAILURE_STATUS, "Error managing logs: " + e.getMessage()));
+                        })));
   }
 
   private Mono<TaskResponse> runChecksForModules(
@@ -215,11 +259,16 @@ public class WorkflowService {
         .append(module.isEmpty() ? "root" : module)
         .append(" ---\n");
 
-    final List<WorkflowConfig> workflows = configService.getWorkflows(sessionId);
-    if (workflows != null && !workflows.isEmpty()) {
-      return runWorkflows(projectDir, sessionId, combinedOutput, module, workflows);
-    }
-    return runSimpleTasks(projectDir, sessionId, combinedOutput, module);
+    return configService
+        .getWorkflows(sessionId)
+        .collectList()
+        .flatMap(
+            workflows -> {
+              if (!workflows.isEmpty()) {
+                return runWorkflows(projectDir, sessionId, combinedOutput, module, workflows);
+              }
+              return runSimpleTasks(projectDir, sessionId, combinedOutput, module);
+            });
   }
 
   private Mono<TaskResponse> runWorkflows(
@@ -248,36 +297,45 @@ public class WorkflowService {
       final String sessionId,
       final StringBuilder combinedOutput,
       final String module) {
-    final List<String> tasks = configService.getTasks(sessionId);
-
-    return Flux.fromIterable(tasks)
-        .concatMap(
-            task -> {
-              tracker.updateTaskStatus(sessionId, task, module, "RUNNING");
-              return executeSingleTask(
-                      projectDir, sessionId, module, task, configService.getPluginConfig(sessionId))
-                  .doOnNext(
-                      res -> {
-                        tracker.updateTaskStatus(sessionId, task, module, res.status());
-                        combinedOutput
-                            .append("Task: ")
-                            .append(task)
-                            .append(" - ")
-                            .append(res.status())
-                            .append('\n')
-                            .append(res.output())
-                            .append("\n\n");
-                      });
-            })
-        .takeUntil(res -> FAILURE_STATUS.equals(res.status()))
+    return configService
+        .getTasks(sessionId)
         .collectList()
-        .map(
-            results -> {
-              if (results.stream().anyMatch(res -> FAILURE_STATUS.equals(res.status()))) {
-                return new TaskResponse(FAILURE_STATUS, "");
-              }
-              return new TaskResponse(SUCCESS_STATUS, "");
-            });
+        .flatMap(
+            tasks ->
+                configService
+                    .getPluginConfig(sessionId)
+                    .flatMap(
+                        pluginConfig ->
+                            Flux.fromIterable(tasks)
+                                .concatMap(
+                                    task -> {
+                                      tracker.updateTaskStatus(sessionId, task, module, "RUNNING");
+                                      return executeSingleTask(
+                                              projectDir, sessionId, module, task, pluginConfig)
+                                          .doOnNext(
+                                              res -> {
+                                                tracker.updateTaskStatus(
+                                                    sessionId, task, module, res.status());
+                                                combinedOutput
+                                                    .append("Task: ")
+                                                    .append(task)
+                                                    .append(" - ")
+                                                    .append(res.status())
+                                                    .append('\n')
+                                                    .append(res.output())
+                                                    .append("\n\n");
+                                              });
+                                    })
+                                .takeUntil(res -> FAILURE_STATUS.equals(res.status()))
+                                .collectList()
+                                .map(
+                                    results -> {
+                                      if (results.stream()
+                                          .anyMatch(res -> FAILURE_STATUS.equals(res.status()))) {
+                                        return new TaskResponse(FAILURE_STATUS, "");
+                                      }
+                                      return new TaskResponse(SUCCESS_STATUS, "");
+                                    })));
   }
 
   private Mono<TaskResponse> executeWorkflow(
@@ -288,12 +346,11 @@ public class WorkflowService {
       final WorkflowConfig workflow) {
 
     tracker.updateTaskStatus(sessionId, workflow.task(), module, "RUNNING");
-    return executeSingleTask(
-            projectDir,
-            sessionId,
-            module,
-            workflow.task(),
-            configService.getPluginConfig(sessionId))
+    return configService
+        .getPluginConfig(sessionId)
+        .flatMap(
+            pluginConfig ->
+                executeSingleTask(projectDir, sessionId, module, workflow.task(), pluginConfig))
         .flatMap(
             taskRes -> {
               tracker.updateTaskStatus(sessionId, workflow.task(), module, taskRes.status());
@@ -311,76 +368,103 @@ public class WorkflowService {
                 return Mono.just(new TaskResponse(FAILURE_STATUS, combinedOutput.toString()));
               }
 
-              Mono<String> artifactPathMono = Mono.justOrEmpty(null);
+              Mono<String> artifactPathMono = Mono.just("");
               Mono<String> procStatusMono = Mono.just(SUCCESS_STATUS);
 
               if (workflow.processor() != null) {
                 final OutputProcessorPlugin processor = findProcessor(workflow.processor().name());
-                final OutputProcessorPlugin.ProcessorResult procRes =
-                    processor.process(
-                        new OutputProcessorPlugin.ProcessorInput(
-                            sessionId,
+                final Mono<OutputProcessorPlugin.ProcessorResult> procResMono =
+                    Mono.zip(
                             configService.getProjectPath(sessionId),
-                            module,
-                            workflow.task(),
-                            taskRes.output(),
-                            configService.getResultLogDir(sessionId),
-                            workflow.processor().config()));
-
-                artifactPathMono = Mono.justOrEmpty(procRes.artifactPath());
-                procStatusMono = Mono.just(procRes.status());
-
-                combinedOutput
-                    .append("Processor: ")
-                    .append(workflow.processor().name())
-                    .append(" - ")
-                    .append(procRes.status())
-                    .append('\n')
-                    .append(procRes.output())
-                    .append('\n');
-
-                if (FAILURE_STATUS.equals(procRes.status())) {
-                  return Mono.just(new TaskResponse(FAILURE_STATUS, combinedOutput.toString()));
-                }
-              }
-
-              return Mono.zip(artifactPathMono.defaultIfEmpty(""), procStatusMono)
-                  .flatMap(
-                      tuple -> {
-                        final String artifactPath = tuple.getT1();
-                        if (workflow.aiStep() != null) {
-                          final AiPlugin aiPlugin = findAiPlugin(workflow.aiStep().name());
-                          return constructPrompt(
-                                  workflow.aiStep().config(), taskRes.output(), artifactPath)
-                              .flatMap(
-                                  prompt -> {
-                                    final String aiResponse =
-                                        aiPlugin.execute(prompt, workflow.aiStep().config());
-
-                                    combinedOutput
-                                        .append("AI (")
-                                        .append(workflow.aiStep().name())
-                                        .append("):\n")
-                                        .append(aiResponse)
-                                        .append('\n');
-
-                                    saveAiLog(
+                            configService.getResultLogDir(sessionId))
+                        .map(
+                            tuple ->
+                                processor.process(
+                                    new OutputProcessorPlugin.ProcessorInput(
                                         sessionId,
+                                        tuple.getT1(),
                                         module,
                                         workflow.task(),
-                                        workflow.aiStep().name(),
-                                        aiResponse);
-                                    return Mono.just(SUCCESS_STATUS);
-                                  });
-                        }
-                        return Mono.just(SUCCESS_STATUS);
-                      })
+                                        taskRes.output(),
+                                        tuple.getT2(),
+                                        workflow.processor().config())));
+
+                artifactPathMono =
+                    procResMono.map(res -> res.artifactPath() != null ? res.artifactPath() : "");
+                procStatusMono = procResMono.map(OutputProcessorPlugin.ProcessorResult::status);
+
+                return procResMono.flatMap(
+                    procRes -> {
+                      combinedOutput
+                          .append("Processor: ")
+                          .append(workflow.processor().name())
+                          .append(" - ")
+                          .append(procRes.status())
+                          .append('\n')
+                          .append(procRes.output())
+                          .append('\n');
+
+                      if (FAILURE_STATUS.equals(procRes.status())) {
+                        return Mono.just(
+                            new TaskResponse(FAILURE_STATUS, combinedOutput.toString()));
+                      }
+
+                      return runAiStep(
+                              sessionId,
+                              module,
+                              workflow,
+                              taskRes,
+                              procRes.artifactPath(),
+                              combinedOutput)
+                          .map(
+                              ignored -> {
+                                combinedOutput.append('\n');
+                                return new TaskResponse(SUCCESS_STATUS, "");
+                              });
+                    });
+              }
+
+              return runAiStep(sessionId, module, workflow, taskRes, null, combinedOutput)
                   .map(
                       ignored -> {
                         combinedOutput.append('\n');
                         return new TaskResponse(SUCCESS_STATUS, "");
                       });
             });
+  }
+
+  private Mono<Void> runAiStep(
+      final String sessionId,
+      final String module,
+      final WorkflowConfig workflow,
+      final TaskResponse taskRes,
+      final String artifactPath,
+      final StringBuilder combinedOutput) {
+    if (workflow.aiStep() != null) {
+      final AiPlugin aiPlugin = findAiPlugin(workflow.aiStep().name());
+      return constructPrompt(workflow.aiStep().config(), taskRes.output(), artifactPath)
+          .flatMap(
+              prompt ->
+                  Mono.fromCallable(() -> aiPlugin.execute(prompt, workflow.aiStep().config()))
+                      .subscribeOn(Schedulers.boundedElastic())
+                      .flatMap(
+                          aiResponse -> {
+                            combinedOutput
+                                .append("AI (")
+                                .append(workflow.aiStep().name())
+                                .append("):\n")
+                                .append(aiResponse)
+                                .append('\n');
+
+                            return saveAiLog(
+                                sessionId,
+                                module,
+                                workflow.task(),
+                                workflow.aiStep().name(),
+                                aiResponse);
+                          }));
+    }
+    return Mono.empty();
   }
 
   private OutputProcessorPlugin findProcessor(final String name) {
@@ -427,30 +511,38 @@ public class WorkflowService {
         .subscribeOn(Schedulers.boundedElastic());
   }
 
-  private void saveAiLog(
+  private Mono<Void> saveAiLog(
       final String sessionId,
       final String module,
       final String task,
       final String aiName,
       final String response) {
-    final String logsDir = configService.getResultLogDir(sessionId);
-    if (logsDir != null && !logsDir.isEmpty()) {
-      try {
-        final String timestamp = LocalDateTime.now().format(FORMATTER);
-        final String logFileName =
-            String.format(
-                "%s-%s-%s-%s.log",
-                module.isEmpty() ? "root" : module.replace(":", "-").substring(1),
-                task,
-                aiName,
-                timestamp);
-        final Path dirPath = Path.of(logsDir).resolve(sessionId);
-        Files.createDirectories(dirPath);
-        Files.writeString(dirPath.resolve(logFileName), response);
-      } catch (IOException e) {
-        log.error("Failed to log AI response", e);
-      }
-    }
+    return configService
+        .getResultLogDir(sessionId)
+        .flatMap(
+            logsDir ->
+                Mono.fromRunnable(
+                    () -> {
+                      if (logsDir != null && !logsDir.isEmpty()) {
+                        try {
+                          final String timestamp = LocalDateTime.now().format(FORMATTER);
+                          final String logFileName =
+                              String.format(
+                                  "%s-%s-%s-%s.log",
+                                  module.isEmpty() ? "root" : module.replace(":", "-").substring(1),
+                                  task,
+                                  aiName,
+                                  timestamp);
+                          final Path dirPath = Path.of(logsDir).resolve(sessionId);
+                          Files.createDirectories(dirPath);
+                          Files.writeString(dirPath.resolve(logFileName), response);
+                        } catch (IOException e) {
+                          log.error("Failed to log AI response", e);
+                        }
+                      }
+                    }))
+        .subscribeOn(Schedulers.boundedElastic())
+        .then();
   }
 
   private Mono<TaskResponse> executeSingleTask(
@@ -459,55 +551,78 @@ public class WorkflowService {
       final String module,
       final String task,
       final Map<String, Object> pluginConfig) {
-    final List<String> command =
-        getActivePlugin(sessionId).buildTaskCommand(module, task, pluginConfig);
-    final String timestamp = LocalDateTime.now().format(FORMATTER);
-    final String namePrefix = module.isEmpty() ? "root" : module.replace(":", "-").substring(1);
-    final String logFileName = String.format("%s-%s-%s.log", namePrefix, task, timestamp);
+    return getActivePlugin(sessionId)
+        .flatMap(
+            plugin -> {
+              final List<String> command = plugin.buildTaskCommand(module, task, pluginConfig);
+              final String timestamp = LocalDateTime.now().format(FORMATTER);
+              final String namePrefix =
+                  module.isEmpty() ? "root" : module.replace(":", "-").substring(1);
+              final String logFileName = String.format("%s-%s-%s.log", namePrefix, task, timestamp);
 
-    if (log.isInfoEnabled()) {
-      log.info("Running quality check: {}", String.join(" ", command));
-    }
+              if (log.isInfoEnabled()) {
+                log.info("Running quality check: {}", String.join(" ", command));
+              }
 
-    return tryExecuteChecks(command, projectDir, sessionId)
-        .doOnNext(res -> saveTaskLog(sessionId, logFileName, res));
+              return tryExecuteChecks(command, projectDir, sessionId)
+                  .flatMap(res -> saveTaskLog(sessionId, logFileName, res).thenReturn(res));
+            });
   }
 
-  private void saveTaskLog(final String sessionId, final String fileName, final TaskResponse res) {
-    final String logsDir = configService.getResultLogDir(sessionId);
-    if (logsDir != null && !logsDir.isEmpty()) {
-      try {
-        final Path dirPath = Path.of(logsDir).resolve(sessionId);
-        Files.createDirectories(dirPath);
-        final Path logFile = dirPath.resolve(fileName);
-        final String content = "Status: " + res.status() + "\n\nOutput:\n" + res.output();
-        Files.writeString(logFile, content);
-      } catch (IOException e) {
-        if (log.isErrorEnabled()) {
-          log.error("Failed to log task result", e);
-        }
-      }
-    }
+  private Mono<Void> saveTaskLog(
+      final String sessionId, final String fileName, final TaskResponse res) {
+    return configService
+        .getResultLogDir(sessionId)
+        .flatMap(
+            logsDir ->
+                Mono.fromRunnable(
+                    () -> {
+                      if (logsDir != null && !logsDir.isEmpty()) {
+                        try {
+                          final Path dirPath = Path.of(logsDir).resolve(sessionId);
+                          Files.createDirectories(dirPath);
+                          final Path logFile = dirPath.resolve(fileName);
+                          final String content =
+                              "Status: " + res.status() + "\n\nOutput:\n" + res.output();
+                          Files.writeString(logFile, content);
+                        } catch (IOException e) {
+                          if (log.isErrorEnabled()) {
+                            log.error("Failed to log task result", e);
+                          }
+                        }
+                      }
+                    }))
+        .subscribeOn(Schedulers.boundedElastic())
+        .then();
   }
 
-  private void logResults(final String sessionId, final TaskResponse response) {
-    final String logsDir = configService.getResultLogDir(sessionId);
-    if (logsDir != null && !logsDir.isEmpty()) {
-      try {
-        final Path dirPath = Path.of(logsDir).resolve(sessionId);
-        Files.createDirectories(dirPath);
-        final Path logFile = dirPath.resolve("summary.log");
-        final String content = "Status: " + response.status() + "\n\nOutput:\n" + response.output();
-        Files.writeString(logFile, content);
-        if (log.isInfoEnabled()) {
-          log.info("Logged quality check results for session {}", sessionId);
-        }
-      } catch (IOException e) {
-        if (log.isErrorEnabled()) {
-          log.error("Failed to log results", e);
-        }
-      }
-    }
+  private Mono<Void> logResults(final String sessionId, final TaskResponse response) {
+    return configService
+        .getResultLogDir(sessionId)
+        .flatMap(
+            logsDir ->
+                Mono.fromRunnable(
+                    () -> {
+                      if (logsDir != null && !logsDir.isEmpty()) {
+                        try {
+                          final Path dirPath = Path.of(logsDir).resolve(sessionId);
+                          Files.createDirectories(dirPath);
+                          final Path logFile = dirPath.resolve("summary.log");
+                          final String content =
+                              "Status: " + response.status() + "\n\nOutput:\n" + response.output();
+                          Files.writeString(logFile, content);
+                          if (log.isInfoEnabled()) {
+                            log.info("Logged quality check results for session {}", sessionId);
+                          }
+                        } catch (IOException e) {
+                          if (log.isErrorEnabled()) {
+                            log.error("Failed to log results", e);
+                          }
+                        }
+                      }
+                    }))
+        .subscribeOn(Schedulers.boundedElastic())
+        .then();
   }
 
   private Mono<TaskResponse> tryExecuteChecks(
@@ -540,18 +655,20 @@ public class WorkflowService {
                           })
                       .then(Mono.fromSupplier(output::toString));
 
-              final Long timeoutVal = configService.getExecutionTimeout(sessionId);
+              final Mono<Long> timeoutMono = configService.getExecutionTimeout(sessionId);
               final Mono<Integer> exitCodeMono =
-                  Mono.fromFuture(process.onExit())
-                      .map(Process::exitValue)
-                      .timeout(Duration.ofSeconds(timeoutVal != null ? timeoutVal : 600))
-                      .onErrorResume(
-                          TimeoutException.class,
-                          e -> {
-                            process.destroyForcibly();
-                            return Mono.error(
-                                new TimeoutException("Timeout while running checks."));
-                          });
+                  timeoutMono.flatMap(
+                      timeoutVal ->
+                          Mono.fromFuture(process.onExit())
+                              .map(Process::exitValue)
+                              .timeout(Duration.ofSeconds(timeoutVal != null ? timeoutVal : 600))
+                              .onErrorResume(
+                                  TimeoutException.class,
+                                  e -> {
+                                    process.destroyForcibly();
+                                    return Mono.error(
+                                        new TimeoutException("Timeout while running checks."));
+                                  }));
 
               return Mono.zip(exitCodeMono, readOutputMono)
                   .map(

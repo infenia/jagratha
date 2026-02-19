@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.jagratha.config.AppConfigService;
+import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,8 +34,8 @@ class LogRetrievalServiceTest {
     configService = mock(AppConfigService.class);
     service = new LogRetrievalService(configService);
 
-    when(configService.getResultLogDir(any())).thenReturn(resultsDir.toString());
-    when(configService.getFileLogDir(any())).thenReturn(fileLogDir.toString());
+    when(configService.getResultLogDir(any())).thenReturn(Mono.just(resultsDir.toString()));
+    when(configService.getFileLogDir(any())).thenReturn(Mono.just(fileLogDir.toString()));
   }
 
   @Test

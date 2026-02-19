@@ -16,6 +16,8 @@ import com.infenia.jagratha.model.WorkflowConfig;
 import com.infenia.jagratha.plugin.AiPlugin;
 import com.infenia.jagratha.plugin.OutputProcessorPlugin;
 import com.infenia.jagratha.plugin.gradle.GradlePlugin;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,7 +59,8 @@ class SessionServiceTest {
             List.of(mockProcessor),
             List.of(mockAiPlugin));
 
-    when(configService.getResultLogDir(any())).thenReturn(resultsDir.toString());
+    when(configService.getResultLogDir(any())).thenReturn(Mono.just(resultsDir.toString()));
+    when(configService.getFileLogDir(any())).thenReturn(Mono.just(""));
   }
 
   @Test
@@ -66,6 +69,11 @@ class SessionServiceTest {
     AppConfigData data =
         new AppConfigData(
             "session-1", "/new/path", plugins, List.of(new WorkflowConfig("task1", null, null)));
+
+    when(configService.setProjectPath(any(), any())).thenReturn(Mono.empty());
+    when(configService.setPlugins(any(), any())).thenReturn(Mono.empty());
+    when(configService.setWorkflows(any(), any())).thenReturn(Mono.empty());
+    when(configService.getAllConfigs(any())).thenReturn(Mono.just(Map.of()));
 
     StepVerifier.create(service.applyConfigOverrides(data)).verifyComplete();
 
@@ -80,9 +88,9 @@ class SessionServiceTest {
     String activeSess = "active-sess";
     String historySess = "history-sess";
 
-    when(configService.getActiveSessionIds()).thenReturn(Set.of(activeSess));
-    when(configService.getResultLogDir(null)).thenReturn(resultsDir.toString());
-    when(configService.getFileLogDir(null)).thenReturn(null);
+    when(configService.getActiveSessionIds()).thenReturn(Flux.just(activeSess));
+    when(configService.getResultLogDir(null)).thenReturn(Mono.just(resultsDir.toString()));
+    when(configService.getFileLogDir(null)).thenReturn(Mono.just(""));
 
     // Create history session on disk
     Files.createDirectories(resultsDir.resolve(historySess));
@@ -96,8 +104,8 @@ class SessionServiceTest {
   void testSaveAndLoadConfig() throws IOException {
     String sessionId = "config-sess";
     Map<String, Object> config = Map.of("projectPath", "/path/to/project");
-    when(configService.getAllConfigs(sessionId)).thenReturn(config);
-    when(configService.isActive(sessionId)).thenReturn(true);
+    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(config));
+    when(configService.isActive(sessionId)).thenReturn(Mono.just(true));
 
     StepVerifier.create(service.saveConfigToDisk(sessionId)).verifyComplete();
 
@@ -105,7 +113,7 @@ class SessionServiceTest {
     assertTrue(Files.exists(configFile));
 
     // Now make it inactive
-    when(configService.isActive(sessionId)).thenReturn(false);
+    when(configService.isActive(sessionId)).thenReturn(Mono.just(false));
     StepVerifier.create(service.getSessionConfig(sessionId))
         .assertNext(loaded -> assertEquals("/path/to/project", loaded.get("projectPath")))
         .verifyComplete();

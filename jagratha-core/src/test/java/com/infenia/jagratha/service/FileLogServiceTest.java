@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.infenia.jagratha.config.AppConfigService;
+import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,8 +37,8 @@ class FileLogServiceTest {
     configService = mock(AppConfigService.class);
     service = new FileLogService(configService, new ObjectMapper());
 
-    when(configService.getFileLogDir(any())).thenReturn(filesDir.toString());
-    when(configService.getProjectPath(any())).thenReturn(projectDir.toString());
+    when(configService.getFileLogDir(any())).thenReturn(Mono.just(filesDir.toString()));
+    when(configService.getProjectPath(any())).thenReturn(Mono.just(projectDir.toString()));
   }
 
   @Test
@@ -86,7 +87,7 @@ class FileLogServiceTest {
 
   @Test
   void testSaveFileNoPathConfigured() {
-    when(configService.getFileLogDir(anyString())).thenReturn(null);
+    when(configService.getFileLogDir(anyString())).thenReturn(Mono.just(""));
     StepVerifier.create(service.saveFile("test.java", "session-1"))
         .expectError(IllegalStateException.class)
         .verify();
