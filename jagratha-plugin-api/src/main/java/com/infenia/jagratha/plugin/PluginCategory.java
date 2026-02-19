@@ -13,28 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-plugins {
-    id 'com.infenia.jagratha.java-conventions'
-    id 'com.infenia.jagratha.quality-conventions'
-    id 'com.infenia.jagratha.jacoco-conventions'
-    alias(libs.plugins.spring.boot)
-    alias(libs.plugins.spring.dependency.management)
-}
+package com.infenia.jagratha.plugin;
 
-version = '1.0.0'
-
-// Library module
-bootJar {
-    enabled = false
-}
-jar {
-    enabled = true
-}
-
-dependencies {
-    implementation project(':jagratha-plugin-api')
-    implementation libs.spring.boot.starter.webflux
-
-    testImplementation libs.spring.boot.starter.test
-    testImplementation libs.reactor.test
+/** Categories of plugins to ensure predictable data flow. */
+public enum PluginCategory {
+  /** Sources: Producers of data. */
+  TRIGGER,
+  /** Transformers: Consumers AND Producers of data. */
+  PROCESSOR,
+  /** Sinks: Consumers only. */
+  TERMINAL
 }

@@ -18,19 +18,13 @@ package com.infenia.jagratha.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.infenia.jagratha.config.AppConfigService;
 import com.infenia.jagratha.model.AppConfigData;
-import com.infenia.jagratha.model.PluginRegistration;
-import com.infenia.jagratha.model.WorkflowConfig;
-import com.infenia.jagratha.plugin.AiPlugin;
-import com.infenia.jagratha.plugin.JagrathaPlugin;
-import com.infenia.jagratha.plugin.OutputProcessorPlugin;
-import com.infenia.jagratha.plugin.ValidationResult;
+import com.infenia.jagratha.model.WorkflowDefinition;
 import com.infenia.jagratha.validation.SessionId;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -53,9 +47,7 @@ public class SessionService {
 
   private final AppConfigService configService;
   private final ObjectMapper objectMapper;
-  private final List<JagrathaPlugin> plugins;
-  private final List<OutputProcessorPlugin> processorPlugins;
-  private final List<AiPlugin> aiPlugins;
+  private final WorkflowOrchestrator orchestrator;
 
   private static final String SESS_ID_PATTERN = "^(?!.*\\.\\.)[^/\\\\]*$";
 
@@ -68,69 +60,23 @@ public class SessionService {
   public Mono<Void> applyConfigOverrides(@Valid final AppConfigData data) {
     return Mono.defer(
             () -> {
-              validatePlugins(data.plugins());
-
               final Mono<Void> projectPathMono =
                   data.projectPath() != null
                       ? configService.setProjectPath(data.sessionId(), data.projectPath())
                       : Mono.empty();
 
-              final Mono<Void> pluginsMono =
-                  data.plugins() != null && !data.plugins().isEmpty()
-                      ? configService.setPlugins(data.sessionId(), data.plugins())
+              final Mono<Void> workflowMono =
+                  data.workflow() != null
+                      ? configService.setWorkflow(data.sessionId(), data.workflow())
                       : Mono.empty();
 
-              final Mono<Void> workflowsMono =
-                  data.workflows() != null && !data.workflows().isEmpty()
-                      ? configService.setWorkflows(data.sessionId(), data.workflows())
-                      : Mono.empty();
-
-              return Mono.when(projectPathMono, pluginsMono, workflowsMono);
+              return Mono.when(projectPathMono, workflowMono)
+                  .then(
+                      data.workflow() != null
+                          ? orchestrator.prepareWorkflow(data.workflow())
+                          : Mono.empty());
             })
         .then(saveConfigToDisk(data.sessionId()));
-  }
-
-  private void validatePlugins(final List<PluginRegistration> registrations) {
-    if (registrations == null) {
-      return;
-    }
-    for (final PluginRegistration reg : registrations) {
-      final Object plugin = findPlugin(reg.name());
-      if (plugin == null) {
-        throw new IllegalArgumentException("Plugin not installed in core system: " + reg.name());
-      }
-      final ValidationResult result = validatePluginConfig(plugin, reg.pluginConfig());
-      if (!result.valid()) {
-        throw new IllegalArgumentException(
-            "Validation failed for plugin " + reg.name() + ": " + result.message());
-      }
-    }
-  }
-
-  /* default */ Object findPlugin(final String name) {
-    Object result = plugins.stream().filter(p -> p.getName().equals(name)).findFirst().orElse(null);
-    if (result == null) {
-      result =
-          processorPlugins.stream().filter(p -> p.getName().equals(name)).findFirst().orElse(null);
-    }
-    if (result == null) {
-      result = aiPlugins.stream().filter(p -> p.getName().equals(name)).findFirst().orElse(null);
-    }
-    return result;
-  }
-
-  private ValidationResult validatePluginConfig(
-      final Object plugin, final Map<String, Object> config) {
-    if (plugin instanceof JagrathaPlugin jagrathaPlugin) {
-      return jagrathaPlugin.validateConfig(config);
-    }
-    if (plugin instanceof OutputProcessorPlugin processorPlugin) {
-      return processorPlugin.validateConfig(config);
-    }
-    if (plugin instanceof AiPlugin aiPlugin) {
-      return aiPlugin.validateConfig(config);
-    }
-    return ValidationResult.success();
   }
 
   /**
@@ -290,40 +236,34 @@ public class SessionService {
   }
 
   /**
-   * Get workflows for a session, from memory or disk.
+   * Get workflow for a session, from memory or disk.
    *
    * @param sessionId the session identifier
-   * @return Mono containing list of workflows
+   * @return Mono containing the workflow definition
    */
-  public Mono<List<WorkflowConfig>> getSessionWorkflows(@SessionId final String sessionId) {
+  public Mono<WorkflowDefinition> getSessionWorkflow(@SessionId final String sessionId) {
     return configService
         .isActive(sessionId)
         .flatMap(
             active -> {
               if (Boolean.TRUE.equals(active)) {
-                return configService.getWorkflows(sessionId).collectList();
+                return configService.getWorkflow(sessionId);
               }
 
               return getSessionConfig(sessionId)
                   .flatMap(
                       config -> {
-                        final Object workflows = config.get("workflows");
-                        if (workflows instanceof List) {
+                        final Object workflow = config.get("workflow");
+                        if (workflow != null) {
                           try {
-                            final String json = objectMapper.writeValueAsString(workflows);
-                            final List<WorkflowConfig> list =
-                                objectMapper.readValue(
-                                    json,
-                                    objectMapper
-                                        .getTypeFactory()
-                                        .constructCollectionType(List.class, WorkflowConfig.class));
-                            return Mono.just(list);
+                            final String json = objectMapper.writeValueAsString(workflow);
+                            return Mono.just(objectMapper.readValue(json, WorkflowDefinition.class));
                           } catch (IOException e) {
                             log.warn(
-                                "Failed to parse workflows from disk for session {}", sessionId, e);
+                                "Failed to parse workflow from disk for session {}", sessionId, e);
                           }
                         }
-                        return configService.getWorkflows(sessionId).collectList();
+                        return configService.getWorkflow(sessionId);
                       });
             });
   }

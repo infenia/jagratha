@@ -1,13 +1,10 @@
-@import gg.jte.Content
-@param String title
-@param Content content
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} - Jagratha</title>
+    <title> - Jagratha</title>
     <link rel="stylesheet" href="/css/style.css">
     <script src="https://unpkg.com/htmx.org@2.0.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
@@ -26,11 +23,11 @@
     </nav>
 
     <main class="container mx-auto px-6 py-8">
-        ${content}
+
     </main>
 
     <footer class="mt-auto py-6 border-t border-slate-200 text-center text-slate-500 text-sm">
-        &copy; ${java.time.Year.now().getValue()} Infenia Private Limited. All rights reserved.
+        &copy;  Infenia Private Limited. All rights reserved.
     </footer>
 </body>
 </html>
