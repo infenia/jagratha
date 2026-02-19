@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.infenia.jagratha.plugin.ValidationResult;
 import com.infenia.jagratha.plugin.OutputProcessorPlugin;
+import com.infenia.jagratha.plugin.ValidationResult;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

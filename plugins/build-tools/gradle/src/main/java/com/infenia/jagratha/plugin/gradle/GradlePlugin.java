@@ -72,15 +72,20 @@ public class GradlePlugin implements JagrathaPlugin {
 
   @Override
   public ValidationResult validateConfig(final Map<String, Object> config) {
+    final ValidationResult result;
     if (config == null) {
-      return ValidationResult.error("Configuration is required");
+      result = ValidationResult.error("Configuration is required");
+    } else {
+      final Object gradlePath = config.get("gradlePath");
+      if (gradlePath != null && !(gradlePath instanceof String)) {
+        result =
+            ValidationResult.error(
+                "Invalid configuration",
+                List.of(new ValidationResult.FieldError("gradlePath", "Must be a string")));
+      } else {
+        result = ValidationResult.success();
+      }
     }
-    final Object gradlePath = config.get("gradlePath");
-    if (gradlePath != null && !(gradlePath instanceof String)) {
-      return ValidationResult.error(
-          "Invalid configuration",
-          List.of(new ValidationResult.FieldError("gradlePath", "Must be a string")));
-    }
-    return ValidationResult.success();
+    return result;
   }
 }

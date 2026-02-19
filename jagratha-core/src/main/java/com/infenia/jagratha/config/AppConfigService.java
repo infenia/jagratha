@@ -16,8 +16,8 @@ import org.springframework.stereotype.Service;
 public class AppConfigService {
 
   private static final String DEFAULT_BASE_DIR = System.getProperty("user.home") + "/.jagratha";
-  private static final String DEFAULT_FILE_LOG_DIR = DEFAULT_BASE_DIR + "/modified-files";
-  private static final String DEFAULT_RESULT_LOG_DIR = DEFAULT_BASE_DIR + "/results";
+  private static final String DEFAULT_FILE_LOG = DEFAULT_BASE_DIR + "/modified-files";
+  private static final String DEFAULT_RES_LOG = DEFAULT_BASE_DIR + "/results";
   private static final long DEFAULT_TIMEOUT = 300L;
   private static final List<String> DEFAULT_TASKS =
       List.of("spotlessApply", "spotlessCheck", "checkstyleMain", "test");
@@ -153,7 +153,7 @@ public class AppConfigService {
    * @return the log directory
    */
   public String getFileLogDir(final String sessionId) {
-    return DEFAULT_FILE_LOG_DIR;
+    return DEFAULT_FILE_LOG;
   }
 
   /**
@@ -163,7 +163,7 @@ public class AppConfigService {
    * @return the log directory
    */
   public String getResultLogDir(final String sessionId) {
-    return DEFAULT_RESULT_LOG_DIR;
+    return DEFAULT_RES_LOG;
   }
 
   /**

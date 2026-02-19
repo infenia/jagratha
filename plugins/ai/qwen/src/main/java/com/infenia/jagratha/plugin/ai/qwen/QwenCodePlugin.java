@@ -74,10 +74,13 @@ public class QwenCodePlugin implements com.infenia.jagratha.plugin.AiPlugin {
 
   @Override
   public ValidationResult validateConfig(final Map<String, Object> config) {
+    final ValidationResult result;
     if (config == null) {
-      return ValidationResult.error("Configuration is required");
+      result = ValidationResult.error("Configuration is required");
+    } else {
+      result = ValidationResult.success();
     }
-    return ValidationResult.success();
+    return result;
   }
 
   /** Interface for executing external processes. */

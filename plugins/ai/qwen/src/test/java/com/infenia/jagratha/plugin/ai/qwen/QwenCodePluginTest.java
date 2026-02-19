@@ -7,9 +7,9 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.infenia.jagratha.plugin.ValidationResult;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import com.infenia.jagratha.plugin.ValidationResult;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;

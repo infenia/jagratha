@@ -119,14 +119,14 @@ public class AppService {
 
   private ValidationResult validatePluginConfig(
       final Object plugin, final Map<String, Object> config) {
-    if (plugin instanceof JagrathaPlugin p) {
-      return p.validateConfig(config);
+    if (plugin instanceof JagrathaPlugin jagrathaPlugin) {
+      return jagrathaPlugin.validateConfig(config);
     }
-    if (plugin instanceof OutputProcessorPlugin p) {
-      return p.validateConfig(config);
+    if (plugin instanceof OutputProcessorPlugin processorPlugin) {
+      return processorPlugin.validateConfig(config);
     }
-    if (plugin instanceof AiPlugin p) {
-      return p.validateConfig(config);
+    if (plugin instanceof AiPlugin aiPlugin) {
+      return aiPlugin.validateConfig(config);
     }
     return ValidationResult.success();
   }

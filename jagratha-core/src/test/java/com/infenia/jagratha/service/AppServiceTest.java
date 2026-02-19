@@ -2,6 +2,7 @@ package com.infenia.jagratha.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -284,5 +285,21 @@ class AppServiceTest {
     when(configService.isActive(sessionId)).thenReturn(false);
     Map<String, Object> loaded = service.getSessionConfig(sessionId);
     assertEquals("/path/to/project", loaded.get("projectPath"));
+  }
+
+  @Test
+  void testApplyConfigOverridesValidationFailure() {
+    PluginRegistration invalidPlugin = new PluginRegistration("gradle", Map.of("gradlePath", 123));
+    AppConfigData data = new AppConfigData("session-1", "/path", List.of(invalidPlugin), List.of());
+
+    assertThrows(IllegalArgumentException.class, () -> service.applyConfigOverrides(data));
+  }
+
+  @Test
+  void testApplyConfigOverridesPluginNotFound() {
+    PluginRegistration unknownPlugin = new PluginRegistration("unknown", Map.of());
+    AppConfigData data = new AppConfigData("session-1", "/path", List.of(unknownPlugin), List.of());
+
+    assertThrows(IllegalArgumentException.class, () -> service.applyConfigOverrides(data));
   }
 }

@@ -147,15 +147,20 @@ public class CheckstyleXmlProcessor implements OutputProcessorPlugin {
 
   @Override
   public ValidationResult validateConfig(final Map<String, Object> config) {
+    final ValidationResult result;
     if (config == null) {
-      return ValidationResult.error("Configuration is required");
+      result = ValidationResult.error("Configuration is required");
+    } else {
+      final Object reportPath = config.get("reportPath");
+      if (reportPath != null && !(reportPath instanceof String)) {
+        result =
+            ValidationResult.error(
+                "Invalid configuration",
+                List.of(new ValidationResult.FieldError("reportPath", "Must be a string")));
+      } else {
+        result = ValidationResult.success();
+      }
     }
-    final Object reportPath = config.get("reportPath");
-    if (reportPath != null && !(reportPath instanceof String)) {
-      return ValidationResult.error(
-          "Invalid configuration",
-          List.of(new ValidationResult.FieldError("reportPath", "Must be a string")));
-    }
-    return ValidationResult.success();
+    return result;
   }
 }
