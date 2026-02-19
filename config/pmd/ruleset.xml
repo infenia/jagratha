@@ -12,6 +12,12 @@
     </rule>
     <rule ref="category/java/codestyle.xml">
     </rule>
+    <rule ref="category/java/codestyle.xml/LongVariable">
+        <properties>
+            <property name="minimum" value="50"/>
+        </properties>
+    </rule>
+
     <rule ref="category/java/design.xml">
     </rule>
     <rule ref="category/java/errorprone.xml"/>

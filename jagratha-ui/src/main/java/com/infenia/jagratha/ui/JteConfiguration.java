@@ -30,23 +30,25 @@ public class JteConfiguration {
    */
   @Bean
   public TemplateEngine templateEngine() {
+    final TemplateEngine templateEngine;
     if (usePrecompiledTemplates) {
       // This will look for precompiled templates in the classpath
-      return TemplateEngine.createPrecompiled(ContentType.Html);
-    }
+      templateEngine = TemplateEngine.createPrecompiled(ContentType.Html);
+    } else {
 
-    // Development mode: load templates from the source directory for hot-reloading
-    Path path = Paths.get("jagratha-ui/src/main/jte");
-    if (!Files.exists(path)) {
-      path = Paths.get("src/main/jte");
-    }
-    if (!Files.exists(path)) {
-      path = Paths.get("../jagratha-ui/src/main/jte");
-    }
+      // Development mode: load templates from the source directory for hot-reloading
+      Path path = Paths.get("jagratha-ui/src/main/jte");
+      if (!Files.exists(path)) {
+        path = Paths.get("src/main/jte");
+      }
+      if (!Files.exists(path)) {
+        path = Paths.get("../jagratha-ui/src/main/jte");
+      }
 
-    CodeResolver codeResolver = new DirectoryCodeResolver(path);
-    TemplateEngine templateEngine = TemplateEngine.create(codeResolver, ContentType.Html);
-    templateEngine.setBinaryStaticContent(true);
+      final CodeResolver codeResolver = new DirectoryCodeResolver(path);
+      templateEngine = TemplateEngine.create(codeResolver, ContentType.Html);
+      templateEngine.setBinaryStaticContent(true);
+    }
     return templateEngine;
   }
 }
