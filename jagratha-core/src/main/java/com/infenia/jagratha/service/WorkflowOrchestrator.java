@@ -118,8 +118,12 @@ public class WorkflowOrchestrator {
       return Mono.empty();
     }
 
+    // Log messages from current node to console
+    final Flux<Message> loggedStream =
+        stream.doOnNext(msg -> tracker.appendLog(sessionId, String.valueOf(msg.payload())));
+
     // Use publish().autoConnect(n) to broadcast the stream if there are multiple children
-    final Flux<Message> broadcastStream = stream.publish().autoConnect(children.size());
+    final Flux<Message> broadcastStream = loggedStream.publish().autoConnect(children.size());
 
     return Flux.fromIterable(children)
         .flatMap(

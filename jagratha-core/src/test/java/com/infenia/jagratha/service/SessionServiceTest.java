@@ -178,4 +178,40 @@ class SessionServiceTest {
 
     StepVerifier.create(sessionService.getSessionWorkflow(sessionId)).verifyComplete();
   }
+
+  @Test
+  void testGetSessionConfigFromDisk() throws IOException {
+    String sessionId = "sess-disk-config";
+    Path resultsDir = tempDir.resolve("results");
+    Path sessDir = resultsDir.resolve(sessionId);
+    Files.createDirectories(sessDir);
+
+    Map<String, Object> configMap = Map.of("k", "v");
+    Files.writeString(sessDir.resolve("config.json"), objectMapper.writeValueAsString(configMap));
+
+    when(configService.isActive(sessionId)).thenReturn(Mono.just(false));
+    when(configService.getResultLogDir(sessionId)).thenReturn(Mono.just(resultsDir.toString()));
+    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.empty());
+
+    StepVerifier.create(sessionService.getSessionConfig(sessionId))
+        .expectNextMatches(m -> "v".equals(m.get("k")))
+        .verifyComplete();
+  }
+
+  @Test
+  void testGetSessionConfigFromDiskInvalid() throws IOException {
+    String sessionId = "sess-disk-invalid";
+    Path resultsDir = tempDir.resolve("results");
+    Path sessDir = resultsDir.resolve(sessionId);
+    Files.createDirectories(sessDir);
+    Files.writeString(sessDir.resolve("config.json"), "{invalid}");
+
+    when(configService.isActive(sessionId)).thenReturn(Mono.just(false));
+    when(configService.getResultLogDir(sessionId)).thenReturn(Mono.just(resultsDir.toString()));
+    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(Map.of("default", "val")));
+
+    StepVerifier.create(sessionService.getSessionConfig(sessionId))
+        .expectNextMatches(m -> "val".equals(m.get("default")))
+        .verifyComplete();
+  }
 }

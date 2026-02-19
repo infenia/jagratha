@@ -29,7 +29,11 @@ import java.util.UUID;
  * @param timestamp time when the message was created
  */
 public record Message(
-    UUID id, UUID traceId, Map<String, Object> metadata, Object payload, Instant timestamp) {
+    @SuppressWarnings("PMD.ShortVariable") UUID id,
+    UUID traceId,
+    Map<String, Object> metadata,
+    Object payload,
+    Instant timestamp) {
 
   /**
    * Compact constructor to ensure metadata is immutable.
@@ -51,7 +55,7 @@ public record Message(
    * @param payload the payload
    * @return a new message
    */
-  public static Message create(UUID traceId, Object payload) {
+  public static Message create(final UUID traceId, final Object payload) {
     return new Message(UUID.randomUUID(), traceId, Map.of(), payload, Instant.now());
   }
 }

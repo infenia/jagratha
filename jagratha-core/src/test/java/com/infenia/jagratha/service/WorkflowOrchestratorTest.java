@@ -283,4 +283,59 @@ class WorkflowOrchestratorTest {
     verify(processor).process(any());
     verify(terminal).consume(any());
   }
+
+  @Test
+  void testPrepareWorkflowPluginNotFound() {
+    WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "unknown", Map.of());
+    WorkflowDefinition def = new WorkflowDefinition(List.of(node), List.of());
+
+    when(registry.get("unknown")).thenReturn(null);
+
+    StepVerifier.create(orchestrator.prepareWorkflow(def))
+        .expectErrorMatches(
+            e ->
+                e instanceof IllegalArgumentException
+                    && e.getMessage().contains("Plugin not found"))
+        .verify();
+  }
+
+  @Test
+  void testChainWithProcessorAndMultipleChildren() {
+    String sessionId = "sess-1";
+    Message msg = Message.create(UUID.randomUUID(), "payload");
+
+    WorkflowDefinition.Node triggerNode = new WorkflowDefinition.Node("t", "trigger", Map.of());
+    WorkflowDefinition.Node procNode = new WorkflowDefinition.Node("p", "processor", Map.of());
+    WorkflowDefinition.Node term1 = new WorkflowDefinition.Node("term1", "terminal", Map.of());
+    WorkflowDefinition.Node term2 = new WorkflowDefinition.Node("term2", "terminal", Map.of());
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            List.of(triggerNode, procNode, term1, term2),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p"),
+                new WorkflowDefinition.Edge("p", "term1"),
+                new WorkflowDefinition.Edge("p", "term2")));
+
+    TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.start()).thenReturn(Flux.just(msg));
+
+    ProcessorPlugin processor = mock(ProcessorPlugin.class);
+    when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processor.process(any())).thenReturn(Flux.just(msg));
+
+    TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.consume(any())).thenReturn(Mono.empty());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("processor")).thenReturn(processor);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    StepVerifier.create(orchestrator.execute(sessionId, def)).verifyComplete();
+
+    verify(processor).process(any());
+    verify(terminal, atLeastOnce()).consume(any());
+  }
 }

@@ -52,17 +52,20 @@ public class GradlePlugin implements TriggerPlugin {
 
   @Override
   public Mono<Void> validateConfig(final Map<String, Object> config) {
+    final Mono<Void> result;
     if (config == null) {
-      return Mono.error(new IllegalArgumentException("Configuration is required"));
+      result = Mono.error(new IllegalArgumentException("Configuration is required"));
+    } else if (config.containsKey("projectRoot")) {
+      final Object tasks = config.get("tasks");
+      if (tasks == null || tasks instanceof List) {
+        result = Mono.empty();
+      } else {
+        result = Mono.error(new IllegalArgumentException("tasks must be a list of strings"));
+      }
+    } else {
+      result = Mono.error(new IllegalArgumentException("projectRoot is required"));
     }
-    if (!config.containsKey("projectRoot")) {
-      return Mono.error(new IllegalArgumentException("projectRoot is required"));
-    }
-    final Object tasks = config.get("tasks");
-    if (tasks != null && !(tasks instanceof List)) {
-      return Mono.error(new IllegalArgumentException("tasks must be a list of strings"));
-    }
-    return Mono.empty();
+    return result;
   }
 
   @Override
@@ -83,13 +86,10 @@ public class GradlePlugin implements TriggerPlugin {
     final File projectDir = new File(projectRoot);
 
     return Flux.fromIterable(tasks)
-        .flatMap(
-            task ->
-                executeTask(projectDir, gradlePath, task, timeout)
-                    .map(output -> Message.create(traceId, output)));
+        .flatMap(task -> executeTask(projectDir, gradlePath, task, timeout));
   }
 
-  private Mono<String> executeTask(
+  private Flux<Message> executeTask(
       final File projectDir, final String gradlePath, final String task, final long timeout) {
     final List<String> command = new ArrayList<>();
     command.add(gradlePath);
@@ -97,24 +97,19 @@ public class GradlePlugin implements TriggerPlugin {
 
     return Mono.fromCallable(
             () -> {
-              final ProcessBuilder pb = new ProcessBuilder(command);
-              pb.directory(projectDir);
-              pb.redirectErrorStream(true);
-              return pb.start();
+              final ProcessBuilder processBuilder = new ProcessBuilder(command);
+              processBuilder.directory(projectDir);
+              processBuilder.redirectErrorStream(true);
+              return processBuilder.start();
             })
         .subscribeOn(Schedulers.boundedElastic())
-        .flatMap(
+        .flatMapMany(
             process -> {
-              final StringBuilder output = new StringBuilder();
-
               final Flux<String> outputFlux =
                   DataBufferUtils.readInputStream(
                           process::getInputStream, DefaultDataBufferFactory.sharedInstance, 4096)
                       .transform(
                           flux -> StringDecoder.textPlainOnly().decode(flux, null, null, Map.of()));
-
-              final Mono<String> readOutputMono =
-                  outputFlux.doOnNext(output::append).then(Mono.fromSupplier(output::toString));
 
               final Mono<Integer> exitCodeMono =
                   Mono.fromFuture(process.onExit())
@@ -128,14 +123,16 @@ public class GradlePlugin implements TriggerPlugin {
                                 new TimeoutException("Timeout running task: " + task));
                           });
 
-              return Mono.zip(exitCodeMono, readOutputMono)
-                  .map(
-                      tuple -> {
-                        if (tuple.getT1() != 0) {
-                          log.warn("Task {} failed with exit code {}", task, tuple.getT1());
-                        }
-                        return tuple.getT2();
-                      });
+              return outputFlux
+                  .map(line -> Message.create(traceId, line))
+                  .concatWith(
+                      exitCodeMono.flatMap(
+                          code -> {
+                            if (code != 0 && log.isWarnEnabled()) {
+                              log.warn("Task {} failed with exit code {}", task, code);
+                            }
+                            return Mono.empty();
+                          }));
             })
         .onErrorResume(
             IOException.class,
