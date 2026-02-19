@@ -3,6 +3,7 @@ package com.infenia.jagratha.plugin.processor.checkstyle;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.infenia.jagratha.plugin.OutputProcessorPlugin;
+import com.infenia.jagratha.plugin.ValidationResult;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -142,5 +143,19 @@ public class CheckstyleXmlProcessor implements OutputProcessorPlugin {
 
     return new ProcessorResult(
         "SUCCESS", "Converted Checkstyle XML to JSONL: " + artifactName, artifactPath.toString());
+  }
+
+  @Override
+  public ValidationResult validateConfig(final Map<String, Object> config) {
+    if (config == null) {
+      return ValidationResult.error("Configuration is required");
+    }
+    final Object reportPath = config.get("reportPath");
+    if (reportPath != null && !(reportPath instanceof String)) {
+      return ValidationResult.error(
+          "Invalid configuration",
+          List.of(new ValidationResult.FieldError("reportPath", "Must be a string")));
+    }
+    return ValidationResult.success();
   }
 }

@@ -1,6 +1,7 @@
 package com.infenia.jagratha.plugin.gradle;
 
 import com.infenia.jagratha.plugin.JagrathaPlugin;
+import com.infenia.jagratha.plugin.ValidationResult;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -67,5 +68,19 @@ public class GradlePlugin implements JagrathaPlugin {
       command.add(module + ":" + task);
     }
     return command;
+  }
+
+  @Override
+  public ValidationResult validateConfig(final Map<String, Object> config) {
+    if (config == null) {
+      return ValidationResult.error("Configuration is required");
+    }
+    final Object gradlePath = config.get("gradlePath");
+    if (gradlePath != null && !(gradlePath instanceof String)) {
+      return ValidationResult.error(
+          "Invalid configuration",
+          List.of(new ValidationResult.FieldError("gradlePath", "Must be a string")));
+    }
+    return ValidationResult.success();
   }
 }

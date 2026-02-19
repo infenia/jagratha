@@ -1,5 +1,6 @@
 package com.infenia.jagratha.plugin.ai.qwen;
 
+import com.infenia.jagratha.plugin.ValidationResult;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -69,6 +70,14 @@ public class QwenCodePlugin implements com.infenia.jagratha.plugin.AiPlugin {
       result = "Error executing Qwen: interrupted";
     }
     return result;
+  }
+
+  @Override
+  public ValidationResult validateConfig(final Map<String, Object> config) {
+    if (config == null) {
+      return ValidationResult.error("Configuration is required");
+    }
+    return ValidationResult.success();
   }
 
   /** Interface for executing external processes. */
