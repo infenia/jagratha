@@ -24,11 +24,11 @@ import com.infenia.jagratha.plugin.TerminalPlugin;
 import com.infenia.jagratha.plugin.TriggerPlugin;
 import com.infenia.jagratha.plugin.WorkflowPlugin;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +40,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.TooManyMethods"})
 public class WorkflowOrchestrator {
 
   private final WorkflowRegistry registry;
@@ -79,21 +80,26 @@ public class WorkflowOrchestrator {
             .filter(n -> registry.get(n.type()).getCategory() == PluginCategory.TRIGGER)
             .collect(Collectors.toList());
 
-    final List<String> nodeIds = def.nodes().stream().map(Node::id).collect(Collectors.toList());
+    final List<String> nodeIds =
+        def.nodes().stream().map(Node::nodeId).collect(Collectors.toList());
     tracker.startWorkflow(sessionId, nodeIds);
 
     return Flux.fromIterable(triggers)
         .flatMap(
             triggerNode -> {
               final TriggerPlugin trigger = (TriggerPlugin) registry.get(triggerNode.type());
-              tracker.updateTaskStatus(sessionId, triggerNode.id(), "", "RUNNING");
+              tracker.updateTaskStatus(sessionId, triggerNode.nodeId(), "", "RUNNING");
               final Flux<Message> stream =
                   trigger
                       .start()
                       .doOnComplete(
-                          () -> tracker.updateTaskStatus(sessionId, triggerNode.id(), "", "SUCCESS"))
+                          () ->
+                              tracker.updateTaskStatus(
+                                  sessionId, triggerNode.nodeId(), "", "SUCCESS"))
                       .doOnError(
-                          e -> tracker.updateTaskStatus(sessionId, triggerNode.id(), "", "FAILURE"));
+                          e ->
+                              tracker.updateTaskStatus(
+                                  sessionId, triggerNode.nodeId(), "", "FAILURE"));
 
               return chain(sessionId, stream, triggerNode, def);
             })
@@ -106,7 +112,7 @@ public class WorkflowOrchestrator {
       final Flux<Message> stream,
       final Node currentNode,
       final WorkflowDefinition def) {
-    final List<Node> children = getChildrenOf(currentNode.id(), def);
+    final List<Node> children = getChildrenOf(currentNode.nodeId(), def);
 
     if (children.isEmpty()) {
       return Mono.empty();
@@ -119,21 +125,26 @@ public class WorkflowOrchestrator {
         .flatMap(
             child -> {
               final WorkflowPlugin plugin = registry.get(child.type());
-              tracker.updateTaskStatus(sessionId, child.id(), "", "RUNNING");
+              tracker.updateTaskStatus(sessionId, child.nodeId(), "", "RUNNING");
 
-              if (plugin instanceof ProcessorPlugin p) {
+              if (plugin instanceof ProcessorPlugin processor) {
                 final Flux<Message> processedStream =
-                    p.process(broadcastStream)
+                    processor
+                        .process(broadcastStream)
                         .doOnComplete(
-                            () -> tracker.updateTaskStatus(sessionId, child.id(), "", "SUCCESS"))
+                            () ->
+                                tracker.updateTaskStatus(sessionId, child.nodeId(), "", "SUCCESS"))
                         .doOnError(
-                            e -> tracker.updateTaskStatus(sessionId, child.id(), "", "FAILURE"));
+                            e ->
+                                tracker.updateTaskStatus(sessionId, child.nodeId(), "", "FAILURE"));
                 return chain(sessionId, processedStream, child, def);
-              } else if (plugin instanceof TerminalPlugin t) {
-                return t.consume(broadcastStream)
+              } else if (plugin instanceof TerminalPlugin terminal) {
+                return terminal
+                    .consume(broadcastStream)
                     .doOnSuccess(
-                        v -> tracker.updateTaskStatus(sessionId, child.id(), "", "SUCCESS"))
-                    .doOnError(e -> tracker.updateTaskStatus(sessionId, child.id(), "", "FAILURE"));
+                        v -> tracker.updateTaskStatus(sessionId, child.nodeId(), "", "SUCCESS"))
+                    .doOnError(
+                        e -> tracker.updateTaskStatus(sessionId, child.nodeId(), "", "FAILURE"));
               }
               return Mono.empty();
             })
@@ -147,61 +158,82 @@ public class WorkflowOrchestrator {
             .map(WorkflowDefinition.Edge::target)
             .collect(Collectors.toSet());
 
-    return def.nodes().stream().filter(n -> childrenIds.contains(n.id())).collect(Collectors.toList());
+    return def.nodes().stream()
+        .filter(n -> childrenIds.contains(n.nodeId()))
+        .collect(Collectors.toList());
   }
 
   private Mono<Void> validateStructuralIntegrity(final WorkflowDefinition def) {
-    // 1. Entry Points: All nodes with 0 incoming edges must be TRIGGER types.
     final Set<String> targetIds =
         def.edges().stream().map(WorkflowDefinition.Edge::target).collect(Collectors.toSet());
+    final Set<String> sourceIds =
+        def.edges().stream().map(WorkflowDefinition.Edge::source).collect(Collectors.toSet());
+
+    return validateEntryPoints(def, targetIds)
+        .then(validateProcessors(def, targetIds, sourceIds))
+        .then(validateEndpoints(def, sourceIds))
+        .then(validateNoCycles(def));
+  }
+
+  @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+  private Mono<Void> validateEntryPoints(
+      final WorkflowDefinition def, final Set<String> targetIds) {
     for (final Node node : def.nodes()) {
-      if (!targetIds.contains(node.id())) {
+      if (!targetIds.contains(node.nodeId())) {
         final WorkflowPlugin plugin = registry.get(node.type());
         if (plugin != null && plugin.getCategory() != PluginCategory.TRIGGER) {
           return Mono.error(
               new IllegalArgumentException(
-                  "Node " + node.id() + " is an entry point but not a TRIGGER"));
+                  "Node " + node.nodeId() + " is an entry point but not a TRIGGER"));
         }
       }
     }
+    return Mono.empty();
+  }
 
-    // 2. Continuity: A PROCESSOR must have at least one incoming and one outgoing edge.
-    final Set<String> sourceIds =
-        def.edges().stream().map(WorkflowDefinition.Edge::source).collect(Collectors.toSet());
+  @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+  private Mono<Void> validateProcessors(
+      final WorkflowDefinition def, final Set<String> targetIds, final Set<String> sourceIds) {
     for (final Node node : def.nodes()) {
       final WorkflowPlugin plugin = registry.get(node.type());
-      if (plugin != null && plugin.getCategory() == PluginCategory.PROCESSOR) {
-        if (!targetIds.contains(node.id()) || !sourceIds.contains(node.id())) {
-          return Mono.error(
-              new IllegalArgumentException(
-                  "Processor node " + node.id() + " must have both incoming and outgoing edges"));
-        }
+      if (plugin != null
+          && plugin.getCategory() == PluginCategory.PROCESSOR
+          && (!targetIds.contains(node.nodeId()) || !sourceIds.contains(node.nodeId()))) {
+        return Mono.error(
+            new IllegalArgumentException(
+                "Processor node "
+                    + node.nodeId()
+                    + " must have both incoming and outgoing edges"));
       }
     }
+    return Mono.empty();
+  }
 
-    // 3. Endpoints: Nodes with 0 outgoing edges must be TERMINAL types.
+  @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+  private Mono<Void> validateEndpoints(final WorkflowDefinition def, final Set<String> sourceIds) {
     for (final Node node : def.nodes()) {
-      if (!sourceIds.contains(node.id())) {
+      if (!sourceIds.contains(node.nodeId())) {
         final WorkflowPlugin plugin = registry.get(node.type());
         if (plugin != null && plugin.getCategory() != PluginCategory.TERMINAL) {
           return Mono.error(
               new IllegalArgumentException(
-                  "Node " + node.id() + " is an endpoint but not a TERMINAL"));
+                  "Node " + node.nodeId() + " is an endpoint but not a TERMINAL"));
         }
       }
     }
+    return Mono.empty();
+  }
 
-    // 4. No Loops: Circular references are prohibited.
+  private Mono<Void> validateNoCycles(final WorkflowDefinition def) {
     if (hasCycles(def)) {
       return Mono.error(new IllegalArgumentException("Workflow DAG contains cycles"));
     }
-
     return Mono.empty();
   }
 
   private boolean hasCycles(final WorkflowDefinition def) {
-    final Map<String, List<String>> adjacencyList = new HashMap<>();
-    def.nodes().forEach(n -> adjacencyList.put(n.id(), new ArrayList<>()));
+    final Map<String, List<String>> adjacencyList = new ConcurrentHashMap<>();
+    def.nodes().forEach(n -> adjacencyList.put(n.nodeId(), new ArrayList<>()));
     def.edges().forEach(e -> adjacencyList.get(e.source()).add(e.target()));
 
     final Set<String> visited = new HashSet<>();
@@ -216,28 +248,28 @@ public class WorkflowOrchestrator {
   }
 
   private boolean isCyclicUtil(
-      final String i,
+      final String nodeId,
       final Set<String> visited,
       final Set<String> recStack,
       final Map<String, List<String>> adj) {
-    if (recStack.contains(i)) {
+    if (recStack.contains(nodeId)) {
       return true;
     }
-    if (visited.contains(i)) {
+    if (visited.contains(nodeId)) {
       return false;
     }
 
-    visited.add(i);
-    recStack.add(i);
+    visited.add(nodeId);
+    recStack.add(nodeId);
 
-    final List<String> children = adj.get(i);
-    for (final String c : children) {
-      if (isCyclicUtil(c, visited, recStack, adj)) {
+    final List<String> children = adj.get(nodeId);
+    for (final String child : children) {
+      if (isCyclicUtil(child, visited, recStack, adj)) {
         return true;
       }
     }
 
-    recStack.remove(i);
+    recStack.remove(nodeId);
     return false;
   }
 }

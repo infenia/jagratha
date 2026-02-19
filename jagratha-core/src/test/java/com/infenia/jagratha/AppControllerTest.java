@@ -94,15 +94,10 @@ class AppControllerTest {
 
   @Test
   void testUpdateConfig() {
-    WorkflowDefinition workflow = new WorkflowDefinition(
-        List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())),
-        List.of()
-    );
-    ConfigRequest request =
-        new ConfigRequest(
-            "session-1",
-            "/new/path",
-            workflow);
+    WorkflowDefinition workflow =
+        new WorkflowDefinition(
+            List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
+    ConfigRequest request = new ConfigRequest("session-1", "/new/path", workflow);
 
     when(sessionService.applyConfigOverrides(any())).thenReturn(Mono.empty());
 

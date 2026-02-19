@@ -64,7 +64,9 @@ class WorkflowServiceTest {
     when(configService.getWorkflow(sessionId)).thenReturn(Mono.empty());
 
     StepVerifier.create(workflowService.runQualityChecks(sessionId))
-        .expectNextMatches(res -> "FAILURE".equals(res.status()) && res.output().contains("No workflow configured"))
+        .expectNextMatches(
+            res ->
+                "FAILURE".equals(res.status()) && res.output().contains("No workflow configured"))
         .verifyComplete();
   }
 }

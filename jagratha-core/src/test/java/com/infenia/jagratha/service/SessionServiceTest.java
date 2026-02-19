@@ -58,7 +58,6 @@ class SessionServiceTest {
     when(configService.getResultLogDir(anyString())).thenReturn(Mono.just("build/results"));
     when(configService.getAllConfigs(anyString())).thenReturn(Mono.just(java.util.Map.of()));
 
-    StepVerifier.create(sessionService.applyConfigOverrides(data))
-        .verifyComplete();
+    StepVerifier.create(sessionService.applyConfigOverrides(data)).verifyComplete();
   }
 }

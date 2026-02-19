@@ -42,7 +42,6 @@ import reactor.core.scheduler.Schedulers;
 @Service
 @Validated
 @RequiredArgsConstructor
-@SuppressWarnings("PMD.OnlyOneReturn")
 public class SessionService {
 
   private final AppConfigService configService;
@@ -257,7 +256,8 @@ public class SessionService {
                         if (workflow != null) {
                           try {
                             final String json = objectMapper.writeValueAsString(workflow);
-                            return Mono.just(objectMapper.readValue(json, WorkflowDefinition.class));
+                            return Mono.just(
+                                objectMapper.readValue(json, WorkflowDefinition.class));
                           } catch (IOException e) {
                             log.warn(
                                 "Failed to parse workflow from disk for session {}", sessionId, e);

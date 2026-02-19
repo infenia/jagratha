@@ -19,8 +19,4 @@ import java.time.LocalDateTime;
 
 /** Represents the progress of a single node within a workflow DAG. */
 public record TaskProgress(
-    String nodeId,
-    String module,
-    String status,
-    LocalDateTime startTime,
-    LocalDateTime endTime) {}
+    String nodeId, String module, String status, LocalDateTime startTime, LocalDateTime endTime) {}

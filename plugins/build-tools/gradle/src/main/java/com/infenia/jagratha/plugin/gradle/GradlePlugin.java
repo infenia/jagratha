@@ -114,9 +114,7 @@ public class GradlePlugin implements TriggerPlugin {
                           flux -> StringDecoder.textPlainOnly().decode(flux, null, null, Map.of()));
 
               final Mono<String> readOutputMono =
-                  outputFlux
-                      .doOnNext(output::append)
-                      .then(Mono.fromSupplier(output::toString));
+                  outputFlux.doOnNext(output::append).then(Mono.fromSupplier(output::toString));
 
               final Mono<Integer> exitCodeMono =
                   Mono.fromFuture(process.onExit())
@@ -126,7 +124,8 @@ public class GradlePlugin implements TriggerPlugin {
                           TimeoutException.class,
                           e -> {
                             process.destroyForcibly();
-                            return Mono.error(new TimeoutException("Timeout running task: " + task));
+                            return Mono.error(
+                                new TimeoutException("Timeout running task: " + task));
                           });
 
               return Mono.zip(exitCodeMono, readOutputMono)
@@ -140,6 +139,8 @@ public class GradlePlugin implements TriggerPlugin {
             })
         .onErrorResume(
             IOException.class,
-            e -> Mono.error(new RuntimeException("Error executing task " + task + ": " + e.getMessage())));
+            e ->
+                Mono.error(
+                    new RuntimeException("Error executing task " + task + ": " + e.getMessage())));
   }
 }

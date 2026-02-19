@@ -35,8 +35,7 @@ class AppConfigServiceTest {
   void testDefaultValues() {
     String sessionId = "sess-1";
     StepVerifier.create(configService.getProjectPath(sessionId)).expectNext("").verifyComplete();
-    StepVerifier.create(configService.getWorkflow(sessionId))
-        .verifyComplete(); // Empty initially
+    StepVerifier.create(configService.getWorkflow(sessionId)).verifyComplete(); // Empty initially
     StepVerifier.create(configService.getExecutionTimeout(sessionId))
         .expectNext(300L)
         .verifyComplete();
@@ -53,18 +52,15 @@ class AppConfigServiceTest {
   void testApiOverrides() {
     String sessionId = "sess-1";
     StepVerifier.create(configService.setProjectPath(sessionId, "/api/path")).verifyComplete();
-    WorkflowDefinition workflow = new WorkflowDefinition(
-        List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())),
-        List.of()
-    );
+    WorkflowDefinition workflow =
+        new WorkflowDefinition(
+            List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
     StepVerifier.create(configService.setWorkflow(sessionId, workflow)).verifyComplete();
 
     StepVerifier.create(configService.getProjectPath(sessionId))
         .expectNext("/api/path")
         .verifyComplete();
-    StepVerifier.create(configService.getWorkflow(sessionId))
-        .expectNext(workflow)
-        .verifyComplete();
+    StepVerifier.create(configService.getWorkflow(sessionId)).expectNext(workflow).verifyComplete();
 
     // Another session should still have defaults
     String otherSession = "sess-2";

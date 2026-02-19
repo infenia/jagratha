@@ -110,7 +110,11 @@ public class UiController {
 
     return Mono.zip(
             sessionService.getSessionConfig(sessionId),
-            sessionService.getSessionWorkflow(sessionId).defaultIfEmpty(new com.infenia.jagratha.model.WorkflowDefinition(java.util.List.of(), java.util.List.of())),
+            sessionService
+                .getSessionWorkflow(sessionId)
+                .defaultIfEmpty(
+                    new com.infenia.jagratha.model.WorkflowDefinition(
+                        java.util.List.of(), java.util.List.of())),
             fileLogService.getModifiedFiles(sessionId),
             retrievalService.listLogs(sessionId))
         .flatMap(

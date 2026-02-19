@@ -48,10 +48,9 @@ class ValidationTest {
 
   @Test
   void testAppConfigDataValid() {
-    WorkflowDefinition def = new WorkflowDefinition(
-        List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())),
-        List.of()
-    );
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
     AppConfigData data = new AppConfigData("session-1", "/path", def);
     Set<ConstraintViolation<AppConfigData>> violations = validator.validate(data);
     assertTrue(violations.isEmpty());

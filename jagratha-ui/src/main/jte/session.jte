@@ -87,7 +87,7 @@
                                 String status = "PENDING";
                                 if (progress != null) {
                                     status = progress.tasks().stream()
-                                        .filter(t -> t.nodeId().equals(node.id()))
+                                        .filter(t -> t.nodeId().equals(node.nodeId()))
                                         .map(com.infenia.jagratha.model.TaskProgress::status)
                                         .findFirst()
                                         .orElse("PENDING");
@@ -95,8 +95,8 @@
                                 String color = status.equals("SUCCESS") ? "#10b981" : (status.equals("FAILURE") ? "#f43f5e" : (status.equals("RUNNING") ? "#3b82f6" : "#94a3b8"));
                                 String textColor = "#ffffff";
                             }
-                            ${node.id()}["${node.id()}<br/>(${node.type()})"]
-                            style ${node.id()} fill:${color},stroke:#fff,color:${textColor},stroke-width:2px
+                            ${node.nodeId()}["${node.nodeId()}<br/>(${node.type()})"]
+                            style ${node.nodeId()} fill:${color},stroke:#fff,color:${textColor},stroke-width:2px
                         @endfor
                         @for(WorkflowDefinition.Edge edge : workflow.edges())
                             ${edge.source()} --> ${edge.target()}
@@ -125,7 +125,7 @@
                                 @for(TaskProgress task : progress.tasks())
                                     !{
                                         String type = workflow.nodes().stream()
-                                            .filter(n -> n.id().equals(task.nodeId()))
+                                            .filter(n -> n.nodeId().equals(task.nodeId()))
                                             .map(com.infenia.jagratha.model.WorkflowDefinition.Node::type)
                                             .findFirst()
                                             .orElse("unknown");

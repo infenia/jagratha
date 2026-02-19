@@ -18,7 +18,6 @@ package com.infenia.jagratha.plugin.gradle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.infenia.jagratha.plugin.Message;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,19 +46,17 @@ class GradlePluginTest {
 
   @Test
   void testValidateConfigSuccess() {
-    Map<String, Object> config = Map.of(
-        "projectRoot", tempDir.toString(),
-        "tasks", List.of("test")
-    );
-    StepVerifier.create(plugin.validateConfig(config))
-        .verifyComplete();
+    Map<String, Object> config =
+        Map.of(
+            "projectRoot", tempDir.toString(),
+            "tasks", List.of("test"));
+    StepVerifier.create(plugin.validateConfig(config)).verifyComplete();
   }
 
   @Test
   void testValidateConfigMissingProjectRoot() {
     Map<String, Object> config = Map.of("tasks", List.of("test"));
-    StepVerifier.create(plugin.validateConfig(config))
-        .verifyError(IllegalArgumentException.class);
+    StepVerifier.create(plugin.validateConfig(config)).verifyError(IllegalArgumentException.class);
   }
 
   @Test
@@ -70,20 +67,21 @@ class GradlePluginTest {
     Files.writeString(gradlew, script);
     gradlew.toFile().setExecutable(true);
 
-    Map<String, Object> config = Map.of(
-        "projectRoot", tempDir.toString(),
-        "tasks", List.of("testTask"),
-        "gradlePath", "./gradlew"
-    );
+    Map<String, Object> config =
+        Map.of(
+            "projectRoot", tempDir.toString(),
+            "tasks", List.of("testTask"),
+            "gradlePath", "./gradlew");
 
     plugin.initialize(config).block();
 
     StepVerifier.create(plugin.start())
-        .assertNext(message -> {
-          assertNotNull(message.id());
-          assertNotNull(message.traceId());
-          assertEquals("Task output for testTask", ((String) message.payload()).trim());
-        })
+        .assertNext(
+            message -> {
+              assertNotNull(message.id());
+              assertNotNull(message.traceId());
+              assertEquals("Task output for testTask", ((String) message.payload()).trim());
+            })
         .verifyComplete();
   }
 }

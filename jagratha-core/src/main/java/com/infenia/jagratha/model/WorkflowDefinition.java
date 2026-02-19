@@ -43,13 +43,13 @@ public record WorkflowDefinition(
   /**
    * Represents a single step/plugin in the workflow.
    *
-   * @param id unique identifier for the node
+   * @param nodeId unique identifier for the node
    * @param type the type of plugin to use
    * @param config configuration for the plugin
    */
   @Schema(description = "A single node in the workflow DAG")
   public record Node(
-      @Schema(description = "Unique ID for the node") @NotBlank String id,
+      @Schema(description = "Unique ID for the node") @NotBlank String nodeId,
       @Schema(description = "Plugin type") @NotBlank String type,
       @Schema(description = "Plugin configuration") Map<String, Object> config) {
     /** Compact constructor. */
@@ -65,6 +65,7 @@ public record WorkflowDefinition(
    * @param target the target node ID
    */
   @Schema(description = "A connection between two nodes")
-  public record Edge(@Schema(description = "Source node ID") @NotBlank String source,
-                     @Schema(description = "Target node ID") @NotBlank String target) {}
+  public record Edge(
+      @Schema(description = "Source node ID") @NotBlank String source,
+      @Schema(description = "Target node ID") @NotBlank String target) {}
 }

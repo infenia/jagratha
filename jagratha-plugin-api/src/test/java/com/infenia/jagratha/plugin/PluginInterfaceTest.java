@@ -16,7 +16,6 @@
 package com.infenia.jagratha.plugin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Map;
 import java.util.UUID;
@@ -32,7 +31,8 @@ class PluginInterfaceTest {
     UUID traceId = UUID.randomUUID();
     Map<String, Object> metadata = new java.util.HashMap<>();
     metadata.put("key", "value");
-    Message msg = new Message(UUID.randomUUID(), traceId, metadata, "payload", java.time.Instant.now());
+    Message msg =
+        new Message(UUID.randomUUID(), traceId, metadata, "payload", java.time.Instant.now());
 
     assertEquals("value", msg.metadata().get("key"));
 
@@ -45,10 +45,18 @@ class PluginInterfaceTest {
 
   @Test
   void testDefaultWorkflowPluginMethods() {
-    WorkflowPlugin plugin = new WorkflowPlugin() {
-      @Override public String getType() { return "test"; }
-      @Override public PluginCategory getCategory() { return PluginCategory.TRIGGER; }
-    };
+    WorkflowPlugin plugin =
+        new WorkflowPlugin() {
+          @Override
+          public String getType() {
+            return "test";
+          }
+
+          @Override
+          public PluginCategory getCategory() {
+            return PluginCategory.TRIGGER;
+          }
+        };
 
     StepVerifier.create(plugin.validateConfig(Map.of())).verifyComplete();
     StepVerifier.create(plugin.initialize(Map.of())).verifyComplete();
@@ -56,28 +64,52 @@ class PluginInterfaceTest {
 
   @Test
   void testTriggerPlugin() {
-    TriggerPlugin trigger = new TriggerPlugin() {
-      @Override public String getType() { return "test"; }
-      @Override public Flux<Message> start() { return Flux.empty(); }
-    };
+    TriggerPlugin trigger =
+        new TriggerPlugin() {
+          @Override
+          public String getType() {
+            return "test";
+          }
+
+          @Override
+          public Flux<Message> start() {
+            return Flux.empty();
+          }
+        };
     assertEquals(PluginCategory.TRIGGER, trigger.getCategory());
   }
 
   @Test
   void testProcessorPlugin() {
-    ProcessorPlugin processor = new ProcessorPlugin() {
-      @Override public String getType() { return "test"; }
-      @Override public Flux<Message> process(Flux<Message> input) { return input; }
-    };
+    ProcessorPlugin processor =
+        new ProcessorPlugin() {
+          @Override
+          public String getType() {
+            return "test";
+          }
+
+          @Override
+          public Flux<Message> process(Flux<Message> input) {
+            return input;
+          }
+        };
     assertEquals(PluginCategory.PROCESSOR, processor.getCategory());
   }
 
   @Test
   void testTerminalPlugin() {
-    TerminalPlugin terminal = new TerminalPlugin() {
-      @Override public String getType() { return "test"; }
-      @Override public Mono<Void> consume(Flux<Message> input) { return input.then(); }
-    };
+    TerminalPlugin terminal =
+        new TerminalPlugin() {
+          @Override
+          public String getType() {
+            return "test";
+          }
+
+          @Override
+          public Mono<Void> consume(Flux<Message> input) {
+            return input.then();
+          }
+        };
     assertEquals(PluginCategory.TERMINAL, terminal.getCategory());
   }
 }
