@@ -2,10 +2,14 @@ package com.infenia.jagratha.config;
 
 import com.infenia.jagratha.model.PluginRegistration;
 import com.infenia.jagratha.model.WorkflowConfig;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -14,6 +18,7 @@ import reactor.core.publisher.Mono;
  * and updated via API.
  */
 @Service
+@Validated
 @SuppressWarnings({"PMD.UseConcurrentHashMap", "PMD.LinguisticNaming"})
 public class AppConfigService {
 
@@ -51,10 +56,10 @@ public class AppConfigService {
    * @param path the project path
    * @return Mono that completes when the path is set
    */
-  public Mono<Void> setProjectPath(final String sessionId, final String path) {
-    if (sessionId != null && path != null) {
-      projectPaths.put(sessionId, path);
-    }
+  public Mono<Void> setProjectPath(
+      @NotBlank(message = "Session ID is required") final String sessionId,
+      @NotBlank(message = "Project path is required") final String path) {
+    projectPaths.put(sessionId, path);
     return Mono.empty();
   }
 
@@ -76,10 +81,10 @@ public class AppConfigService {
    * @param plugins the list of plugins
    * @return Mono that completes when plugins are set
    */
-  public Mono<Void> setPlugins(final String sessionId, final List<PluginRegistration> plugins) {
-    if (sessionId != null && plugins != null) {
-      pluginsMap.put(sessionId, List.copyOf(plugins));
-    }
+  public Mono<Void> setPlugins(
+      @NotBlank(message = "Session ID is required") final String sessionId,
+      @NotEmpty(message = "Plugins list cannot be empty") final List<PluginRegistration> plugins) {
+    pluginsMap.put(sessionId, List.copyOf(plugins));
     return Mono.empty();
   }
 
@@ -134,13 +139,14 @@ public class AppConfigService {
    * @param workflowsList the list of workflows
    * @return Mono that completes when workflows are set
    */
-  public Mono<Void> setWorkflows(final String sessionId, final List<WorkflowConfig> workflowsList) {
-    if (sessionId != null) {
-      if (workflowsList != null) {
-        workflowsMap.put(sessionId, List.copyOf(workflowsList));
-      } else {
-        workflowsMap.remove(sessionId);
-      }
+  public Mono<Void> setWorkflows(
+      @NotBlank(message = "Session ID is required") final String sessionId,
+      @NotNull(message = "Workflows list cannot be null")
+          final List<WorkflowConfig> workflowsList) {
+    if (workflowsList.isEmpty()) {
+      workflowsMap.remove(sessionId);
+    } else {
+      workflowsMap.put(sessionId, List.copyOf(workflowsList));
     }
     return Mono.empty();
   }
