@@ -201,9 +201,7 @@ public class WorkflowOrchestrator {
           && (!targetIds.contains(node.nodeId()) || !sourceIds.contains(node.nodeId()))) {
         return Mono.error(
             new IllegalArgumentException(
-                "Processor node "
-                    + node.nodeId()
-                    + " must have both incoming and outgoing edges"));
+                "Processor node " + node.nodeId() + " must have both incoming and outgoing edges"));
       }
     }
     return Mono.empty();

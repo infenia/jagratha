@@ -69,4 +69,25 @@ class TaskTrackerServiceTest {
         .thenCancel()
         .verify();
   }
+
+  @Test
+  void testStatusStreaming() {
+    String sessionId = "sess-1";
+    tracker.startWorkflow(sessionId, List.of("n1"));
+
+    StepVerifier.create(tracker.getStatusStream(sessionId))
+        .then(() -> tracker.updateTaskStatus(sessionId, "n1", "mod", "SUCCESS"))
+        .expectNext("update")
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  void testRemoveSession() {
+    String sessionId = "sess-1";
+    tracker.startWorkflow(sessionId, List.of());
+    assertEquals(1, tracker.getActiveSessions().size());
+    tracker.removeSession(sessionId);
+    assertEquals(0, tracker.getActiveSessions().size());
+  }
 }

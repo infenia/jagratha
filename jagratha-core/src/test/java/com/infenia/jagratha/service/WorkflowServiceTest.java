@@ -69,4 +69,19 @@ class WorkflowServiceTest {
                 "FAILURE".equals(res.status()) && res.output().contains("No workflow configured"))
         .verifyComplete();
   }
+
+  @Test
+  void testRunQualityChecksError() {
+    String sessionId = "sess-1";
+    WorkflowDefinition def = new WorkflowDefinition(List.of(), List.of());
+
+    when(configService.getWorkflow(sessionId)).thenReturn(Mono.just(def));
+    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.error(new RuntimeException("Fail")));
+    when(orchestrator.execute(anyString(), any())).thenReturn(Mono.empty());
+
+    StepVerifier.create(workflowService.runQualityChecks(sessionId))
+        .expectNextMatches(
+            res -> "FAILURE".equals(res.status()) && res.output().contains("Workflow failed: Fail"))
+        .verifyComplete();
+  }
 }
