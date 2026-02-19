@@ -8,8 +8,14 @@ import reactor.core.publisher.Sinks;
 
 /** A non-blocking reactive lock. */
 public final class ReactiveLock {
+
   private final AtomicBoolean locked = new AtomicBoolean(false);
   private final Queue<Sinks.Empty<Void>> waiters = new ConcurrentLinkedQueue<>();
+
+  /** Default constructor. */
+  public ReactiveLock() {
+    // Initializing the lock
+  }
 
   /**
    * Acquire the lock.

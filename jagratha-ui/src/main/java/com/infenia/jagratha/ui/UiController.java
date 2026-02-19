@@ -27,7 +27,7 @@ public class UiController {
 
   private final SessionService sessionService;
   private final FileLogService fileLogService;
-  private final LogRetrievalService logRetrievalService;
+  private final LogRetrievalService retrievalService;
   private final AppConfigService configService;
   private final TaskTrackerService tracker;
   private final TemplateEngine templateEngine;
@@ -99,7 +99,7 @@ public class UiController {
             sessionService.getSessionConfig(sessionId),
             sessionService.getSessionWorkflows(sessionId),
             fileLogService.getModifiedFiles(sessionId),
-            logRetrievalService.listLogs(sessionId))
+            retrievalService.listLogs(sessionId))
         .flatMap(
             tuple -> {
               model.addAttribute("config", tuple.getT1());

@@ -21,10 +21,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import org.springframework.core.codec.StringDecoder;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -33,6 +33,11 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings({
+  "PMD.TooManyMethods",
+  "PMD.OnlyOneReturn",
+  "PMD.CouplingBetweenObjects"
+})
 public class WorkflowService {
 
   private final AppConfigService configService;
@@ -139,7 +144,8 @@ public class WorkflowService {
                                 Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
 
                 if (pendingByModule.isEmpty()) {
-                  return Mono.just(new TaskResponse(SUCCESS_STATUS, "No pending changes to process."));
+                  return Mono.just(
+                      new TaskResponse(SUCCESS_STATUS, "No pending changes to process."));
                 }
 
                 final List<String> taskNames = new ArrayList<>();
@@ -182,11 +188,12 @@ public class WorkflowService {
         .concatMap(entry -> {
           final String module = entry.getKey();
           return executeModuleTasks(projectDir, sessionId, combinedOutput, module)
-              .doOnNext(moduleRes -> {
-                for (final String file : entry.getValue()) {
-                  allFiles.put(file, moduleRes.status());
-                }
-              });
+              .doOnNext(
+                  moduleRes -> {
+                    for (final String file : entry.getValue()) {
+                      allFiles.put(file, moduleRes.status());
+                    }
+                  });
         })
         .takeUntil(res -> FAILURE_STATUS.equals(res.status()))
         .collectList()
@@ -225,7 +232,8 @@ public class WorkflowService {
       final List<WorkflowConfig> workflows) {
 
     return Flux.fromIterable(workflows)
-        .concatMap(workflow -> executeWorkflow(projectDir, sessionId, combinedOutput, module, workflow))
+        .concatMap(
+            workflow -> executeWorkflow(projectDir, sessionId, combinedOutput, module, workflow))
         .takeUntil(res -> FAILURE_STATUS.equals(res.status()))
         .collectList()
         .map(results -> {
@@ -305,7 +313,7 @@ public class WorkflowService {
           }
 
           Mono<String> artifactPathMono = Mono.justOrEmpty(null);
-          Mono<String> processorStatusMono = Mono.just(SUCCESS_STATUS);
+          Mono<String> procStatusMono = Mono.just(SUCCESS_STATUS);
 
           if (workflow.processor() != null) {
             final OutputProcessorPlugin processor = findProcessor(workflow.processor().name());
@@ -321,7 +329,7 @@ public class WorkflowService {
                         workflow.processor().config()));
 
             artifactPathMono = Mono.justOrEmpty(procRes.artifactPath());
-            processorStatusMono = Mono.just(procRes.status());
+            procStatusMono = Mono.just(procRes.status());
 
             combinedOutput
                 .append("Processor: ")
@@ -337,28 +345,37 @@ public class WorkflowService {
             }
           }
 
-          return Mono.zip(artifactPathMono.defaultIfEmpty(""), processorStatusMono)
-              .flatMap(tuple -> {
-                final String artifactPath = tuple.getT1();
-                if (workflow.aiStep() != null) {
-                  final AiPlugin aiPlugin = findAiPlugin(workflow.aiStep().name());
-                  return constructPrompt(workflow.aiStep().config(), taskRes.output(), artifactPath)
-                      .flatMap(prompt -> {
-                        final String aiResponse = aiPlugin.execute(prompt, workflow.aiStep().config());
+          return Mono.zip(artifactPathMono.defaultIfEmpty(""), procStatusMono)
+              .flatMap(
+                  tuple -> {
+                    final String artifactPath = tuple.getT1();
+                    if (workflow.aiStep() != null) {
+                      final AiPlugin aiPlugin = findAiPlugin(workflow.aiStep().name());
+                      return constructPrompt(
+                              workflow.aiStep().config(), taskRes.output(), artifactPath)
+                          .flatMap(
+                              prompt -> {
+                                final String aiResponse =
+                                    aiPlugin.execute(prompt, workflow.aiStep().config());
 
-                        combinedOutput
-                            .append("AI (")
-                            .append(workflow.aiStep().name())
-                            .append("):\n")
-                            .append(aiResponse)
-                            .append('\n');
+                                combinedOutput
+                                    .append("AI (")
+                                    .append(workflow.aiStep().name())
+                                    .append("):\n")
+                                    .append(aiResponse)
+                                    .append('\n');
 
-                        saveAiLog(sessionId, module, workflow.task(), workflow.aiStep().name(), aiResponse);
-                        return Mono.just(SUCCESS_STATUS);
-                      });
-                }
-                return Mono.just(SUCCESS_STATUS);
-              })
+                                saveAiLog(
+                                    sessionId,
+                                    module,
+                                    workflow.task(),
+                                    workflow.aiStep().name(),
+                                    aiResponse);
+                                return Mono.just(SUCCESS_STATUS);
+                              });
+                    }
+                    return Mono.just(SUCCESS_STATUS);
+                  })
               .map(ignored -> {
                 combinedOutput.append('\n');
                 return new TaskResponse(SUCCESS_STATUS, "");
@@ -442,10 +459,8 @@ public class WorkflowService {
     final List<String> command =
         getActivePlugin(sessionId).buildTaskCommand(module, task, pluginConfig);
     final String timestamp = LocalDateTime.now().format(FORMATTER);
-    final String logFileName =
-        String.format(
-            "%s-%s-%s.log",
-            module.isEmpty() ? "root" : module.replace(":", "-").substring(1), task, timestamp);
+    final String namePrefix = module.isEmpty() ? "root" : module.replace(":", "-").substring(1);
+    final String logFileName = String.format("%s-%s-%s.log", namePrefix, task, timestamp);
 
     if (log.isInfoEnabled()) {
       log.info("Running quality check: {}", String.join(" ", command));
@@ -494,12 +509,13 @@ public class WorkflowService {
 
   private Mono<TaskResponse> tryExecuteChecks(
       final List<String> command, final File projectDir, final String sessionId) {
-    return Mono.fromCallable(() -> {
-          final ProcessBuilder processBuilder = new ProcessBuilder(command);
-          processBuilder.directory(projectDir);
-          processBuilder.redirectErrorStream(true);
-          return processBuilder.start();
-        })
+    return Mono.fromCallable(
+            () -> {
+              final ProcessBuilder processBuilder = new ProcessBuilder(command);
+              processBuilder.directory(projectDir);
+              processBuilder.redirectErrorStream(true);
+              return processBuilder.start();
+            })
         .subscribeOn(Schedulers.boundedElastic())
         .flatMap(process -> {
           final StringBuilder output = new StringBuilder();
@@ -509,25 +525,28 @@ public class WorkflowService {
               DataBufferUtils.readInputStream(
                       process::getInputStream, DefaultDataBufferFactory.sharedInstance, 4096)
                   .transform(
-                      flux ->
-                          StringDecoder.textPlainOnly()
-                              .decode(flux, null, null, Map.of()));
+                      flux -> StringDecoder.textPlainOnly().decode(flux, null, null, Map.of()));
 
-          final Mono<String> readOutputMono = outputFlux
-              .doOnNext(line -> {
-                output.append(line).append('\n');
-                tracker.appendLog(sessionId, line);
-              })
-              .then(Mono.fromSupplier(output::toString));
+          final Mono<String> readOutputMono =
+              outputFlux
+                  .doOnNext(
+                      line -> {
+                        output.append(line).append('\n');
+                        tracker.appendLog(sessionId, line);
+                      })
+                  .then(Mono.fromSupplier(output::toString));
 
           final Long timeoutVal = configService.getExecutionTimeout(sessionId);
-          final Mono<Integer> exitCodeMono = Mono.fromFuture(process.onExit())
-              .map(Process::exitValue)
-              .timeout(Duration.ofSeconds(timeoutVal != null ? timeoutVal : 600))
-              .onErrorResume(TimeoutException.class, e -> {
-                process.destroyForcibly();
-                return Mono.error(new TimeoutException("Timeout while running checks."));
-              });
+          final Mono<Integer> exitCodeMono =
+              Mono.fromFuture(process.onExit())
+                  .map(Process::exitValue)
+                  .timeout(Duration.ofSeconds(timeoutVal != null ? timeoutVal : 600))
+                  .onErrorResume(
+                      TimeoutException.class,
+                      e -> {
+                        process.destroyForcibly();
+                        return Mono.error(new TimeoutException("Timeout while running checks."));
+                      });
 
           return Mono.zip(exitCodeMono, readOutputMono)
               .map(
@@ -539,11 +558,12 @@ public class WorkflowService {
                   e ->
                       Mono.just(
                           new TaskResponse(
-                              FAILURE_STATUS,
-                              "Timeout while running checks.\n" + output.toString())));
+                              FAILURE_STATUS, "Timeout while running checks.\n" + output)));
         })
         .onErrorResume(
             IOException.class,
-            e -> Mono.just(new TaskResponse(FAILURE_STATUS, "Error executing task: " + e.getMessage())));
+            e ->
+                Mono.just(
+                    new TaskResponse(FAILURE_STATUS, "Error executing task: " + e.getMessage())));
   }
 }

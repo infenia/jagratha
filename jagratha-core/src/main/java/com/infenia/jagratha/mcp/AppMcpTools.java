@@ -17,7 +17,7 @@ import reactor.core.publisher.Mono;
 public class AppMcpTools {
 
   private final WorkflowService workflowService;
-  private final LogRetrievalService logRetrievalService;
+  private final LogRetrievalService logService;
 
   private static final String MCP_SESSION_ID = "mcp-session";
 
@@ -51,7 +51,7 @@ public class AppMcpTools {
    */
   @Tool(description = "List quality check log files for the external project")
   public Mono<List<String>> listQualityCheckLogs() {
-    return logRetrievalService.listLogs(MCP_SESSION_ID);
+    return logService.listLogs(MCP_SESSION_ID);
   }
 
   /**
@@ -62,6 +62,6 @@ public class AppMcpTools {
    */
   @Tool(description = "Get the content of a specific quality check log file")
   public Mono<String> getQualityCheckLogContent(final String filename) {
-    return logRetrievalService.getLogContent(MCP_SESSION_ID, filename);
+    return logService.getLogContent(MCP_SESSION_ID, filename);
   }
 }

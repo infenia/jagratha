@@ -40,7 +40,7 @@ public class AppController {
   private final FileLogService fileLogService;
   private final WorkflowService workflowService;
   private final SessionService sessionService;
-  private final LogRetrievalService logRetrievalService;
+  private final LogRetrievalService retrievalService;
   private final AppConfigMapper configMapper;
 
   private static final String SUCCESS_STATUS = "SUCCESS";
@@ -103,7 +103,7 @@ public class AppController {
   @ApiResponse(responseCode = HTTP_200, description = "List of log filenames")
   public Mono<List<String>> listLogs(
       @Parameter(description = "Session ID") @PathVariable final String sessionId) {
-    return logRetrievalService.listLogs(sessionId);
+    return retrievalService.listLogs(sessionId);
   }
 
   /**
@@ -122,7 +122,7 @@ public class AppController {
   public Mono<ResponseEntity<String>> getLogContent(
       @Parameter(description = "Session ID") @PathVariable final String sessionId,
       @Parameter(description = "Log filename") @PathVariable final String filename) {
-    return logRetrievalService
+    return retrievalService
         .getLogContent(sessionId, filename)
         .map(ResponseEntity::ok)
         .onErrorResume(e -> Mono.just(ResponseEntity.notFound().build()));

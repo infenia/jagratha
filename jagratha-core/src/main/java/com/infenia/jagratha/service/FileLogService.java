@@ -30,6 +30,7 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.UseConcurrentHashMap"})
 public class FileLogService {
 
   private final AppConfigService configService;

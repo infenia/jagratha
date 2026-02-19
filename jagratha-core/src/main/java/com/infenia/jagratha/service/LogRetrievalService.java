@@ -18,6 +18,7 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.OnlyOneReturn")
 public class LogRetrievalService {
 
   private final AppConfigService configService;

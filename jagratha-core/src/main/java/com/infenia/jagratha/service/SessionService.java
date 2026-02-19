@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +29,7 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.OnlyOneReturn")
 public class SessionService {
 
   private final AppConfigService configService;
@@ -193,7 +193,8 @@ public class SessionService {
         .flatMapMany(
             allOnDisk -> {
               final Set<String> active = configService.getActiveSessionIds();
-              return Flux.fromIterable(allOnDisk.stream().filter(s -> !active.contains(s)).toList());
+              return Flux.fromIterable(
+                  allOnDisk.stream().filter(s -> !active.contains(s)).toList());
             });
   }
 
@@ -253,7 +254,8 @@ public class SessionService {
                                 .getTypeFactory()
                                 .constructCollectionType(List.class, WorkflowConfig.class));
                       } catch (IOException e) {
-                        log.warn("Failed to parse workflows from disk for session {}", sessionId, e);
+                        log.warn(
+                            "Failed to parse workflows from disk for session {}", sessionId, e);
                       }
                     }
                     return configService.getWorkflows(sessionId);
