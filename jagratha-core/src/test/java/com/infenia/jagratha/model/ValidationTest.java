@@ -86,6 +86,7 @@ class ValidationTest {
             List.of(new WorkflowConfig("test", null, null)));
     Set<ConstraintViolation<AppConfigData>> violations = validator.validate(data);
     assertFalse(violations.isEmpty());
-    assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Session ID is required")));
+    assertTrue(
+        violations.stream().anyMatch(v -> v.getMessage().contains("Session ID is required")));
   }
 }
