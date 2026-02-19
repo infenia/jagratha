@@ -17,7 +17,8 @@ package com.infenia.jagratha.config;
 
 import com.infenia.jagratha.model.PluginRegistration;
 import com.infenia.jagratha.model.WorkflowConfig;
-import jakarta.validation.constraints.NotBlank;
+import com.infenia.jagratha.validation.ProjectPath;
+import com.infenia.jagratha.validation.SessionId;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -34,11 +35,7 @@ import reactor.core.publisher.Mono;
  */
 @Service
 @Validated
-@SuppressWarnings({
-  "PMD.UseConcurrentHashMap",
-  "PMD.LinguisticNaming",
-  "PMD.AvoidDuplicateLiterals"
-})
+@SuppressWarnings({"PMD.UseConcurrentHashMap", "PMD.LinguisticNaming"})
 public class AppConfigService {
 
   private static final String DEFAULT_BASE_DIR = System.getProperty("user.home") + "/.jagratha";
@@ -63,8 +60,7 @@ public class AppConfigService {
    * @param sessionId the session identifier
    * @return Mono containing the project path
    */
-  public Mono<String> getProjectPath(
-      @NotBlank(message = "Session ID is required") final String sessionId) {
+  public Mono<String> getProjectPath(@SessionId final String sessionId) {
     final String result = projectPaths.get(sessionId);
     return Mono.just(result != null ? result : "");
   }
@@ -77,8 +73,7 @@ public class AppConfigService {
    * @return Mono that completes when the path is set
    */
   public Mono<Void> setProjectPath(
-      @NotBlank(message = "Session ID is required") final String sessionId,
-      @NotBlank(message = "Project path is required") final String path) {
+      @SessionId final String sessionId, @ProjectPath final String path) {
     projectPaths.put(sessionId, path);
     return Mono.empty();
   }
@@ -89,8 +84,7 @@ public class AppConfigService {
    * @param sessionId the session identifier
    * @return Flux of plugins
    */
-  public Flux<PluginRegistration> getPlugins(
-      @NotBlank(message = "Session ID is required") final String sessionId) {
+  public Flux<PluginRegistration> getPlugins(@SessionId final String sessionId) {
     final List<PluginRegistration> result = pluginsMap.get(sessionId);
     return Flux.fromIterable(result != null ? result : List.of());
   }
@@ -103,7 +97,7 @@ public class AppConfigService {
    * @return Mono that completes when plugins are set
    */
   public Mono<Void> setPlugins(
-      @NotBlank(message = "Session ID is required") final String sessionId,
+      @SessionId final String sessionId,
       @NotEmpty(message = "Plugins list cannot be empty") final List<PluginRegistration> plugins) {
     pluginsMap.put(sessionId, List.copyOf(plugins));
     return Mono.empty();
@@ -115,8 +109,7 @@ public class AppConfigService {
    * @param sessionId the session identifier
    * @return Mono containing the plugin name
    */
-  public Mono<String> getPluginName(
-      @NotBlank(message = "Session ID is required") final String sessionId) {
+  public Mono<String> getPluginName(@SessionId final String sessionId) {
     return getPlugins(sessionId).next().map(PluginRegistration::name).defaultIfEmpty("");
   }
 
@@ -126,8 +119,7 @@ public class AppConfigService {
    * @param sessionId the session identifier
    * @return Mono containing the plugin configuration map
    */
-  public Mono<Map<String, Object>> getPluginConfig(
-      @NotBlank(message = "Session ID is required") final String sessionId) {
+  public Mono<Map<String, Object>> getPluginConfig(@SessionId final String sessionId) {
     return getPlugins(sessionId)
         .next()
         .map(PluginRegistration::pluginConfig)
@@ -140,8 +132,7 @@ public class AppConfigService {
    * @param sessionId the session identifier
    * @return Flux of tasks
    */
-  public Flux<String> getTasks(
-      @NotBlank(message = "Session ID is required") final String sessionId) {
+  public Flux<String> getTasks(@SessionId final String sessionId) {
     return Flux.fromIterable(DEFAULT_TASKS);
   }
 
@@ -151,8 +142,7 @@ public class AppConfigService {
    * @param sessionId the session identifier
    * @return Flux of workflows
    */
-  public Flux<WorkflowConfig> getWorkflows(
-      @NotBlank(message = "Session ID is required") final String sessionId) {
+  public Flux<WorkflowConfig> getWorkflows(@SessionId final String sessionId) {
     final List<WorkflowConfig> override = workflowsMap.get(sessionId);
     return Flux.fromIterable(override != null ? override : List.of());
   }
@@ -165,7 +155,7 @@ public class AppConfigService {
    * @return Mono that completes when workflows are set
    */
   public Mono<Void> setWorkflows(
-      @NotBlank(message = "Session ID is required") final String sessionId,
+      @SessionId final String sessionId,
       @NotNull(message = "Workflows list cannot be null")
           final List<WorkflowConfig> workflowsList) {
     if (workflowsList.isEmpty()) {
@@ -182,8 +172,7 @@ public class AppConfigService {
    * @param sessionId the session identifier
    * @return Mono containing the timeout
    */
-  public Mono<Long> getExecutionTimeout(
-      @NotBlank(message = "Session ID is required") final String sessionId) {
+  public Mono<Long> getExecutionTimeout(@SessionId final String sessionId) {
     return Mono.just(DEFAULT_TIMEOUT);
   }
 
@@ -193,8 +182,7 @@ public class AppConfigService {
    * @param sessionId the session identifier
    * @return Mono containing the log directory
    */
-  public Mono<String> getFileLogDir(
-      @NotBlank(message = "Session ID is required") final String sessionId) {
+  public Mono<String> getFileLogDir(@SessionId final String sessionId) {
     return Mono.just(DEFAULT_FILE_LOG);
   }
 
@@ -204,8 +192,7 @@ public class AppConfigService {
    * @param sessionId the session identifier
    * @return Mono containing the log directory
    */
-  public Mono<String> getResultLogDir(
-      @NotBlank(message = "Session ID is required") final String sessionId) {
+  public Mono<String> getResultLogDir(@SessionId final String sessionId) {
     return Mono.just(DEFAULT_RES_LOG);
   }
 
@@ -215,8 +202,7 @@ public class AppConfigService {
    * @param sessionId the session identifier
    * @return Mono containing map of configurations
    */
-  public Mono<Map<String, Object>> getAllConfigs(
-      @NotBlank(message = "Session ID is required") final String sessionId) {
+  public Mono<Map<String, Object>> getAllConfigs(@SessionId final String sessionId) {
     return Mono.zip(
             getProjectPath(sessionId),
             getPlugins(sessionId).collectList(),
@@ -256,8 +242,7 @@ public class AppConfigService {
    * @param sessionId the session identifier
    * @return Mono containing true if active
    */
-  public Mono<Boolean> isActive(
-      @NotBlank(message = "Session ID is required") final String sessionId) {
+  public Mono<Boolean> isActive(@SessionId final String sessionId) {
     return getActiveSessionIds().collectList().map(list -> list.contains(sessionId));
   }
 }

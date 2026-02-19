@@ -15,8 +15,9 @@
  */
 package com.infenia.jagratha.model;
 
+import com.infenia.jagratha.validation.ConfigKey;
+import com.infenia.jagratha.validation.PluginName;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
@@ -28,13 +29,11 @@ import java.util.Map;
  */
 @Schema(description = "Registration information for a plugin in a session")
 public record PluginRegistration(
-    @Schema(description = "The name of the plugin", example = "gradle")
-        @NotBlank(message = "Plugin name is required")
-        String name,
+    @Schema(description = "The name of the plugin", example = "gradle") @PluginName String name,
     @Schema(description = "Configuration options for the plugin")
         @NotNull(message = "Plugin configuration is required")
         Map<
-                @NotBlank(message = "Plugin configuration key cannot be blank") String,
+                @ConfigKey String,
                 @NotNull(message = "Plugin configuration value cannot be null") Object>
             pluginConfig) {
 
