@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Tech Stack
 
-- **Java 21** (toolchain; targets Java 25)
+- **Java 21** (source & target compatibility; uses Java 25+ compiler for toolchain)
 - **Spring Boot 4.0.2** (WebFlux for reactive non-blocking operations)
 - **Gradle 9.0** (multi-module with convention plugins)
 - **GraalVM** (native image support)

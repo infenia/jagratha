@@ -8,6 +8,18 @@ jacoco {
 
 tasks.named('test') {
     finalizedBy jacocoTestReport
+    // Exclude system classes from JaCoCo instrumentation to avoid Java 25 bytecode issues
+    jacoco {
+        excludes = [
+            'java.*',
+            'javax.*',
+            'sun.*',
+            'jdk.*',
+            'com.sun.*',
+            'org.w3c.*',
+            'org.xml.*'
+        ]
+    }
 }
 
 jacocoTestReport {
