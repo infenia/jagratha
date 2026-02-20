@@ -13,28 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-plugins {
-    id 'com.infenia.jagratha.java-conventions'
-    id 'com.infenia.jagratha.quality-conventions'
-    id 'com.infenia.jagratha.jacoco-conventions'
-    alias(libs.plugins.spring.boot)
-    alias(libs.plugins.spring.dependency.management)
-}
+package com.infenia.jagratha.plugin;
 
-version = '1.0.0'
+import reactor.core.publisher.Flux;
 
-// Library module
-bootJar {
-    enabled = false
-}
-jar {
-    enabled = true
-}
+/** Produces data from an external source. */
+public interface TriggerPlugin extends WorkflowPlugin {
+  @Override
+  default PluginCategory getCategory() {
+    return PluginCategory.TRIGGER;
+  }
 
-dependencies {
-    implementation project(':jagratha-plugin-api')
-    implementation libs.spring.boot.starter.webflux
-
-    testImplementation libs.spring.boot.starter.test
-    testImplementation libs.reactor.test
+  /**
+   * Start producing data.
+   *
+   * @return a Flux of messages
+   */
+  Flux<Message> start();
 }

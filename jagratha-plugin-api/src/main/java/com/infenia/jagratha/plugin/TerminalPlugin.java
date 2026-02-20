@@ -13,28 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-plugins {
-    id 'com.infenia.jagratha.java-conventions'
-    id 'com.infenia.jagratha.quality-conventions'
-    id 'com.infenia.jagratha.jacoco-conventions'
-    alias(libs.plugins.spring.boot)
-    alias(libs.plugins.spring.dependency.management)
-}
+package com.infenia.jagratha.plugin;
 
-version = '1.0.0'
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-// Library module
-bootJar {
-    enabled = false
-}
-jar {
-    enabled = true
-}
+/** Logic for side-effects. */
+public interface TerminalPlugin extends WorkflowPlugin {
+  @Override
+  default PluginCategory getCategory() {
+    return PluginCategory.TERMINAL;
+  }
 
-dependencies {
-    implementation project(':jagratha-plugin-api')
-    implementation libs.spring.boot.starter.webflux
-
-    testImplementation libs.spring.boot.starter.test
-    testImplementation libs.reactor.test
+  /**
+   * Consume the input stream of messages.
+   *
+   * @param input the input Flux
+   * @return a Mono that completes when all messages are consumed
+   */
+  Mono<Void> consume(Flux<Message> input);
 }
