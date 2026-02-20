@@ -19,6 +19,21 @@ jacocoTestReport {
 }
 
 afterEvaluate {
+    // Exclude JTE-generated classes from JaCoCo analysis
+    def jteGeneratedDir = file("build/jte-classes/gg/jte/generated")
+    if (jteGeneratedDir.exists()) {
+        jacocoTestReport {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: ['gg/jte/generated/**'])
+            }))
+        }
+        jacocoTestCoverageVerification {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: ['gg/jte/generated/**'])
+            }))
+        }
+    }
+
     jacocoTestCoverageVerification {
         dependsOn jacocoTestReport
         violationRules {

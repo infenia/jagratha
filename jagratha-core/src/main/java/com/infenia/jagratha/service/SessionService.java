@@ -144,7 +144,9 @@ public class SessionService {
         }
       }
     } catch (IOException e) {
-      log.warn("Failed to list sessions from directory: {}", baseDir, e);
+      if (log.isWarnEnabled()) {
+        log.warn("Failed to list sessions from directory: {}", baseDir, e);
+      }
     }
   }
 
@@ -207,16 +209,22 @@ public class SessionService {
                       final Path configFile =
                           Path.of(resultsDir).resolve(sessionId).resolve("config.json");
                       if (Files.exists(configFile)) {
-                        try {
-                          return (Map<String, Object>)
-                              objectMapper.readValue(
-                                  Files.readString(configFile, StandardCharsets.UTF_8), Map.class);
-                        } catch (Exception e) {
-                          log.warn("Failed to read config.json for session {}", sessionId, e);
-                        }
+                        return (Map<String, Object>)
+                            objectMapper.readValue(
+                                Files.readString(configFile, StandardCharsets.UTF_8), Map.class);
                       }
                       return null;
-                    }));
+                    }))
+        .onErrorResume(
+            e -> {
+              if (log.isWarnEnabled()) {
+                log.warn(
+                    "Failed to read config from disk for session {}: {}",
+                    sessionId,
+                    e.getMessage());
+              }
+              return Mono.empty();
+            });
   }
 
   /**
@@ -239,8 +247,21 @@ public class SessionService {
                       config -> {
                         final Object workflow = config.get("workflow");
                         if (workflow != null) {
-                          final String json = objectMapper.writeValueAsString(workflow);
-                          return Mono.just(objectMapper.readValue(json, WorkflowDefinition.class));
+                          return Mono.fromCallable(
+                                  () -> {
+                                    final String json = objectMapper.writeValueAsString(workflow);
+                                    return objectMapper.readValue(json, WorkflowDefinition.class);
+                                  })
+                              .onErrorResume(
+                                  e -> {
+                                    if (log.isWarnEnabled()) {
+                                      log.warn(
+                                          "Failed to parse workflow from config for session {}: {}",
+                                          sessionId,
+                                          e.getMessage());
+                                    }
+                                    return Mono.empty();
+                                  });
                         }
                         return configService.getWorkflow(sessionId);
                       });
