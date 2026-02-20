@@ -13,28 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.jagratha.model;
+package com.infenia.jagratha.service;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.infenia.jagratha.plugin.WorkflowPlugin;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class ModelTest {
+class WorkflowRegistryTest {
 
   @Test
-  void testWorkflowDefinitionImmutability() {
-    WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "t1", Map.of("k", "v"));
-    WorkflowDefinition.Edge edge = new WorkflowDefinition.Edge("n1", "n2");
-    WorkflowDefinition def = new WorkflowDefinition(List.of(node), List.of(edge));
+  void testRegistry() {
+    WorkflowPlugin mockPlugin = mock(WorkflowPlugin.class);
+    when(mockPlugin.getType()).thenReturn("test-type");
 
-    assertNotNull(def.nodes());
-    assertNotNull(def.edges());
-    assertEquals(1, def.nodes().size());
-  }
+    WorkflowRegistry registry = new WorkflowRegistry(List.of(mockPlugin));
 
-  private void assertEquals(int expected, int actual) {
-    org.junit.jupiter.api.Assertions.assertEquals(expected, actual);
+    assertTrue(registry.contains("test-type"));
+    assertNotNull(registry.get("test-type"));
+    assertNull(registry.get("unknown"));
   }
 }

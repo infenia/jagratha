@@ -13,28 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-plugins {
-    id 'com.infenia.jagratha.java-conventions'
-    id 'com.infenia.jagratha.quality-conventions'
-    id 'com.infenia.jagratha.jacoco-conventions'
-    alias(libs.plugins.spring.boot)
-    alias(libs.plugins.spring.dependency.management)
-}
+package com.infenia.jagratha.model;
 
-version = '1.0.0'
+import com.infenia.jagratha.validation.SessionId;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-// Library module
-bootJar {
-    enabled = false
-}
-jar {
-    enabled = true
-}
-
-dependencies {
-    implementation project(':jagratha-plugin-api')
-    implementation libs.spring.boot.starter.webflux
-
-    testImplementation libs.spring.boot.starter.test
-    testImplementation libs.reactor.test
-}
+/**
+ * Request object for triggering a workflow.
+ *
+ * @param sessionId the session identifier
+ */
+@Schema(description = "Request object for triggering a workflow")
+public record WorkflowTriggerRequest(
+    @Schema(description = "The unique session identifier", example = "session-123") @SessionId
+        String sessionId) {}

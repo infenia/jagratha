@@ -13,28 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-plugins {
-    id 'com.infenia.jagratha.java-conventions'
-    id 'com.infenia.jagratha.quality-conventions'
-    id 'com.infenia.jagratha.jacoco-conventions'
-    alias(libs.plugins.spring.boot)
-    alias(libs.plugins.spring.dependency.management)
-}
+package com.infenia.jagratha.plugin;
 
-version = '1.0.0'
+import reactor.core.publisher.Flux;
 
-// Library module
-bootJar {
-    enabled = false
-}
-jar {
-    enabled = true
-}
+/** Logic for transforming, filtering, or splitting data. */
+public interface ProcessorPlugin extends WorkflowPlugin {
+  @Override
+  default PluginCategory getCategory() {
+    return PluginCategory.PROCESSOR;
+  }
 
-dependencies {
-    implementation project(':jagratha-plugin-api')
-    implementation libs.spring.boot.starter.webflux
-
-    testImplementation libs.spring.boot.starter.test
-    testImplementation libs.reactor.test
+  /**
+   * Process the input stream of messages.
+   *
+   * @param input the input Flux
+   * @return the transformed Flux
+   */
+  Flux<Message> process(Flux<Message> input);
 }
