@@ -15,7 +15,6 @@
  */
 package com.infenia.jagratha.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.infenia.jagratha.config.AppConfigService;
 import com.infenia.jagratha.model.AppConfigData;
 import com.infenia.jagratha.model.WorkflowDefinition;
@@ -36,6 +35,7 @@ import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import tools.jackson.databind.ObjectMapper;
 
 /** Service for managing session lifecycle and configuration. */
 @Slf4j
@@ -60,20 +60,11 @@ public class SessionService {
     return Mono.defer(
             () -> {
               final Mono<Void> projectPathMono =
-                  data.projectPath() != null
-                      ? configService.setProjectPath(data.sessionId(), data.projectPath())
-                      : Mono.empty();
-
+                  configService.setProjectPath(data.sessionId(), data.projectPath());
               final Mono<Void> workflowMono =
-                  data.workflow() != null
-                      ? configService.setWorkflow(data.sessionId(), data.workflow())
-                      : Mono.empty();
-
+                  configService.setWorkflow(data.sessionId(), data.workflow());
               return Mono.when(projectPathMono, workflowMono)
-                  .then(
-                      data.workflow() != null
-                          ? orchestrator.prepareWorkflow(data.workflow())
-                          : Mono.empty());
+                  .then(orchestrator.prepareWorkflow(data.workflow()));
             })
         .then(saveConfigToDisk(data.sessionId()));
   }
@@ -87,37 +78,33 @@ public class SessionService {
   public Mono<Void> saveConfigToDisk(@SessionId final String sessionId) {
     return configService
         .getResultLogDir(sessionId)
+        .filter(resultsDir -> !resultsDir.isEmpty())
         .flatMap(
             resultsDir -> {
-              if (resultsDir == null || resultsDir.isEmpty()) {
-                return Mono.empty();
-              }
-              return Mono.fromRunnable(
+              final Path dirPath = Path.of(resultsDir).resolve(sessionId);
+              final Path configFile = dirPath.resolve("config.json");
+
+              return Mono.fromCallable(
                       () -> {
-                        try {
-                          final Path dirPath = Path.of(resultsDir).resolve(sessionId);
-                          Files.createDirectories(dirPath);
-                        } catch (IOException e) {
-                          log.error("Failed to create directories for session {}", sessionId, e);
-                        }
+                        Files.createDirectories(dirPath);
+                        return dirPath;
                       })
                   .then(configService.getAllConfigs(sessionId))
                   .flatMap(
                       configs ->
-                          Mono.fromRunnable(
+                          Mono.fromCallable(
                               () -> {
-                                try {
-                                  final Path configFile =
-                                      Path.of(resultsDir).resolve(sessionId).resolve("config.json");
-                                  Files.writeString(
-                                      configFile, objectMapper.writeValueAsString(configs));
-                                } catch (IOException e) {
-                                  log.error(
-                                      "Failed to save config to disk for session {}", sessionId, e);
-                                }
+                                Files.writeString(
+                                    configFile, objectMapper.writeValueAsString(configs));
+                                return null;
                               }));
             })
         .subscribeOn(Schedulers.boundedElastic())
+        .onErrorResume(
+            e -> {
+              log.error("Failed to save config for session {}", sessionId, e);
+              return Mono.empty();
+            })
         .then();
   }
 
@@ -195,13 +182,12 @@ public class SessionService {
    * @param sessionId the session identifier
    * @return Mono containing map of configurations
    */
-  @SuppressWarnings("unchecked")
   public Mono<Map<String, Object>> getSessionConfig(@SessionId final String sessionId) {
     return configService
         .isActive(sessionId)
         .flatMap(
             active -> {
-              if (Boolean.TRUE.equals(active)) {
+              if (active) {
                 return configService.getAllConfigs(sessionId);
               }
               return readConfigFromDisk(sessionId)
@@ -225,13 +211,12 @@ public class SessionService {
                           return (Map<String, Object>)
                               objectMapper.readValue(
                                   Files.readString(configFile, StandardCharsets.UTF_8), Map.class);
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                           log.warn("Failed to read config.json for session {}", sessionId, e);
                         }
                       }
                       return null;
-                    }))
-        .flatMap(config -> config != null ? Mono.just(config) : Mono.empty());
+                    }));
   }
 
   /**
@@ -245,7 +230,7 @@ public class SessionService {
         .isActive(sessionId)
         .flatMap(
             active -> {
-              if (Boolean.TRUE.equals(active)) {
+              if (active) {
                 return configService.getWorkflow(sessionId);
               }
 
@@ -254,14 +239,8 @@ public class SessionService {
                       config -> {
                         final Object workflow = config.get("workflow");
                         if (workflow != null) {
-                          try {
-                            final String json = objectMapper.writeValueAsString(workflow);
-                            return Mono.just(
-                                objectMapper.readValue(json, WorkflowDefinition.class));
-                          } catch (IOException e) {
-                            log.warn(
-                                "Failed to parse workflow from disk for session {}", sessionId, e);
-                          }
+                          final String json = objectMapper.writeValueAsString(workflow);
+                          return Mono.just(objectMapper.readValue(json, WorkflowDefinition.class));
                         }
                         return configService.getWorkflow(sessionId);
                       });

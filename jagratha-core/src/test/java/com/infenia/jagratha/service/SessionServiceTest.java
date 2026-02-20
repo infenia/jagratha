@@ -19,7 +19,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.infenia.jagratha.config.AppConfigService;
 import com.infenia.jagratha.model.AppConfigData;
 import com.infenia.jagratha.model.WorkflowDefinition;
@@ -36,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class SessionServiceTest {
@@ -80,6 +80,9 @@ class SessionServiceTest {
     String sessionId = "sess-partial";
     AppConfigData data = new AppConfigData(sessionId, null, null);
 
+    when(configService.setProjectPath(anyString(), any())).thenReturn(Mono.empty());
+    when(configService.setWorkflow(anyString(), any())).thenReturn(Mono.empty());
+    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.empty());
     when(configService.getResultLogDir(anyString())).thenReturn(Mono.just(tempDir.toString()));
     when(configService.getAllConfigs(anyString())).thenReturn(Mono.just(Map.of()));
 
