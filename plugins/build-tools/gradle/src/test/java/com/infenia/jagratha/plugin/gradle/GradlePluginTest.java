@@ -73,9 +73,7 @@ class GradlePluginTest {
             "tasks", List.of("testTask"),
             "gradlePath", "./gradlew");
 
-    plugin.initialize(config).block();
-
-    StepVerifier.create(plugin.start())
+    StepVerifier.create(plugin.start(config, Map.of()))
         .assertNext(
             message -> {
               assertNotNull(message.id());

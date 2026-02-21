@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.infenia.jagratha.config.AppConfigService;
 import com.infenia.jagratha.model.AppConfigData;
 import com.infenia.jagratha.model.WorkflowDefinition;
@@ -35,7 +36,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class SessionServiceTest {
@@ -57,10 +57,10 @@ class SessionServiceTest {
   void testApplyConfigOverrides() {
     String sessionId = "sess-1";
     WorkflowDefinition workflow = new WorkflowDefinition(List.of(), List.of());
-    AppConfigData data = new AppConfigData(sessionId, "/path", workflow);
+    AppConfigData data = new AppConfigData(sessionId, "/path", Map.of("w1", workflow));
 
     when(configService.setProjectPath(anyString(), anyString())).thenReturn(Mono.empty());
-    when(configService.setWorkflow(anyString(), any())).thenReturn(Mono.empty());
+    when(configService.setWorkflows(anyString(), any())).thenReturn(Mono.empty());
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.empty());
     when(configService.getResultLogDir(anyString())).thenReturn(Mono.just("build/results"));
     when(configService.getAllConfigs(anyString())).thenReturn(Mono.just(java.util.Map.of()));
@@ -78,11 +78,10 @@ class SessionServiceTest {
   @Test
   void testApplyConfigOverridesPartial() {
     String sessionId = "sess-partial";
-    AppConfigData data = new AppConfigData(sessionId, null, null);
+    AppConfigData data = new AppConfigData(sessionId, null, Map.of());
 
     when(configService.setProjectPath(anyString(), any())).thenReturn(Mono.empty());
-    when(configService.setWorkflow(anyString(), any())).thenReturn(Mono.empty());
-    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.empty());
+    when(configService.setWorkflows(anyString(), any())).thenReturn(Mono.empty());
     when(configService.getResultLogDir(anyString())).thenReturn(Mono.just(tempDir.toString()));
     when(configService.getAllConfigs(anyString())).thenReturn(Mono.just(Map.of()));
 
@@ -138,14 +137,14 @@ class SessionServiceTest {
     Files.createDirectories(sessDir);
 
     WorkflowDefinition workflow = new WorkflowDefinition(List.of(), List.of());
-    Map<String, Object> configMap = Map.of("workflow", workflow);
+    Map<String, Object> configMap = Map.of("workflows", Map.of("w1", workflow));
     Files.writeString(sessDir.resolve("config.json"), objectMapper.writeValueAsString(configMap));
 
     when(configService.isActive(sessionId)).thenReturn(Mono.just(false));
     when(configService.getResultLogDir(sessionId)).thenReturn(Mono.just(resultsDir.toString()));
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(Map.of()));
 
-    StepVerifier.create(sessionService.getSessionWorkflow(sessionId))
+    StepVerifier.create(sessionService.getSessionWorkflow(sessionId, "w1"))
         .expectNext(workflow)
         .verifyComplete();
   }
@@ -161,9 +160,9 @@ class SessionServiceTest {
     when(configService.isActive(sessionId)).thenReturn(Mono.just(false));
     when(configService.getResultLogDir(sessionId)).thenReturn(Mono.just(resultsDir.toString()));
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(Map.of()));
-    when(configService.getWorkflow(sessionId)).thenReturn(Mono.empty());
+    when(configService.getWorkflow(sessionId, "w1")).thenReturn(Mono.empty());
 
-    StepVerifier.create(sessionService.getSessionWorkflow(sessionId)).verifyComplete();
+    StepVerifier.create(sessionService.getSessionWorkflow(sessionId, "w1")).verifyComplete();
   }
 
   @Test
@@ -177,9 +176,9 @@ class SessionServiceTest {
     when(configService.isActive(sessionId)).thenReturn(Mono.just(false));
     when(configService.getResultLogDir(sessionId)).thenReturn(Mono.just(resultsDir.toString()));
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(Map.of()));
-    when(configService.getWorkflow(sessionId)).thenReturn(Mono.empty());
+    when(configService.getWorkflow(sessionId, "w1")).thenReturn(Mono.empty());
 
-    StepVerifier.create(sessionService.getSessionWorkflow(sessionId)).verifyComplete();
+    StepVerifier.create(sessionService.getSessionWorkflow(sessionId, "w1")).verifyComplete();
   }
 
   @Test

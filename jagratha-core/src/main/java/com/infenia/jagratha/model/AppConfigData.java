@@ -18,16 +18,23 @@ package com.infenia.jagratha.model;
 import com.infenia.jagratha.validation.ProjectPath;
 import com.infenia.jagratha.validation.SessionId;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
+import java.util.Map;
 
 /**
  * Data record for application configuration.
  *
  * @param sessionId the session identifier
  * @param projectPath the project path
- * @param workflow the workflow definition (DAG)
+ * @param workflows map of workflow definitions (DAGs)
  */
 public record AppConfigData(
     @SessionId String sessionId,
     @ProjectPath String projectPath,
-    @NotNull(message = "Workflow definition cannot be null") @Valid WorkflowDefinition workflow) {}
+    @NotEmpty(message = "Workflows cannot be empty") @Valid
+        Map<String, WorkflowDefinition> workflows) {
+  /** Compact constructor for immutability. */
+  public AppConfigData {
+    workflows = workflows != null ? Map.copyOf(workflows) : Map.of();
+  }
+}

@@ -34,12 +34,13 @@ class AppConfigMapperTest {
   @Test
   void testMapping() {
     WorkflowDefinition workflow = new WorkflowDefinition(List.of(), List.of());
-    ConfigRequest request = new ConfigRequest("sess-1", "/path", workflow);
+    java.util.Map<String, WorkflowDefinition> workflows = java.util.Map.of("w1", workflow);
+    ConfigRequest request = new ConfigRequest("sess-1", "/path", workflows);
     AppConfigData data = mapper.toData(request);
 
     assertNotNull(data);
     assertEquals("sess-1", data.sessionId());
     assertEquals("/path", data.projectPath());
-    assertEquals(workflow, data.workflow());
+    assertEquals(workflow, data.workflows().get("w1"));
   }
 }

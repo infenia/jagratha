@@ -44,26 +44,28 @@ class WorkflowServiceTest {
   }
 
   @Test
-  void testRunQualityChecksSuccess() {
+  void testRunWorkflowSuccess() {
     String sessionId = "sess-1";
+    String workflowId = "w1";
     WorkflowDefinition def = new WorkflowDefinition(List.of(), List.of());
 
-    when(configService.getWorkflow(sessionId)).thenReturn(Mono.just(def));
+    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.empty());
-    when(orchestrator.execute(anyString(), any())).thenReturn(Mono.empty());
+    when(orchestrator.execute(anyString(), any(), any())).thenReturn(Mono.empty());
 
-    StepVerifier.create(workflowService.runQualityChecks(sessionId))
+    StepVerifier.create(workflowService.runWorkflow(sessionId, workflowId, java.util.Map.of()))
         .expectNextMatches(res -> "SUCCESS".equals(res.status()))
         .verifyComplete();
   }
 
   @Test
-  void testRunQualityChecksNoWorkflow() {
+  void testRunWorkflowNoWorkflow() {
     String sessionId = "sess-1";
+    String workflowId = "w1";
 
-    when(configService.getWorkflow(sessionId)).thenReturn(Mono.empty());
+    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.empty());
 
-    StepVerifier.create(workflowService.runQualityChecks(sessionId))
+    StepVerifier.create(workflowService.runWorkflow(sessionId, workflowId, java.util.Map.of()))
         .expectNextMatches(
             res ->
                 "FAILURE".equals(res.status()) && res.output().contains("No workflow configured"))
@@ -71,15 +73,15 @@ class WorkflowServiceTest {
   }
 
   @Test
-  void testRunQualityChecksError() {
+  void testRunWorkflowError() {
     String sessionId = "sess-1";
+    String workflowId = "w1";
     WorkflowDefinition def = new WorkflowDefinition(List.of(), List.of());
 
-    when(configService.getWorkflow(sessionId)).thenReturn(Mono.just(def));
+    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.error(new RuntimeException("Fail")));
-    when(orchestrator.execute(anyString(), any())).thenReturn(Mono.empty());
 
-    StepVerifier.create(workflowService.runQualityChecks(sessionId))
+    StepVerifier.create(workflowService.runWorkflow(sessionId, workflowId, java.util.Map.of()))
         .expectNextMatches(
             res -> "FAILURE".equals(res.status()) && res.output().contains("Workflow failed: Fail"))
         .verifyComplete();
