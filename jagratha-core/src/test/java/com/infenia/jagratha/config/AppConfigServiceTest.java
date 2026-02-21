@@ -97,16 +97,24 @@ class AppConfigServiceTest {
     StepVerifier.create(configService.setInitiatedTime(sessionId, time)).verifyComplete();
     StepVerifier.create(configService.setTags(sessionId, tags)).verifyComplete();
 
-    StepVerifier.create(configService.getInitiator(sessionId)).expectNext(initiator).verifyComplete();
-    StepVerifier.create(configService.getInitiatedTime(sessionId)).expectNext(time).verifyComplete();
+    StepVerifier.create(configService.getInitiator(sessionId))
+        .expectNext(initiator)
+        .verifyComplete();
+    StepVerifier.create(configService.getInitiatedTime(sessionId))
+        .expectNext(time)
+        .verifyComplete();
     StepVerifier.create(configService.getTags(sessionId)).expectNext(tags).verifyComplete();
 
     // Verify putIfAbsent (immutability)
     StepVerifier.create(configService.setInitiator(sessionId, "Other")).verifyComplete();
-    StepVerifier.create(configService.getInitiator(sessionId)).expectNext(initiator).verifyComplete();
+    StepVerifier.create(configService.getInitiator(sessionId))
+        .expectNext(initiator)
+        .verifyComplete();
 
     StepVerifier.create(configService.setInitiatedTime(sessionId, "Other")).verifyComplete();
-    StepVerifier.create(configService.getInitiatedTime(sessionId)).expectNext(time).verifyComplete();
+    StepVerifier.create(configService.getInitiatedTime(sessionId))
+        .expectNext(time)
+        .verifyComplete();
 
     StepVerifier.create(configService.setTags(sessionId, Map.of("Other", "Val"))).verifyComplete();
     StepVerifier.create(configService.getTags(sessionId)).expectNext(tags).verifyComplete();
