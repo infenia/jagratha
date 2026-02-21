@@ -32,7 +32,7 @@ import java.util.List;
  * @param path the request path (error only)
  * @param errors the list of field validation errors (optional, error only)
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 @Schema(description = "Unified API response format")
 public record ApiResponse<T>(
     @Schema(description = "The time the response was generated") LocalDateTime timestamp,
@@ -43,6 +43,11 @@ public record ApiResponse<T>(
     @Schema(description = "The HTTP status error name", example = "Bad Request") String error,
     @Schema(description = "The request path", example = "/api/files") String path,
     @Schema(description = "The list of field validation errors") List<FieldError> errors) {
+
+  /** Compact constructor to ensure immutability. */
+  public ApiResponse {
+    errors = errors != null ? List.copyOf(errors) : List.of();
+  }
 
   /**
    * Field-specific validation error.
@@ -93,6 +98,6 @@ public record ApiResponse<T>(
         null,
         error,
         path,
-        errors != null ? List.copyOf(errors) : null);
+        errors != null ? List.copyOf(errors) : List.of());
   }
 }
