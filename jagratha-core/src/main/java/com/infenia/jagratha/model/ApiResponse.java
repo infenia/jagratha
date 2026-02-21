@@ -37,7 +37,8 @@ import java.util.List;
 public record ApiResponse<T>(
     @Schema(description = "The time the response was generated") LocalDateTime timestamp,
     @Schema(description = "The HTTP status code", example = "200") int status,
-    @Schema(description = "A human-readable message", example = "Operation successful") String message,
+    @Schema(description = "A human-readable message", example = "Operation successful")
+        String message,
     @Schema(description = "The response data") T data,
     @Schema(description = "The HTTP status error name", example = "Bad Request") String error,
     @Schema(description = "The request path", example = "/api/files") String path,

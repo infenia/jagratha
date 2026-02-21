@@ -172,8 +172,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
       final HttpStatus status, final String message, final ServerHttpRequest request) {
     final String path = request.getPath().value();
     final ApiResponse<Object> errorResponse =
-        ApiResponse.error(
-            status.value(), status.getReasonPhrase(), message, path, List.of());
+        ApiResponse.error(status.value(), status.getReasonPhrase(), message, path, List.of());
     return ResponseEntity.status(status).body(errorResponse);
   }
 }

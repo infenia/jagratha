@@ -82,7 +82,8 @@ public class AppController {
       @Valid @RequestBody final FileRequest request) {
     return fileLogService
         .saveFile(request.path(), request.sessionId())
-        .thenReturn(ResponseEntity.ok(ApiResponse.success(200, "File path logged successfully", null)));
+        .thenReturn(
+            ResponseEntity.ok(ApiResponse.success(200, "File path logged successfully", null)));
   }
 
   /**
@@ -220,6 +221,7 @@ public class AppController {
     return sessionService
         .applyConfigOverrides(configData)
         .thenReturn(
-            ResponseEntity.ok(ApiResponse.success(200, "Configuration updated successfully", null)));
+            ResponseEntity.ok(
+                ApiResponse.success(200, "Configuration updated successfully", null)));
   }
 }

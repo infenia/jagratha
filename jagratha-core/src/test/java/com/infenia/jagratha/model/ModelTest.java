@@ -56,5 +56,4 @@ class ModelTest {
     assertNotNull(def.edges());
     assertEquals(1, def.nodes().size());
   }
-
 }
