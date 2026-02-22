@@ -51,6 +51,8 @@ import reactor.util.context.Context;
 @SuppressWarnings({"PMD.OnlyOneReturn", "PMD.TooManyMethods"})
 public class WorkflowOrchestrator {
 
+  private static final int SINGLE_CHILD = 1;
+
   private final WorkflowRegistry registry;
   private final TaskTrackerService tracker;
 
@@ -130,7 +132,7 @@ public class WorkflowOrchestrator {
               tracker.startWorkflow(sId, nodeIds);
 
               final Map<String, Flux<Message>> nodeStreams = new ConcurrentHashMap<>();
-              final Map<String, Mono<Void>> terminalCompletions = new ConcurrentHashMap<>();
+              final Map<String, Mono<Void>> completions = new ConcurrentHashMap<>();
 
               def.nodes()
                   .forEach(
@@ -143,12 +145,12 @@ public class WorkflowOrchestrator {
                               parentsMap,
                               childrenMap,
                               nodeStreams,
-                              terminalCompletions));
+                              completions));
 
               final List<Mono<Void>> terminals =
                   def.nodes().stream()
                       .filter(n -> registry.get(n.type()).getCategory() == PluginCategory.TERMINAL)
-                      .map(n -> terminalCompletions.get(n.nodeId()))
+                      .map(n -> completions.get(n.nodeId()))
                       .toList();
 
               return Flux.fromIterable(terminals)
@@ -168,9 +170,9 @@ public class WorkflowOrchestrator {
       final Map<String, List<String>> parentsMap,
       final Map<String, List<String>> childrenMap,
       final Map<String, Flux<Message>> nodeStreams,
-      final Map<String, Mono<Void>> terminalCompletions) {
+      final Map<String, Mono<Void>> completions) {
 
-    if (nodeStreams.containsKey(node.nodeId()) || terminalCompletions.containsKey(node.nodeId())) {
+    if (nodeStreams.containsKey(node.nodeId()) || completions.containsKey(node.nodeId())) {
       return;
     }
 
@@ -180,22 +182,24 @@ public class WorkflowOrchestrator {
 
     if (plugin.getCategory() == PluginCategory.TRIGGER) {
       final TriggerPlugin trigger = (TriggerPlugin) plugin;
-      Flux<Message> stream =
+      final Flux<Message> stream =
           trigger
               .start(node.config(), payload)
               .doOnSubscribe(s -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "RUNNING"))
               .doOnComplete(() -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "SUCCESS"))
               .doOnError(e -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "FAILURE"));
 
-      stream =
-          applyLoggingAndBroadcasting(
-              sessionId, node.nodeId(), stream, childrenIds.size(), nodeStreams);
+      applyLoggingAndBroadcasting(
+          sessionId, node.nodeId(), stream, childrenIds.size(), nodeStreams);
     } else {
       // Ensure parents are built
       parentIds.forEach(
-          pId -> {
+          parentId -> {
             final Node parentNode =
-                def.nodes().stream().filter(n -> n.nodeId().equals(pId)).findFirst().orElseThrow();
+                def.nodes().stream()
+                    .filter(n -> n.nodeId().equals(parentId))
+                    .findFirst()
+                    .orElseThrow();
             buildNode(
                 sessionId,
                 parentNode,
@@ -204,14 +208,14 @@ public class WorkflowOrchestrator {
                 parentsMap,
                 childrenMap,
                 nodeStreams,
-                terminalCompletions);
+                completions);
           });
 
       final Flux<Message> mergedInput =
           Flux.merge(parentIds.stream().map(nodeStreams::get).toList());
 
       if (plugin instanceof ProcessorPlugin processor) {
-        Flux<Message> stream =
+        final Flux<Message> stream =
             processor
                 .process(mergedInput, node.config())
                 .doOnSubscribe(
@@ -220,9 +224,8 @@ public class WorkflowOrchestrator {
                     () -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "SUCCESS"))
                 .doOnError(e -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "FAILURE"));
 
-        stream =
-            applyLoggingAndBroadcasting(
-                sessionId, node.nodeId(), stream, childrenIds.size(), nodeStreams);
+        applyLoggingAndBroadcasting(
+            sessionId, node.nodeId(), stream, childrenIds.size(), nodeStreams);
       } else if (plugin instanceof TerminalPlugin terminal) {
         final Mono<Void> completion =
             terminal
@@ -231,7 +234,7 @@ public class WorkflowOrchestrator {
                     s -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "RUNNING"))
                 .doOnSuccess(v -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "SUCCESS"))
                 .doOnError(e -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "FAILURE"));
-        terminalCompletions.put(node.nodeId(), completion);
+        completions.put(node.nodeId(), completion);
       }
     }
   }
@@ -248,11 +251,14 @@ public class WorkflowOrchestrator {
             .onBackpressureBuffer()
             .doOnNext(msg -> tracker.appendLog(sessionId, String.valueOf(msg.payload())));
 
-    if (childCount > 1) {
+    if (childCount > SINGLE_CHILD) {
       processedStream =
           processedStream.publish().autoConnect(childCount).timeout(Duration.ofSeconds(30));
-    } else if (childCount == 0) {
-      // This case should not happen for Processor/Trigger based on validations, but let's be safe
+    } else {
+      // For single child or no children (though validations prevent 0 for triggers/processors),
+      // we still use autoConnect(1) for consistency in non-terminal nodes if needed,
+      // but actually for 1 child we don't strictly need it.
+      // However, to keep it simple and safe for all non-terminal nodes:
       processedStream = processedStream.publish().autoConnect(1).timeout(Duration.ofSeconds(30));
     }
 
@@ -280,13 +286,16 @@ public class WorkflowOrchestrator {
       if (plugin == null) {
         continue;
       }
-      if (!targetIds.contains(node.nodeId())) {
-        if (plugin.getCategory() != PluginCategory.TRIGGER) {
+      final boolean isEntryPoint = !targetIds.contains(node.nodeId());
+      final boolean isTrigger = plugin.getCategory() == PluginCategory.TRIGGER;
+
+      if (isEntryPoint) {
+        if (!isTrigger) {
           return Mono.error(
               new IllegalArgumentException(
                   "Node " + node.nodeId() + " is an entry point but not a TRIGGER"));
         }
-      } else if (plugin.getCategory() == PluginCategory.TRIGGER) {
+      } else if (isTrigger) {
         return Mono.error(
             new IllegalArgumentException(
                 "Trigger node " + node.nodeId() + " cannot have incoming edges"));
@@ -318,13 +327,16 @@ public class WorkflowOrchestrator {
       if (plugin == null) {
         continue;
       }
-      if (!sourceIds.contains(node.nodeId())) {
-        if (plugin.getCategory() != PluginCategory.TERMINAL) {
+      final boolean isEndpoint = !sourceIds.contains(node.nodeId());
+      final boolean isTerminal = plugin.getCategory() == PluginCategory.TERMINAL;
+
+      if (isEndpoint) {
+        if (!isTerminal) {
           return Mono.error(
               new IllegalArgumentException(
                   "Node " + node.nodeId() + " is an endpoint but not a TERMINAL"));
         }
-      } else if (plugin.getCategory() == PluginCategory.TERMINAL) {
+      } else if (isTerminal) {
         return Mono.error(
             new IllegalArgumentException(
                 "Terminal node " + node.nodeId() + " cannot have outgoing edges"));
