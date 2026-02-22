@@ -36,8 +36,7 @@ public record AppConfigData(
     @NotBlank(message = "Initiator is mandatory") String initiator,
     Map<String, String> tags,
     @ProjectPath String projectPath,
-    @NotEmpty(message = "Workflows cannot be empty")
-        @Valid
+    @NotEmpty(message = "Workflows cannot be empty") @Valid
         Map<String, WorkflowDefinition> workflows) {
   /** Compact constructor for immutability. */
   public AppConfigData {

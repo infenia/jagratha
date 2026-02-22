@@ -50,75 +50,76 @@ public class WorkflowService {
     final String queueKey = sessionId + ":" + workflowId;
     final Sinks.One<TaskResponse> sink = Sinks.one();
 
-    workflowQueues.compute(
-        queueKey,
-        (key, previousTail) -> {
-          final Mono<Void> current =
-              Mono.defer(
-                      () ->
-                          configService
-                              .getWorkflow(sessionId, workflowId)
-                              .flatMap(
-                                  def ->
-                                      orchestrator
-                                          .prepareWorkflow(def)
-                                          .then(
-                                              Mono.defer(
-                                                  () ->
-                                                      orchestrator.execute(
-                                                          sessionId, def, payload)))
-                                          .then(
-                                              Mono.just(
-                                                  new TaskResponse(
-                                                      "SUCCESS",
-                                                      "Workflow executed successfully"))))
-                              .switchIfEmpty(
-                                  Mono.just(
-                                      new TaskResponse(
-                                          "FAILURE",
-                                          "No workflow configured with ID: " + workflowId)))
-                              .onErrorResume(
-                                  e -> {
-                                    if (log.isErrorEnabled()) {
-                                      log.error(
-                                          "Workflow "
-                                              + workflowId
-                                              + " failed for session: "
-                                              + sessionId,
-                                          e);
-                                    }
-                                    return Mono.just(
-                                        new TaskResponse(
-                                            "FAILURE", "Workflow failed: " + e.getMessage()));
-                                  })
-                              .flatMap(
-                                  response -> {
-                                    sink.tryEmitValue(response);
-                                    return Mono.empty();
-                                  })
-                              .then())
-                  .subscribeOn(Schedulers.boundedElastic());
+    workflowQueues
+        .compute(
+            queueKey,
+            (key, previousTail) -> {
+              final Mono<Void> current =
+                  Mono.defer(
+                          () ->
+                              configService
+                                  .getWorkflow(sessionId, workflowId)
+                                  .flatMap(
+                                      def ->
+                                          orchestrator
+                                              .prepareWorkflow(def)
+                                              .then(
+                                                  Mono.defer(
+                                                      () ->
+                                                          orchestrator.execute(
+                                                              sessionId, def, payload)))
+                                              .then(
+                                                  Mono.just(
+                                                      new TaskResponse(
+                                                          "SUCCESS",
+                                                          "Workflow executed successfully"))))
+                                  .switchIfEmpty(
+                                      Mono.just(
+                                          new TaskResponse(
+                                              "FAILURE",
+                                              "No workflow configured with ID: " + workflowId)))
+                                  .onErrorResume(
+                                      e -> {
+                                        if (log.isErrorEnabled()) {
+                                          log.error(
+                                              "Workflow "
+                                                  + workflowId
+                                                  + " failed for session: "
+                                                  + sessionId,
+                                              e);
+                                        }
+                                        return Mono.just(
+                                            new TaskResponse(
+                                                "FAILURE", "Workflow failed: " + e.getMessage()));
+                                      })
+                                  .flatMap(
+                                      response -> {
+                                        sink.tryEmitValue(response);
+                                        return Mono.empty();
+                                      })
+                                  .then())
+                      .subscribeOn(Schedulers.boundedElastic());
 
-          final Mono<Void> nextTail;
-          if (previousTail == null) {
-            nextTail = current;
-          } else {
-            nextTail = previousTail.onErrorResume(e -> Mono.empty()).then(current);
-          }
-          return nextTail
-              .doOnTerminate(
-                  () -> {
-                    workflowQueues.computeIfPresent(
-                        queueKey,
-                        (k, tail) -> {
-                          if (tail == nextTail) {
-                            return null;
-                          }
-                          return tail;
-                        });
-                  })
-              .cache();
-        })
+              final Mono<Void> nextTail;
+              if (previousTail == null) {
+                nextTail = current;
+              } else {
+                nextTail = previousTail.onErrorResume(e -> Mono.empty()).then(current);
+              }
+              return nextTail
+                  .doOnTerminate(
+                      () -> {
+                        workflowQueues.computeIfPresent(
+                            queueKey,
+                            (k, tail) -> {
+                              if (tail.equals(nextTail)) {
+                                return null;
+                              }
+                              return tail;
+                            });
+                      })
+                  .cache();
+            })
         .subscribe();
 
     return sink.asMono();

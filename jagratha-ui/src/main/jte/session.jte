@@ -20,7 +20,8 @@
         </div>
         <div class="flex items-center gap-4">
             @if(config.get("workflows") instanceof Map)
-                <select onchange="window.location.href='/ui/sessions/${sessionId}/' + this.value"
+                <select id="workflow-selector"
+                        onchange="window.location.href='/ui/sessions/${sessionId}/' + this.value"
                         class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
                     @for(String wId : ((Map<String, Object>)config.get("workflows")).keySet())
                         @if(wId.equals(actualWorkflowId))

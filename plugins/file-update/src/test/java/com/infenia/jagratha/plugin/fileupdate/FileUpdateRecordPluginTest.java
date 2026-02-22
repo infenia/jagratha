@@ -18,6 +18,7 @@ package com.infenia.jagratha.plugin.fileupdate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.infenia.jagratha.plugin.Message;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
-import tools.jackson.databind.ObjectMapper;
 
 class FileUpdateRecordPluginTest {
 
