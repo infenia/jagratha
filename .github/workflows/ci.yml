@@ -45,6 +45,7 @@ jobs:
   build:
     needs: changes
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Run if push/schedule OR if PR has relevant changes
     if: |
       github.event_name != 'pull_request' ||

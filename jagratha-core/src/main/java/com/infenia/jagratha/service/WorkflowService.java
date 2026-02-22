@@ -62,9 +62,16 @@ public class WorkflowService {
                                   def ->
                                       orchestrator
                                           .prepareWorkflow(def)
-                                          .then(orchestrator.execute(sessionId, def, payload)))
-                              .thenReturn(
-                                  new TaskResponse("SUCCESS", "Workflow executed successfully"))
+                                          .then(
+                                              Mono.defer(
+                                                  () ->
+                                                      orchestrator.execute(
+                                                          sessionId, def, payload)))
+                                          .then(
+                                              Mono.just(
+                                                  new TaskResponse(
+                                                      "SUCCESS",
+                                                      "Workflow executed successfully"))))
                               .switchIfEmpty(
                                   Mono.just(
                                       new TaskResponse(
@@ -72,16 +79,23 @@ public class WorkflowService {
                                           "No workflow configured with ID: " + workflowId)))
                               .onErrorResume(
                                   e -> {
-                                    log.error(
-                                        "Workflow {} failed for session: {}",
-                                        workflowId,
-                                        sessionId,
-                                        e);
+                                    if (log.isErrorEnabled()) {
+                                      log.error(
+                                          "Workflow "
+                                              + workflowId
+                                              + " failed for session: "
+                                              + sessionId,
+                                          e);
+                                    }
                                     return Mono.just(
                                         new TaskResponse(
                                             "FAILURE", "Workflow failed: " + e.getMessage()));
                                   })
-                              .doOnNext(sink::tryEmitValue)
+                              .flatMap(
+                                  response -> {
+                                    sink.tryEmitValue(response);
+                                    return Mono.empty();
+                                  })
                               .then())
                   .subscribeOn(Schedulers.boundedElastic());
 
@@ -104,7 +118,8 @@ public class WorkflowService {
                         });
                   })
               .cache();
-        });
+        })
+        .subscribe();
 
     return sink.asMono();
   }

@@ -45,8 +45,8 @@ class WorkflowServiceTest {
 
   @Test
   void testRunWorkflowSuccess() {
-    String sessionId = "sess-1";
-    String workflowId = "w1";
+    String sessionId = "sess-success";
+    String workflowId = "w-success";
     WorkflowDefinition def = new WorkflowDefinition(List.of(), List.of());
 
     when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
@@ -60,8 +60,8 @@ class WorkflowServiceTest {
 
   @Test
   void testRunWorkflowNoWorkflow() {
-    String sessionId = "sess-1";
-    String workflowId = "w1";
+    String sessionId = "sess-none";
+    String workflowId = "w-none";
 
     when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.empty());
 
@@ -74,8 +74,8 @@ class WorkflowServiceTest {
 
   @Test
   void testRunWorkflowError() {
-    String sessionId = "sess-1";
-    String workflowId = "w1";
+    String sessionId = "sess-error";
+    String workflowId = "w-error";
     WorkflowDefinition def = new WorkflowDefinition(List.of(), List.of());
 
     when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
