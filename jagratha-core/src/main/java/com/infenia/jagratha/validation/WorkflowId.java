@@ -18,6 +18,7 @@ package com.infenia.jagratha.validation;
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -25,9 +26,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Annotation for project path validation. */
-@NotBlank(message = "Project path is required")
-@Size(max = 1024, message = "Project path must be at most 1024 characters")
+/** Annotation for workflow ID validation. */
+@NotBlank(message = "Workflow ID is required")
+@Size(max = 256, message = "Workflow ID must be at most 256 characters")
+@Pattern(regexp = "^(?!.*\\.\\.)[^/\\\\]*$", message = "Invalid workflow ID format")
 @Target({
   ElementType.FIELD,
   ElementType.PARAMETER,
@@ -37,13 +39,13 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})
 @Documented
-public @interface ProjectPath {
+public @interface WorkflowId {
   /**
    * Message for validation failure.
    *
    * @return the error message
    */
-  String message() default "Invalid project path";
+  String message() default "Invalid workflow ID";
 
   /**
    * Groups for validation.
