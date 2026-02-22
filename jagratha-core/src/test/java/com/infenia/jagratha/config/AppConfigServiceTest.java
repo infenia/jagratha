@@ -86,9 +86,7 @@ class AppConfigServiceTest {
 
     WorkflowDefinition workflow =
         new WorkflowDefinition(
-            "desc",
-            List.of(new WorkflowDefinition.Node("n1", "api-trigger", Map.of())),
-            List.of());
+            "desc", List.of(new WorkflowDefinition.Node("n1", "api-trigger", Map.of())), List.of());
     StepVerifier.create(configService.setWorkflows(sess2, Map.of("w1", workflow))).verifyComplete();
 
     StepVerifier.create(configService.getActiveSessionIds()).expectNextCount(2).verifyComplete();

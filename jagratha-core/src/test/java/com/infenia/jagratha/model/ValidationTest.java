@@ -61,7 +61,8 @@ class ValidationTest {
   void testAppConfigDataInvalidSession() {
     WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
     AppConfigData data =
-        new AppConfigData("../session", "desc", "initiator-1", Map.of(), "/path", Map.of("w1", def));
+        new AppConfigData(
+            "../session", "desc", "initiator-1", Map.of(), "/path", Map.of("w1", def));
     Set<ConstraintViolation<AppConfigData>> violations = validator.validate(data);
     assertFalse(violations.isEmpty());
     assertTrue(
@@ -73,11 +74,14 @@ class ValidationTest {
     WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
     String longDesc = "a".repeat(257);
     AppConfigData data =
-        new AppConfigData("session-1", longDesc, "initiator-1", Map.of(), "/path", Map.of("w1", def));
+        new AppConfigData(
+            "session-1", longDesc, "initiator-1", Map.of(), "/path", Map.of("w1", def));
     Set<ConstraintViolation<AppConfigData>> violations = validator.validate(data);
     assertFalse(violations.isEmpty());
     assertTrue(
         violations.stream()
-            .anyMatch(v -> v.getMessage().contains("Session description must be at most 256 characters")));
+            .anyMatch(
+                v ->
+                    v.getMessage().contains("Session description must be at most 256 characters")));
   }
 }
