@@ -113,7 +113,7 @@ public class TaskTrackerService {
    * @param line the log line
    */
   public void appendLog(
-      @SessionId final String sessionId, @NotBlank @Size(max = 16384) final String line) {
+      @SessionId final String sessionId, @NotBlank @Size(max = 16_384) final String line) {
     final Sinks.Many<String> sink = logSinks.get(sessionId);
     if (sink != null) {
       sink.tryEmitNext(line);
