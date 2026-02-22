@@ -16,24 +16,25 @@
 package com.infenia.jagratha.plugin;
 
 import java.util.Map;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/** A simple TerminalPlugin that logs message payloads to the console. */
+/** A TriggerPlugin that emits the payload received from an API trigger. */
 @Slf4j
 @Component
-public class ConsoleTerminalPlugin implements TerminalPlugin {
+public class ApiTriggerPlugin implements TriggerPlugin {
 
   /** Default constructor. */
-  public ConsoleTerminalPlugin() {
+  public ApiTriggerPlugin() {
     super();
   }
 
   @Override
   public String getType() {
-    return "console";
+    return "api-trigger";
   }
 
   @Override
@@ -47,7 +48,7 @@ public class ConsoleTerminalPlugin implements TerminalPlugin {
   }
 
   @Override
-  public Mono<Void> consume(final Flux<Message> input, final Map<String, Object> config) {
-    return input.doOnNext(msg -> log.info("Consuming message: {}", msg.payload())).then();
+  public Flux<Message> start(final Map<String, Object> config, final Map<String, Object> payload) {
+    return Flux.just(Message.create(UUID.randomUUID(), payload));
   }
 }

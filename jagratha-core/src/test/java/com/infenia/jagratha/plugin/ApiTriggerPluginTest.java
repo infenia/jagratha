@@ -15,22 +15,29 @@
  */
 package com.infenia.jagratha.plugin;
 
-import java.util.Map;
-import reactor.core.publisher.Flux;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** Produces data from an external source. */
-public interface TriggerPlugin extends WorkflowPlugin {
-  @Override
-  default PluginCategory getCategory() {
-    return PluginCategory.TRIGGER;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
+
+class ApiTriggerPluginTest {
+
+  @Test
+  void testApiTrigger() {
+    ApiTriggerPlugin plugin = new ApiTriggerPlugin();
+    Map<String, Object> payload = Map.of("key", "value");
+
+    StepVerifier.create(plugin.start(Map.of(), payload))
+        .assertNext(
+            message -> {
+              assertEquals(payload, message.payload());
+            })
+        .verifyComplete();
   }
 
-  /**
-   * Start producing data.
-   *
-   * @param config the plugin configuration
-   * @param payload the initial trigger payload
-   * @return a Flux of messages
-   */
-  Flux<Message> start(Map<String, Object> config, Map<String, Object> payload);
+  @Test
+  void testGetType() {
+    assertEquals("api-trigger", new ApiTriggerPlugin().getType());
+  }
 }
