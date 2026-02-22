@@ -81,7 +81,8 @@ class AppControllerTest {
     WorkflowDefinition workflow =
         new WorkflowDefinition(
             List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
-    ConfigRequest request = new ConfigRequest("session-1", "/new/path", Map.of("w1", workflow));
+    ConfigRequest request =
+        new ConfigRequest("session-1", "initiator-1", Map.of(), "/new/path", Map.of("w1", workflow));
 
     when(sessionService.applyConfigOverrides(any())).thenReturn(Mono.empty());
 

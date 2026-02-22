@@ -22,6 +22,7 @@ import com.infenia.jagratha.model.AppConfigData;
 import com.infenia.jagratha.model.ConfigRequest;
 import com.infenia.jagratha.model.WorkflowDefinition;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,12 +35,15 @@ class AppConfigMapperTest {
   @Test
   void testMapping() {
     WorkflowDefinition workflow = new WorkflowDefinition(List.of(), List.of());
+    Map<String, String> tags = Map.of("key", "value");
     java.util.Map<String, WorkflowDefinition> workflows = java.util.Map.of("w1", workflow);
-    ConfigRequest request = new ConfigRequest("sess-1", "/path", workflows);
+    ConfigRequest request = new ConfigRequest("sess-1", "initiator-1", tags, "/path", workflows);
     AppConfigData data = mapper.toData(request);
 
     assertNotNull(data);
     assertEquals("sess-1", data.sessionId());
+    assertEquals("initiator-1", data.initiator());
+    assertEquals(tags, data.tags());
     assertEquals("/path", data.projectPath());
     assertEquals(workflow, data.workflows().get("w1"));
   }
