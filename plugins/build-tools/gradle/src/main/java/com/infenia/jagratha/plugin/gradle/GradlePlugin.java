@@ -112,16 +112,7 @@ public class GradlePlugin implements TriggerPlugin {
                           flux -> StringDecoder.textPlainOnly().decode(flux, null, null, Map.of()));
 
               final Mono<Integer> exitCodeMono =
-                  Mono.fromFuture(process.onExit())
-                      .map(Process::exitValue)
-                      .timeout(Duration.ofSeconds(timeout))
-                      .onErrorResume(
-                          TimeoutException.class,
-                          e -> {
-                            process.destroyForcibly();
-                            return Mono.error(
-                                new TimeoutException("Timeout running task: " + task));
-                          });
+                  Mono.fromFuture(process.onExit()).map(Process::exitValue);
 
               return outputFlux
                   .map(line -> Message.create(traceId, line))
@@ -132,7 +123,14 @@ public class GradlePlugin implements TriggerPlugin {
                               log.warn("Task {} failed with exit code {}", task, code);
                             }
                             return Mono.empty();
-                          }));
+                          }))
+                  .timeout(Duration.ofSeconds(timeout))
+                  .onErrorResume(
+                      TimeoutException.class,
+                      e -> {
+                        process.destroyForcibly();
+                        return Mono.error(new TimeoutException("Timeout running task: " + task));
+                      });
             })
         .onErrorResume(
             IOException.class,
