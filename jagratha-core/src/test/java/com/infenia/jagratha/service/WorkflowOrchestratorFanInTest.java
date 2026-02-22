@@ -17,7 +17,6 @@ package com.infenia.jagratha.service;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,45 +59,46 @@ class WorkflowOrchestratorFanInTest {
     Node p1 = new Node("p1", "processor", Map.of());
     Node term = new Node("term", "terminal", Map.of());
 
-    WorkflowDefinition def = new WorkflowDefinition(
-        "Fan-in Test",
-        List.of(t1, t2, p1, term),
-        List.of(
-            new Edge("t1", "p1"),
-            new Edge("t2", "p1"),
-            new Edge("p1", "term")
-        )
-    );
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "Fan-in Test",
+            List.of(t1, t2, p1, term),
+            List.of(new Edge("t1", "p1"), new Edge("t2", "p1"), new Edge("p1", "term")));
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
-    when(trigger.start(any(), any())).thenAnswer(invocation -> {
-        Map<String, Object> config = invocation.getArgument(0);
-        // We can't easily distinguish t1 and t2 here without better mocking,
-        // but we can return different data based on config if needed.
-        return Flux.just(Message.create(UUID.randomUUID(), "msg-from-trigger"));
-    });
+    when(trigger.start(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              Map<String, Object> config = invocation.getArgument(0);
+              // We can't easily distinguish t1 and t2 here without better mocking,
+              // but we can return different data based on config if needed.
+              return Flux.just(Message.create(UUID.randomUUID(), "msg-from-trigger"));
+            });
 
     ProcessorPlugin processor = mock(ProcessorPlugin.class);
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
-    when(processor.process(any(), any())).thenAnswer(invocation -> {
-        Flux<Message> input = invocation.getArgument(0);
-        return input.map(msg -> Message.create(msg.traceId(), "processed-" + msg.payload()));
-    });
+    when(processor.process(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              Flux<Message> input = invocation.getArgument(0);
+              return input.map(msg -> Message.create(msg.traceId(), "processed-" + msg.payload()));
+            });
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
-    when(terminal.consume(any(), any())).thenAnswer(inv -> {
-      Flux<Message> input = inv.getArgument(0);
-      return input.then();
-    });
+    when(terminal.consume(any(), any()))
+        .thenAnswer(
+            inv -> {
+              Flux<Message> input = inv.getArgument(0);
+              return input.then();
+            });
 
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("processor")).thenReturn(processor);
     when(registry.get("terminal")).thenReturn(terminal);
 
-    StepVerifier.create(orchestrator.execute(sessionId, def, Map.of()))
-        .verifyComplete();
+    StepVerifier.create(orchestrator.execute(sessionId, def, Map.of())).verifyComplete();
 
     // Verify that terminal received 2 messages (one from each trigger path)
     verify(terminal).consume(any(), any());
@@ -113,20 +113,20 @@ class WorkflowOrchestratorFanInTest {
     Node p2 = new Node("p2", "processor", Map.of());
     Node term = new Node("term", "terminal", Map.of());
 
-    WorkflowDefinition def = new WorkflowDefinition(
-        "Fan-in to Terminal",
-        List.of(t, p1, p2, term),
-        List.of(
-            new Edge("t", "p1"),
-            new Edge("t", "p2"),
-            new Edge("p1", "term"),
-            new Edge("p2", "term")
-        )
-    );
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "Fan-in to Terminal",
+            List.of(t, p1, p2, term),
+            List.of(
+                new Edge("t", "p1"),
+                new Edge("t", "p2"),
+                new Edge("p1", "term"),
+                new Edge("p2", "term")));
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
-    when(trigger.start(any(), any())).thenReturn(Flux.just(Message.create(UUID.randomUUID(), "data")));
+    when(trigger.start(any(), any()))
+        .thenReturn(Flux.just(Message.create(UUID.randomUUID(), "data")));
 
     ProcessorPlugin processor = mock(ProcessorPlugin.class);
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
@@ -134,23 +134,28 @@ class WorkflowOrchestratorFanInTest {
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
-    when(terminal.consume(any(), any())).thenAnswer(inv -> {
-        Flux<Message> input = inv.getArgument(0);
-        return input.collectList().flatMap(list -> {
-            if (list.size() == 2) {
-                return Mono.empty();
-            } else {
-                return Mono.error(new RuntimeException("Expected 2 messages, got " + list.size()));
-            }
-        });
-    });
+    when(terminal.consume(any(), any()))
+        .thenAnswer(
+            inv -> {
+              Flux<Message> input = inv.getArgument(0);
+              return input
+                  .collectList()
+                  .flatMap(
+                      list -> {
+                        if (list.size() == 2) {
+                          return Mono.empty();
+                        } else {
+                          return Mono.error(
+                              new RuntimeException("Expected 2 messages, got " + list.size()));
+                        }
+                      });
+            });
 
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("processor")).thenReturn(processor);
     when(registry.get("terminal")).thenReturn(terminal);
 
-    StepVerifier.create(orchestrator.execute(sessionId, def, Map.of()))
-        .verifyComplete();
+    StepVerifier.create(orchestrator.execute(sessionId, def, Map.of())).verifyComplete();
 
     verify(tracker).finishWorkflow(eq(sessionId), eq("COMPLETED"));
   }
@@ -163,23 +168,21 @@ class WorkflowOrchestratorFanInTest {
     Node p = new Node("p", "processor", Map.of());
     Node term = new Node("term", "terminal", Map.of());
 
-    WorkflowDefinition def = new WorkflowDefinition(
-        "Fan-in Error Test",
-        List.of(t1, t2, p, term),
-        List.of(
-            new Edge("t1", "p"),
-            new Edge("t2", "p"),
-            new Edge("p", "term")
-        )
-    );
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "Fan-in Error Test",
+            List.of(t1, t2, p, term),
+            List.of(new Edge("t1", "p"), new Edge("t2", "p"), new Edge("p", "term")));
 
     TriggerPlugin trigger1 = mock(TriggerPlugin.class);
     when(trigger1.getCategory()).thenReturn(PluginCategory.TRIGGER);
-    when(trigger1.start(any(), any())).thenReturn(Flux.error(new RuntimeException("Trigger 1 failed")));
+    when(trigger1.start(any(), any()))
+        .thenReturn(Flux.error(new RuntimeException("Trigger 1 failed")));
 
     TriggerPlugin trigger2 = mock(TriggerPlugin.class);
     when(trigger2.getCategory()).thenReturn(PluginCategory.TRIGGER);
-    when(trigger2.start(any(), any())).thenReturn(Flux.just(Message.create(UUID.randomUUID(), "t2-data")));
+    when(trigger2.start(any(), any()))
+        .thenReturn(Flux.just(Message.create(UUID.randomUUID(), "t2-data")));
 
     ProcessorPlugin processor = mock(ProcessorPlugin.class);
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
@@ -187,25 +190,25 @@ class WorkflowOrchestratorFanInTest {
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
-    when(terminal.consume(any(), any())).thenAnswer(inv -> {
-      Flux<Message> input = inv.getArgument(0);
-      return input.then();
-    });
+    when(terminal.consume(any(), any()))
+        .thenAnswer(
+            inv -> {
+              Flux<Message> input = inv.getArgument(0);
+              return input.then();
+            });
 
-    when(registry.get("trigger")).thenReturn(trigger1); // Using same mock for both for simplicity in registry
-    // Wait, I need different types if I want different plugins, or I can mock registry to return different things for different node types.
+    when(registry.get("trigger"))
+        .thenReturn(trigger1); // Using same mock for both for simplicity in registry
+    // Wait, I need different types if I want different plugins, or I can mock registry to return
+    // different things for different node types.
     // In this test, let's use different types.
     Node t1_node = new Node("t1", "trigger1", Map.of());
     Node t2_node = new Node("t2", "trigger2", Map.of());
-    WorkflowDefinition def2 = new WorkflowDefinition(
-        "Fan-in Error Test",
-        List.of(t1_node, t2_node, p, term),
-        List.of(
-            new Edge("t1", "p"),
-            new Edge("t2", "p"),
-            new Edge("p", "term")
-        )
-    );
+    WorkflowDefinition def2 =
+        new WorkflowDefinition(
+            "Fan-in Error Test",
+            List.of(t1_node, t2_node, p, term),
+            List.of(new Edge("t1", "p"), new Edge("t2", "p"), new Edge("p", "term")));
 
     when(registry.get("trigger1")).thenReturn(trigger1);
     when(registry.get("trigger2")).thenReturn(trigger2);
@@ -213,7 +216,11 @@ class WorkflowOrchestratorFanInTest {
     when(registry.get("terminal")).thenReturn(terminal);
 
     StepVerifier.create(orchestrator.execute(sessionId, def2, Map.of()))
-        .expectErrorMatches(e -> e.getMessage().contains("Trigger 1 failed") || (e.getCause() != null && e.getCause().getMessage().contains("Trigger 1 failed")))
+        .expectErrorMatches(
+            e ->
+                e.getMessage().contains("Trigger 1 failed")
+                    || (e.getCause() != null
+                        && e.getCause().getMessage().contains("Trigger 1 failed")))
         .verify();
 
     verify(tracker).updateTaskStatus(eq(sessionId), eq("t1"), any(), eq("FAILURE"));
