@@ -25,9 +25,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Annotation for project path validation. */
-@NotBlank(message = "Project path is required")
-@Size(max = 1024, message = "Project path must be at most 1024 characters")
+/** Annotation for node ID validation. */
+@NotBlank(message = "Node ID is required")
+@Size(max = 256, message = "Node ID must be at most 256 characters")
 @Target({
   ElementType.FIELD,
   ElementType.PARAMETER,
@@ -37,13 +37,13 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})
 @Documented
-public @interface ProjectPath {
+public @interface NodeId {
   /**
    * Message for validation failure.
    *
    * @return the error message
    */
-  String message() default "Invalid project path";
+  String message() default "Invalid node ID";
 
   /**
    * Groups for validation.
