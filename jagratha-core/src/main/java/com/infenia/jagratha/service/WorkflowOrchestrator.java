@@ -105,115 +105,117 @@ public class WorkflowOrchestrator {
       @SessionId final String sessionId,
       @NotNull @Valid final WorkflowDefinition def,
       @NotEmpty final Map<String, Object> payload) {
-    final List<Node> triggers =
-        def.nodes().stream()
-            .filter(n -> registry.get(n.type()).getCategory() == PluginCategory.TRIGGER)
-            .collect(Collectors.toList());
 
-    final List<String> nodeIds =
-        def.nodes().stream().map(Node::nodeId).collect(Collectors.toList());
+    final List<String> nodeIds = def.nodes().stream().map(Node::nodeId).toList();
+    final Map<String, List<String>> parentsMap = new ConcurrentHashMap<>();
+    final Map<String, List<String>> childrenMap = new ConcurrentHashMap<>();
+
+    def.nodes().forEach(n -> {
+      parentsMap.put(n.nodeId(), new ArrayList<>());
+      childrenMap.put(n.nodeId(), new ArrayList<>());
+    });
+
+    def.edges().forEach(e -> {
+      childrenMap.get(e.source()).add(e.target());
+      parentsMap.get(e.target()).add(e.source());
+    });
 
     return Mono.deferContextual(
             ctx -> {
               final String sId = ctx.get("sessionId");
               tracker.startWorkflow(sId, nodeIds);
 
-              return Flux.fromIterable(triggers)
-                  .flatMap(
-                      triggerNode -> {
-                        final TriggerPlugin trigger =
-                            (TriggerPlugin) registry.get(triggerNode.type());
-                        tracker.updateTaskStatus(sId, triggerNode.nodeId(), "", "RUNNING");
-                        final Flux<Message> stream =
-                            trigger
-                                .start(triggerNode.config(), payload)
-                                .doOnComplete(
-                                    () ->
-                                        tracker.updateTaskStatus(
-                                            sId, triggerNode.nodeId(), "", "SUCCESS"))
-                                .doOnError(
-                                    e ->
-                                        tracker.updateTaskStatus(
-                                            sId, triggerNode.nodeId(), "", "FAILURE"));
+              final Map<String, Flux<Message>> nodeStreams = new ConcurrentHashMap<>();
+              final Map<String, Mono<Void>> terminalCompletions = new ConcurrentHashMap<>();
 
-                        return chain(stream, triggerNode, def);
-                      })
+              def.nodes().forEach(node -> buildNode(sId, node, def, payload, parentsMap, childrenMap, nodeStreams, terminalCompletions));
+
+              final List<Mono<Void>> terminals = def.nodes().stream()
+                  .filter(n -> registry.get(n.type()).getCategory() == PluginCategory.TERMINAL)
+                  .map(n -> terminalCompletions.get(n.nodeId()))
+                  .toList();
+
+              return Flux.fromIterable(terminals)
+                  .flatMapDelayError(m -> m, 256, 32)
                   .then()
                   .doOnTerminate(() -> tracker.finishWorkflow(sId, "COMPLETED"));
             })
         .contextWrite(Context.of("sessionId", sessionId));
   }
 
-  private Mono<Void> chain(
-      final Flux<Message> stream, final Node currentNode, final WorkflowDefinition def) {
-    final List<Node> children = getChildrenOf(currentNode.nodeId(), def);
+  @SuppressWarnings("unchecked")
+  private void buildNode(
+      final String sessionId,
+      final Node node,
+      final WorkflowDefinition def,
+      final Map<String, Object> payload,
+      final Map<String, List<String>> parentsMap,
+      final Map<String, List<String>> childrenMap,
+      final Map<String, Flux<Message>> nodeStreams,
+      final Map<String, Mono<Void>> terminalCompletions) {
 
-    if (children.isEmpty()) {
-      return Mono.empty();
+    if (nodeStreams.containsKey(node.nodeId()) || terminalCompletions.containsKey(node.nodeId())) {
+      return;
     }
 
-    return Mono.deferContextual(
-        ctx -> {
-          final String sessionId = ctx.get("sessionId");
-          // Log messages from current node to console
-          final Flux<Message> loggedStream =
-              stream
-                  .onBackpressureBuffer()
-                  .doOnNext(msg -> tracker.appendLog(sessionId, String.valueOf(msg.payload())));
+    final List<String> parentIds = parentsMap.get(node.nodeId());
+    final List<String> childrenIds = childrenMap.get(node.nodeId());
+    final WorkflowPlugin plugin = registry.get(node.type());
 
-          // Use publish().autoConnect(n) to broadcast the stream if there are multiple children
-          final Flux<Message> broadcastStream =
-              loggedStream.publish().autoConnect(children.size()).timeout(Duration.ofSeconds(30));
+    if (plugin.getCategory() == PluginCategory.TRIGGER) {
+      final TriggerPlugin trigger = (TriggerPlugin) plugin;
+      Flux<Message> stream = trigger.start(node.config(), payload)
+          .doOnSubscribe(s -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "RUNNING"))
+          .doOnComplete(() -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "SUCCESS"))
+          .doOnError(e -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "FAILURE"));
 
-          return Flux.fromIterable(children)
-              .flatMapDelayError(
-                  child -> {
-                    final WorkflowPlugin plugin = registry.get(child.type());
-                    tracker.updateTaskStatus(sessionId, child.nodeId(), "", "RUNNING");
+      stream = applyLoggingAndBroadcasting(sessionId, node.nodeId(), stream, childrenIds.size(), nodeStreams);
+    } else {
+      // Ensure parents are built
+      parentIds.forEach(pId -> {
+        final Node parentNode = def.nodes().stream().filter(n -> n.nodeId().equals(pId)).findFirst().orElseThrow();
+        buildNode(sessionId, parentNode, def, payload, parentsMap, childrenMap, nodeStreams, terminalCompletions);
+      });
 
-                    if (plugin instanceof ProcessorPlugin processor) {
-                      final Flux<Message> processedStream =
-                          processor
-                              .process(broadcastStream, child.config())
-                              .doOnComplete(
-                                  () ->
-                                      tracker.updateTaskStatus(
-                                          sessionId, child.nodeId(), "", "SUCCESS"))
-                              .doOnError(
-                                  e ->
-                                      tracker.updateTaskStatus(
-                                          sessionId, child.nodeId(), "", "FAILURE"));
-                      return chain(processedStream, child, def);
-                    } else if (plugin instanceof TerminalPlugin terminal) {
-                      return terminal
-                          .consume(broadcastStream, child.config())
-                          .doOnSuccess(
-                              v ->
-                                  tracker.updateTaskStatus(
-                                      sessionId, child.nodeId(), "", "SUCCESS"))
-                          .doOnError(
-                              e ->
-                                  tracker.updateTaskStatus(
-                                      sessionId, child.nodeId(), "", "FAILURE"));
-                    }
-                    return Mono.empty();
-                  },
-                  256,
-                  32)
-              .then();
-        });
+      final Flux<Message> mergedInput = Flux.merge(parentIds.stream().map(nodeStreams::get).toList());
+
+      if (plugin instanceof ProcessorPlugin processor) {
+        Flux<Message> stream = processor.process(mergedInput, node.config())
+            .doOnSubscribe(s -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "RUNNING"))
+            .doOnComplete(() -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "SUCCESS"))
+            .doOnError(e -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "FAILURE"));
+
+        stream = applyLoggingAndBroadcasting(sessionId, node.nodeId(), stream, childrenIds.size(), nodeStreams);
+      } else if (plugin instanceof TerminalPlugin terminal) {
+        final Mono<Void> completion = terminal.consume(mergedInput, node.config())
+            .doOnSubscribe(s -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "RUNNING"))
+            .doOnSuccess(v -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "SUCCESS"))
+            .doOnError(e -> tracker.updateTaskStatus(sessionId, node.nodeId(), "", "FAILURE"));
+        terminalCompletions.put(node.nodeId(), completion);
+      }
+    }
   }
 
-  private List<Node> getChildrenOf(final String nodeId, final WorkflowDefinition def) {
-    final Set<String> childrenIds =
-        def.edges().stream()
-            .filter(e -> e.source().equals(nodeId))
-            .map(WorkflowDefinition.Edge::target)
-            .collect(Collectors.toSet());
+  private Flux<Message> applyLoggingAndBroadcasting(
+      final String sessionId,
+      final String nodeId,
+      final Flux<Message> stream,
+      final int childCount,
+      final Map<String, Flux<Message>> nodeStreams) {
 
-    return def.nodes().stream()
-        .filter(n -> childrenIds.contains(n.nodeId()))
-        .collect(Collectors.toList());
+    Flux<Message> processedStream = stream
+        .onBackpressureBuffer()
+        .doOnNext(msg -> tracker.appendLog(sessionId, String.valueOf(msg.payload())));
+
+    if (childCount > 1) {
+      processedStream = processedStream.publish().autoConnect(childCount).timeout(Duration.ofSeconds(30));
+    } else if (childCount == 0) {
+      // This case should not happen for Processor/Trigger based on validations, but let's be safe
+      processedStream = processedStream.publish().autoConnect(1).timeout(Duration.ofSeconds(30));
+    }
+
+    nodeStreams.put(nodeId, processedStream);
+    return processedStream;
   }
 
   private Mono<Void> validateStructuralIntegrity(final WorkflowDefinition def) {
@@ -232,13 +234,20 @@ public class WorkflowOrchestrator {
   private Mono<Void> validateEntryPoints(
       final WorkflowDefinition def, final Set<String> targetIds) {
     for (final Node node : def.nodes()) {
+      final WorkflowPlugin plugin = registry.get(node.type());
+      if (plugin == null) {
+        continue;
+      }
       if (!targetIds.contains(node.nodeId())) {
-        final WorkflowPlugin plugin = registry.get(node.type());
-        if (plugin != null && plugin.getCategory() != PluginCategory.TRIGGER) {
+        if (plugin.getCategory() != PluginCategory.TRIGGER) {
           return Mono.error(
               new IllegalArgumentException(
                   "Node " + node.nodeId() + " is an entry point but not a TRIGGER"));
         }
+      } else if (plugin.getCategory() == PluginCategory.TRIGGER) {
+        return Mono.error(
+            new IllegalArgumentException(
+                "Trigger node " + node.nodeId() + " cannot have incoming edges"));
       }
     }
     return Mono.empty();
@@ -263,13 +272,20 @@ public class WorkflowOrchestrator {
   @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
   private Mono<Void> validateEndpoints(final WorkflowDefinition def, final Set<String> sourceIds) {
     for (final Node node : def.nodes()) {
+      final WorkflowPlugin plugin = registry.get(node.type());
+      if (plugin == null) {
+        continue;
+      }
       if (!sourceIds.contains(node.nodeId())) {
-        final WorkflowPlugin plugin = registry.get(node.type());
-        if (plugin != null && plugin.getCategory() != PluginCategory.TERMINAL) {
+        if (plugin.getCategory() != PluginCategory.TERMINAL) {
           return Mono.error(
               new IllegalArgumentException(
                   "Node " + node.nodeId() + " is an endpoint but not a TERMINAL"));
         }
+      } else if (plugin.getCategory() == PluginCategory.TERMINAL) {
+        return Mono.error(
+            new IllegalArgumentException(
+                "Terminal node " + node.nodeId() + " cannot have outgoing edges"));
       }
     }
     return Mono.empty();
