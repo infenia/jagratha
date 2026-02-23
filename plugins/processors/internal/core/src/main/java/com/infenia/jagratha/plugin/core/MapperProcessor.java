@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package com.infenia.jagratha.plugin.core;
+import com.infenia.jagratha.util.SpelUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

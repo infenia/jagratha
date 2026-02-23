@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package com.infenia.jagratha.plugin.core;
+import com.infenia.jagratha.util.SpelUtils;
 
 import com.infenia.jagratha.plugin.Message;
 import com.infenia.jagratha.plugin.NoMatchingBranchException;
