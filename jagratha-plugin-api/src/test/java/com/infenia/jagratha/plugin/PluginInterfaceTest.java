@@ -33,7 +33,8 @@ class PluginInterfaceTest {
     Map<String, Object> metadata = new java.util.HashMap<>();
     metadata.put("key", "value");
     Message msg =
-        new Message(UUID.randomUUID(), traceId, metadata, "payload", java.time.Instant.now(), null);
+        new Message(
+            UUID.randomUUID(), traceId, metadata, "payload", java.time.Instant.now(), null, null);
 
     assertEquals("value", msg.metadata().get("key"));
 
