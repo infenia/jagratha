@@ -24,6 +24,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,6 +44,7 @@ import reactor.core.publisher.Mono;
 @SuppressWarnings("PMD.TooManyMethods")
 public class WorkflowValidator {
 
+  private static final int SCRIPT_LIMIT = 50;
   private final WorkflowRegistry registry;
 
   /**
@@ -279,27 +281,30 @@ public class WorkflowValidator {
               final String mode = (String) config.get("mode");
               final Object mapping = config.get("mapping");
 
-              if ("SCRIPT".equals(mode) && mapping instanceof String script) {
-                if (isSimpleScript(script)) {
-                  log.warn(
-                      "Mapper node {} uses SCRIPT mode for a simple transformation. "
-                          + "Consider using PROJECTION mode for better performance.",
-                      node.nodeId());
-                }
+              if ("SCRIPT".equals(mode)
+                  && mapping instanceof String script
+                  && isSimpleScript(script)
+                  && log.isWarnEnabled()) {
+                log.warn(
+                    "Mapper node {} uses SCRIPT mode for a simple transformation. "
+                        + "Consider using PROJECTION mode for better performance.",
+                    node.nodeId());
               }
             })
         .then();
   }
 
   private boolean isSimpleScript(final String script) {
-    if (script.length() < 50) {
-      final String low = script.toLowerCase();
-      return !low.contains("if")
-          && !low.contains("for")
-          && !low.contains("function")
-          && !low.contains("while");
+    boolean simple = false;
+    if (script.length() < SCRIPT_LIMIT) {
+      final String low = script.toLowerCase(Locale.ROOT);
+      simple =
+          !low.contains("if")
+              && !low.contains("for")
+              && !low.contains("function")
+              && !low.contains("while");
     }
-    return false;
+    return simple;
   }
 
   private Mono<Void> validatePluginConfigs(final WorkflowDefinition def) {
