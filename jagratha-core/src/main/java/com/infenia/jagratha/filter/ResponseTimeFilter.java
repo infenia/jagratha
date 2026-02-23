@@ -26,9 +26,15 @@ import reactor.core.publisher.Mono;
 /** Filter to add X-Response-Time header to all responses. */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
+@SuppressWarnings("PMD.LawOfDemeter")
 public class ResponseTimeFilter implements WebFilter {
 
   private static final String X_RESPONSE_TIME = "X-Response-Time";
+
+  /** Default constructor. */
+  public ResponseTimeFilter() {
+    super();
+  }
 
   @Override
   public Mono<Void> filter(final ServerWebExchange exchange, final WebFilterChain chain) {

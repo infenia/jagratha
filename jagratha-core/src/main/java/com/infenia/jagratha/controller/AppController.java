@@ -19,7 +19,6 @@ import com.infenia.jagratha.mapper.AppConfigMapper;
 import com.infenia.jagratha.model.ApiResponse;
 import com.infenia.jagratha.model.AppConfigData;
 import com.infenia.jagratha.model.ConfigRequest;
-import com.infenia.jagratha.model.TaskResponse;
 import com.infenia.jagratha.model.WorkflowTriggerRequest;
 import com.infenia.jagratha.service.LogRetrievalService;
 import com.infenia.jagratha.service.SessionService;
@@ -59,6 +58,7 @@ public class AppController {
   private final AppConfigMapper configMapper;
 
   private static final String HTTP_200 = "200";
+  private static final String SESSION_ID_PARAM = "Session ID";
 
   /**
    * Trigger a workflow execution for a session.
@@ -101,7 +101,7 @@ public class AppController {
       description = "Session not found")
   public Mono<ResponseEntity<ApiResponse<com.infenia.jagratha.model.WorkflowProgress>>>
       getWorkflowStatus(
-          @Parameter(description = "Session ID") @PathVariable final String sessionId) {
+          @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId) {
     return Mono.fromCallable(() -> trackerService.getProgress(sessionId))
         .map(
             progress -> {
@@ -111,8 +111,7 @@ public class AppController {
               } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(
-                        ApiResponse.error(
-                            404, "Not Found", "Session not found", null, List.of()));
+                        ApiResponse.error(404, "Not Found", "Session not found", null, List.of()));
               }
             });
   }
@@ -131,7 +130,7 @@ public class AppController {
       responseCode = HTTP_200,
       description = "List of log filenames")
   public Mono<ApiResponse<List<String>>> listLogs(
-      @Parameter(description = "Session ID") @PathVariable final String sessionId) {
+      @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId) {
     return retrievalService
         .listLogs(sessionId)
         .map(logs -> ApiResponse.success(200, "List of log filenames", logs));
@@ -155,7 +154,7 @@ public class AppController {
       responseCode = "404",
       description = "Log file not found")
   public Mono<ResponseEntity<ApiResponse<String>>> getLogContent(
-      @Parameter(description = "Session ID") @PathVariable final String sessionId,
+      @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Log filename") @PathVariable final String filename) {
     return retrievalService
         .getLogContent(sessionId, filename)
@@ -190,7 +189,7 @@ public class AppController {
       responseCode = "404",
       description = "Log file not found")
   public Mono<ResponseEntity<String>> getRawLogContent(
-      @Parameter(description = "Session ID") @PathVariable final String sessionId,
+      @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Log filename") @PathVariable final String filename) {
     return retrievalService
         .getLogContent(sessionId, filename)
