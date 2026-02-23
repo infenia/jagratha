@@ -137,18 +137,21 @@ public class WorkflowValidator {
                       .map(WorkflowDefinition.Edge::sourcePort)
                       .collect(Collectors.toSet());
 
-              for (final String definedPort : definedPorts) {
-                if (!actualPorts.contains(definedPort)) {
-                  return Mono.error(
-                      new IllegalArgumentException(
-                          "Branch node "
-                              + node.nodeId()
-                              + " has a case routing to port '"
-                              + definedPort
-                              + "' but no outgoing edge exists for this port"));
-                }
-              }
-              return Mono.empty();
+              return Flux.fromIterable(definedPorts)
+                  .flatMap(
+                      definedPort -> {
+                        if (!actualPorts.contains(definedPort)) {
+                          return Mono.error(
+                              new IllegalArgumentException(
+                                  "Branch node "
+                                      + node.nodeId()
+                                      + " has a case routing to port '"
+                                      + definedPort
+                                      + "' but no outgoing edge exists for this port"));
+                        }
+                        return Mono.empty();
+                      })
+                  .then();
             })
         .then();
   }
