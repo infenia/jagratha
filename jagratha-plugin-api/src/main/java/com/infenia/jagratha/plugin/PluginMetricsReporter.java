@@ -16,6 +16,7 @@
 package com.infenia.jagratha.plugin;
 
 /** Interface for reporting plugin execution metrics. */
+@FunctionalInterface
 public interface PluginMetricsReporter {
   /**
    * Increment the count of messages processed by a filter.

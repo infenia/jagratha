@@ -27,26 +27,23 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Evaluates a boolean predicate against a message.
- * If true, the message passes through; if false, it is dropped or rerouted.
+ * Evaluates a boolean predicate against a message. If true, the message passes through; if false,
+ * it is dropped or rerouted.
  */
 @Slf4j
 @Component
-@SuppressWarnings({
-  "PMD.OnlyOneReturn",
-  "PMD.AvoidThrowingRawExceptionTypes",
-  "PMD.AvoidCatchingGenericException"
-})
-public class FilterProcessor implements ProcessorPlugin {
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.AvoidCatchingGenericException"})
+public final class FilterProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "FILTER";
   private static final String ENGINE_SPEL = "SpEL";
   private static final String ENGINE_SIMPLE = "SIMPLE";
+  private static final String ENGINE_REGO = "REGO";
 
   private static final String CONFIG_CONDITION = "condition";
   private static final String CONFIG_ENGINE = "engine";
   private static final String CONFIG_STRICT = "strictMode";
-  private static final String CONFIG_DISCARD_PORT = "discardPort";
+  private static final String DISCARD_PORT = "discardPort";
 
   private final PluginMetricsReporter reporter;
 
@@ -87,40 +84,58 @@ public class FilterProcessor implements ProcessorPlugin {
     final String condition = (String) config.get(CONFIG_CONDITION);
     final String engine = (String) config.getOrDefault(CONFIG_ENGINE, ENGINE_SPEL);
     final boolean strictMode = (Boolean) config.getOrDefault(CONFIG_STRICT, true);
-    final String discardPort = (String) config.get(CONFIG_DISCARD_PORT);
+    final String discardPort = (String) config.get(DISCARD_PORT);
 
     return input.flatMap(
         message ->
             Mono.deferContextual(
                 ctx -> {
                   final String nodeId = ctx.getOrDefault("nodeId", "unknown");
-                  try {
-                    final boolean isMatch = evaluate(condition, engine, message);
-                    if (isMatch) {
-                      reporter.incrementFilterCount(nodeId, "MATCH");
-                      return Mono.just(message);
-                    } else {
-                      reporter.incrementFilterCount(nodeId, "DISCARD");
-                      if (discardPort != null && !discardPort.isBlank()) {
-                        return Mono.just(message.withSourcePort(discardPort));
-                      }
-                      return Mono.empty();
-                    }
-                  } catch (final Exception e) {
-                    reporter.incrementFilterCount(nodeId, "ERROR");
-                    if (log.isErrorEnabled()) {
-                      log.error(
-                          "Filter evaluation failed for condition [{}]: {}",
-                          condition,
-                          e.getMessage());
-                    }
-                    if (!strictMode) {
-                      return Mono.empty();
-                    }
-                    throw new FilterEvaluationException(
-                        "Filter evaluation failed for condition: " + condition, e);
-                  }
+                  return executeFilter(message, nodeId, condition, engine, strictMode, discardPort);
                 }));
+  }
+
+  private Mono<Message> executeFilter(
+      final Message message,
+      final String nodeId,
+      final String condition,
+      final String engine,
+      final boolean strictMode,
+      final String discardPort) {
+    try {
+      final boolean isMatch = evaluate(condition, engine, message);
+      return handleMatchResult(message, nodeId, isMatch, discardPort);
+    } catch (final Exception e) {
+      return handleEvaluationError(nodeId, condition, strictMode, e);
+    }
+  }
+
+  private Mono<Message> handleMatchResult(
+      final Message message, final String nodeId, final boolean isMatch, final String discardPort) {
+    Mono<Message> result = Mono.empty();
+    if (isMatch) {
+      reporter.incrementFilterCount(nodeId, "MATCH");
+      result = Mono.just(message);
+    } else {
+      reporter.incrementFilterCount(nodeId, "DISCARD");
+      if (discardPort != null && !discardPort.isBlank()) {
+        result = Mono.just(message.withSourcePort(discardPort));
+      }
+    }
+    return result;
+  }
+
+  private Mono<Message> handleEvaluationError(
+      final String nodeId, final String condition, final boolean strictMode, final Exception err) {
+    reporter.incrementFilterCount(nodeId, "ERROR");
+    if (log.isErrorEnabled()) {
+      log.error("Filter evaluation failed for condition [{}]: {}", condition, err.getMessage());
+    }
+    if (!strictMode) {
+      return Mono.empty();
+    }
+    throw new FilterEvaluationException(
+        "Filter evaluation failed for condition: " + condition, err);
   }
 
   private boolean evaluate(final String condition, final String engine, final Message message) {
@@ -142,10 +157,10 @@ public class FilterProcessor implements ProcessorPlugin {
     final String engine = (String) config.getOrDefault(CONFIG_ENGINE, ENGINE_SPEL);
     if (!ENGINE_SPEL.equalsIgnoreCase(engine)
         && !ENGINE_SIMPLE.equalsIgnoreCase(engine)
-        && !"REGO".equalsIgnoreCase(engine)) {
+        && !ENGINE_REGO.equalsIgnoreCase(engine)) {
       return Mono.error(new IllegalArgumentException("Unsupported engine: " + engine));
     }
-    if ("REGO".equalsIgnoreCase(engine)) {
+    if (ENGINE_REGO.equalsIgnoreCase(engine)) {
       return Mono.error(
           new IllegalArgumentException(
               "REGO engine is reserved for future use and not yet implemented."));

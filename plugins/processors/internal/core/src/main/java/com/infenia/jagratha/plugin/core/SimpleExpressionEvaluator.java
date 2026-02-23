@@ -21,11 +21,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * High-speed, non-reflective evaluator for simple expressions.
- * Supports: ==, exists, matches.
- */
+/** High-speed, non-reflective evaluator for simple expressions. Supports: ==, exists, matches. */
+@SuppressWarnings("PMD.OnlyOneReturn")
 public final class SimpleExpressionEvaluator {
+  private static final String PAYLOAD_PREFIX = "payload.";
+  private static final String METADATA_PREFIX = "metadata.";
+  private static final String PAYLOAD = "payload";
+
   private static final Pattern EXPR_PATTERN =
       Pattern.compile("^(\\S+)\\s+(==|exists|matches)(?:\\s+(.+))?$");
   private static final Map<String, Expression> CACHE = new ConcurrentHashMap<>();
@@ -95,32 +97,38 @@ public final class SimpleExpressionEvaluator {
       this.path = path;
     }
 
-    public abstract boolean evaluate(Message message);
+    /* default */
+
+    abstract boolean evaluate(Message message);
 
     protected Object getValue(final Message message) {
-      if (path.startsWith("payload.")) {
-        return getNested(message.payload(), path.substring(8));
-      } else if (path.startsWith("metadata.")) {
-        return message.metadata().get(path.substring(9));
-      } else if ("payload".equals(path)) {
-        return message.payload();
+      Object value = null;
+      if (path.startsWith(PAYLOAD_PREFIX)) {
+        value = getNested(message.payload(), path.substring(PAYLOAD_PREFIX.length()));
+      } else if (path.startsWith(METADATA_PREFIX)) {
+        value = message.metadata().get(path.substring(METADATA_PREFIX.length()));
+      } else if (PAYLOAD.equals(path)) {
+        value = message.payload();
       }
-      return null;
+      return value;
     }
 
     private Object getNested(final Object obj, final String path) {
-      if (!(obj instanceof Map)) {
-        return null;
+      Object result = null;
+      if (obj instanceof Map<?, ?> map) {
+        final int dotIndex = path.indexOf('.');
+        if (dotIndex == -1) {
+          result = map.get(path);
+        } else {
+          final String current = path.substring(0, dotIndex);
+          final String remaining = path.substring(dotIndex + 1);
+          final Object next = map.get(current);
+          if (next != null) {
+            result = getNested(next, remaining);
+          }
+        }
       }
-      final Map<?, ?> map = (Map<?, ?>) obj;
-      final int dotIndex = path.indexOf('.');
-      if (dotIndex == -1) {
-        return map.get(path);
-      }
-      final String current = path.substring(0, dotIndex);
-      final String remaining = path.substring(dotIndex + 1);
-      final Object next = map.get(current);
-      return next == null ? null : getNested(next, remaining);
+      return result;
     }
   }
 
@@ -135,10 +143,7 @@ public final class SimpleExpressionEvaluator {
     @Override
     public boolean evaluate(final Message message) {
       final Object value = getValue(message);
-      if (value == null) {
-        return expected == null;
-      }
-      return String.valueOf(value).equals(expected);
+      return value == null ? expected == null : String.valueOf(value).equals(expected);
     }
   }
 
@@ -164,10 +169,7 @@ public final class SimpleExpressionEvaluator {
     @Override
     public boolean evaluate(final Message message) {
       final Object value = getValue(message);
-      if (value == null) {
-        return false;
-      }
-      return pattern.matcher(String.valueOf(value)).matches();
+      return value != null && pattern.matcher(String.valueOf(value)).matches();
     }
   }
 }

@@ -17,6 +17,8 @@ package com.infenia.jagratha.plugin;
 
 /** Exception thrown when a filter condition fails to evaluate in strict mode. */
 public class FilterEvaluationException extends RuntimeException {
+  private static final long serialVersionUID = 1L;
+
   /**
    * Constructs a new FilterEvaluationException with the specified message.
    *

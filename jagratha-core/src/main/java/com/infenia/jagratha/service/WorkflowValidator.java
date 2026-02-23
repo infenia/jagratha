@@ -45,6 +45,7 @@ import reactor.core.publisher.Mono;
 public class WorkflowValidator {
 
   private static final int SCRIPT_LIMIT = 50;
+  private static final String TYPE_MAPPER = "MAPPER";
   private final WorkflowRegistry registry;
 
   /**
@@ -306,8 +307,10 @@ public class WorkflowValidator {
         .filter(node -> "FILTER".equals(node.type()))
         .doOnNext(
             filterNode -> {
-              final int depth = getMinDepth(filterNode.nodeId(), parents, def);
-              if (depth > 1 && hasHeavyAncestor(filterNode.nodeId(), parents, nodeMap) && log.isWarnEnabled()) {
+              final int depth = getMinDepth(filterNode.nodeId(), def);
+              if (depth > 1
+                  && hasHeavyAncestor(filterNode.nodeId(), parents, nodeMap)
+                  && log.isWarnEnabled()) {
                 log.warn(
                     "Performance Hint: Filter [{}] is positioned after heavy computation. "
                         + "Moving it closer to the Trigger may reduce unnecessary load.",
@@ -317,14 +320,13 @@ public class WorkflowValidator {
         .then();
   }
 
-  private int getMinDepth(
-      final String nodeId, final Map<String, List<String>> parents, final WorkflowDefinition def) {
+  private int getMinDepth(final String nodeId, final WorkflowDefinition def) {
     final Set<String> triggers =
         def.nodes().stream()
             .filter(
-                n -> {
-                  final WorkflowPlugin p = registry.get(n.type());
-                  return p != null && p.getCategory() == PluginCategory.TRIGGER;
+                node -> {
+                  final WorkflowPlugin plugin = registry.get(node.type());
+                  return plugin != null && plugin.getCategory() == PluginCategory.TRIGGER;
                 })
             .map(Node::nodeId)
             .collect(Collectors.toSet());
@@ -341,45 +343,51 @@ public class WorkflowValidator {
     def.nodes().forEach(node -> adj.put(node.nodeId(), new ArrayList<>()));
     def.edges().forEach(edge -> adj.get(edge.source()).add(edge.target()));
 
+    int minDepth = -1;
     while (!queue.isEmpty()) {
-      final String u = queue.poll();
-      if (u.equals(nodeId)) {
-        return dist.get(u);
+      final String current = queue.poll();
+      if (current.equals(nodeId)) {
+        minDepth = dist.get(current);
+        break;
       }
-      for (final String v : adj.get(u)) {
-        if (!dist.containsKey(v)) {
-          dist.put(v, dist.get(u) + 1);
-          queue.add(v);
+      for (final String neighbor : adj.get(current)) {
+        if (!dist.containsKey(neighbor)) {
+          dist.put(neighbor, dist.get(current) + 1);
+          queue.add(neighbor);
         }
       }
     }
-    return -1;
+    return minDepth;
   }
 
   private boolean hasHeavyAncestor(
-      final String nodeId, final Map<String, List<String>> parents, final Map<String, Node> nodeMap) {
+      final String nodeId,
+      final Map<String, List<String>> parents,
+      final Map<String, Node> nodeMap) {
     final java.util.Queue<String> queue = new java.util.LinkedList<>(parents.get(nodeId));
     final Set<String> visited = new HashSet<>(parents.get(nodeId));
 
+    boolean heavyAncestor = false;
     while (!queue.isEmpty()) {
-      final String u = queue.poll();
-      final Node node = nodeMap.get(u);
+      final String current = queue.poll();
+      final Node node = nodeMap.get(current);
       if (node != null && isHeavyNode(node)) {
-        return true;
+        heavyAncestor = true;
+        break;
       }
-      for (final String v : parents.get(u)) {
-        if (!visited.contains(v)) {
-          visited.add(v);
-          queue.add(v);
+      for (final String parent : parents.get(current)) {
+        if (!visited.contains(parent)) {
+          visited.add(parent);
+          queue.add(parent);
         }
       }
     }
-    return false;
+    return heavyAncestor;
   }
 
   private boolean isHeavyNode(final Node node) {
     boolean heavy = false;
-    if ("MAPPER".equals(node.type())) {
+    if (TYPE_MAPPER.equals(node.type())) {
       heavy = "SCRIPT".equals(node.config().get("mode"));
     }
     return heavy;

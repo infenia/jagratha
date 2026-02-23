@@ -23,7 +23,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -34,7 +33,9 @@ class FilterProcessorTest {
   @BeforeEach
   void setUp() {
     StaticListableBeanFactory beanFactory = new StaticListableBeanFactory();
-    processor = new FilterProcessor(beanFactory.getBeanProvider(com.infenia.jagratha.plugin.PluginMetricsReporter.class));
+    processor =
+        new FilterProcessor(
+            beanFactory.getBeanProvider(com.infenia.jagratha.plugin.PluginMetricsReporter.class));
   }
 
   @Test
@@ -42,9 +43,7 @@ class FilterProcessorTest {
     final Map<String, Object> config = Map.of("condition", "payload.status == 'ACTIVE'");
     final Message msg = Message.create(UUID.randomUUID(), Map.of("status", "ACTIVE"));
 
-    StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectNext(msg)
-        .verifyComplete();
+    StepVerifier.create(processor.process(Flux.just(msg), config)).expectNext(msg).verifyComplete();
   }
 
   @Test
@@ -52,29 +51,26 @@ class FilterProcessorTest {
     final Map<String, Object> config = Map.of("condition", "payload.status == 'ACTIVE'");
     final Message msg = Message.create(UUID.randomUUID(), Map.of("status", "INACTIVE"));
 
-    StepVerifier.create(processor.process(Flux.just(msg), config))
-        .verifyComplete();
+    StepVerifier.create(processor.process(Flux.just(msg), config)).verifyComplete();
   }
 
   @Test
   void testSimpleEngineMatch() {
-    final Map<String, Object> config = Map.of(
-        "condition", "payload.status == 'ACTIVE'",
-        "engine", "SIMPLE"
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "condition", "payload.status == 'ACTIVE'",
+            "engine", "SIMPLE");
     final Message msg = Message.create(UUID.randomUUID(), Map.of("status", "ACTIVE"));
 
-    StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectNext(msg)
-        .verifyComplete();
+    StepVerifier.create(processor.process(Flux.just(msg), config)).expectNext(msg).verifyComplete();
   }
 
   @Test
   void testDiscardPort() {
-    final Map<String, Object> config = Map.of(
-        "condition", "payload.status == 'ACTIVE'",
-        "discardPort", "dead-letter"
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "condition", "payload.status == 'ACTIVE'",
+            "discardPort", "dead-letter");
     final Message msg = Message.create(UUID.randomUUID(), Map.of("status", "INACTIVE"));
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
@@ -84,10 +80,8 @@ class FilterProcessorTest {
 
   @Test
   void testStrictModeError() {
-    final Map<String, Object> config = Map.of(
-        "condition", "payload.invalidField > 100",
-        "strictMode", true
-    );
+    final Map<String, Object> config =
+        Map.of("condition", "payload.invalidField > 100", "strictMode", true);
     final Message msg = Message.create(UUID.randomUUID(), Map.of("status", "ACTIVE"));
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
@@ -97,14 +91,11 @@ class FilterProcessorTest {
 
   @Test
   void testNonStrictModeError() {
-    final Map<String, Object> config = Map.of(
-        "condition", "payload.invalidField > 100",
-        "strictMode", false
-    );
+    final Map<String, Object> config =
+        Map.of("condition", "payload.invalidField > 100", "strictMode", false);
     final Message msg = Message.create(UUID.randomUUID(), Map.of("status", "ACTIVE"));
 
-    StepVerifier.create(processor.process(Flux.just(msg), config))
-        .verifyComplete();
+    StepVerifier.create(processor.process(Flux.just(msg), config)).verifyComplete();
   }
 
   @Test
@@ -114,8 +105,7 @@ class FilterProcessorTest {
 
   @Test
   void testValidateConfig() {
-    StepVerifier.create(processor.validateConfig(Map.of("condition", "true")))
-        .verifyComplete();
+    StepVerifier.create(processor.validateConfig(Map.of("condition", "true"))).verifyComplete();
 
     StepVerifier.create(processor.validateConfig(Map.of()))
         .expectError(IllegalArgumentException.class)
