@@ -31,12 +31,10 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -110,12 +108,14 @@ public class WorkflowOrchestrator {
                       return plugin.initialize(node.config());
                     })
                 .then())
-        .then(Mono.fromCallable(() -> {
-            final List<Node> topologicalOrder =
-                computeTopologicalOrder(def, adjacencyList, parentsList);
-            return new PreparedWorkflow(
-                def, adjacencyList, parentsList, pluginCache, topologicalOrder);
-        }))
+        .then(
+            Mono.fromCallable(
+                () -> {
+                  final List<Node> topologicalOrder =
+                      computeTopologicalOrder(def, adjacencyList, parentsList);
+                  return new PreparedWorkflow(
+                      def, adjacencyList, parentsList, pluginCache, topologicalOrder);
+                }))
         .onErrorResume(
             e ->
                 Flux.fromIterable(def.nodes())
@@ -210,9 +210,7 @@ public class WorkflowOrchestrator {
                                 .then(tracker.finishWorkflow(sId, "COMPLETED"))
                                 .onErrorResume(
                                     e ->
-                                        tracker
-                                            .finishWorkflow(sId, "FAILURE")
-                                            .then(Mono.error(e)));
+                                        tracker.finishWorkflow(sId, "FAILURE").then(Mono.error(e)));
                           }))
                   .timeout(Duration.ofSeconds(GLOBAL_TIMEOUT_SECONDS));
             })
@@ -235,10 +233,20 @@ public class WorkflowOrchestrator {
     if (plugin.getCategory() == PluginCategory.TRIGGER) {
       final TriggerPlugin trigger = (TriggerPlugin) plugin;
       final Flux<Message> stream =
-          tracker.updateTaskStatus(sessionId, node.nodeId(), "default", "RUNNING")
+          tracker
+              .updateTaskStatus(sessionId, node.nodeId(), "default", "RUNNING")
               .thenMany(trigger.start(node.config(), payload))
-              .concatWith(Mono.defer(() -> tracker.updateTaskStatus(sessionId, node.nodeId(), "default", "SUCCESS").then(Mono.empty())))
-              .onErrorResume(e -> tracker.updateTaskStatus(sessionId, node.nodeId(), "default", "FAILURE").then(Mono.error(e)));
+              .concatWith(
+                  Mono.defer(
+                      () ->
+                          tracker
+                              .updateTaskStatus(sessionId, node.nodeId(), "default", "SUCCESS")
+                              .then(Mono.empty())))
+              .onErrorResume(
+                  e ->
+                      tracker
+                          .updateTaskStatus(sessionId, node.nodeId(), "default", "FAILURE")
+                          .then(Mono.error(e)));
 
       nodeStreams.put(
           node.nodeId(),
@@ -249,21 +257,36 @@ public class WorkflowOrchestrator {
 
       if (plugin instanceof ProcessorPlugin processor) {
         final Flux<Message> stream =
-            tracker.updateTaskStatus(sessionId, node.nodeId(), "default", "RUNNING")
+            tracker
+                .updateTaskStatus(sessionId, node.nodeId(), "default", "RUNNING")
                 .thenMany(processor.process(mergedInput, node.config()))
-                .concatWith(Mono.defer(() -> tracker.updateTaskStatus(sessionId, node.nodeId(), "default", "SUCCESS").then(Mono.empty())))
-                .onErrorResume(e -> tracker.updateTaskStatus(sessionId, node.nodeId(), "default", "FAILURE").then(Mono.error(e)));
+                .concatWith(
+                    Mono.defer(
+                        () ->
+                            tracker
+                                .updateTaskStatus(sessionId, node.nodeId(), "default", "SUCCESS")
+                                .then(Mono.empty())))
+                .onErrorResume(
+                    e ->
+                        tracker
+                            .updateTaskStatus(sessionId, node.nodeId(), "default", "FAILURE")
+                            .then(Mono.error(e)));
 
         nodeStreams.put(
             node.nodeId(),
             applyLoggingAndBroadcasting(sessionId, node.nodeId(), stream, children.size()));
       } else if (plugin instanceof TerminalPlugin terminal) {
         final Mono<Void> completion =
-            tracker.updateTaskStatus(sessionId, node.nodeId(), "default", "RUNNING")
+            tracker
+                .updateTaskStatus(sessionId, node.nodeId(), "default", "RUNNING")
                 .then(terminal.consume(mergedInput, node.config()))
                 .timeout(nodeTimeout)
                 .then(tracker.updateTaskStatus(sessionId, node.nodeId(), "default", "SUCCESS"))
-                .onErrorResume(e -> tracker.updateTaskStatus(sessionId, node.nodeId(), "default", "FAILURE").then(Mono.error(e)));
+                .onErrorResume(
+                    e ->
+                        tracker
+                            .updateTaskStatus(sessionId, node.nodeId(), "default", "FAILURE")
+                            .then(Mono.error(e)));
         terminals.add(completion);
       }
     }
@@ -278,7 +301,10 @@ public class WorkflowOrchestrator {
   }
 
   private Flux<Message> applyLoggingAndBroadcasting(
-      final String sessionId, final String nodeId, final Flux<Message> stream, final int childCount) {
+      final String sessionId,
+      final String nodeId,
+      final Flux<Message> stream,
+      final int childCount) {
 
     Flux<Message> processedStream =
         stream
@@ -292,7 +318,10 @@ public class WorkflowOrchestrator {
                         .subscribe());
 
     if (childCount > 0) {
-      processedStream = processedStream.replay(1).refCount(childCount, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
+      processedStream =
+          processedStream
+              .replay(1)
+              .refCount(childCount, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
     } else {
       processedStream = processedStream.replay(1).autoConnect(0);
     }

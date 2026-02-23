@@ -260,12 +260,16 @@ class WorkflowOrchestratorTest {
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.consume(any(), any())).thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
 
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("terminal")).thenReturn(terminal);
 
-    StepVerifier.create(orchestrator.prepareWorkflow(def).flatMap(pw -> orchestrator.execute(sessionId, pw, Map.of())))
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(pw -> orchestrator.execute(sessionId, pw, Map.of())))
         .verifyComplete();
 
     verify(trigger).start(any(), any());
@@ -303,12 +307,16 @@ class WorkflowOrchestratorTest {
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.consume(any(), any())).thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
 
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("terminal")).thenReturn(terminal);
 
-    StepVerifier.create(orchestrator.prepareWorkflow(def).flatMap(pw -> orchestrator.execute(sessionId, pw, Map.of())))
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(pw -> orchestrator.execute(sessionId, pw, Map.of())))
         .verifyComplete();
 
     verify(terminal, atLeastOnce()).consume(any(), any());
@@ -346,13 +354,17 @@ class WorkflowOrchestratorTest {
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.consume(any(), any())).thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
 
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("processor")).thenReturn(processor);
     when(registry.get("terminal")).thenReturn(terminal);
 
-    StepVerifier.create(orchestrator.prepareWorkflow(def).flatMap(pw -> orchestrator.execute(sessionId, pw, Map.of())))
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(pw -> orchestrator.execute(sessionId, pw, Map.of())))
         .verifyComplete();
 
     verify(trigger).start(any(), any());
@@ -410,13 +422,17 @@ class WorkflowOrchestratorTest {
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.consume(any(), any())).thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
 
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("processor")).thenReturn(processor);
     when(registry.get("terminal")).thenReturn(terminal);
 
-    StepVerifier.create(orchestrator.prepareWorkflow(def).flatMap(pw -> orchestrator.execute(sessionId, pw, Map.of())))
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(pw -> orchestrator.execute(sessionId, pw, Map.of())))
         .verifyComplete();
 
     verify(processor).process(any(), any());

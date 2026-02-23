@@ -24,7 +24,6 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.jagratha.model.PreparedWorkflow;
 import com.infenia.jagratha.model.WorkflowDefinition;
 import com.infenia.jagratha.model.WorkflowDefinition.Edge;
 import com.infenia.jagratha.model.WorkflowDefinition.Node;
@@ -113,7 +112,9 @@ class WorkflowOrchestratorFanInTest {
     when(registry.get("terminal")).thenReturn(terminal);
 
     StepVerifier.create(
-            orchestrator.prepareWorkflow(def).flatMap(p -> orchestrator.execute(sessionId, p, Map.of())))
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(p -> orchestrator.execute(sessionId, p, Map.of())))
         .verifyComplete();
 
     // Verify that terminal received 2 messages (one from each trigger path)
@@ -178,7 +179,9 @@ class WorkflowOrchestratorFanInTest {
     when(registry.get("terminal")).thenReturn(terminal);
 
     StepVerifier.create(
-            orchestrator.prepareWorkflow(def).flatMap(p -> orchestrator.execute(sessionId, p, Map.of())))
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(p -> orchestrator.execute(sessionId, p, Map.of())))
         .verifyComplete();
 
     verify(tracker, atLeastOnce()).finishWorkflow(eq(sessionId), eq("COMPLETED"));
@@ -253,7 +256,8 @@ class WorkflowOrchestratorFanInTest {
                         && e.getCause().getMessage().contains("Trigger 1 failed")))
         .verify();
 
-    verify(tracker, timeout(1000).atLeastOnce()).updateTaskStatus(eq(sessionId), eq("t1"), anyString(), eq("FAILURE"));
+    verify(tracker, timeout(1000).atLeastOnce())
+        .updateTaskStatus(eq(sessionId), eq("t1"), anyString(), eq("FAILURE"));
     // FAILURE now since I changed the error handling in execute()
     verify(tracker, timeout(1000)).finishWorkflow(eq(sessionId), eq("FAILURE"));
   }

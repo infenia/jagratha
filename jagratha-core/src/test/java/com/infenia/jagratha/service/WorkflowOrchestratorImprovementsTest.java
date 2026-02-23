@@ -112,14 +112,18 @@ class WorkflowOrchestratorImprovementsTest {
     when(term1Plugin.initialize(any())).thenReturn(Mono.empty());
     // term1 fails AFTER subscribing
     when(term1Plugin.consume(any(), any()))
-        .thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then(Mono.error(new RuntimeException("Term1 failed"))));
+        .thenAnswer(
+            inv ->
+                ((Flux<Message>) inv.getArgument(0))
+                    .then(Mono.error(new RuntimeException("Term1 failed"))));
 
     TerminalPlugin term2Plugin = mock(TerminalPlugin.class);
     when(term2Plugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(term2Plugin.validateConfig(any())).thenReturn(Mono.empty());
     when(term2Plugin.initialize(any())).thenReturn(Mono.empty());
     // term2 succeeds
-    when(term2Plugin.consume(any(), any())).thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
+    when(term2Plugin.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
 
     when(registry.get("type-t")).thenReturn(trigger);
     when(registry.get("type-term1")).thenReturn(term1Plugin);
@@ -211,13 +215,16 @@ class WorkflowOrchestratorImprovementsTest {
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.consume(any(), any())).thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message>) inv.getArgument(0)).then());
 
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("terminal")).thenReturn(terminal);
 
     StepVerifier.create(
-            orchestrator.prepareWorkflow(def).flatMap(p -> orchestrator.execute(sessionId, p, Map.of())))
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(p -> orchestrator.execute(sessionId, p, Map.of())))
         .verifyComplete();
 
     verify(tracker).startWorkflow(eq(sessionId), any());
