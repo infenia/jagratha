@@ -88,7 +88,8 @@ class GuardIntegrationTest {
     when(terminalFalse.consume(any(), any())).thenReturn(Mono.empty());
 
     when(tracker.startWorkflow(anyString(), any())).thenReturn(Mono.empty());
-    when(tracker.updateTaskStatus(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.empty());
+    when(tracker.updateTaskStatus(anyString(), anyString(), anyString(), anyString()))
+        .thenReturn(Mono.empty());
     when(tracker.finishWorkflow(anyString(), anyString())).thenReturn(Mono.empty());
     when(tracker.appendLog(anyString(), anyString())).thenReturn(Mono.empty());
   }
@@ -101,39 +102,44 @@ class GuardIntegrationTest {
     final Message msg = Message.create(traceId, Map.of("amount", 1500));
 
     when(triggerPlugin.start(any(), any())).thenReturn(Flux.just(msg));
-    when(guardPlugin.process(any(), any())).thenAnswer(inv -> {
-        Flux<Message> in = inv.getArgument(0);
-        return in.map(m -> {
-             Map<String, Object> payload = (Map<String, Object>) m.payload();
-             if ((int)payload.get("amount") > 1000) return m.withSourcePort("true");
-             else return m.withSourcePort("false");
-        });
-    });
+    when(guardPlugin.process(any(), any()))
+        .thenAnswer(
+            inv -> {
+              Flux<Message> in = inv.getArgument(0);
+              return in.map(
+                  m -> {
+                    Map<String, Object> payload = (Map<String, Object>) m.payload();
+                    if ((int) payload.get("amount") > 1000) return m.withSourcePort("true");
+                    else return m.withSourcePort("false");
+                  });
+            });
 
     final Node trigger = new Node("t1", "TRIGGER", Map.of());
     final Node guard = new Node("g1", "GUARD", Map.of("condition", "amount > 1000"));
     final Node termTrue = new Node("termTrue", "TERMINAL", Map.of());
     final Node termFalse = new Node("termFalse", "TERMINAL", Map.of());
 
-    final WorkflowDefinition def = new WorkflowDefinition(
-        "Guard Test",
-        List.of(trigger, guard, termTrue, termFalse),
-        List.of(
-            new Edge("t1", "g1"),
-            new Edge("g1", "termTrue", "true"),
-            new Edge("g1", "termFalse", "false")
-        )
-    );
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "Guard Test",
+            List.of(trigger, guard, termTrue, termFalse),
+            List.of(
+                new Edge("t1", "g1"),
+                new Edge("g1", "termTrue", "true"),
+                new Edge("g1", "termFalse", "false")));
 
-    orchestrator.prepareWorkflow(def)
+    orchestrator
+        .prepareWorkflow(def)
         .flatMap(prepared -> orchestrator.execute(sessionId, prepared, Map.of("start", true)))
         .as(StepVerifier::create)
         .verifyComplete();
 
     // Verify termTrue was executed
-    verify(tracker, atLeastOnce()).updateTaskStatus(eq(sessionId), eq("termTrue"), anyString(), eq("RUNNING"));
+    verify(tracker, atLeastOnce())
+        .updateTaskStatus(eq(sessionId), eq("termTrue"), anyString(), eq("RUNNING"));
     // Verify termFalse was NOT executed
-    verify(tracker, never()).updateTaskStatus(eq(sessionId), eq("termFalse"), anyString(), eq("RUNNING"));
+    verify(tracker, never())
+        .updateTaskStatus(eq(sessionId), eq("termFalse"), anyString(), eq("RUNNING"));
   }
 
   @SuppressWarnings("unchecked")
@@ -144,38 +150,43 @@ class GuardIntegrationTest {
     final Message msg = Message.create(traceId, Map.of("amount", 500));
 
     when(triggerPlugin.start(any(), any())).thenReturn(Flux.just(msg));
-    when(guardPlugin.process(any(), any())).thenAnswer(inv -> {
-        Flux<Message> in = inv.getArgument(0);
-        return in.map(m -> {
-             Map<String, Object> payload = (Map<String, Object>) m.payload();
-             if ((int)payload.get("amount") > 1000) return m.withSourcePort("true");
-             else return m.withSourcePort("false");
-        });
-    });
+    when(guardPlugin.process(any(), any()))
+        .thenAnswer(
+            inv -> {
+              Flux<Message> in = inv.getArgument(0);
+              return in.map(
+                  m -> {
+                    Map<String, Object> payload = (Map<String, Object>) m.payload();
+                    if ((int) payload.get("amount") > 1000) return m.withSourcePort("true");
+                    else return m.withSourcePort("false");
+                  });
+            });
 
     final Node trigger = new Node("t1", "TRIGGER", Map.of());
     final Node guard = new Node("g1", "GUARD", Map.of("condition", "amount > 1000"));
     final Node termTrue = new Node("termTrue", "TERMINAL", Map.of());
     final Node termFalse = new Node("termFalse", "TERMINAL", Map.of());
 
-    final WorkflowDefinition def = new WorkflowDefinition(
-        "Guard Test",
-        List.of(trigger, guard, termTrue, termFalse),
-        List.of(
-            new Edge("t1", "g1"),
-            new Edge("g1", "termTrue", "true"),
-            new Edge("g1", "termFalse", "false")
-        )
-    );
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "Guard Test",
+            List.of(trigger, guard, termTrue, termFalse),
+            List.of(
+                new Edge("t1", "g1"),
+                new Edge("g1", "termTrue", "true"),
+                new Edge("g1", "termFalse", "false")));
 
-    orchestrator.prepareWorkflow(def)
+    orchestrator
+        .prepareWorkflow(def)
         .flatMap(prepared -> orchestrator.execute(sessionId, prepared, Map.of("start", true)))
         .as(StepVerifier::create)
         .verifyComplete();
 
     // Verify termFalse was executed
-    verify(tracker, atLeastOnce()).updateTaskStatus(eq(sessionId), eq("termFalse"), anyString(), eq("RUNNING"));
+    verify(tracker, atLeastOnce())
+        .updateTaskStatus(eq(sessionId), eq("termFalse"), anyString(), eq("RUNNING"));
     // Verify termTrue was NOT executed
-    verify(tracker, never()).updateTaskStatus(eq(sessionId), eq("termTrue"), anyString(), eq("RUNNING"));
+    verify(tracker, never())
+        .updateTaskStatus(eq(sessionId), eq("termTrue"), anyString(), eq("RUNNING"));
   }
 }

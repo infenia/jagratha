@@ -304,9 +304,8 @@ public class WorkflowOrchestrator {
                                             DEFAULT_TASK_ID,
                                             STATUS_RUNNING)
                                         .then(
-                                            terminal
-                                                .consume(
-                                                    Flux.concat(Mono.just(msg), f), node.config()))
+                                            terminal.consume(
+                                                Flux.concat(Mono.just(msg), f), node.config()))
                                         .then(
                                             tracker.updateTaskStatus(
                                                 sessionId,

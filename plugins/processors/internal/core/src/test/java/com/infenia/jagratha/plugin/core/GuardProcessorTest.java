@@ -57,7 +57,14 @@ class GuardProcessorTest {
   @Test
   void testMetadataAccess() {
     final Map<String, Object> config = Map.of("condition", "metadata.priority == 'HIGH'");
-    final Message msg = new Message(UUID.randomUUID(), UUID.randomUUID(), Map.of("priority", "HIGH"), "data", java.time.Instant.now(), null);
+    final Message msg =
+        new Message(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            Map.of("priority", "HIGH"),
+            "data",
+            java.time.Instant.now(),
+            null);
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
         .expectNextMatches(m -> "true".equals(m.sourcePort()))
@@ -66,7 +73,8 @@ class GuardProcessorTest {
 
   @Test
   void testStrictModeFailure() {
-    final Map<String, Object> config = Map.of("condition", "payload.invalidField > 100", "strictMode", true);
+    final Map<String, Object> config =
+        Map.of("condition", "payload.invalidField > 100", "strictMode", true);
     final Message msg = Message.create(UUID.randomUUID(), 150);
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
@@ -76,7 +84,8 @@ class GuardProcessorTest {
 
   @Test
   void testNonStrictModeFailure() {
-    final Map<String, Object> config = Map.of("condition", "payload.invalidField > 100", "strictMode", false);
+    final Map<String, Object> config =
+        Map.of("condition", "payload.invalidField > 100", "strictMode", false);
     final Message msg = Message.create(UUID.randomUUID(), 150);
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
@@ -86,7 +95,8 @@ class GuardProcessorTest {
 
   @Test
   void testErrorPortRouting() {
-    final Map<String, Object> config = Map.of("condition", "payload.invalidField > 100", "errorPort", "custom-error");
+    final Map<String, Object> config =
+        Map.of("condition", "payload.invalidField > 100", "errorPort", "custom-error");
     final Message msg = Message.create(UUID.randomUUID(), 150);
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
