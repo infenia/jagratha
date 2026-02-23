@@ -37,18 +37,16 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Mapper processor transforms message payloads using PROJECTION, TEMPLATE, or SCRIPT modes.
- */
+/** Mapper processor transforms message payloads using PROJECTION, TEMPLATE, or SCRIPT modes. */
 @Slf4j
 @Component
 @SuppressWarnings({
-    "PMD.OnlyOneReturn",
-    "PMD.AvoidThrowingRawExceptionTypes",
-    "PMD.TooManyMethods",
-    "PMD.AvoidCatchingGenericException",
-    "PMD.ExceptionAsFlowControl",
-    "PMD.CyclomaticComplexity"
+  "PMD.OnlyOneReturn",
+  "PMD.AvoidThrowingRawExceptionTypes",
+  "PMD.TooManyMethods",
+  "PMD.AvoidCatchingGenericException",
+  "PMD.ExceptionAsFlowControl",
+  "PMD.CyclomaticComplexity"
 })
 public class MapperProcessor implements ProcessorPlugin {
 
@@ -66,9 +64,8 @@ public class MapperProcessor implements ProcessorPlugin {
 
   private static final String ERR_PREFIX = "WorkflowExecutionException: ";
 
-  private static final Engine JS_ENGINE = Engine.newBuilder()
-      .option("engine.WarnInterpreterOnly", "false")
-      .build();
+  private static final Engine JS_ENGINE =
+      Engine.newBuilder().option("engine.WarnInterpreterOnly", "false").build();
 
   private final Handlebars handlebars = new Handlebars();
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -98,8 +95,8 @@ public class MapperProcessor implements ProcessorPlugin {
     } else if (MODE_TEMPLATE.equals(mode)) {
       initializeTemplates(mapping);
     } else if (MODE_SCRIPT.equals(mode) && mapping instanceof String) {
-      jsSourceCache.computeIfAbsent((String) mapping,
-          s -> Source.newBuilder("js", s, "mapper.js").buildLiteral());
+      jsSourceCache.computeIfAbsent(
+          (String) mapping, s -> Source.newBuilder("js", s, "mapper.js").buildLiteral());
     }
     return Mono.empty();
   }
@@ -114,13 +111,15 @@ public class MapperProcessor implements ProcessorPlugin {
   }
 
   private void compileTemplate(final String templateStr) {
-    templateCache.computeIfAbsent(templateStr, t -> {
-      try {
-        return handlebars.compileInline(t);
-      } catch (IOException e) {
-        throw new RuntimeException("Failed to compile Handlebars template", e);
-      }
-    });
+    templateCache.computeIfAbsent(
+        templateStr,
+        t -> {
+          try {
+            return handlebars.compileInline(t);
+          } catch (IOException e) {
+            throw new RuntimeException("Failed to compile Handlebars template", e);
+          }
+        });
   }
 
   @Override
@@ -131,43 +130,54 @@ public class MapperProcessor implements ProcessorPlugin {
     final boolean dropOriginal = (Boolean) config.getOrDefault(DROP_ORIG, true);
     final boolean strictMode = (Boolean) config.getOrDefault(STRICT, true);
 
-    return input.flatMap(message -> {
-      try {
-        final Object resultPayload = executeInternal(mode, mapping, message, dropOriginal, strictMode);
+    return input.flatMap(
+        message -> {
+          try {
+            final Object resultPayload =
+                executeInternal(mode, mapping, message, dropOriginal, strictMode);
 
-        return Flux.just(new Message(
-            message.id(),
-            message.traceId(),
-            message.metadata(),
-            resultPayload,
-            message.timestamp(),
-            message.sourcePort(),
-            message.sourceNodeId()
-        ));
-      } catch (RuntimeException e) {
-        if (log.isErrorEnabled()) {
-          log.error("Mapping failed for message {}: {}", message.id(), e.getMessage());
-        }
-        return Flux.error(new RuntimeException(ERR_PREFIX + "Mapping failed: " + e.getMessage(), e));
-      }
-    });
+            return Flux.just(
+                new Message(
+                    message.id(),
+                    message.traceId(),
+                    message.metadata(),
+                    resultPayload,
+                    message.timestamp(),
+                    message.sourcePort(),
+                    message.sourceNodeId()));
+          } catch (RuntimeException e) {
+            if (log.isErrorEnabled()) {
+              log.error("Mapping failed for message {}: {}", message.id(), e.getMessage());
+            }
+            return Flux.error(
+                new RuntimeException(ERR_PREFIX + "Mapping failed: " + e.getMessage(), e));
+          }
+        });
   }
 
   @SuppressWarnings(UNCHECKED)
-  private Object executeInternal(final String mode, final Object mapping, final Message message,
-                                 final boolean dropOriginal, final boolean strictMode) {
+  private Object executeInternal(
+      final String mode,
+      final Object mapping,
+      final Message message,
+      final boolean dropOriginal,
+      final boolean strictMode) {
     return switch (mode) {
-      case MODE_PROJECTION -> executeProjection(
-          message, (Map<String, String>) mapping, dropOriginal, strictMode);
+      case MODE_PROJECTION ->
+          executeProjection(message, (Map<String, String>) mapping, dropOriginal, strictMode);
       case MODE_TEMPLATE -> executeTemplate(message, mapping, dropOriginal, strictMode);
       case MODE_SCRIPT -> executeScript(message, (String) mapping, dropOriginal, strictMode);
       default -> throw new IllegalArgumentException("Unsupported Mapper mode: " + mode);
     };
   }
 
-  private Object executeProjection(final Message message, final Map<String, String> mapping,
-                                   final boolean dropOriginal, final boolean strictMode) {
-    final Map<String, Object> result = dropOriginal ? new ConcurrentHashMap<>() : asMutableMap(message.payload());
+  private Object executeProjection(
+      final Message message,
+      final Map<String, String> mapping,
+      final boolean dropOriginal,
+      final boolean strictMode) {
+    final Map<String, Object> result =
+        dropOriginal ? new ConcurrentHashMap<>() : asMutableMap(message.payload());
     for (final Map.Entry<String, String> entry : mapping.entrySet()) {
       try {
         final Object value = SpelUtils.evaluateSync(entry.getValue(), message);
@@ -214,7 +224,8 @@ public class MapperProcessor implements ProcessorPlugin {
       try {
         final Template template = templateCache.get(entry.getValue());
         if (template == null) {
-          throw new IllegalArgumentException("Template not found in cache for key: " + entry.getValue());
+          throw new IllegalArgumentException(
+              "Template not found in cache for key: " + entry.getValue());
         }
         final String value = template.apply(message);
         setNestedValue(mapResult, entry.getKey(), value);
@@ -232,9 +243,7 @@ public class MapperProcessor implements ProcessorPlugin {
   }
 
   private String executeTemplateString(
-      final Message message,
-      final String mapping,
-      final boolean strictMode) {
+      final Message message, final String mapping, final boolean strictMode) {
     try {
       final Template template = templateCache.get(mapping);
       if (template == null) {
@@ -327,7 +336,8 @@ public class MapperProcessor implements ProcessorPlugin {
   }
 
   @SuppressWarnings({UNCHECKED, "PMD.AvoidInstantiatingObjectsInLoops"})
-  private void setNestedValue(final Map<String, Object> map, final String path, final Object value) {
+  private void setNestedValue(
+      final Map<String, Object> map, final String path, final Object value) {
     final String[] parts = path.split("\\.");
     Map<String, Object> current = map;
     for (int i = 0; i < parts.length - 1; i++) {
@@ -360,8 +370,13 @@ public class MapperProcessor implements ProcessorPlugin {
   @Override
   public Mono<Void> validateConfig(final Map<String, Object> config) {
     final String mode = (String) config.get(CONFIG_MODE);
-    if (mode == null || (!MODE_PROJECTION.equals(mode) && !MODE_TEMPLATE.equals(mode) && !MODE_SCRIPT.equals(mode))) {
-      return Mono.error(new IllegalArgumentException("Invalid or missing mode. Must be PROJECTION, TEMPLATE, or SCRIPT"));
+    if (mode == null
+        || (!MODE_PROJECTION.equals(mode)
+            && !MODE_TEMPLATE.equals(mode)
+            && !MODE_SCRIPT.equals(mode))) {
+      return Mono.error(
+          new IllegalArgumentException(
+              "Invalid or missing mode. Must be PROJECTION, TEMPLATE, or SCRIPT"));
     }
     if (config.get(CONFIG_MAPPING) == null) {
       return Mono.error(new IllegalArgumentException("mapping is mandatory"));

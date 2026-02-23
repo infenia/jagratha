@@ -30,7 +30,11 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 @Component
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.AvoidThrowingRawExceptionTypes", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({
+  "PMD.OnlyOneReturn",
+  "PMD.AvoidThrowingRawExceptionTypes",
+  "PMD.AvoidCatchingGenericException"
+})
 public class GuardProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "GUARD";
@@ -74,7 +78,8 @@ public class GuardProcessor implements ProcessorPlugin {
             return message.withSourcePort(port);
           } catch (final Exception e) {
             if (log.isErrorEnabled()) {
-              log.error("Guard evaluation failed for condition [{}]: {}", condition, e.getMessage());
+              log.error(
+                  "Guard evaluation failed for condition [{}]: {}", condition, e.getMessage());
             }
             if (errorPort != null) {
               final Map<String, Object> metadata = new ConcurrentHashMap<>(message.metadata());

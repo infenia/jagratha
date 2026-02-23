@@ -15,6 +15,10 @@
  */
 package com.infenia.jagratha.service;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.infenia.jagratha.model.WorkflowDefinition;
 import com.infenia.jagratha.plugin.PluginCategory;
 import com.infenia.jagratha.plugin.WorkflowPlugin;
@@ -27,10 +31,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class WorkflowValidatorTest {
@@ -46,16 +46,20 @@ class WorkflowValidatorTest {
   @Test
   void testValidateMapperSimpleScriptWarning() {
     WorkflowDefinition.Node trigger = new WorkflowDefinition.Node("t1", "TRIGGER", Map.of());
-    WorkflowDefinition.Node mapper = new WorkflowDefinition.Node("m1", "MAPPER", Map.of(
-        "mode", "SCRIPT",
-        "mapping", "payload.x"
-    ));
+    WorkflowDefinition.Node mapper =
+        new WorkflowDefinition.Node(
+            "m1",
+            "MAPPER",
+            Map.of(
+                "mode", "SCRIPT",
+                "mapping", "payload.x"));
     WorkflowDefinition.Node terminal = new WorkflowDefinition.Node("term1", "TERMINAL", Map.of());
 
     WorkflowDefinition.Edge e1 = new WorkflowDefinition.Edge("t1", "m1", null);
     WorkflowDefinition.Edge e2 = new WorkflowDefinition.Edge("m1", "term1", null);
 
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(trigger, mapper, terminal), List.of(e1, e2));
+    WorkflowDefinition def =
+        new WorkflowDefinition("desc", List.of(trigger, mapper, terminal), List.of(e1, e2));
 
     WorkflowPlugin triggerPlugin = mock(WorkflowPlugin.class);
     when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
@@ -74,7 +78,6 @@ class WorkflowValidatorTest {
     when(registry.get("TERMINAL")).thenReturn(terminalPlugin);
 
     // We expect it to complete successfully, but log a warning
-    StepVerifier.create(validator.validate(def))
-        .verifyComplete();
+    StepVerifier.create(validator.validate(def)).verifyComplete();
   }
 }

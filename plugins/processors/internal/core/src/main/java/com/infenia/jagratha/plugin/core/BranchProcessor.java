@@ -33,11 +33,11 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Component
 @SuppressWarnings({
-    "PMD.OnlyOneReturn",
-    "PMD.CognitiveComplexity",
-    "PMD.AvoidDeeplyNestedIfStmts",
-    "PMD.ExceptionAsFlowControl",
-    "PMD.AvoidCatchingGenericException"
+  "PMD.OnlyOneReturn",
+  "PMD.CognitiveComplexity",
+  "PMD.AvoidDeeplyNestedIfStmts",
+  "PMD.ExceptionAsFlowControl",
+  "PMD.AvoidCatchingGenericException"
 })
 public class BranchProcessor implements ProcessorPlugin {
 
@@ -114,7 +114,8 @@ public class BranchProcessor implements ProcessorPlugin {
 
           } catch (final Exception e) {
             if (log.isErrorEnabled()) {
-              log.error("Branch evaluation failed for message {}: {}", message.id(), e.getMessage());
+              log.error(
+                  "Branch evaluation failed for message {}: {}", message.id(), e.getMessage());
             }
             return Flux.error(
                 e.getMessage() != null && e.getMessage().startsWith(ERR_PREFIX)
@@ -124,9 +125,13 @@ public class BranchProcessor implements ProcessorPlugin {
         });
   }
 
-  private void evaluateBranches(final String mode, final String selector,
-                                final Map<String, String> cases, final boolean allowMultiple,
-                                final Message message, final List<String> matchedPorts) {
+  private void evaluateBranches(
+      final String mode,
+      final String selector,
+      final Map<String, String> cases,
+      final boolean allowMultiple,
+      final Message message,
+      final List<String> matchedPorts) {
     if (MODE_SELECT_KEY.equals(mode)) {
       final Object result = SpelUtils.evaluateSync(selector, message);
       if (result != null) {
