@@ -23,6 +23,7 @@ import com.infenia.jagratha.plugin.Message;
 import com.infenia.jagratha.plugin.ProcessorPlugin;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,7 +47,8 @@ import reactor.core.publisher.Mono;
   "PMD.TooManyMethods",
   "PMD.AvoidCatchingGenericException",
   "PMD.ExceptionAsFlowControl",
-  "PMD.CyclomaticComplexity"
+  "PMD.CyclomaticComplexity",
+  "PMD.UseConcurrentHashMap"
 })
 public class MapperProcessor implements ProcessorPlugin {
 
@@ -116,7 +118,7 @@ public class MapperProcessor implements ProcessorPlugin {
         t -> {
           try {
             return handlebars.compileInline(t);
-          } catch (IOException e) {
+          } catch (Exception e) {
             throw new RuntimeException("Failed to compile Handlebars template", e);
           }
         });
@@ -177,7 +179,7 @@ public class MapperProcessor implements ProcessorPlugin {
       final boolean dropOriginal,
       final boolean strictMode) {
     final Map<String, Object> result =
-        dropOriginal ? new ConcurrentHashMap<>() : asMutableMap(message.payload());
+        dropOriginal ? new HashMap<>() : asMutableMap(message.payload());
     for (final Map.Entry<String, String> entry : mapping.entrySet()) {
       try {
         final Object value = SpelUtils.evaluateSync(entry.getValue(), message);
@@ -219,7 +221,7 @@ public class MapperProcessor implements ProcessorPlugin {
       final boolean dropOriginal,
       final boolean strictMode) {
     final Map<String, Object> mapResult =
-        dropOriginal ? new ConcurrentHashMap<>() : asMutableMap(message.payload());
+        dropOriginal ? new HashMap<>() : asMutableMap(message.payload());
     for (final Map.Entry<String, String> entry : mapping.entrySet()) {
       try {
         final Template template = templateCache.get(entry.getValue());
@@ -326,7 +328,7 @@ public class MapperProcessor implements ProcessorPlugin {
       return list;
     }
     if (value.hasMembers()) {
-      final Map<String, Object> map = new ConcurrentHashMap<>();
+      final Map<String, Object> map = new HashMap<>();
       for (final String key : value.getMemberKeys()) {
         map.put(key, detachValue(value.getMember(key)));
       }
@@ -342,11 +344,11 @@ public class MapperProcessor implements ProcessorPlugin {
     Map<String, Object> current = map;
     for (int i = 0; i < parts.length - 1; i++) {
       final String part = parts[i];
-      final Object next = current.computeIfAbsent(part, k -> new ConcurrentHashMap<>());
+      final Object next = current.get(part);
       if (next instanceof Map) {
         current = (Map<String, Object>) next;
       } else {
-        final Map<String, Object> newMap = new ConcurrentHashMap<>();
+        final Map<String, Object> newMap = new HashMap<>();
         current.put(part, newMap);
         current = newMap;
       }
@@ -358,9 +360,9 @@ public class MapperProcessor implements ProcessorPlugin {
   private Map<String, Object> asMutableMap(final Object payload) {
     final Map<String, Object> result;
     if (payload instanceof Map) {
-      result = new ConcurrentHashMap<>((Map<String, Object>) payload);
+      result = new HashMap<>((Map<String, Object>) payload);
     } else if (payload == null) {
-      result = new ConcurrentHashMap<>();
+      result = new HashMap<>();
     } else {
       result = objectMapper.convertValue(payload, new TypeReference<>() {});
     }

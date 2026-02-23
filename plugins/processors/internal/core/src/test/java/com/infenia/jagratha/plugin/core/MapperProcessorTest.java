@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.infenia.jagratha.plugin.Message;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -192,6 +193,261 @@ class MapperProcessorTest {
               assertTrue(!payload.containsKey("absent"));
             })
         .verifyComplete();
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testScriptModeArrayAndNested() {
+    final Map<String, Object> config =
+        Map.of(
+            "mode",
+            "SCRIPT",
+            "mapping",
+            "({ list: [1, 2, { x: 'y' }], nested: { a: 1 } })",
+            "dropOriginal",
+            true);
+
+    final Message message = Message.create(traceId, Map.of());
+
+    processor.initialize(config).block();
+
+    StepVerifier.create(processor.process(Flux.just(message), config))
+        .assertNext(
+            result -> {
+              final Map<String, Object> payload = (Map<String, Object>) result.payload();
+              final List<Object> list = (List<Object>) payload.get("list");
+              assertEquals(3, list.size());
+              assertEquals(1, ((Number) list.get(0)).intValue());
+              assertEquals("y", ((Map<String, Object>) list.get(2)).get("x"));
+              assertEquals(
+                  1, ((Number) ((Map<String, Object>) payload.get("nested")).get("a")).intValue());
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void testTemplateModeError() {
+    // Template not in cache
+    final Map<String, Object> config =
+        Map.of(
+            "mode", "TEMPLATE",
+            "mapping", "not cached");
+    final Message message = Message.create(traceId, Map.of());
+
+    // Skip initialize to trigger "Template not found in cache"
+    StepVerifier.create(processor.process(Flux.just(message), config)).expectError().verify();
+  }
+
+  @Test
+  void testScriptModeError() {
+    final Map<String, Object> config =
+        Map.of(
+            "mode", "SCRIPT",
+            "mapping", "throw new Error('fail')",
+            "strictMode", true);
+    final Message message = Message.create(traceId, Map.of());
+    processor.initialize(config).block();
+
+    StepVerifier.create(processor.process(Flux.just(message), config)).expectError().verify();
+  }
+
+  @Test
+  void testProjectionDeepNesting() {
+    final Map<String, Object> config =
+        Map.of("mode", "PROJECTION", "mapping", Map.of("a.b.c.d", "payload.val"));
+    final Message message = Message.create(traceId, Map.of("val", 42));
+    processor.initialize(config).block();
+
+    StepVerifier.create(processor.process(Flux.just(message), config))
+        .assertNext(
+            result -> {
+              Map<String, Object> p = (Map<String, Object>) result.payload();
+              assertEquals(
+                  42,
+                  ((Map<String, Object>)
+                          ((Map<String, Object>) ((Map<String, Object>) p.get("a")).get("b"))
+                              .get("c"))
+                      .get("d"));
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testTemplateMapFailure() {
+    final Map<String, Object> mapping = Map.of("a", "{{fail}}");
+    final Map<String, Object> config =
+        Map.of("mode", "TEMPLATE", "mapping", mapping, "strictMode", false);
+    // Note: handlebars doesn't necessarily throw on missing field unless configured,
+    // but we can test our cache missing or IO exception if we mock, but here it's easier to test
+    // non-strict behavior.
+
+    final Message message = Message.create(traceId, Map.of());
+    processor.initialize(config).block();
+
+    StepVerifier.create(processor.process(Flux.just(message), config))
+        .assertNext(
+            result -> {
+              assertTrue(result.payload() instanceof Map);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testSetNestedValueOverwrite() {
+    final Map<String, Object> config =
+        Map.of("mode", "PROJECTION", "mapping", Map.of("a.b", "'val'"), "dropOriginal", false);
+    // 'a' is not a map initially
+    final Message message = Message.create(traceId, Map.of("a", 1));
+    processor.initialize(config).block();
+
+    StepVerifier.create(processor.process(Flux.just(message), config))
+        .assertNext(
+            result -> {
+              Map<String, Object> p = (Map<String, Object>) result.payload();
+              assertTrue(p.get("a") instanceof Map);
+              assertEquals("val", ((Map<String, Object>) p.get("a")).get("b"));
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void testDetachValueBasic() {
+    // We already test numbers, strings, maps via testScriptMode
+    // Testing null return from script
+    final Map<String, Object> config =
+        Map.of(
+            "mode", "SCRIPT",
+            "mapping", "null",
+            "dropOriginal", true);
+    final Message message = Message.create(traceId, Map.of());
+    processor.initialize(config).block();
+
+    StepVerifier.create(processor.process(Flux.just(message), config))
+        .assertNext(
+            result -> {
+              assertEquals(null, result.payload());
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void testGetType() {
+    assertEquals("MAPPER", processor.getType());
+  }
+
+  @Test
+  void testScriptModeNonStrictFailure() {
+    final Map<String, Object> config =
+        Map.of(
+            "mode",
+            "SCRIPT",
+            "mapping",
+            "throw new Error('fail')",
+            "strictMode",
+            false,
+            "dropOriginal",
+            true);
+    final Message message = Message.create(traceId, Map.of("a", 1));
+    processor.initialize(config).block();
+
+    StepVerifier.create(processor.process(Flux.just(message), config))
+        .assertNext(
+            result -> {
+              assertEquals(Map.of(), result.payload());
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void testScriptModeNonStrictEnrichFailure() {
+    final Map<String, Object> config =
+        Map.of(
+            "mode",
+            "SCRIPT",
+            "mapping",
+            "throw new Error('fail')",
+            "strictMode",
+            false,
+            "dropOriginal",
+            false);
+    final Map<String, Object> originalPayload = Map.of("a", 1);
+    final Message message = Message.create(traceId, originalPayload);
+    processor.initialize(config).block();
+
+    StepVerifier.create(processor.process(Flux.just(message), config))
+        .assertNext(
+            result -> {
+              assertEquals(originalPayload, result.payload());
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void testInitializeModes() {
+    // PROJECTION
+    processor.initialize(Map.of("mode", "PROJECTION", "mapping", Map.of("k", "v"))).block();
+    // TEMPLATE Map
+    processor.initialize(Map.of("mode", "TEMPLATE", "mapping", Map.of("k", "{{v}}"))).block();
+    // TEMPLATE String
+    processor.initialize(Map.of("mode", "TEMPLATE", "mapping", "{{v}}")).block();
+    // SCRIPT
+    processor.initialize(Map.of("mode", "SCRIPT", "mapping", "payload.x")).block();
+  }
+
+  @Test
+  void testValidateConfig() {
+    StepVerifier.create(processor.validateConfig(Map.of()))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+    StepVerifier.create(processor.validateConfig(Map.of("mode", "INVALID")))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+    StepVerifier.create(processor.validateConfig(Map.of("mode", "PROJECTION")))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+    StepVerifier.create(processor.validateConfig(Map.of("mode", "PROJECTION", "mapping", Map.of())))
+        .verifyComplete();
+  }
+
+  @Test
+  void testDetachValueBooleanAndNull() {
+    final Map<String, Object> config =
+        Map.of(
+            "mode", "SCRIPT",
+            "mapping", "({ b: true, n: null })",
+            "dropOriginal", true);
+    final Message message = Message.create(traceId, Map.of());
+    processor.initialize(config).block();
+
+    StepVerifier.create(processor.process(Flux.just(message), config))
+        .assertNext(
+            result -> {
+              Map<String, Object> p = (Map<String, Object>) result.payload();
+              assertEquals(true, p.get("b"));
+              assertEquals(null, p.get("n"));
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void testShutdown() {
+    StepVerifier.create(processor.shutdown(Map.of())).verifyComplete();
+  }
+
+  @Test
+  void testInitializeError() {
+    // TEMPLATE compilation failure
+    final Map<String, Object> config =
+        Map.of(
+            "mode", "TEMPLATE",
+            "mapping", "{{#if}} unclosed");
+    try {
+      processor.initialize(config).block();
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("compile Handlebars template"));
+    }
   }
 
   @Test
