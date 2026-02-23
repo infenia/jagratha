@@ -67,6 +67,7 @@ public class WorkflowValidator {
         .then(validateNoCycles(def))
         .then(validateNoOrphans(def))
         .then(validateMapper(def))
+        .then(validateFilterPlacement(def))
         .then(validatePluginConfigs(def));
   }
 
@@ -292,6 +293,96 @@ public class WorkflowValidator {
               }
             })
         .then();
+  }
+
+  private Mono<Void> validateFilterPlacement(final WorkflowDefinition def) {
+    final Map<String, Node> nodeMap =
+        def.nodes().stream().collect(Collectors.toMap(Node::nodeId, n -> n));
+    final Map<String, List<String>> parents = new ConcurrentHashMap<>();
+    def.nodes().forEach(node -> parents.put(node.nodeId(), new ArrayList<>()));
+    def.edges().forEach(edge -> parents.get(edge.target()).add(edge.source()));
+
+    return Flux.fromIterable(def.nodes())
+        .filter(node -> "FILTER".equals(node.type()))
+        .doOnNext(
+            filterNode -> {
+              final int depth = getMinDepth(filterNode.nodeId(), parents, def);
+              if (depth > 1 && hasHeavyAncestor(filterNode.nodeId(), parents, nodeMap) && log.isWarnEnabled()) {
+                log.warn(
+                    "Performance Hint: Filter [{}] is positioned after heavy computation. "
+                        + "Moving it closer to the Trigger may reduce unnecessary load.",
+                    filterNode.nodeId());
+              }
+            })
+        .then();
+  }
+
+  private int getMinDepth(
+      final String nodeId, final Map<String, List<String>> parents, final WorkflowDefinition def) {
+    final Set<String> triggers =
+        def.nodes().stream()
+            .filter(
+                n -> {
+                  final WorkflowPlugin p = registry.get(n.type());
+                  return p != null && p.getCategory() == PluginCategory.TRIGGER;
+                })
+            .map(Node::nodeId)
+            .collect(Collectors.toSet());
+
+    final Map<String, Integer> dist = new ConcurrentHashMap<>();
+    final java.util.Queue<String> queue = new java.util.LinkedList<>();
+
+    for (final String triggerId : triggers) {
+      dist.put(triggerId, 0);
+      queue.add(triggerId);
+    }
+
+    final Map<String, List<String>> adj = new ConcurrentHashMap<>();
+    def.nodes().forEach(node -> adj.put(node.nodeId(), new ArrayList<>()));
+    def.edges().forEach(edge -> adj.get(edge.source()).add(edge.target()));
+
+    while (!queue.isEmpty()) {
+      final String u = queue.poll();
+      if (u.equals(nodeId)) {
+        return dist.get(u);
+      }
+      for (final String v : adj.get(u)) {
+        if (!dist.containsKey(v)) {
+          dist.put(v, dist.get(u) + 1);
+          queue.add(v);
+        }
+      }
+    }
+    return -1;
+  }
+
+  private boolean hasHeavyAncestor(
+      final String nodeId, final Map<String, List<String>> parents, final Map<String, Node> nodeMap) {
+    final java.util.Queue<String> queue = new java.util.LinkedList<>(parents.get(nodeId));
+    final Set<String> visited = new HashSet<>(parents.get(nodeId));
+
+    while (!queue.isEmpty()) {
+      final String u = queue.poll();
+      final Node node = nodeMap.get(u);
+      if (node != null && isHeavyNode(node)) {
+        return true;
+      }
+      for (final String v : parents.get(u)) {
+        if (!visited.contains(v)) {
+          visited.add(v);
+          queue.add(v);
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean isHeavyNode(final Node node) {
+    boolean heavy = false;
+    if ("MAPPER".equals(node.type())) {
+      heavy = "SCRIPT".equals(node.config().get("mode"));
+    }
+    return heavy;
   }
 
   private boolean isSimpleScript(final String script) {
