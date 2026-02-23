@@ -253,33 +253,50 @@ public class TaskTrackerService {
         final String module,
         final String status,
         final Map<String, Object> metadata) {
+      int index = -1;
       for (int i = 0; i < tasks.size(); i++) {
-        final TaskProgress taskProgress = tasks.get(i);
-        if (taskProgress.nodeId().equals(nodeId)) {
-          LocalDateTime taskStartTime = taskProgress.startTime();
-          LocalDateTime taskEndTime = taskProgress.endTime();
-          if ("RUNNING".equals(status) && taskStartTime == null) {
-            taskStartTime = LocalDateTime.now();
-          } else if (("SUCCESS".equals(status) || "FAILURE".equals(status))
-              && taskEndTime == null) {
-            taskEndTime = LocalDateTime.now();
-          }
-
-          final Map<String, Object> newMetadata;
-          if (metadata != null && !metadata.isEmpty()) {
-            newMetadata = new java.util.HashMap<>(taskProgress.metadata());
-            newMetadata.putAll(metadata);
-          } else {
-            newMetadata = taskProgress.metadata();
-          }
-
-          tasks.set(
-              i,
-              new TaskProgress(
-                  nodeId, module, status, taskStartTime, taskEndTime, Map.copyOf(newMetadata)));
+        if (tasks.get(i).nodeId().equals(nodeId)) {
+          index = i;
           break;
         }
       }
+
+      if (index != -1) {
+        final TaskProgress current = tasks.get(index);
+        tasks.set(index, createUpdatedTask(current, module, status, metadata));
+      }
+    }
+
+    private TaskProgress createUpdatedTask(
+        final TaskProgress current,
+        final String module,
+        final String status,
+        final Map<String, Object> metadata) {
+      final LocalDateTime taskStartTime = determineStartTime(current.startTime(), status);
+      final LocalDateTime taskEndTime = determineEndTime(current.endTime(), status);
+      final Map<String, Object> newMetadata = mergeMetadata(current.metadata(), metadata);
+
+      return new TaskProgress(
+          current.nodeId(), module, status, taskStartTime, taskEndTime, Map.copyOf(newMetadata));
+    }
+
+    private LocalDateTime determineStartTime(final LocalDateTime current, final String status) {
+      return ("RUNNING".equals(status) && current == null) ? LocalDateTime.now() : current;
+    }
+
+    private LocalDateTime determineEndTime(final LocalDateTime current, final String status) {
+      return (("SUCCESS".equals(status) || "FAILURE".equals(status)) && current == null)
+          ? LocalDateTime.now()
+          : current;
+    }
+
+    private Map<String, Object> mergeMetadata(
+        final Map<String, Object> current, final Map<String, Object> additional) {
+      final Map<String, Object> merged = new ConcurrentHashMap<>(current);
+      if (additional != null) {
+        merged.putAll(additional);
+      }
+      return merged;
     }
 
     /* default */ void setStatus(final String status) {
