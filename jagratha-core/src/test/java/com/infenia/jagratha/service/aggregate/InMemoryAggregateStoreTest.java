@@ -26,8 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 class InMemoryAggregateStoreTest {
 
   private InMemoryAggregateStore store;
@@ -96,7 +94,8 @@ class InMemoryAggregateStoreTest {
     store.addValue(key, 10.0, msg, configMax).block();
     StepVerifier.create(store.addValue(key, 15.0, msg, configMax))
         .expectNextMatches(
-            res -> res.status() == AggregateResult.Status.COMPLETED && (Double) res.result() == 15.0)
+            res ->
+                res.status() == AggregateResult.Status.COMPLETED && (Double) res.result() == 15.0)
         .verifyComplete();
   }
 
@@ -126,16 +125,7 @@ class InMemoryAggregateStoreTest {
     final String key = "custom-key";
     final AggregateConfig config =
         new AggregateConfig(
-            "COUNT",
-            2,
-            0,
-            "CUSTOM",
-            100,
-            true,
-            "IGNORE",
-            0.0,
-            "#acc + #val + 10",
-            "#acc * 2");
+            "COUNT", 2, 0, "CUSTOM", 100, true, "IGNORE", 0.0, "#acc + #val + 10", "#acc * 2");
     final Message msg = Message.create(UUID.randomUUID(), 1.0);
 
     store.addValue(key, 5.0, msg, config).block();
@@ -146,7 +136,8 @@ class InMemoryAggregateStoreTest {
             res -> {
               // acc = 15.0 + 5.0 + 10 = 30.0
               // result = 30.0 * 2 = 60.0
-              return res.status() == AggregateResult.Status.COMPLETED && (Double) res.result() == 60.0;
+              return res.status() == AggregateResult.Status.COMPLETED
+                  && (Double) res.result() == 60.0;
             })
         .verifyComplete();
   }
@@ -180,7 +171,10 @@ class InMemoryAggregateStoreTest {
     store.addValue(key, 10.0, msg, config).block();
 
     // Reset session
-    try { Thread.sleep(150); } catch (InterruptedException e) {}
+    try {
+      Thread.sleep(150);
+    } catch (InterruptedException e) {
+    }
     store.addValue(key, 20.0, msg, config).block();
 
     StepVerifier.create(store.getAsyncResults())
@@ -246,20 +240,21 @@ class InMemoryAggregateStoreTest {
     store.flush(key).block();
     AggregateConfig configFail =
         new AggregateConfig("COUNT", 2, 0, "SUM", 100, true, "FAIL", null, null, null);
-    assertThrows(IllegalArgumentException.class, () -> store.addValue(key, null, msg, configFail).block());
+    assertThrows(
+        IllegalArgumentException.class, () -> store.addValue(key, null, msg, configFail).block());
   }
 
   private void assertThrows(Class<? extends Throwable> clazz, Runnable runnable) {
-      try {
-          runnable.run();
-          throw new RuntimeException("Expected " + clazz.getName());
-      } catch (Throwable t) {
-          if (!clazz.isInstance(t)) {
-              if (t.getCause() != null && clazz.isInstance(t.getCause())) {
-                  return;
-              }
-              throw t;
-          }
+    try {
+      runnable.run();
+      throw new RuntimeException("Expected " + clazz.getName());
+    } catch (Throwable t) {
+      if (!clazz.isInstance(t)) {
+        if (t.getCause() != null && clazz.isInstance(t.getCause())) {
+          return;
+        }
+        throw t;
       }
+    }
   }
 }

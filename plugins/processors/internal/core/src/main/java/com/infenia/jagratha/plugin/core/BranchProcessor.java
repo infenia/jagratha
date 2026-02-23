@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 package com.infenia.jagratha.plugin.core;
-import com.infenia.jagratha.util.SpelUtils;
 
 import com.infenia.jagratha.plugin.Message;
 import com.infenia.jagratha.plugin.NoMatchingBranchException;
 import com.infenia.jagratha.plugin.ProcessorPlugin;
+import com.infenia.jagratha.util.SpelUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

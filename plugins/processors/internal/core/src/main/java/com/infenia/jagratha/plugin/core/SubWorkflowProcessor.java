@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 package com.infenia.jagratha.plugin.core;
-import com.infenia.jagratha.util.SpelUtils;
 
 import com.infenia.jagratha.config.AppConfigService;
 import com.infenia.jagratha.plugin.Message;
 import com.infenia.jagratha.plugin.ProcessorPlugin;
 import com.infenia.jagratha.plugin.ResultCollector;
 import com.infenia.jagratha.service.WorkflowOrchestrator;
+import com.infenia.jagratha.util.SpelUtils;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;

@@ -30,9 +30,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Aggregates multiple incoming messages into a single window based on count, time, or session.
- */
+/** Aggregates multiple incoming messages into a single window based on count, time, or session. */
 @Slf4j
 @Component
 @SuppressWarnings({"PMD.OnlyOneReturn", "PMD.TooManyMethods"})

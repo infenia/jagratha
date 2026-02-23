@@ -42,8 +42,7 @@ public class InMemoryAggregateStore implements AggregateStore {
   private static final int CLEANUP_DELAY_MS = 100;
 
   private final Map<String, AggregateState> store =
-      Collections.synchronizedMap(
-          new LinkedHashMap<>(16, 0.75f, true));
+      Collections.synchronizedMap(new LinkedHashMap<>(16, 0.75f, true));
 
   private final Sinks.Many<AggregateResult> asyncResults =
       Sinks.many().multicast().onBackpressureBuffer();
@@ -143,7 +142,10 @@ public class InMemoryAggregateStore implements AggregateStore {
             return null;
           }
           return new AggregateResult(
-              AggregateResult.Status.COMPLETED, state.getFinalResult(), key, state.getLastMessage());
+              AggregateResult.Status.COMPLETED,
+              state.getFinalResult(),
+              key,
+              state.getLastMessage());
         });
   }
 
@@ -313,7 +315,8 @@ public class InMemoryAggregateStore implements AggregateStore {
         result = count > 0 ? ((Number) accumulator).doubleValue() / count : 0.0;
       } else if ("CUSTOM".equals(config.aggregationType()) && config.customResultExp() != null) {
         result =
-            SpelUtils.evaluateSync(config.customResultExp(), lastMessage, Map.of("acc", accumulator));
+            SpelUtils.evaluateSync(
+                config.customResultExp(), lastMessage, Map.of("acc", accumulator));
       }
       return result;
     }

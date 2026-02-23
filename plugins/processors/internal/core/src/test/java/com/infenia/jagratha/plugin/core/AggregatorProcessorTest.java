@@ -57,10 +57,8 @@ class AggregatorProcessorTest {
             "window", Map.of("type", "COUNT", "size", 2),
             "aggregation", Map.of("type", "SUM", "field", "payload.amount"));
 
-    final Message msg1 =
-        Message.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
-    final Message msg2 =
-        Message.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 20.0));
+    final Message msg1 = Message.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
+    final Message msg2 = Message.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 20.0));
 
     when(aggregateStore.addValue(anyString(), any(), any(), any()))
         .thenReturn(
@@ -86,12 +84,12 @@ class AggregatorProcessorTest {
             "window", Map.of("type", "TIME", "durationMs", 1000),
             "aggregation", Map.of("type", "SUM", "field", "payload.amount"));
 
-    final Message msg1 =
-        Message.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
+    final Message msg1 = Message.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
 
     when(aggregateStore.addValue(anyString(), any(), any(), any()))
         .thenReturn(
-            Mono.just(new AggregateResult(AggregateResult.Status.WAITING, null, "sess1:agg:u1", msg1)));
+            Mono.just(
+                new AggregateResult(AggregateResult.Status.WAITING, null, "sess1:agg:u1", msg1)));
 
     final AggregateResult asyncRes =
         new AggregateResult(AggregateResult.Status.COMPLETED, 10.0, "sess1:agg:u1", msg1);
@@ -113,17 +111,21 @@ class AggregatorProcessorTest {
   void testEviction() {
     final Map<String, Object> config =
         Map.of(
-            "groupBy", "payload.userId",
-            "window", Map.of("type", "COUNT", "size", 10),
-            "aggregation", Map.of("type", "SUM", "field", "payload.amount"),
-            "maxPendingWindows", 1);
+            "groupBy",
+            "payload.userId",
+            "window",
+            Map.of("type", "COUNT", "size", 10),
+            "aggregation",
+            Map.of("type", "SUM", "field", "payload.amount"),
+            "maxPendingWindows",
+            1);
 
-    final Message msg1 =
-        Message.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
+    final Message msg1 = Message.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
 
     when(aggregateStore.addValue(anyString(), any(), any(), any()))
         .thenReturn(
-            Mono.just(new AggregateResult(AggregateResult.Status.WAITING, null, "sess1:agg:u1", msg1)));
+            Mono.just(
+                new AggregateResult(AggregateResult.Status.WAITING, null, "sess1:agg:u1", msg1)));
 
     final AggregateResult evicted =
         new AggregateResult(AggregateResult.Status.EVICTED, 5.0, "sess1:agg:old", msg1);
@@ -165,18 +167,19 @@ class AggregatorProcessorTest {
             "window", Map.of("type", "COUNT", "size", 10),
             "aggregation", Map.of("type", "SUM", "field", "payload.amount"));
 
-    final Message msg1 =
-        Message.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
+    final Message msg1 = Message.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
 
     when(aggregateStore.addValue(anyString(), any(), any(), any()))
         .thenReturn(
-            Mono.just(new AggregateResult(AggregateResult.Status.WAITING, null, "sess1:agg:u1", msg1)));
+            Mono.just(
+                new AggregateResult(AggregateResult.Status.WAITING, null, "sess1:agg:u1", msg1)));
 
     when(aggregateStore.getAsyncResults()).thenReturn(Flux.never());
 
     when(aggregateStore.flushAll(anyString()))
         .thenReturn(
-            Flux.just(new AggregateResult(AggregateResult.Status.COMPLETED, 10.0, "sess1:agg:u1", msg1)));
+            Flux.just(
+                new AggregateResult(AggregateResult.Status.COMPLETED, 10.0, "sess1:agg:u1", msg1)));
 
     StepVerifier.create(
             processor

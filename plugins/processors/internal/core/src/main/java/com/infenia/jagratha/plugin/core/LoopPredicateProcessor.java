@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 package com.infenia.jagratha.plugin.core;
-import com.infenia.jagratha.util.SpelUtils;
 
 import com.infenia.jagratha.plugin.Message;
 import com.infenia.jagratha.plugin.ProcessorPlugin;
 import com.infenia.jagratha.plugin.WorkflowPlugin;
 import com.infenia.jagratha.service.TaskTrackerService;
 import com.infenia.jagratha.service.WorkflowRegistry;
+import com.infenia.jagratha.util.SpelUtils;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
