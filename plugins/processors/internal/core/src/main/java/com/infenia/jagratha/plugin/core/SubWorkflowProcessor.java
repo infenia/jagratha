@@ -32,13 +32,19 @@ import reactor.core.publisher.Mono;
 /** Executes a nested DAG as a single node in the parent DAG. */
 @Slf4j
 @Component
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.LawOfDemeter"})
 public class SubWorkflowProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "SUB_WORKFLOW";
 
-  @Autowired private ObjectProvider<WorkflowOrchestrator> orchestratorProvider;
+  @Autowired private ObjectProvider<WorkflowOrchestrator> orchProv;
 
-  @Autowired private ObjectProvider<AppConfigService> configServiceProvider;
+  @Autowired private ObjectProvider<AppConfigService> cfgServProv;
+
+  /** Default constructor. */
+  public SubWorkflowProcessor() {
+    super();
+  }
 
   @Override
   public String getType() {
@@ -100,8 +106,8 @@ public class SubWorkflowProcessor implements ProcessorPlugin {
       final String childSessionId,
       final String workflowId,
       final Map<String, Object> payload) {
-    final WorkflowOrchestrator orchestrator = orchestratorProvider.getIfAvailable();
-    final AppConfigService configService = configServiceProvider.getIfAvailable();
+    final WorkflowOrchestrator orchestrator = orchProv.getIfAvailable();
+    final AppConfigService configService = cfgServProv.getIfAvailable();
 
     if (orchestrator == null || configService == null) {
       return Mono.error(new IllegalStateException("Required services not available"));

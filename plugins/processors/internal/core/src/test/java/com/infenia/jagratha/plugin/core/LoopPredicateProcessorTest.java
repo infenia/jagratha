@@ -61,6 +61,7 @@ class LoopPredicateProcessorTest {
   @Test
   void testLoopStoppingViaExitCondition() {
     final String targetId = "incrementor";
+    when(registry.contains(targetId)).thenReturn(true);
     when(registry.get(targetId)).thenReturn(targetPlugin);
 
     when(targetPlugin.process(any(), any()))
@@ -100,6 +101,7 @@ class LoopPredicateProcessorTest {
   @Test
   void testLoopStoppingViaMaxIterations() {
     final String targetId = "incrementor";
+    when(registry.contains(targetId)).thenReturn(true);
     when(registry.get(targetId)).thenReturn(targetPlugin);
 
     when(targetPlugin.process(any(), any()))
@@ -132,12 +134,13 @@ class LoopPredicateProcessorTest {
         .expectNextMatches(msg -> (int) msg.payload() == 2)
         .verifyComplete();
 
-    verify(tracker).appendLog(eq("s1"), eq("[Loop] Node: n1 - Max iterations reached (2)"));
+    verify(tracker).appendLog(eq("s1"), eq("[Loop] Node: n1 - Max iterations (2)"));
   }
 
   @Test
   void testEscalateFailureStrategy() {
     final String targetId = "failer";
+    when(registry.contains(targetId)).thenReturn(true);
     when(registry.get(targetId)).thenReturn(targetPlugin);
 
     when(targetPlugin.process(any(), any()))

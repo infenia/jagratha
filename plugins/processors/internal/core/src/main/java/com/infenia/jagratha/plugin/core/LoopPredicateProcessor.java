@@ -37,6 +37,7 @@ import reactor.core.scheduler.Schedulers;
  */
 @Slf4j
 @Component
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.LawOfDemeter"})
 public class LoopPredicateProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "LOOP_PREDICATE";
@@ -45,6 +46,11 @@ public class LoopPredicateProcessor implements ProcessorPlugin {
   @Autowired private ObjectProvider<WorkflowRegistry> registryProvider;
 
   @Autowired private ObjectProvider<TaskTrackerService> trackerProvider;
+
+  /** Default constructor. */
+  public LoopPredicateProcessor() {
+    super();
+  }
 
   @Override
   public String getType() {
@@ -60,64 +66,36 @@ public class LoopPredicateProcessor implements ProcessorPlugin {
 
   @Override
   public Flux<Message> process(final Flux<Message> input, final Map<String, Object> config) {
-    final String targetPluginId = (String) config.get("targetPluginId");
-    @SuppressWarnings("unchecked")
-    final Map<String, Object> targetConfig =
-        (Map<String, Object>) config.getOrDefault("targetConfig", Map.of());
-    final int maxIterations = ((Number) config.getOrDefault("maxIterations", 10)).intValue();
-    final Duration maxDuration =
-        Duration.parse((String) config.getOrDefault("maxDuration", "PT1M"));
-    final Duration delayInterval =
-        Duration.parse((String) config.getOrDefault("delayInterval", "PT0S"));
-    final String exitCondition = (String) config.get("exitCondition");
-    final FailureStrategy failureStrategy =
-        FailureStrategy.valueOf(
-            ((String) config.getOrDefault("failureStrategy", "ABORT")).toUpperCase(Locale.ROOT));
-
+    final String targetId = (String) config.get("targetPluginId");
     final WorkflowRegistry registry = registryProvider.getIfAvailable();
-    if (registry == null) {
-      return Flux.error(new IllegalStateException("WorkflowRegistry not available"));
+
+    if (registry == null || !registry.contains(targetId)) {
+      return Flux.error(new IllegalArgumentException("Target plugin not found: " + targetId));
     }
 
-    final WorkflowPlugin targetPlugin = registry.get(targetPluginId);
+    final WorkflowPlugin targetPlugin = registry.get(targetId);
     if (!(targetPlugin instanceof ProcessorPlugin processor)) {
       return Flux.error(
-          new IllegalArgumentException(
-              "Target plugin must be a ProcessorPlugin: " + targetPluginId));
+          new IllegalArgumentException("Target plugin must be a ProcessorPlugin: " + targetId));
     }
+
+    final LoopContext context = LoopContext.from(config, processor);
 
     return input.concatMap(
         initialMessage ->
             Mono.deferContextual(
                 ctx -> {
-                  final String sessionId = ctx.getOrDefault("sessionId", "unknown");
-                  final String nodeId = ctx.getOrDefault("nodeId", "unknown");
-                  final long startTime = System.currentTimeMillis();
+                  final String sId = ctx.getOrDefault("sessionId", "unknown");
+                  final String nId = ctx.getOrDefault("nodeId", "unknown");
+                  final long start = System.currentTimeMillis();
 
-                  return executeLoop(
-                      initialMessage,
-                      processor,
-                      targetConfig,
-                      maxIterations,
-                      maxDuration,
-                      delayInterval,
-                      exitCondition,
-                      failureStrategy,
-                      sessionId,
-                      nodeId,
-                      startTime);
+                  return executeLoop(initialMessage, context, sId, nId, start);
                 }));
   }
 
   private Mono<Message> executeLoop(
       final Message initialMessage,
-      final ProcessorPlugin processor,
-      final Map<String, Object> targetConfig,
-      final int maxIterations,
-      final Duration maxDuration,
-      final Duration delayInterval,
-      final String exitCondition,
-      final FailureStrategy failureStrategy,
+      final LoopContext context,
       final String sessionId,
       final String nodeId,
       final long startTime) {
@@ -129,22 +107,29 @@ public class LoopPredicateProcessor implements ProcessorPlugin {
                 return Mono.empty();
               }
 
-              if (state.iteration() >= maxIterations) {
+              if (state.iteration() >= context.maxIterations()) {
                 return logAndTerminate(
-                    sessionId, nodeId, "Max iterations reached (" + maxIterations + ")", state);
+                    sessionId, nodeId, "Max iterations (" + context.maxIterations() + ")", state);
               }
-              if (System.currentTimeMillis() - startTime > maxDuration.toMillis()) {
+              if (System.currentTimeMillis() - startTime > context.maxDuration().toMillis()) {
                 return logAndTerminate(
-                    sessionId, nodeId, "Max duration reached (" + maxDuration + ")", state);
+                    sessionId, nodeId, "Max duration (" + context.maxDuration() + ")", state);
               }
 
               return logIteration(sessionId, nodeId, state.iteration() + 1)
-                  .then(processor.process(Flux.just(state.message()), targetConfig).last())
+                  .then(
+                      context
+                          .processor()
+                          .process(Flux.just(state.message()), context.targetConfig())
+                          .last())
                   .flatMap(
                       resultMessage -> {
                         final long elapsed = System.currentTimeMillis() - startTime;
                         return checkExit(
-                                resultMessage, exitCondition, state.iteration() + 1, elapsed)
+                                resultMessage,
+                                context.exitCondition(),
+                                state.iteration() + 1,
+                                elapsed)
                             .flatMap(
                                 exit -> {
                                   if (Boolean.TRUE.equals(exit)) {
@@ -155,10 +140,13 @@ public class LoopPredicateProcessor implements ProcessorPlugin {
                                         state.next(resultMessage, true));
                                   }
                                   return Mono.just(state.next(resultMessage, false))
-                                      .delayElement(delayInterval);
+                                      .delayElement(context.delayInterval());
                                 });
                       })
-                  .onErrorResume(e -> handleFailure(e, failureStrategy, state, delayInterval));
+                  .onErrorResume(
+                      e ->
+                          handleFailure(
+                              e, context.failureStrategy(), state, context.delayInterval()));
             })
         .filter(LoopState::terminated)
         .last()
@@ -206,13 +194,38 @@ public class LoopPredicateProcessor implements ProcessorPlugin {
   private Mono<LoopState> logAndTerminate(
       final String sessionId, final String nodeId, final String reason, final LoopState state) {
     final TaskTrackerService tracker = trackerProvider.getIfAvailable();
+    final LoopState termState = state.withTerminated(true);
     if (tracker == null) {
-      return Mono.just(state.withTerminated(true));
+      return Mono.just(termState);
     }
     return tracker
         .appendLog(sessionId, "[Loop] Node: " + nodeId + " - " + reason)
         .subscribeOn(Schedulers.boundedElastic())
-        .then(Mono.just(state.withTerminated(true)));
+        .then(Mono.just(termState));
+  }
+
+  private record LoopContext(
+      ProcessorPlugin processor,
+      Map<String, Object> targetConfig,
+      int maxIterations,
+      Duration maxDuration,
+      Duration delayInterval,
+      String exitCondition,
+      FailureStrategy failureStrategy) {
+
+    @SuppressWarnings("unchecked")
+    /* default */ static LoopContext from(
+        final Map<String, Object> config, final ProcessorPlugin processor) {
+      return new LoopContext(
+          processor,
+          (Map<String, Object>) config.getOrDefault("targetConfig", Map.of()),
+          ((Number) config.getOrDefault("maxIterations", 10)).intValue(),
+          Duration.parse((String) config.getOrDefault("maxDuration", "PT1M")),
+          Duration.parse((String) config.getOrDefault("delayInterval", "PT0S")),
+          (String) config.get("exitCondition"),
+          FailureStrategy.valueOf(
+              ((String) config.getOrDefault("failureStrategy", "ABORT")).toUpperCase(Locale.ROOT)));
+    }
   }
 
   private record LoopState(Message message, int iteration, boolean terminated, Throwable error) {

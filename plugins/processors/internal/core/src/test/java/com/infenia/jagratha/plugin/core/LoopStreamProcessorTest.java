@@ -58,6 +58,7 @@ class LoopStreamProcessorTest {
   @Test
   void testStreamingLoop() {
     final String targetId = "paginator";
+    when(registry.contains(targetId)).thenReturn(true);
     when(registry.get(targetId)).thenReturn(targetPlugin);
 
     when(targetPlugin.process(any(), any()))
