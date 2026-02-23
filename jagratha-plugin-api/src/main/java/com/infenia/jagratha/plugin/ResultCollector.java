@@ -27,6 +27,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class ResultCollector {
   private final Queue<Message> results = new ConcurrentLinkedQueue<>();
 
+  /** Default constructor. */
+  public ResultCollector() {
+    super();
+  }
+
   /**
    * Add a message to the collector.
    *
