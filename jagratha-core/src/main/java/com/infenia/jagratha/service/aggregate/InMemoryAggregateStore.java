@@ -21,12 +21,14 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -36,13 +38,31 @@ import reactor.core.publisher.Sinks;
 /** In-memory implementation of AggregateStore using LinkedHashMap for LRU. */
 @Slf4j
 @Component
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.DoNotUseThreads", "PMD.TooManyMethods"})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.DoNotUseThreads"})
 public class InMemoryAggregateStore implements AggregateStore {
 
   private static final int CLEANUP_DELAY_MS = 100;
+  private static final int INITIAL_CAPACITY = 16;
+  private static final float LOAD_FACTOR = 0.75f;
+
+  private static final String TYPE_TIME = "TIME";
+  private static final String TYPE_SESSION = "SESSION";
+  private static final String TYPE_COUNT = "COUNT";
+
+  private static final String AGG_SUM = "SUM";
+  private static final String AGG_AVERAGE = "AVERAGE";
+  private static final String AGG_MIN = "MIN";
+  private static final String AGG_MAX = "MAX";
+  private static final String AGG_LIST = "COLLECT_LIST";
+  private static final String AGG_CUSTOM = "CUSTOM";
+
+  private static final String POLICY_ZERO = "ZERO";
+  private static final String POLICY_FAIL = "FAIL";
 
   private final Map<String, AggregateState> store =
-      Collections.synchronizedMap(new LinkedHashMap<>(16, 0.75f, true));
+      Collections.synchronizedMap(new LinkedHashMap<>(INITIAL_CAPACITY, LOAD_FACTOR, true));
+
+  private final ReentrantLock lock = new ReentrantLock();
 
   private final Sinks.Many<AggregateResult> asyncResults =
       Sinks.many().multicast().onBackpressureBuffer();
@@ -91,12 +111,13 @@ public class InMemoryAggregateStore implements AggregateStore {
       final String key, final Object value, final Message message, final AggregateConfig config) {
 
     AggregateResult evictionResult = null;
-    synchronized (store) {
+    lock.lock();
+    try {
       if (!store.containsKey(key) && store.size() >= config.maxPendingWindows()) {
-        final var it = store.entrySet().iterator();
-        if (it.hasNext()) {
-          final var entry = it.next();
-          it.remove();
+        final Iterator<Map.Entry<String, AggregateState>> iterator = store.entrySet().iterator();
+        if (iterator.hasNext()) {
+          final Map.Entry<String, AggregateState> entry = iterator.next();
+          iterator.remove();
           final AggregateState oldest = entry.getValue();
           evictionResult =
               new AggregateResult(
@@ -106,6 +127,8 @@ public class InMemoryAggregateStore implements AggregateStore {
                   oldest.getLastMessage());
         }
       }
+    } finally {
+      lock.unlock();
     }
 
     if (evictionResult != null) {
@@ -116,12 +139,12 @@ public class InMemoryAggregateStore implements AggregateStore {
         store.compute(
             key,
             (k, existing) -> {
-              AggregateState s = existing;
-              if (s == null) {
-                s = new AggregateState(message, config);
+              AggregateState targetState = existing;
+              if (targetState == null) {
+                targetState = new AggregateState(message, config);
               }
-              s.update(value, message);
-              return s;
+              targetState.update(value, message);
+              return targetState;
             });
 
     if (state.isTriggered()) {
@@ -157,10 +180,11 @@ public class InMemoryAggregateStore implements AggregateStore {
   @Override
   public Flux<AggregateResult> flushAll(final String keyPrefix) {
     final List<AggregateResult> results = new ArrayList<>();
-    synchronized (store) {
-      final var it = store.entrySet().iterator();
-      while (it.hasNext()) {
-        final var entry = it.next();
+    lock.lock();
+    try {
+      final Iterator<Map.Entry<String, AggregateState>> iterator = store.entrySet().iterator();
+      while (iterator.hasNext()) {
+        final Map.Entry<String, AggregateState> entry = iterator.next();
         if (entry.getKey().startsWith(keyPrefix)) {
           final AggregateState state = entry.getValue();
           results.add(
@@ -169,9 +193,11 @@ public class InMemoryAggregateStore implements AggregateStore {
                   state.getFinalResult(),
                   entry.getKey(),
                   state.getLastMessage()));
-          it.remove();
+          iterator.remove();
         }
       }
+    } finally {
+      lock.unlock();
     }
     return Flux.fromIterable(results);
   }
@@ -182,46 +208,46 @@ public class InMemoryAggregateStore implements AggregateStore {
   }
 
   private void cleanup() {
-    final long now = System.currentTimeMillis();
     final List<String> toRemove = new ArrayList<>();
     final List<String> toDiscard = new ArrayList<>();
 
-    synchronized (store) {
+    lock.lock();
+    try {
+      final long now = System.currentTimeMillis();
       for (final Map.Entry<String, AggregateState> entry : store.entrySet()) {
-        final AggregateState state = entry.getValue();
-        final AggregateConfig config = state.getConfig();
-
-        if ("TIME".equals(config.windowType())) {
-          if (now - state.getStartTime() >= config.durationMs()) {
-            if (config.emitOnTimeout()) {
-              toRemove.add(entry.getKey());
-            } else {
-              toDiscard.add(entry.getKey());
-            }
-          }
-        } else if ("SESSION".equals(config.windowType())) {
-          if (now - state.getLastAccessTime() >= config.durationMs()) {
-            if (config.emitOnTimeout()) {
-              toRemove.add(entry.getKey());
-            } else {
-              toDiscard.add(entry.getKey());
-            }
-          }
-        }
+        checkExpired(entry, now, toRemove, toDiscard);
       }
       toDiscard.forEach(store::remove);
-      toRemove.forEach(
-          key -> {
-            final AggregateState state = store.remove(key);
-            if (state != null) {
-              asyncResults.tryEmitNext(
-                  new AggregateResult(
-                      AggregateResult.Status.COMPLETED,
-                      state.getFinalResult(),
-                      key,
-                      state.getLastMessage()));
-            }
-          });
+      toRemove.forEach(this::emitAndRemove);
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private void checkExpired(
+      final Map.Entry<String, AggregateState> entry,
+      final long now,
+      final List<String> toRemove,
+      final List<String> toDiscard) {
+    final AggregateState state = entry.getValue();
+    if (state.isExpired(now)) {
+      if (state.isEmitOnTimeout()) {
+        toRemove.add(entry.getKey());
+      } else {
+        toDiscard.add(entry.getKey());
+      }
+    }
+  }
+
+  private void emitAndRemove(final String key) {
+    final AggregateState state = store.remove(key);
+    if (state != null) {
+      asyncResults.tryEmitNext(
+          new AggregateResult(
+              AggregateResult.Status.COMPLETED,
+              state.getFinalResult(),
+              key,
+              state.getLastMessage()));
     }
   }
 
@@ -233,7 +259,7 @@ public class InMemoryAggregateStore implements AggregateStore {
     private long lastAccessTime;
     private final AggregateConfig config;
 
-    AggregateState(final Message message, final AggregateConfig config) {
+    /* default */ AggregateState(final Message message, final AggregateConfig config) {
       this.startTime = System.currentTimeMillis();
       this.lastAccessTime = startTime;
       this.lastMessage = message;
@@ -243,102 +269,105 @@ public class InMemoryAggregateStore implements AggregateStore {
 
     private Object initAccumulator(final AggregateConfig cfg) {
       return switch (cfg.aggregationType()) {
-        case "SUM", "AVERAGE", "MIN", "MAX" -> 0.0;
-        case "COLLECT_LIST" -> new ArrayList<>();
-        case "CUSTOM" -> cfg.customInitValue();
+        case AGG_SUM, AGG_AVERAGE, AGG_MIN, AGG_MAX -> 0.0;
+        case AGG_LIST -> new ArrayList<>();
+        case AGG_CUSTOM -> cfg.initVal();
         default -> null;
       };
     }
 
-    void update(final Object value, final Message message) {
+    /* default */ void update(final Object value, final Message message) {
       this.lastAccessTime = System.currentTimeMillis();
       this.lastMessage = message;
 
-      Object val = value;
-      if (val == null) {
-        switch (config.nullPolicy()) {
-          case "ZERO" -> val = 0.0;
-          case "FAIL" -> throw new IllegalArgumentException("Null value not allowed");
-          case "IGNORE" -> {
-            return;
-          }
-          default -> {
-            return;
-          }
-        }
+      final Object normalizedValue = normalizeValue(value);
+      if (normalizedValue != null) {
+        count++;
+        accumulator = performAggregation(accumulator, normalizedValue);
       }
+    }
 
-      count++;
-      accumulator = performAggregation(accumulator, val);
+    private Object normalizeValue(final Object value) {
+      if (value != null) {
+        return value;
+      }
+      final String policy = config.nullPolicy();
+      if (POLICY_ZERO.equals(policy)) {
+        return 0.0;
+      }
+      if (POLICY_FAIL.equals(policy)) {
+        throw new IllegalArgumentException("Null value not allowed");
+      }
+      return null;
     }
 
     private Object performAggregation(final Object acc, final Object val) {
-      Number nVal = null;
-      if (val instanceof Number num) {
-        nVal = num;
-      } else if (!"COLLECT_LIST".equals(config.aggregationType())
-          && !"CUSTOM".equals(config.aggregationType())) {
-        try {
-          nVal = Double.parseDouble(val.toString());
-        } catch (final NumberFormatException e) {
-          nVal = 0.0;
-        }
-      }
+      final Number numVal = convertToNumber(val);
 
       return switch (config.aggregationType()) {
-        case "SUM", "AVERAGE" ->
-            ((Number) acc).doubleValue() + (nVal != null ? nVal.doubleValue() : 0.0);
-        case "COLLECT_LIST" -> {
+        case AGG_SUM, AGG_AVERAGE -> ((Number) acc).doubleValue() + numVal.doubleValue();
+        case AGG_LIST -> {
           @SuppressWarnings("unchecked")
           final List<Object> list = (List<Object>) acc;
           list.add(val);
           yield list;
         }
-        case "MIN" ->
+        case AGG_MIN ->
             count == 1
-                ? (nVal != null ? nVal.doubleValue() : 0.0)
-                : Math.min(((Number) acc).doubleValue(), (nVal != null ? nVal.doubleValue() : 0.0));
-        case "MAX" ->
+                ? numVal.doubleValue()
+                : Math.min(((Number) acc).doubleValue(), numVal.doubleValue());
+        case AGG_MAX ->
             count == 1
-                ? (nVal != null ? nVal.doubleValue() : 0.0)
-                : Math.max(((Number) acc).doubleValue(), (nVal != null ? nVal.doubleValue() : 0.0));
-        case "CUSTOM" ->
-            SpelUtils.evaluateSync(
-                config.customAccumulateExp(), lastMessage, Map.of("acc", acc, "val", val));
+                ? numVal.doubleValue()
+                : Math.max(((Number) acc).doubleValue(), numVal.doubleValue());
+        case AGG_CUSTOM ->
+            SpelUtils.evaluateSync(config.accExp(), lastMessage, Map.of("acc", acc, "val", val));
         default -> acc;
       };
     }
 
-    Object getFinalResult() {
+    private Number convertToNumber(final Object val) {
+      if (val instanceof Number number) {
+        return number;
+      }
+      final String aggType = config.aggregationType();
+      if (!AGG_LIST.equals(aggType) && !AGG_CUSTOM.equals(aggType)) {
+        try {
+          return Double.parseDouble(val.toString());
+        } catch (final NumberFormatException e) {
+          return 0.0;
+        }
+      }
+      return 0.0;
+    }
+
+    /* default */ Object getFinalResult() {
       Object result = accumulator;
-      if ("AVERAGE".equals(config.aggregationType())) {
+      final String aggType = config.aggregationType();
+      if (AGG_AVERAGE.equals(aggType)) {
         result = count > 0 ? ((Number) accumulator).doubleValue() / count : 0.0;
-      } else if ("CUSTOM".equals(config.aggregationType()) && config.customResultExp() != null) {
-        result =
-            SpelUtils.evaluateSync(
-                config.customResultExp(), lastMessage, Map.of("acc", accumulator));
+      } else if (AGG_CUSTOM.equals(aggType) && config.resExp() != null) {
+        result = SpelUtils.evaluateSync(config.resExp(), lastMessage, Map.of("acc", accumulator));
       }
       return result;
     }
 
-    boolean isTriggered() {
-      return "COUNT".equals(config.windowType()) && count >= config.windowSize();
+    /* default */ boolean isTriggered() {
+      return TYPE_COUNT.equals(config.windowType()) && count >= config.windowSize();
     }
 
-    long getStartTime() {
-      return startTime;
+    /* default */ boolean isExpired(final long now) {
+      final String winType = config.windowType();
+      return (TYPE_TIME.equals(winType) && now - startTime >= config.durationMs())
+          || (TYPE_SESSION.equals(winType) && now - lastAccessTime >= config.durationMs());
     }
 
-    long getLastAccessTime() {
-      return lastAccessTime;
+    /* default */ boolean isEmitOnTimeout() {
+      return config.emitOnTimeout();
     }
 
-    Message getLastMessage() {
+    /* default */ Message getLastMessage() {
       return lastMessage;
-    }
-
-    AggregateConfig getConfig() {
-      return config;
     }
   }
 }

@@ -73,9 +73,9 @@ public interface AggregateStore {
       int maxPendingWindows,
       boolean emitOnTimeout,
       String nullPolicy,
-      Object customInitValue,
-      String customAccumulateExp,
-      String customResultExp) {}
+      Object initVal,
+      String accExp,
+      String resExp) {}
 
   /** Result of an aggregation operation. */
   record AggregateResult(Status status, Object result, String key, Message lastMessage) {

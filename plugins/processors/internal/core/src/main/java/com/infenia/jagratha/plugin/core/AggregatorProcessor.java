@@ -33,7 +33,7 @@ import reactor.core.publisher.Mono;
 /** Aggregates multiple incoming messages into a single window based on count, time, or session. */
 @Slf4j
 @Component
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.TooManyMethods"})
+@SuppressWarnings({"PMD.OnlyOneReturn"})
 public class AggregatorProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "AGGREGATOR";
@@ -55,7 +55,9 @@ public class AggregatorProcessor implements ProcessorPlugin {
   private static final String AGG_ACC = "accumulateExp";
   private static final String AGG_RES = "resultExp";
 
-  private static final int DEFAULT_MAX_PENDING = 1000;
+  private static final String UNCHECKED = "unchecked";
+
+  private static final int DEF_MAX_PEND = 1000;
 
   @Autowired private AggregateStore aggregateStore;
 
@@ -92,7 +94,7 @@ public class AggregatorProcessor implements ProcessorPlugin {
   @Override
   public Mono<Void> initialize(final Map<String, Object> config) {
     SpelUtils.preParse((String) config.get(CFG_GROUP_BY));
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(UNCHECKED)
     final Map<String, Object> aggregation = (Map<String, Object>) config.get(CFG_AGGREGATION);
     SpelUtils.preParse((String) aggregation.get(AGG_FIELD));
     SpelUtils.preParse((String) aggregation.get(AGG_ACC));
@@ -104,7 +106,7 @@ public class AggregatorProcessor implements ProcessorPlugin {
   public Flux<Message> process(final Flux<Message> input, final Map<String, Object> config) {
     final AggregateConfig aggConfig = createAggregateConfig(config);
     final String groupBy = (String) config.get(CFG_GROUP_BY);
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(UNCHECKED)
     final Map<String, Object> aggMap = (Map<String, Object>) config.get(CFG_AGGREGATION);
     final String aggField = (String) aggMap.get(AGG_FIELD);
 
@@ -127,12 +129,7 @@ public class AggregatorProcessor implements ProcessorPlugin {
                         .flatMapMany(this::handleResult);
                   });
 
-          final Flux<Message> async =
-              aggregateStore
-                  .getAsyncResults()
-                  .filter(res -> res.key().startsWith(keyPrefix))
-                  .takeUntilOther(input.then())
-                  .map(this::createMessage);
+          final Flux<Message> async = getAsyncMessages(keyPrefix, input.then());
 
           final Flux<Message> remaining =
               input.thenMany(
@@ -140,6 +137,15 @@ public class AggregatorProcessor implements ProcessorPlugin {
 
           return Flux.merge(incoming, async).concatWith(remaining);
         });
+  }
+
+  @SuppressWarnings("PMD.LawOfDemeter")
+  private Flux<Message> getAsyncMessages(final String keyPrefix, final Mono<Void> completion) {
+    return aggregateStore
+        .getAsyncResults()
+        .filter(res -> res.key().startsWith(keyPrefix))
+        .takeUntilOther(completion)
+        .map(this::createMessage);
   }
 
   @Override
@@ -167,9 +173,9 @@ public class AggregatorProcessor implements ProcessorPlugin {
   }
 
   private AggregateConfig createAggregateConfig(final Map<String, Object> config) {
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(UNCHECKED)
     final Map<String, Object> window = (Map<String, Object>) config.get(CFG_WINDOW);
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(UNCHECKED)
     final Map<String, Object> aggregation = (Map<String, Object>) config.get(CFG_AGGREGATION);
 
     return new AggregateConfig(
@@ -177,7 +183,7 @@ public class AggregatorProcessor implements ProcessorPlugin {
         ((Number) window.getOrDefault(WIN_SIZE, 0)).intValue(),
         ((Number) window.getOrDefault(WIN_DURATION, 0L)).longValue(),
         (String) aggregation.get(AGG_TYPE),
-        ((Number) config.getOrDefault(CFG_MAX_PENDING, DEFAULT_MAX_PENDING)).intValue(),
+        ((Number) config.getOrDefault(CFG_MAX_PENDING, DEF_MAX_PEND)).intValue(),
         (Boolean) config.getOrDefault(CFG_EMIT_TIMEOUT, true),
         (String) config.getOrDefault(CFG_NULL_POLICY, "IGNORE"),
         aggregation.get(AGG_INIT),
