@@ -46,6 +46,21 @@ class PluginInterfaceTest {
   }
 
   @Test
+  void testMessageMethods() {
+    UUID traceId = UUID.randomUUID();
+    Message msg = Message.create(traceId, "payload");
+    assertEquals(traceId, msg.traceId());
+    assertEquals("payload", msg.payload());
+
+    Message stamped = msg.withSourceNodeId("node1");
+    assertEquals("node1", stamped.sourceNodeId());
+
+    Message ported = stamped.withSourcePort("port1");
+    assertEquals("port1", ported.sourcePort());
+    assertEquals("node1", ported.sourceNodeId());
+  }
+
+  @Test
   void testDefaultWorkflowPluginMethods() {
     WorkflowPlugin plugin =
         new WorkflowPlugin() {
