@@ -29,20 +29,16 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Executes a nested DAG as a single node in the parent DAG.
- */
+/** Executes a nested DAG as a single node in the parent DAG. */
 @Slf4j
 @Component
 public class SubWorkflowProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "SUB_WORKFLOW";
 
-  @Autowired
-  private ObjectProvider<WorkflowOrchestrator> orchestratorProvider;
+  @Autowired private ObjectProvider<WorkflowOrchestrator> orchestratorProvider;
 
-  @Autowired
-  private ObjectProvider<AppConfigService> configServiceProvider;
+  @Autowired private ObjectProvider<AppConfigService> configServiceProvider;
 
   @Override
   public String getType() {
@@ -68,18 +64,21 @@ public class SubWorkflowProcessor implements ProcessorPlugin {
       return Flux.error(new IllegalArgumentException("subWorkflowId is mandatory"));
     }
 
-    return input.concatMap(parentMessage ->
-        Mono.deferContextual(ctx -> {
-          final String parentSessionId = ctx.getOrDefault("sessionId", "unknown");
-          final String nodeId = ctx.getOrDefault("nodeId", "unknown");
-          final String childSessionId = parentSessionId + ":" + nodeId;
+    return input.concatMap(
+        parentMessage ->
+            Mono.deferContextual(
+                ctx -> {
+                  final String parentSessionId = ctx.getOrDefault("sessionId", "unknown");
+                  final String nodeId = ctx.getOrDefault("nodeId", "unknown");
+                  final String childSessionId = parentSessionId + ":" + nodeId;
 
-          return mapInput(parentMessage, inputMapper, parentSessionId)
-              .flatMap(
-                  triggerPayload ->
-                      executeSubWorkflow(parentSessionId, childSessionId, subWorkflowId, triggerPayload))
-              .flatMap(results -> mapOutput(results, outputMapper, parentMessage));
-        }));
+                  return mapInput(parentMessage, inputMapper, parentSessionId)
+                      .flatMap(
+                          triggerPayload ->
+                              executeSubWorkflow(
+                                  parentSessionId, childSessionId, subWorkflowId, triggerPayload))
+                      .flatMap(results -> mapOutput(results, outputMapper, parentMessage));
+                }));
   }
 
   private Mono<Map<String, Object>> mapInput(
@@ -92,7 +91,8 @@ public class SubWorkflowProcessor implements ProcessorPlugin {
       }
       return Mono.just(Map.of("payload", message.payload()));
     }
-    return SpelUtils.evaluate(mapper, message, Map.of("headers", message.metadata(), "sessionId", sessionId));
+    return SpelUtils.evaluate(
+        mapper, message, Map.of("headers", message.metadata(), "sessionId", sessionId));
   }
 
   private Mono<List<Message>> executeSubWorkflow(
@@ -111,7 +111,8 @@ public class SubWorkflowProcessor implements ProcessorPlugin {
 
     return configService
         .getWorkflow(parentSessionId, workflowId)
-        .switchIfEmpty(Mono.error(new IllegalArgumentException("Workflow not found: " + workflowId)))
+        .switchIfEmpty(
+            Mono.error(new IllegalArgumentException("Workflow not found: " + workflowId)))
         .flatMap(
             def ->
                 configService
@@ -145,22 +146,23 @@ public class SubWorkflowProcessor implements ProcessorPlugin {
       final List<Message> results, final String mapper, final Message parentMessage) {
     if (mapper == null || mapper.isBlank()) {
       // Default: merge results into a single payload if possible, or just return them
-      return Mono.just(new Message(
-          parentMessage.id(),
-          parentMessage.traceId(),
-          parentMessage.metadata(),
-          results,
-          parentMessage.timestamp()
-      ));
+      return Mono.just(
+          new Message(
+              parentMessage.id(),
+              parentMessage.traceId(),
+              parentMessage.metadata(),
+              results,
+              parentMessage.timestamp()));
     }
 
     return SpelUtils.<Object>evaluate(mapper, results, Map.of("parentMessage", parentMessage))
-        .map(payload -> new Message(
-            parentMessage.id(),
-            parentMessage.traceId(),
-            parentMessage.metadata(),
-            payload,
-            parentMessage.timestamp()
-        ));
+        .map(
+            payload ->
+                new Message(
+                    parentMessage.id(),
+                    parentMessage.traceId(),
+                    parentMessage.metadata(),
+                    payload,
+                    parentMessage.timestamp()));
   }
 }

@@ -15,24 +15,14 @@
  */
 package com.infenia.jagratha.plugin.core;
 
-/**
- * Failure strategies for loop wrappers.
- */
+/** Failure strategies for loop wrappers. */
 public enum FailureStrategy {
-  /**
-   * Abort the workflow execution.
-   */
+  /** Abort the workflow execution. */
   ABORT,
-  /**
-   * Retry the current iteration.
-   */
+  /** Retry the current iteration. */
   RETRY,
-  /**
-   * Skip the current iteration and move to the next.
-   */
+  /** Skip the current iteration and move to the next. */
   SKIP,
-  /**
-   * Escalate the error to the global handler (stops parent workflow).
-   */
+  /** Escalate the error to the global handler (stops parent workflow). */
   ESCALATE
 }

@@ -15,7 +15,6 @@
  */
 package com.infenia.jagratha.plugin.core;
 
-import com.infenia.jagratha.plugin.Message;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.expression.Expression;
@@ -25,9 +24,7 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-/**
- * Utility for SpEL expression evaluation and caching.
- */
+/** Utility for SpEL expression evaluation and caching. */
 public final class SpelUtils {
   private static final ExpressionParser PARSER = new SpelExpressionParser();
   private static final Map<String, Expression> CACHE = new ConcurrentHashMap<>();
@@ -49,7 +46,8 @@ public final class SpelUtils {
       final String expressionStr, final Object root, final Map<String, Object> variables) {
     return Mono.fromCallable(
             () -> {
-              final Expression expression = CACHE.computeIfAbsent(expressionStr, PARSER::parseExpression);
+              final Expression expression =
+                  CACHE.computeIfAbsent(expressionStr, PARSER::parseExpression);
               final StandardEvaluationContext context = new StandardEvaluationContext(root);
               if (variables != null) {
                 context.setVariables(variables);

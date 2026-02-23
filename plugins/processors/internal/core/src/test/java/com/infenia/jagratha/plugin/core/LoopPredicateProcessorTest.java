@@ -28,7 +28,6 @@ import com.infenia.jagratha.service.TaskTrackerService;
 import com.infenia.jagratha.service.WorkflowRegistry;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,25 +63,33 @@ class LoopPredicateProcessorTest {
     final String targetId = "incrementor";
     when(registry.get(targetId)).thenReturn(targetPlugin);
 
-    when(targetPlugin.process(any(), any())).thenAnswer(invocation -> {
-      Flux<Message> input = invocation.getArgument(0);
-      return input.map(msg -> {
-        int val = (int) msg.payload();
-        return Message.create(msg.traceId(), val + 1);
-      });
-    });
+    when(targetPlugin.process(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              Flux<Message> input = invocation.getArgument(0);
+              return input.map(
+                  msg -> {
+                    int val = (int) msg.payload();
+                    return Message.create(msg.traceId(), val + 1);
+                  });
+            });
 
-    final Map<String, Object> config = Map.of(
-        "targetPluginId", targetId,
-        "maxIterations", 5,
-        "maxDuration", "PT1M",
-        "exitCondition", "#root.payload == 3"
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "targetPluginId",
+            targetId,
+            "maxIterations",
+            5,
+            "maxDuration",
+            "PT1M",
+            "exitCondition",
+            "#root.payload == 3");
 
     final Message inputMsg = Message.create(UUID.randomUUID(), 0);
 
     StepVerifier.create(
-            processor.process(Flux.just(inputMsg), config)
+            processor
+                .process(Flux.just(inputMsg), config)
                 .contextWrite(Context.of("sessionId", "s1", "nodeId", "n1")))
         .expectNextMatches(msg -> (int) msg.payload() == 3)
         .verifyComplete();
@@ -95,24 +102,32 @@ class LoopPredicateProcessorTest {
     final String targetId = "incrementor";
     when(registry.get(targetId)).thenReturn(targetPlugin);
 
-    when(targetPlugin.process(any(), any())).thenAnswer(invocation -> {
-      Flux<Message> input = invocation.getArgument(0);
-      return input.map(msg -> {
-        int val = (int) msg.payload();
-        return Message.create(msg.traceId(), val + 1);
-      });
-    });
+    when(targetPlugin.process(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              Flux<Message> input = invocation.getArgument(0);
+              return input.map(
+                  msg -> {
+                    int val = (int) msg.payload();
+                    return Message.create(msg.traceId(), val + 1);
+                  });
+            });
 
-    final Map<String, Object> config = Map.of(
-        "targetPluginId", targetId,
-        "maxIterations", 2,
-        "exitCondition", "#root.payload == 10" // won't reach
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "targetPluginId",
+            targetId,
+            "maxIterations",
+            2,
+            "exitCondition",
+            "#root.payload == 10" // won't reach
+            );
 
     final Message inputMsg = Message.create(UUID.randomUUID(), 0);
 
     StepVerifier.create(
-            processor.process(Flux.just(inputMsg), config)
+            processor
+                .process(Flux.just(inputMsg), config)
                 .contextWrite(Context.of("sessionId", "s1", "nodeId", "n1")))
         .expectNextMatches(msg -> (int) msg.payload() == 2)
         .verifyComplete();
@@ -125,17 +140,17 @@ class LoopPredicateProcessorTest {
     final String targetId = "failer";
     when(registry.get(targetId)).thenReturn(targetPlugin);
 
-    when(targetPlugin.process(any(), any())).thenReturn(Flux.error(new RuntimeException("Failure")));
+    when(targetPlugin.process(any(), any()))
+        .thenReturn(Flux.error(new RuntimeException("Failure")));
 
-    final Map<String, Object> config = Map.of(
-        "targetPluginId", targetId,
-        "failureStrategy", "ESCALATE"
-    );
+    final Map<String, Object> config =
+        Map.of("targetPluginId", targetId, "failureStrategy", "ESCALATE");
 
     final Message inputMsg = Message.create(UUID.randomUUID(), 0);
 
     StepVerifier.create(
-            processor.process(Flux.just(inputMsg), config)
+            processor
+                .process(Flux.just(inputMsg), config)
                 .contextWrite(Context.of("sessionId", "s1", "nodeId", "n1")))
         .expectErrorMatches(e -> e.getMessage().contains("WorkflowExecutionException"))
         .verify();

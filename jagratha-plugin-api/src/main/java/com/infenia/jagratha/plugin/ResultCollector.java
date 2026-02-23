@@ -21,8 +21,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Collector for harvesting results from terminal nodes.
- * Used for sub-workflow execution to capture final messages.
+ * Collector for harvesting results from terminal nodes. Used for sub-workflow execution to capture
+ * final messages.
  */
 public class ResultCollector {
   private final Queue<Message> results = new ConcurrentLinkedQueue<>();
@@ -52,9 +52,7 @@ public class ResultCollector {
     return new ArrayList<>(results);
   }
 
-  /**
-   * Clear all collected messages.
-   */
+  /** Clear all collected messages. */
   public void clear() {
     results.clear();
   }

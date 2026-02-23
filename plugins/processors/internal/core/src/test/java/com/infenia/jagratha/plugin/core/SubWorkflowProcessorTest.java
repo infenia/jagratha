@@ -27,7 +27,6 @@ import com.infenia.jagratha.model.WorkflowDefinition;
 import com.infenia.jagratha.plugin.Message;
 import com.infenia.jagratha.plugin.ResultCollector;
 import com.infenia.jagratha.service.WorkflowOrchestrator;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +36,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -71,7 +69,8 @@ class SubWorkflowProcessorTest {
     final PreparedWorkflow prepared = mock(PreparedWorkflow.class);
     final Message subResult = Message.create(UUID.randomUUID(), "success-result");
 
-    when(configService.getWorkflow(eq(parentSessionId), eq(subWorkflowId))).thenReturn(Mono.just(subDef));
+    when(configService.getWorkflow(eq(parentSessionId), eq(subWorkflowId)))
+        .thenReturn(Mono.just(subDef));
     when(configService.getProjectPath(parentSessionId)).thenReturn(Mono.just("/path"));
     when(configService.setProjectPath(eq(childSessionId), any())).thenReturn(Mono.empty());
     when(configService.getWorkflows(parentSessionId)).thenReturn(Mono.just(Map.of()));
@@ -83,24 +82,28 @@ class SubWorkflowProcessorTest {
 
     when(orchestrator.prepareWorkflow(subDef)).thenReturn(Mono.just(prepared));
     when(orchestrator.execute(eq(childSessionId), eq(prepared), anyMap()))
-        .thenAnswer(invocation -> {
-          // Simulate terminal message collection
-          return Mono.deferContextual(ctx -> {
-            ctx.<ResultCollector>getOrEmpty("resultCollector").ifPresent(c -> c.add(subResult));
-            return Mono.empty();
-          });
-        });
+        .thenAnswer(
+            invocation -> {
+              // Simulate terminal message collection
+              return Mono.deferContextual(
+                  ctx -> {
+                    ctx.<ResultCollector>getOrEmpty("resultCollector")
+                        .ifPresent(c -> c.add(subResult));
+                    return Mono.empty();
+                  });
+            });
 
-    final Map<String, Object> config = Map.of(
-        "subWorkflowId", subWorkflowId,
-        "inputMapper", "#root.payload",
-        "outputMapper", "#root[0].payload"
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "subWorkflowId", subWorkflowId,
+            "inputMapper", "#root.payload",
+            "outputMapper", "#root[0].payload");
 
     final Message inputMsg = Message.create(UUID.randomUUID(), Map.of("key", "val"));
 
     StepVerifier.create(
-            processor.process(Flux.just(inputMsg), config)
+            processor
+                .process(Flux.just(inputMsg), config)
                 .contextWrite(Context.of("sessionId", parentSessionId, "nodeId", nodeId)))
         .expectNextMatches(msg -> "success-result".equals(msg.payload()))
         .verifyComplete();

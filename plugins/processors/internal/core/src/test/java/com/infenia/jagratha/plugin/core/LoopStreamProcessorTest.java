@@ -60,28 +60,35 @@ class LoopStreamProcessorTest {
     final String targetId = "paginator";
     when(registry.get(targetId)).thenReturn(targetPlugin);
 
-    when(targetPlugin.process(any(), any())).thenAnswer(invocation -> {
-      Flux<Message> input = invocation.getArgument(0);
-      return input.flatMap(msg -> {
-        int page = (int) msg.payload();
-        return Flux.just(
-            Message.create(msg.traceId(), "Item " + (page * 2 + 1)),
-            Message.create(msg.traceId(), "Item " + (page * 2 + 2)),
-            Message.create(msg.traceId(), page + 1) // next page state
-        );
-      });
-    });
+    when(targetPlugin.process(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              Flux<Message> input = invocation.getArgument(0);
+              return input.flatMap(
+                  msg -> {
+                    int page = (int) msg.payload();
+                    return Flux.just(
+                        Message.create(msg.traceId(), "Item " + (page * 2 + 1)),
+                        Message.create(msg.traceId(), "Item " + (page * 2 + 2)),
+                        Message.create(msg.traceId(), page + 1) // next page state
+                        );
+                  });
+            });
 
-    final Map<String, Object> config = Map.of(
-        "targetPluginId", targetId,
-        "maxIterations", 2,
-        "exitCondition", "#root.payload instanceof T(Integer) && #root.payload == 2"
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "targetPluginId",
+            targetId,
+            "maxIterations",
+            2,
+            "exitCondition",
+            "#root.payload instanceof T(Integer) && #root.payload == 2");
 
     final Message inputMsg = Message.create(UUID.randomUUID(), 0);
 
     StepVerifier.create(
-            processor.process(Flux.just(inputMsg), config)
+            processor
+                .process(Flux.just(inputMsg), config)
                 .contextWrite(Context.of("sessionId", "s1", "nodeId", "n1")))
         .expectNextMatches(msg -> "Item 1".equals(msg.payload()))
         .expectNextMatches(msg -> "Item 2".equals(msg.payload()))
