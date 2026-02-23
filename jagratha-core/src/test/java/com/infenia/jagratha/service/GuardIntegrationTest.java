@@ -130,7 +130,7 @@ class GuardIntegrationTest {
 
     orchestrator
         .prepareWorkflow(def)
-        .flatMap(prepared -> orchestrator.execute(sessionId, prepared, Map.of("start", true)))
+        .flatMap(prepared -> orchestrator.execute(sessionId, "test-workflow", prepared, Map.of("start", true)))
         .as(StepVerifier::create)
         .verifyComplete();
 
@@ -178,7 +178,7 @@ class GuardIntegrationTest {
 
     orchestrator
         .prepareWorkflow(def)
-        .flatMap(prepared -> orchestrator.execute(sessionId, prepared, Map.of("start", true)))
+        .flatMap(prepared -> orchestrator.execute(sessionId, "test-workflow", prepared, Map.of("start", true)))
         .as(StepVerifier::create)
         .verifyComplete();
 
