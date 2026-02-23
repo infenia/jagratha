@@ -16,7 +16,6 @@
 package com.infenia.jagratha.plugin.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -53,23 +52,24 @@ class ConstantProcessorTest {
     when(resolver.resolve("v1")).thenReturn(Mono.just("v1"));
     when(resolver.resolve("v2")).thenReturn(Mono.just("v2"));
 
-    final Map<String, Object> config = Map.of(
-        "mode", "ENRICH",
-        "target", "PAYLOAD",
-        "variables", Map.of("a.b", "v1", "c", "v2")
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "mode", "ENRICH",
+            "target", "PAYLOAD",
+            "variables", Map.of("a.b", "v1", "c", "v2"));
 
     final Message message = Message.create(traceId, Map.of("a", Map.of("x", 1)));
 
     processor.initialize(config).block();
 
     StepVerifier.create(processor.process(Flux.just(message), config))
-        .assertNext(result -> {
-          Map<String, Object> payload = (Map<String, Object>) result.payload();
-          assertEquals(1, ((Map<String, Object>) payload.get("a")).get("x"));
-          assertEquals("v1", ((Map<String, Object>) payload.get("a")).get("b"));
-          assertEquals("v2", payload.get("c"));
-        })
+        .assertNext(
+            result -> {
+              Map<String, Object> payload = (Map<String, Object>) result.payload();
+              assertEquals(1, ((Map<String, Object>) payload.get("a")).get("x"));
+              assertEquals("v1", ((Map<String, Object>) payload.get("a")).get("b"));
+              assertEquals("v2", payload.get("c"));
+            })
         .verifyComplete();
   }
 
@@ -79,22 +79,23 @@ class ConstantProcessorTest {
     when(resolver.isStatic(any())).thenReturn(true);
     when(resolver.resolve("v1")).thenReturn(Mono.just("v1"));
 
-    final Map<String, Object> config = Map.of(
-        "mode", "REPLACE",
-        "target", "PAYLOAD",
-        "variables", Map.of("a", "v1")
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "mode", "REPLACE",
+            "target", "PAYLOAD",
+            "variables", Map.of("a", "v1"));
 
     final Message message = Message.create(traceId, Map.of("existing", "data"));
 
     processor.initialize(config).block();
 
     StepVerifier.create(processor.process(Flux.just(message), config))
-        .assertNext(result -> {
-          Map<String, Object> payload = (Map<String, Object>) result.payload();
-          assertEquals(1, payload.size());
-          assertEquals("v1", payload.get("a"));
-        })
+        .assertNext(
+            result -> {
+              Map<String, Object> payload = (Map<String, Object>) result.payload();
+              assertEquals(1, payload.size());
+              assertEquals("v1", payload.get("a"));
+            })
         .verifyComplete();
   }
 
@@ -104,21 +105,22 @@ class ConstantProcessorTest {
     when(resolver.isStatic(any())).thenReturn(true);
     when(resolver.resolve("v1")).thenReturn(Mono.just("v1"));
 
-    final Map<String, Object> config = Map.of(
-        "mode", "ENRICH",
-        "target", "METADATA",
-        "variables", Map.of("metaKey", "v1")
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "mode", "ENRICH",
+            "target", "METADATA",
+            "variables", Map.of("metaKey", "v1"));
 
     final Message message = Message.create(traceId, "data");
 
     processor.initialize(config).block();
 
     StepVerifier.create(processor.process(Flux.just(message), config))
-        .assertNext(result -> {
-          assertEquals("v1", result.metadata().get("metaKey"));
-          assertEquals("data", result.payload());
-        })
+        .assertNext(
+            result -> {
+              assertEquals("v1", result.metadata().get("metaKey"));
+              assertEquals("data", result.payload());
+            })
         .verifyComplete();
   }
 
@@ -127,11 +129,11 @@ class ConstantProcessorTest {
     when(resolver.isStatic(any())).thenReturn(true);
     when(resolver.resolve("v1")).thenReturn(Mono.just("v1"));
 
-    final Map<String, Object> config = Map.of(
-        "mode", "ENRICH",
-        "collisionPolicy", "FAIL",
-        "variables", Map.of("a", "v1")
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "mode", "ENRICH",
+            "collisionPolicy", "FAIL",
+            "variables", Map.of("a", "v1"));
 
     final Message message = Message.create(traceId, Map.of("a", "existing"));
 
@@ -148,21 +150,22 @@ class ConstantProcessorTest {
     when(resolver.isStatic(any())).thenReturn(true);
     when(resolver.resolve("v1")).thenReturn(Mono.just("v1"));
 
-    final Map<String, Object> config = Map.of(
-        "mode", "ENRICH",
-        "collisionPolicy", "SKIP",
-        "variables", Map.of("a", "v1")
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "mode", "ENRICH",
+            "collisionPolicy", "SKIP",
+            "variables", Map.of("a", "v1"));
 
     final Message message = Message.create(traceId, Map.of("a", "existing"));
 
     processor.initialize(config).block();
 
     StepVerifier.create(processor.process(Flux.just(message), config))
-        .assertNext(result -> {
-          Map<String, Object> payload = (Map<String, Object>) result.payload();
-          assertEquals("existing", payload.get("a"));
-        })
+        .assertNext(
+            result -> {
+              Map<String, Object> payload = (Map<String, Object>) result.payload();
+              assertEquals("existing", payload.get("a"));
+            })
         .verifyComplete();
   }
 }

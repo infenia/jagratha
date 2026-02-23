@@ -47,20 +47,19 @@ class ConstantSourceTest {
     when(resolver.isStatic(any())).thenReturn(true);
     when(resolver.resolve("val")).thenReturn(Mono.just("resolved-val"));
 
-    final Map<String, Object> config = Map.of(
-        "target", "PAYLOAD",
-        "variables", Map.of("key", "val")
-    );
+    final Map<String, Object> config =
+        Map.of("target", "PAYLOAD", "variables", Map.of("key", "val"));
 
     source.initialize(config).block();
 
     StepVerifier.create(source.start(config, Map.of()))
-        .assertNext(message -> {
-          assertTrue(message.payload() instanceof Map);
-          Map<String, Object> payload = (Map<String, Object>) message.payload();
-          assertEquals("resolved-val", payload.get("key"));
-          assertTrue(message.metadata().isEmpty());
-        })
+        .assertNext(
+            message -> {
+              assertTrue(message.payload() instanceof Map);
+              Map<String, Object> payload = (Map<String, Object>) message.payload();
+              assertEquals("resolved-val", payload.get("key"));
+              assertTrue(message.metadata().isEmpty());
+            })
         .verifyComplete();
   }
 
@@ -70,18 +69,17 @@ class ConstantSourceTest {
     when(resolver.isStatic(any())).thenReturn(true);
     when(resolver.resolve("val")).thenReturn(Mono.just("resolved-val"));
 
-    final Map<String, Object> config = Map.of(
-        "target", "METADATA",
-        "variables", Map.of("key", "val")
-    );
+    final Map<String, Object> config =
+        Map.of("target", "METADATA", "variables", Map.of("key", "val"));
 
     source.initialize(config).block();
 
     StepVerifier.create(source.start(config, Map.of()))
-        .assertNext(message -> {
-          assertEquals("resolved-val", message.metadata().get("key"));
-          assertTrue(((Map) message.payload()).isEmpty());
-        })
+        .assertNext(
+            message -> {
+              assertEquals("resolved-val", message.metadata().get("key"));
+              assertTrue(((Map) message.payload()).isEmpty());
+            })
         .verifyComplete();
   }
 }

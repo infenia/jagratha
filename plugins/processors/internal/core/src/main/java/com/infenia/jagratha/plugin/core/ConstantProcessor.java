@@ -31,11 +31,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@SuppressWarnings({
-  "PMD.OnlyOneReturn",
-  "PMD.AvoidDeeplyNestedIfStmts",
-  "PMD.UseConcurrentHashMap"
-})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.AvoidDeeplyNestedIfStmts", "PMD.UseConcurrentHashMap"})
 public class ConstantProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "CONSTANT";

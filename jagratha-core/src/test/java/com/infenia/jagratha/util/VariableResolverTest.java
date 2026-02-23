@@ -15,9 +15,7 @@
  */
 package com.infenia.jagratha.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -69,13 +67,17 @@ class VariableResolverTest {
   @Test
   void testResolveSys() {
     System.setProperty("test.prop", "test-val");
-    StepVerifier.create(resolver.resolve("${sys.test.prop}")).expectNext("test-val").verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.test.prop}"))
+        .expectNext("test-val")
+        .verifyComplete();
   }
 
   @Test
   void testResolveContext() {
-    StepVerifier.create(resolver.resolve("${context.workflowId}")
-            .contextWrite(Context.of("workflowId", "wf-123")))
+    StepVerifier.create(
+            resolver
+                .resolve("${context.workflowId}")
+                .contextWrite(Context.of("workflowId", "wf-123")))
         .expectNext("wf-123")
         .verifyComplete();
   }
@@ -91,14 +93,10 @@ class VariableResolverTest {
   @Test
   void testResolveCasting() {
     System.setProperty("port", "8080");
-    StepVerifier.create(resolver.resolve("${sys.port:int}"))
-        .expectNext(8080)
-        .verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.port:int}")).expectNext(8080).verifyComplete();
 
     System.setProperty("enabled", "true");
-    StepVerifier.create(resolver.resolve("${sys.enabled:bool}"))
-        .expectNext(true)
-        .verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.enabled:bool}")).expectNext(true).verifyComplete();
   }
 
   @Test
