@@ -58,6 +58,7 @@ public class WorkflowValidator {
     return validateEntryPoints(def, targetIds)
         .then(validateProcessors(def, targetIds, sourceIds))
         .then(validateEndpoints(def, sourceIds))
+        .then(validateGuards(def, sourceIds))
         .then(validateNoCycles(def))
         .then(validateNoOrphans(def))
         .then(validatePluginConfigs(def));
@@ -105,6 +106,41 @@ public class WorkflowValidator {
                         "Processor node "
                             + node.nodeId()
                             + " must have both incoming and outgoing edges"));
+              }
+              return Mono.empty();
+            })
+        .then();
+  }
+
+  private Mono<Void> validateGuards(final WorkflowDefinition def, final Set<String> sourceIds) {
+    return Flux.fromIterable(def.nodes())
+        .filter(node -> "GUARD".equals(node.type()))
+        .flatMap(
+            node -> {
+              if (!sourceIds.contains(node.nodeId())) {
+                return Mono.error(
+                    new IllegalArgumentException(
+                        "Guard node " + node.nodeId() + " must have at least one outgoing edge"));
+              }
+              // Validate ports on outgoing edges
+              final List<WorkflowDefinition.Edge> outgoing =
+                  def.edges().stream()
+                      .filter(e -> e.source().equals(node.nodeId()))
+                      .collect(Collectors.toList());
+              for (final WorkflowDefinition.Edge edge : outgoing) {
+                if (edge.sourcePort() != null
+                    && !Set.of("true", "false", "error").contains(edge.sourcePort())) {
+                  // Allow custom error port if specified in config, but otherwise check common ones
+                  final String errorPort = (String) node.config().get("errorPort");
+                  if (!edge.sourcePort().equals(errorPort)) {
+                    return Mono.error(
+                        new IllegalArgumentException(
+                            "Invalid sourcePort '"
+                                + edge.sourcePort()
+                                + "' for Guard node "
+                                + node.nodeId()));
+                  }
+                }
               }
               return Mono.empty();
             })
