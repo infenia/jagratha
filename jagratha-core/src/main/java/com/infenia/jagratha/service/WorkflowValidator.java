@@ -29,12 +29,14 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Service for validating workflow structural integrity and plugin configurations. */
+@Slf4j
 @Service
 @Validated
 @RequiredArgsConstructor
@@ -62,6 +64,7 @@ public class WorkflowValidator {
         .then(validateBranches(def))
         .then(validateNoCycles(def))
         .then(validateNoOrphans(def))
+        .then(validateMapper(def))
         .then(validatePluginConfigs(def));
   }
 
@@ -265,6 +268,38 @@ public class WorkflowValidator {
         }
       }
     }
+  }
+
+  private Mono<Void> validateMapper(final WorkflowDefinition def) {
+    return Flux.fromIterable(def.nodes())
+        .filter(node -> "MAPPER".equals(node.type()))
+        .doOnNext(
+            node -> {
+              final Map<String, Object> config = node.config();
+              final String mode = (String) config.get("mode");
+              final Object mapping = config.get("mapping");
+
+              if ("SCRIPT".equals(mode) && mapping instanceof String script) {
+                if (isSimpleScript(script)) {
+                  log.warn(
+                      "Mapper node {} uses SCRIPT mode for a simple transformation. "
+                          + "Consider using PROJECTION mode for better performance.",
+                      node.nodeId());
+                }
+              }
+            })
+        .then();
+  }
+
+  private boolean isSimpleScript(final String script) {
+    if (script.length() < 50) {
+      final String low = script.toLowerCase();
+      return !low.contains("if")
+          && !low.contains("for")
+          && !low.contains("function")
+          && !low.contains("while");
+    }
+    return false;
   }
 
   private Mono<Void> validatePluginConfigs(final WorkflowDefinition def) {
