@@ -189,7 +189,6 @@ public class WorkflowOrchestrator {
       final Map<String, Flux<Message>> nodeStreams,
       final List<Mono<Void>> terminals) {
 
-    final List<Node> parents = prepared.parentsList().get(node.nodeId());
     final List<Node> children = prepared.adjacencyList().get(node.nodeId());
     final WorkflowPlugin plugin = prepared.pluginCache().get(node.nodeId());
     final Duration nodeTimeout = getNodeTimeout(node);

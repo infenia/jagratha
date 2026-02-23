@@ -113,6 +113,7 @@ public class WorkflowValidator {
   }
 
   private Mono<Void> validateGuards(final WorkflowDefinition def, final Set<String> sourceIds) {
+    final Set<String> standardPorts = Set.of("true", "false", "error");
     return Flux.fromIterable(def.nodes())
         .filter(node -> "GUARD".equals(node.type()))
         .flatMap(
@@ -123,26 +124,26 @@ public class WorkflowValidator {
                         "Guard node " + node.nodeId() + " must have at least one outgoing edge"));
               }
               // Validate ports on outgoing edges
-              final List<WorkflowDefinition.Edge> outgoing =
-                  def.edges().stream()
-                      .filter(e -> e.source().equals(node.nodeId()))
-                      .collect(Collectors.toList());
-              for (final WorkflowDefinition.Edge edge : outgoing) {
-                if (edge.sourcePort() != null
-                    && !Set.of("true", "false", "error").contains(edge.sourcePort())) {
-                  // Allow custom error port if specified in config, but otherwise check common ones
-                  final String errorPort = (String) node.config().get("errorPort");
-                  if (!edge.sourcePort().equals(errorPort)) {
-                    return Mono.error(
-                        new IllegalArgumentException(
-                            "Invalid sourcePort '"
-                                + edge.sourcePort()
-                                + "' for Guard node "
-                                + node.nodeId()));
-                  }
-                }
-              }
-              return Mono.empty();
+              return Flux.fromIterable(def.edges())
+                  .filter(e -> e.source().equals(node.nodeId()))
+                  .flatMap(
+                      edge -> {
+                        if (edge.sourcePort() != null
+                            && !standardPorts.contains(edge.sourcePort())) {
+                          // Allow custom error port if specified in config
+                          final String errorPort = (String) node.config().get("errorPort");
+                          if (!edge.sourcePort().equals(errorPort)) {
+                            return Mono.error(
+                                new IllegalArgumentException(
+                                    "Invalid sourcePort '"
+                                        + edge.sourcePort()
+                                        + "' for Guard node "
+                                        + node.nodeId()));
+                          }
+                        }
+                        return Mono.empty();
+                      })
+                  .then();
             })
         .then();
   }
