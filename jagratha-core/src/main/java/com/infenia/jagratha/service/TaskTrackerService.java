@@ -21,6 +21,7 @@ import com.infenia.jagratha.validation.NodeId;
 import com.infenia.jagratha.validation.SessionId;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -60,7 +61,9 @@ public class TaskTrackerService {
     return Mono.fromRunnable(
         () -> {
           final List<TaskProgress> initialTasks =
-              nodeIds.stream().map(id -> new TaskProgress(id, "", "PENDING", null, null)).toList();
+              nodeIds.stream()
+                  .map(id -> new TaskProgress(id, "", "PENDING", null, null, Map.of()))
+                  .toList();
           states.put(
               sessionId,
               new WorkflowState(
@@ -89,11 +92,31 @@ public class TaskTrackerService {
       @NodeId final String nodeId,
       @NotBlank @Size(max = 256) final String module,
       @NotBlank @Size(max = 256) final String status) {
+    return updateTaskStatus(sessionId, nodeId, module, status, Map.of());
+  }
+
+  /**
+   * Update the status and metadata of a specific node.
+   *
+   * @param sessionId the session identifier
+   * @param nodeId the ID of the node
+   * @param module the module name
+   * @param status the new status
+   * @param metadata the task metadata
+   * @return a Mono that completes when the task status is updated
+   */
+  @SuppressWarnings("PMD.UseObjectForClearerAPI")
+  public Mono<Void> updateTaskStatus(
+      @SessionId final String sessionId,
+      @NodeId final String nodeId,
+      @NotBlank @Size(max = 256) final String module,
+      @NotBlank @Size(max = 256) final String status,
+      @NotNull final Map<String, Object> metadata) {
     return Mono.fromRunnable(
         () -> {
           final WorkflowState state = states.get(sessionId);
           if (state != null) {
-            state.updateTask(nodeId, module, status);
+            state.updateTask(nodeId, module, status, metadata);
             notifyStatusChange(sessionId);
           }
         });
@@ -225,7 +248,11 @@ public class TaskTrackerService {
       this.startTime = startTime;
     }
 
-    /* default */ void updateTask(final String nodeId, final String module, final String status) {
+    /* default */ void updateTask(
+        final String nodeId,
+        final String module,
+        final String status,
+        final Map<String, Object> metadata) {
       for (int i = 0; i < tasks.size(); i++) {
         final TaskProgress taskProgress = tasks.get(i);
         if (taskProgress.nodeId().equals(nodeId)) {
@@ -237,7 +264,19 @@ public class TaskTrackerService {
               && taskEndTime == null) {
             taskEndTime = LocalDateTime.now();
           }
-          tasks.set(i, new TaskProgress(nodeId, module, status, taskStartTime, taskEndTime));
+
+          final Map<String, Object> newMetadata;
+          if (metadata != null && !metadata.isEmpty()) {
+            newMetadata = new java.util.HashMap<>(taskProgress.metadata());
+            newMetadata.putAll(metadata);
+          } else {
+            newMetadata = taskProgress.metadata();
+          }
+
+          tasks.set(
+              i,
+              new TaskProgress(
+                  nodeId, module, status, taskStartTime, taskEndTime, Map.copyOf(newMetadata)));
           break;
         }
       }
