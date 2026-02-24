@@ -34,6 +34,33 @@ class TaskTrackerServiceTest {
   }
 
   @Test
+  void testIndependentExecutions() {
+    String sessionId = "sess-1";
+    String exec1 = "exec-1";
+    String exec2 = "exec-2";
+
+    tracker.startWorkflow(sessionId, exec1, List.of("n1")).block();
+    tracker.startWorkflow(sessionId, exec2, List.of("n2")).block();
+
+    WorkflowProgress p1 = tracker.getExecutionProgress(exec1);
+    WorkflowProgress p2 = tracker.getExecutionProgress(exec2);
+    WorkflowProgress latest = tracker.getProgress(sessionId);
+
+    assertNotNull(p1);
+    assertNotNull(p2);
+    assertNotNull(latest);
+    assertEquals(exec1, p1.executionId());
+    assertEquals(exec2, p2.executionId());
+    assertEquals(exec2, latest.executionId());
+
+    tracker.updateTaskStatus(exec1, "n1", "m", "SUCCESS").block();
+    tracker.updateTaskStatus(exec2, "n2", "m", "FAILURE").block();
+
+    assertEquals("SUCCESS", tracker.getExecutionProgress(exec1).tasks().get(0).status());
+    assertEquals("FAILURE", tracker.getExecutionProgress(exec2).tasks().get(0).status());
+  }
+
+  @Test
   void testWorkflowTracking() {
     String sessionId = "sess-1";
     List<String> nodes = List.of("node1", "node2");

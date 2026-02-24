@@ -19,6 +19,7 @@ import com.infenia.jagratha.config.AppConfigService;
 import com.infenia.jagratha.model.TaskResponse;
 import com.infenia.jagratha.validation.SessionId;
 import com.infenia.jagratha.validation.WorkflowId;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,6 +55,23 @@ public class WorkflowService {
       @SessionId final String sessionId,
       @WorkflowId final String workflowId,
       @NotEmpty final Map<String, Object> payload) {
+    return runWorkflow(sessionId, workflowId, java.util.UUID.randomUUID().toString(), payload);
+  }
+
+  /**
+   * Run a specific workflow for a session with a unique execution ID.
+   *
+   * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @param executionId the unique execution identifier
+   * @param payload the initial trigger payload
+   * @return Mono containing the task response
+   */
+  public Mono<TaskResponse> runWorkflow(
+      @SessionId final String sessionId,
+      @WorkflowId final String workflowId,
+      @NotBlank final String executionId,
+      @NotEmpty final Map<String, Object> payload) {
     final String queueKey = sessionId + ":" + workflowId;
     final Sinks.One<TaskResponse> sink = Sinks.one();
 
@@ -73,7 +91,11 @@ public class WorkflowService {
                                               .flatMap(
                                                   prepared ->
                                                       orchestrator.execute(
-                                                          sessionId, workflowId, prepared, payload))
+                                                          sessionId,
+                                                          workflowId,
+                                                          executionId,
+                                                          prepared,
+                                                          payload))
                                               .then(
                                                   Mono.just(
                                                       new TaskResponse(

@@ -50,7 +50,7 @@ class WorkflowOrchestratorTest {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
     validator = new WorkflowValidator(registry);
-    when(tracker.startWorkflow(anyString(), any())).thenReturn(Mono.empty());
+    when(tracker.startWorkflow(anyString(), anyString(), any())).thenReturn(Mono.empty());
     when(tracker.updateTaskStatus(anyString(), anyString(), anyString(), anyString()))
         .thenReturn(Mono.empty());
     when(tracker.finishWorkflow(anyString(), anyString())).thenReturn(Mono.empty());
@@ -274,7 +274,7 @@ class WorkflowOrchestratorTest {
 
     verify(trigger).start(any(), any());
     verify(terminal).consume(any(), any());
-    verify(tracker).startWorkflow(eq(sessionId), any());
+    verify(tracker).startWorkflow(eq(sessionId), eq(sessionId), any());
     verify(tracker, atLeastOnce())
         .updateTaskStatus(eq(sessionId), anyString(), anyString(), anyString());
     verify(tracker).finishWorkflow(sessionId, "COMPLETED");

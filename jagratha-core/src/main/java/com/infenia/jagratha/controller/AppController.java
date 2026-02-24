@@ -20,6 +20,7 @@ import com.infenia.jagratha.model.ApiResponse;
 import com.infenia.jagratha.model.AppConfigData;
 import com.infenia.jagratha.model.ConfigRequest;
 import com.infenia.jagratha.model.WorkflowTriggerRequest;
+import com.infenia.jagratha.model.WorkflowTriggerResponse;
 import com.infenia.jagratha.service.LogRetrievalService;
 import com.infenia.jagratha.service.SessionService;
 import com.infenia.jagratha.service.TaskTrackerService;
@@ -29,6 +30,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -64,7 +66,7 @@ public class AppController {
    * Trigger a workflow execution for a session.
    *
    * @param request the trigger request containing sessionId and workflowId
-   * @return response entity with acknowledgment
+   * @return response entity with acknowledgment and unique execution ID
    */
   @PostMapping("/workflow/trigger")
   @Operation(
@@ -73,14 +75,73 @@ public class AppController {
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "202",
       description = "Workflow trigger accepted")
-  public Mono<ResponseEntity<ApiResponse<Void>>> triggerWorkflow(
+  public Mono<ResponseEntity<ApiResponse<WorkflowTriggerResponse>>> triggerWorkflow(
       @Valid @RequestBody final WorkflowTriggerRequest request) {
+    final String executionId = UUID.randomUUID().toString();
     workflowService
-        .runWorkflow(request.sessionId(), request.workflowId(), request.payload())
+        .runWorkflow(request.sessionId(), request.workflowId(), executionId, request.payload())
         .subscribe();
     return Mono.just(
         ResponseEntity.accepted()
-            .body(ApiResponse.success(202, "Workflow trigger accepted", null)));
+            .body(
+                ApiResponse.success(
+                    202, "Workflow trigger accepted", new WorkflowTriggerResponse(executionId))));
+  }
+
+  /**
+   * Get the status of a specific workflow execution.
+   *
+   * @param executionId the unique execution identifier
+   * @return response entity with workflow progress
+   */
+  @GetMapping("/workflow/status/{executionId}")
+  @Operation(
+      summary = "Get execution status",
+      description = "Retrieves the current status and progress of a specific workflow execution")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = HTTP_200,
+      description = "Execution status retrieved successfully")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "404",
+      description = "Execution not found")
+  public Mono<ResponseEntity<ApiResponse<com.infenia.jagratha.model.WorkflowProgress>>>
+      getExecutionStatus(
+          @Parameter(description = "Execution ID") @PathVariable final String executionId) {
+    return Mono.fromCallable(() -> trackerService.getExecutionProgress(executionId))
+        .map(
+            progress -> {
+              if (progress != null) {
+                return ResponseEntity.ok(
+                    ApiResponse.success(
+                        200, "Execution status retrieved successfully", progress));
+              } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(
+                        ApiResponse.error(404, "Not Found", "Execution not found", null, List.of()));
+              }
+            });
+  }
+
+  /**
+   * Get the execution history for a session.
+   *
+   * @param sessionId the session identifier
+   * @return response entity with list of execution IDs
+   */
+  @GetMapping("/workflow/{sessionId}/history")
+  @Operation(
+      summary = "Get workflow history",
+      description = "Retrieves the list of all execution IDs for a specific session")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = HTTP_200,
+      description = "Workflow history retrieved successfully")
+  public Mono<ResponseEntity<ApiResponse<List<String>>>> getWorkflowHistory(
+      @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId) {
+    return Mono.fromCallable(() -> trackerService.getExecutionHistory(sessionId))
+        .map(
+            history ->
+                ResponseEntity.ok(
+                    ApiResponse.success(200, "Workflow history retrieved successfully", history)));
   }
 
   /**

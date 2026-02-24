@@ -57,7 +57,7 @@ class JoinIntegrationTest {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
     validator = new WorkflowValidator(registry);
-    when(tracker.startWorkflow(any(), any())).thenReturn(Mono.empty());
+    when(tracker.startWorkflow(any(), any(), any())).thenReturn(Mono.empty());
     when(tracker.updateTaskStatus(any(), any(), any(), any())).thenReturn(Mono.empty());
     when(tracker.finishWorkflow(any(), any())).thenReturn(Mono.empty());
     when(tracker.appendLog(any(), any())).thenReturn(Mono.empty());

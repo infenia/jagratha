@@ -56,7 +56,7 @@ class AppControllerTest {
     WorkflowTriggerRequest request = new WorkflowTriggerRequest("session-1", "w1", Map.of());
     TaskResponse response = new TaskResponse("SUCCESS", "Build successful");
 
-    when(workflowService.runWorkflow(anyString(), anyString(), any()))
+    when(workflowService.runWorkflow(anyString(), anyString(), anyString(), any()))
         .thenReturn(Mono.just(response));
 
     webTestClient
@@ -71,7 +71,9 @@ class AppControllerTest {
         .jsonPath("$.status")
         .isEqualTo(202)
         .jsonPath("$.message")
-        .isEqualTo("Workflow trigger accepted");
+        .isEqualTo("Workflow trigger accepted")
+        .jsonPath("$.data.executionId")
+        .exists();
   }
 
   @Test

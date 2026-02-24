@@ -15,29 +15,16 @@
  */
 package com.infenia.jagratha.model;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-/** Represents the progress of a workflow. */
-public record WorkflowProgress(
-    String sessionId,
-    String executionId,
-    String status,
-    List<TaskProgress> tasks,
-    LocalDateTime startTime,
-    LocalDateTime endTime) {
-
-  /**
-   * Compact constructor to ensure immutability.
-   *
-   * @param sessionId session identifier
-   * @param executionId execution identifier
-   * @param status workflow status
-   * @param tasks list of task progress
-   * @param startTime start time
-   * @param endTime end time
-   */
-  public WorkflowProgress {
-    tasks = List.copyOf(tasks);
-  }
-}
+/**
+ * Response object for triggering a workflow.
+ *
+ * @param executionId the unique identifier for the workflow execution
+ */
+@Schema(description = "Response object for triggering a workflow")
+public record WorkflowTriggerResponse(
+    @Schema(
+            description = "The unique identifier for the workflow execution",
+            example = "550e8400-e29b-41d4-a716-446655440000")
+        String executionId) {}

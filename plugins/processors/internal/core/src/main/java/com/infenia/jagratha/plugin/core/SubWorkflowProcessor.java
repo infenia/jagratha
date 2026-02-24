@@ -23,6 +23,7 @@ import com.infenia.jagratha.service.WorkflowOrchestrator;
 import com.infenia.jagratha.util.SpelUtils;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -142,11 +143,13 @@ public class SubWorkflowProcessor implements ProcessorPlugin {
                                         childSessionId, desc + " (Sub-workflow)")))
                     .then(orchestrator.prepareWorkflow(def))
                     .flatMap(
-                        prepared ->
-                            orchestrator
-                                .execute(childSessionId, workflowId, prepared, payload)
-                                .contextWrite(ctx -> ctx.put("resultCollector", collector))
-                                .then(Mono.fromCallable(collector::getResults))));
+                        prepared -> {
+                          final String subExecutionId = UUID.randomUUID().toString();
+                          return orchestrator
+                              .execute(childSessionId, workflowId, subExecutionId, prepared, payload)
+                              .contextWrite(ctx -> ctx.put("resultCollector", collector))
+                              .then(Mono.fromCallable(collector::getResults));
+                        }));
   }
 
   private Mono<Message> mapOutput(
