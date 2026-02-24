@@ -16,7 +16,6 @@
 package com.infenia.jagratha.service;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -230,8 +229,8 @@ class WorkflowOrchestratorImprovementsTest {
                 .flatMap(p -> orchestrator.execute(sessionId, "test-workflow", p, Map.of())))
         .verifyComplete();
 
-    verify(tracker).startWorkflow(eq(sessionId), eq("test-workflow"), anyString(), any());
-    verify(tracker, atLeastOnce()).updateTaskStatus(anyString(), any(), any(), any());
-    verify(tracker).finishWorkflow(anyString(), any());
+    verify(tracker).startWorkflow(eq(sessionId), eq("test-workflow"), any(), any());
+    verify(tracker, atLeastOnce()).updateTaskStatus(any(), any(), any(), any());
+    verify(tracker).finishWorkflow(any(), any());
   }
 }
