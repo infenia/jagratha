@@ -174,7 +174,6 @@ public class AppMcpTools {
     if (p == null) {
       throw new IllegalArgumentException("Plugin not found: " + type);
     }
-    return new PluginDetails(
-        p.getType(), p.getCategory(), p.getDescription(), p.getUsagePattern());
+    return new PluginDetails(p.getType(), p.getCategory(), p.getDescription(), p.getUsagePattern());
   }
 }

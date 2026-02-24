@@ -17,15 +17,13 @@ package com.infenia.jagratha.mcp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.infenia.jagratha.plugin.PluginCategory;
-import com.infenia.jagratha.model.WorkflowDefinition;
 import com.infenia.jagratha.model.WorkflowExecution;
+import com.infenia.jagratha.plugin.PluginCategory;
 import com.infenia.jagratha.plugin.WorkflowPlugin;
 import com.infenia.jagratha.service.SessionService;
 import com.infenia.jagratha.service.TaskTrackerService;

@@ -47,10 +47,9 @@ public class FileUpdateRecordPlugin implements TerminalPlugin {
 
   @Override
   public String getUsagePattern() {
-    return """
-        Configure with:
-        - outputDir: Directory where the 'file-status.json' file will be stored.
-        Expects input messages with a Map payload containing 'path' and 'status' keys.""";
+    return "Configure with:\n"
+        + "- outputDir: Directory where the 'file-status.json' file will be stored.\n"
+        + "Expects input messages with a Map payload containing 'path' and 'status' keys.";
   }
 
   @Override

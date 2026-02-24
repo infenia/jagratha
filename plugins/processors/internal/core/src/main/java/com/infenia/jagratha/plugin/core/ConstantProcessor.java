@@ -59,12 +59,12 @@ public class ConstantProcessor implements ProcessorPlugin {
 
   @Override
   public String getUsagePattern() {
-    return """
-        Configure with:
-        - variables: Map of key-value pairs to inject. Supports SpEL expressions.
-        - mode: 'ENRICH' (adds to existing) or 'REPLACE' (replaces entire target). Default is 'ENRICH'.
-        - target: 'PAYLOAD' or 'METADATA'. Default is 'PAYLOAD'.
-        - collisionPolicy: 'OVERWRITE', 'SKIP', or 'FAIL'. Default is 'OVERWRITE'.""";
+    return "Configure with:\n"
+        + "- variables: Map of key-value pairs to inject. Supports SpEL expressions.\n"
+        + "- mode: 'ENRICH' (adds to existing) or 'REPLACE' (replaces entire target). "
+        + "Default is 'ENRICH'.\n"
+        + "- target: 'PAYLOAD' or 'METADATA'. Default is 'PAYLOAD'.\n"
+        + "- collisionPolicy: 'OVERWRITE', 'SKIP', or 'FAIL'. Default is 'OVERWRITE'.";
   }
 
   @Override

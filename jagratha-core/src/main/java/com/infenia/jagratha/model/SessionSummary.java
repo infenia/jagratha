@@ -34,7 +34,8 @@ public record SessionSummary(
     @Schema(description = "The session identifier") String sessionId,
     @Schema(description = "The initiator of the session") String initiator,
     @Schema(description = "The time the session was initiated") String initiatedTime,
-    @Schema(description = "The time of the most recent activity in the session") LocalDateTime lastActiveTime,
+    @Schema(description = "The time of the most recent activity in the session")
+        LocalDateTime lastActiveTime,
     @Schema(description = "The session description") String description,
     @Schema(description = "The session tags") Map<String, String> tags) {
   /** Compact constructor. */

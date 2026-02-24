@@ -53,10 +53,9 @@ public class ConstantSource implements TriggerPlugin {
 
   @Override
   public String getUsagePattern() {
-    return """
-        Configure with:
-        - variables: Map of key-value pairs to emit. Supports SpEL expressions.
-        - target: 'PAYLOAD' or 'METADATA'. Default is 'PAYLOAD'.""";
+    return "Configure with:\n"
+        + "- variables: Map of key-value pairs to emit. Supports SpEL expressions.\n"
+        + "- target: 'PAYLOAD' or 'METADATA'. Default is 'PAYLOAD'.";
   }
 
   @Override

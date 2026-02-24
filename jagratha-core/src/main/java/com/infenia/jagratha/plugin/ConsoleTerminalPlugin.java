@@ -38,7 +38,8 @@ public class ConsoleTerminalPlugin implements TerminalPlugin {
 
   @Override
   public String getUsagePattern() {
-    return "Consumes messages and prints their payload to the application logs. No configuration required.";
+    return "Consumes messages and prints their payload to the application logs. No configuration"
+        + " required.";
   }
 
   @Override

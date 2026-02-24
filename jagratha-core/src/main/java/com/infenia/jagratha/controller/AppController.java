@@ -340,7 +340,9 @@ public class AppController {
               final List<String> workflowIds = List.copyOf(workflows.keySet());
               return ResponseEntity.ok(
                   ApiResponse.success(
-                      200, "Session details retrieved", new SessionDetails(sessionId, workflowIds)));
+                      200,
+                      "Session details retrieved",
+                      new SessionDetails(sessionId, workflowIds)));
             })
         .defaultIfEmpty(ResponseEntity.notFound().build());
   }
@@ -373,9 +375,7 @@ public class AppController {
     return Mono.just(registry.listPlugins())
         .map(
             plugins ->
-                plugins.stream()
-                    .map(p -> new PluginSummary(p.getType(), p.getCategory()))
-                    .toList())
+                plugins.stream().map(p -> new PluginSummary(p.getType(), p.getCategory())).toList())
         .map(summaries -> ApiResponse.success(200, "Plugins retrieved successfully", summaries));
   }
 

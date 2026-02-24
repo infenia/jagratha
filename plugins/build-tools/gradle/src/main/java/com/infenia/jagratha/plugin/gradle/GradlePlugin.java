@@ -49,12 +49,12 @@ public class GradlePlugin implements TriggerPlugin {
 
   @Override
   public String getUsagePattern() {
-    return """
-        Configure with:
-        - projectRoot: Absolute path to the Gradle project.
-        - tasks: List of strings representing Gradle tasks to run (e.g., ['build', 'test']). Default is ['check'].
-        - gradlePath: Path to the gradle executable (default: './gradlew').
-        - timeout: Maximum execution time in seconds (default: 600).""";
+    return "Configure with:\n"
+        + "- projectRoot: Absolute path to the Gradle project.\n"
+        + "- tasks: List of strings representing Gradle tasks to run (e.g., ['build', 'test']). "
+        + "Default is ['check'].\n"
+        + "- gradlePath: Path to the gradle executable (default: './gradlew').\n"
+        + "- timeout: Maximum execution time in seconds (default: 600).";
   }
 
   @Override

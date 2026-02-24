@@ -65,12 +65,11 @@ public final class FilterProcessor implements ProcessorPlugin {
 
   @Override
   public String getUsagePattern() {
-    return """
-        Configure with:
-        - condition: The boolean expression to evaluate.
-        - engine: 'SpEL' (default) or 'SIMPLE'.
-        - strictMode: Boolean. If true (default), throws exception on evaluation error.
-        - discardPort: Optional port name to route messages that do not match the condition.""";
+    return "Configure with:\n"
+        + "- condition: The boolean expression to evaluate.\n"
+        + "- engine: 'SpEL' (default) or 'SIMPLE'.\n"
+        + "- strictMode: Boolean. If true (default), throws exception on evaluation error.\n"
+        + "- discardPort: Optional port name to route messages that do not match the condition.";
   }
 
   @Override
