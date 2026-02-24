@@ -23,6 +23,7 @@ import com.infenia.jagratha.model.SessionDetails;
 import com.infenia.jagratha.model.SessionSummary;
 import com.infenia.jagratha.model.WorkflowDefinition;
 import com.infenia.jagratha.model.WorkflowExecutionSummary;
+import com.infenia.jagratha.plugin.WorkflowPlugin;
 import com.infenia.jagratha.service.SessionService;
 import com.infenia.jagratha.service.TaskTrackerService;
 import com.infenia.jagratha.service.WorkflowRegistry;
@@ -123,17 +124,25 @@ public class AppMcpTools {
   @Tool(description = "Trigger a Jagratha workflow with an optional JSON payload")
   public Mono<String> triggerWorkflow(
       final String sessionId, final String workflowId, final String payloadJson) {
-    Mono<String> result;
+    final Mono<String> result;
     if (payloadJson != null && !payloadJson.isBlank()) {
-      try {
-        final Map<String, Object> payload =
-            objectMapper.readValue(payloadJson, new TypeReference<>() {});
-        result = Mono.just(workflowService.runWorkflow(sessionId, workflowId, payload).executionId());
-      } catch (final com.fasterxml.jackson.core.JsonProcessingException e) {
-        result = Mono.error(new IllegalArgumentException("Invalid JSON payload: " + e.getMessage()));
-      }
+      result = parseAndTrigger(sessionId, workflowId, payloadJson);
     } else {
-      result = Mono.just(workflowService.runWorkflow(sessionId, workflowId, Map.of()).executionId());
+      result =
+          Mono.just(workflowService.runWorkflow(sessionId, workflowId, Map.of()).executionId());
+    }
+    return result;
+  }
+
+  private Mono<String> parseAndTrigger(
+      final String sessionId, final String workflowId, final String payloadJson) {
+    Mono<String> result;
+    try {
+      final Map<String, Object> payload =
+          objectMapper.readValue(payloadJson, new TypeReference<>() {});
+      result = Mono.just(workflowService.runWorkflow(sessionId, workflowId, payload).executionId());
+    } catch (final com.fasterxml.jackson.core.JsonProcessingException e) {
+      result = Mono.error(new IllegalArgumentException("Invalid JSON payload: " + e.getMessage()));
     }
     return result;
   }
@@ -174,14 +183,11 @@ public class AppMcpTools {
    */
   @Tool(description = "Get full details of a specific Jagratha plugin including usage pattern")
   public PluginDetails getPluginDetails(final String type) {
-    final com.infenia.jagratha.plugin.WorkflowPlugin plugin = registry.get(type);
+    final WorkflowPlugin plugin = registry.get(type);
     if (plugin == null) {
       throw new IllegalArgumentException("Plugin not found: " + type);
     }
     return new PluginDetails(
-        plugin.getType(),
-        plugin.getCategory(),
-        plugin.getDescription(),
-        plugin.getUsagePattern());
+        plugin.getType(), plugin.getCategory(), plugin.getDescription(), plugin.getUsagePattern());
   }
 }

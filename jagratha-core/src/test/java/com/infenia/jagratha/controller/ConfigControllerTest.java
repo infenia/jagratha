@@ -15,42 +15,58 @@
  */
 package com.infenia.jagratha.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.infenia.jagratha.mapper.AppConfigMapper;
+import com.infenia.jagratha.model.ConfigRequest;
+import com.infenia.jagratha.model.WorkflowDefinition;
 import com.infenia.jagratha.service.SessionService;
-import com.infenia.jagratha.service.TaskTrackerService;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@WebFluxTest(SessionController.class)
-class SessionControllerTest {
+@WebFluxTest(ConfigController.class)
+class ConfigControllerTest {
 
   @Autowired private WebTestClient webTestClient;
 
   @MockitoBean private SessionService sessionService;
-  @MockitoBean private TaskTrackerService trackerService;
+  @MockitoBean private AppConfigMapper configMapper;
 
   @Test
-  void testListSessions() {
-    when(sessionService.getActiveSessions()).thenReturn(Flux.just("session-1"));
-    when(sessionService.getSessionConfig("session-1")).thenReturn(Mono.just(Map.of()));
-    when(trackerService.getHistory("session-1")).thenReturn(List.of());
+  void testUpdateConfig() {
+    WorkflowDefinition workflow =
+        new WorkflowDefinition(
+            "desc", List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
+    ConfigRequest request =
+        new ConfigRequest(
+            "session-1", "desc", "initiator-1", Map.of(), "/new/path", Map.of("w1", workflow));
+
+    when(sessionService.applyConfigOverrides(any())).thenReturn(Mono.empty());
 
     webTestClient
-        .get()
-        .uri("/api/sessions")
+        .post()
+        .uri("/api/config")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request)
         .exchange()
         .expectStatus()
         .isOk()
         .expectBody()
-        .jsonPath("$.data[0].sessionId")
-        .isEqualTo("session-1");
+        .jsonPath("$.status")
+        .isEqualTo(200)
+        .jsonPath("$.message")
+        .isEqualTo("Configuration updated successfully");
+
+    verify(configMapper).toData(any());
+    verify(sessionService).applyConfigOverrides(any());
   }
 }

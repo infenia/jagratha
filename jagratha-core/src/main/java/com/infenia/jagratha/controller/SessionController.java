@@ -100,7 +100,9 @@ public class SessionController {
               final List<String> workflowIds = List.copyOf(workflows.keySet());
               return ResponseEntity.ok(
                   ApiResponse.success(
-                      200, "Session details retrieved", new SessionDetails(sessionId, workflowIds)));
+                      200,
+                      "Session details retrieved",
+                      new SessionDetails(sessionId, workflowIds)));
             })
         .defaultIfEmpty(ResponseEntity.notFound().build());
   }
