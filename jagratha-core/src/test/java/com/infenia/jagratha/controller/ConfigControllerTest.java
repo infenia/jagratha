@@ -13,19 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.jagratha;
+package com.infenia.jagratha.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.jagratha.controller.AppController;
-import com.infenia.jagratha.model.TaskResponse;
-import com.infenia.jagratha.model.WorkflowExecution;
-import com.infenia.jagratha.model.WorkflowTriggerRequest;
-import com.infenia.jagratha.service.LogRetrievalService;
-import com.infenia.jagratha.service.TaskTrackerService;
-import com.infenia.jagratha.service.WorkflowService;
+import com.infenia.jagratha.mapper.AppConfigMapper;
+import com.infenia.jagratha.model.ConfigRequest;
+import com.infenia.jagratha.model.WorkflowDefinition;
+import com.infenia.jagratha.service.SessionService;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,38 +33,40 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
-@WebFluxTest(AppController.class)
-class AppControllerTest {
+@WebFluxTest(ConfigController.class)
+class ConfigControllerTest {
 
   @Autowired private WebTestClient webTestClient;
 
-  @MockitoBean private WorkflowService workflowService;
-  @MockitoBean private LogRetrievalService logRetrievalService;
-  @MockitoBean private TaskTrackerService trackerService;
+  @MockitoBean private SessionService sessionService;
+  @MockitoBean private AppConfigMapper configMapper;
 
   @Test
-  void testTriggerWorkflowSuccess() {
-    WorkflowTriggerRequest request = new WorkflowTriggerRequest("session-1", "w1", Map.of());
-    TaskResponse response = new TaskResponse("SUCCESS", "Build successful");
-    String executionId = "exec-123";
-    WorkflowExecution execution = new WorkflowExecution(executionId, Mono.just(response));
+  void testUpdateConfig() {
+    WorkflowDefinition workflow =
+        new WorkflowDefinition(
+            "desc", List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
+    ConfigRequest request =
+        new ConfigRequest(
+            "session-1", "desc", "initiator-1", Map.of(), "/new/path", Map.of("w1", workflow));
 
-    when(workflowService.runWorkflow(anyString(), anyString(), any())).thenReturn(execution);
+    when(sessionService.applyConfigOverrides(any())).thenReturn(Mono.empty());
 
     webTestClient
         .post()
-        .uri("/api/workflow/trigger")
+        .uri("/api/config")
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(request)
         .exchange()
         .expectStatus()
-        .isAccepted()
+        .isOk()
         .expectBody()
         .jsonPath("$.status")
-        .isEqualTo(202)
+        .isEqualTo(200)
         .jsonPath("$.message")
-        .isEqualTo("Workflow trigger accepted")
-        .jsonPath("$.data.executionId")
-        .isEqualTo(executionId);
+        .isEqualTo("Configuration updated successfully");
+
+    verify(configMapper).toData(any());
+    verify(sessionService).applyConfigOverrides(any());
   }
 }
