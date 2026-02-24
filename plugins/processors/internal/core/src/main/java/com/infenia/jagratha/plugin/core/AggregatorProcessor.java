@@ -67,6 +67,23 @@ public class AggregatorProcessor implements ProcessorPlugin {
   }
 
   @Override
+  public String getDescription() {
+    return "Aggregates multiple incoming messages into a single window based on count, time, or session triggers.";
+  }
+
+  @Override
+  public String getUsagePattern() {
+    return """
+        Configure with:
+        - groupBy: SpEL expression to group messages into windows.
+        - window: Map containing 'type' (COUNT, TIME, SESSION) and 'size' or 'durationMs'.
+        - aggregation: Map containing 'type' (SUM, AVERAGE, MIN, MAX, COLLECT_LIST, CUSTOM) and optional 'field' or 'accumulateExp'/'resultExp' for CUSTOM.
+        - maxPendingWindows: Maximum number of windows to keep in memory.
+        - emitOnTimeout: Boolean. If true (default), partial windows are emitted on timeout.
+        - nullPolicy: 'IGNORE' (default) or 'FAIL'.""";
+  }
+
+  @Override
   public String getType() {
     return TYPE;
   }

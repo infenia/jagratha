@@ -41,6 +41,19 @@ public class FileUpdateRecordPlugin implements TerminalPlugin {
   }
 
   @Override
+  public String getDescription() {
+    return "Records and updates the status of processed files in a JSON file.";
+  }
+
+  @Override
+  public String getUsagePattern() {
+    return """
+        Configure with:
+        - outputDir: Directory where the 'file-status.json' file will be stored.
+        Expects input messages with a Map payload containing 'path' and 'status' keys.""";
+  }
+
+  @Override
   public String getType() {
     return "file-update-record";
   }

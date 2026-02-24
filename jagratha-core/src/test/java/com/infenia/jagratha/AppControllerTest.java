@@ -30,6 +30,7 @@ import com.infenia.jagratha.model.WorkflowTriggerRequest;
 import com.infenia.jagratha.service.LogRetrievalService;
 import com.infenia.jagratha.service.SessionService;
 import com.infenia.jagratha.service.TaskTrackerService;
+import com.infenia.jagratha.service.WorkflowRegistry;
 import com.infenia.jagratha.service.WorkflowService;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,7 @@ class AppControllerTest {
   @MockitoBean private SessionService sessionService;
   @MockitoBean private LogRetrievalService logRetrievalService;
   @MockitoBean private TaskTrackerService trackerService;
+  @MockitoBean private WorkflowRegistry registry;
   @MockitoBean private AppConfigMapper configMapper;
 
   @Test

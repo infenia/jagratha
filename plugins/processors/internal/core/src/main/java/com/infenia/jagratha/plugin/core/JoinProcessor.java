@@ -71,6 +71,26 @@ public class JoinProcessor implements ProcessorPlugin {
   }
 
   @Override
+  public String getDescription() {
+    return "Synchronizes multiple incoming execution paths by waiting for criteria to be met.";
+  }
+
+  @Override
+  public String getUsagePattern() {
+    return """
+        Configure with:
+        - mode: 'ALL' (waits for all ancestors), 'ANY' (first one wins), or 'CUSTOM_COUNT' (waits for N messages).
+        - expectedAncestors: List of node IDs to wait for (required for 'ALL' mode).
+        - count: Number of messages to wait for (required for 'CUSTOM_COUNT' mode).
+        - correlationKey: SpEL expression to group messages. Defaults to traceId.
+        - mergeStrategy: 'ARRAY', 'OBJECT_MERGE', or 'LATEST'. Default is 'ARRAY'.
+        - timeoutMs: Maximum time to wait for join completion. Default is 30,000ms.
+        - strictMode: Boolean. If true (default), throws JoinTimeoutException on timeout if errorPort is not set.
+        - errorPort: Optional port name to route messages when join fails or times out.
+        - latePort: Optional port name for messages arriving after join has already completed.""";
+  }
+
+  @Override
   public String getType() {
     return TYPE;
   }

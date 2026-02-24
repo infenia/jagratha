@@ -51,6 +51,20 @@ public class GuardProcessor implements ProcessorPlugin {
   }
 
   @Override
+  public String getDescription() {
+    return "Evaluates a boolean condition and routes the message to 'true' or 'false' ports based on the result.";
+  }
+
+  @Override
+  public String getUsagePattern() {
+    return """
+        Configure with:
+        - condition: The SpEL expression to evaluate.
+        - strictMode: Boolean. If true (default), throws exception on evaluation error if errorPort is not set.
+        - errorPort: Optional port name to route messages when evaluation fails. Adds 'error_message' to metadata.""";
+  }
+
+  @Override
   public String getType() {
     return TYPE;
   }

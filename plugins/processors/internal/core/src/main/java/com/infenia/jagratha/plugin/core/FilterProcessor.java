@@ -58,6 +58,22 @@ public final class FilterProcessor implements ProcessorPlugin {
   }
 
   @Override
+  public String getDescription() {
+    return "Evaluates a boolean predicate against a message. If true, the message passes through; "
+        + "if false, it is dropped or rerouted.";
+  }
+
+  @Override
+  public String getUsagePattern() {
+    return """
+        Configure with:
+        - condition: The boolean expression to evaluate.
+        - engine: 'SpEL' (default) or 'SIMPLE'.
+        - strictMode: Boolean. If true (default), throws exception on evaluation error.
+        - discardPort: Optional port name to route messages that do not match the condition.""";
+  }
+
+  @Override
   public String getType() {
     return TYPE;
   }
