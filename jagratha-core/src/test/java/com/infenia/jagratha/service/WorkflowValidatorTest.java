@@ -24,7 +24,6 @@ import com.infenia.jagratha.plugin.PluginCategory;
 import com.infenia.jagratha.plugin.ProcessorPlugin;
 import com.infenia.jagratha.plugin.TerminalPlugin;
 import com.infenia.jagratha.plugin.TriggerPlugin;
-import com.infenia.jagratha.plugin.WorkflowPlugin;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;

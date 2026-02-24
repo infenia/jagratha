@@ -15,7 +15,7 @@
  */
 package com.infenia.jagratha.plugin.gradle;
 
-import com.infenia.jagratha.plugin.build.AbstractBuildToolPlugin;
+import com.infenia.jagratha.plugin.buildtool.AbstractBuildToolPlugin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
