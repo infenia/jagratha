@@ -28,6 +28,7 @@ import com.infenia.jagratha.plugin.WorkflowPlugin;
 import com.infenia.jagratha.validation.SessionId;
 import com.infenia.jagratha.validation.WorkflowId;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
@@ -140,6 +141,7 @@ public class WorkflowOrchestrator {
    *
    * @param sessionId the session identifier
    * @param workflowId the workflow identifier
+   * @param executionId the unique execution identifier
    * @param prepared the prepared workflow
    * @param payload the initial trigger payload
    * @return a Mono that completes when all branches of the workflow have finished
@@ -147,6 +149,7 @@ public class WorkflowOrchestrator {
   public Mono<Void> execute(
       @SessionId final String sessionId,
       @WorkflowId final String workflowId,
+      @NotBlank final String executionId,
       @NotNull @Valid final PreparedWorkflow prepared,
       @NotEmpty final Map<String, Object> payload) {
 
@@ -154,11 +157,12 @@ public class WorkflowOrchestrator {
             ctx -> {
               final String sId = ctx.get("sessionId");
               final String wId = ctx.get("workflowId");
+              final String eId = ctx.get("executionId");
               final List<String> nodeIds =
                   prepared.definition().nodes().stream().map(Node::nodeId).toList();
 
               return tracker
-                  .startWorkflow(sId, wId, nodeIds)
+                  .startWorkflow(eId, sId, wId, nodeIds)
                   .then(
                       Mono.defer(
                           () -> {
@@ -168,27 +172,29 @@ public class WorkflowOrchestrator {
 
                             for (final Node node : prepared.topologicalOrder()) {
                               buildNodeIterative(
-                                  sId, wId, node, prepared, payload, nodeStreams, terminals);
+                                  sId, wId, eId, node, prepared, payload, nodeStreams, terminals);
                             }
 
                             return Flux.fromIterable(terminals)
                                 .flatMapDelayError(m -> m, 256, 32)
-                                .then(tracker.finishWorkflow(sId, wId, STATUS_SUCCESS))
+                                .then(tracker.finishWorkflow(eId, STATUS_SUCCESS))
                                 .onErrorResume(
                                     e ->
                                         tracker
-                                            .finishWorkflow(sId, wId, STATUS_ERROR)
+                                            .finishWorkflow(eId, STATUS_ERROR)
                                             .then(Mono.error(e)));
                           }))
                   .timeout(Duration.ofSeconds(GLOBAL_TIMEOUT));
             })
-        .contextWrite(Context.of("sessionId", sessionId, "workflowId", workflowId));
+        .contextWrite(
+            Context.of("sessionId", sessionId, "workflowId", workflowId, "executionId", executionId));
   }
 
   @SuppressWarnings("PMD.LawOfDemeter")
   private void buildNodeIterative(
       final String sessionId,
       final String workflowId,
+      final String executionId,
       final Node node,
       final PreparedWorkflow prepared,
       final Map<String, Object> payload,
@@ -203,8 +209,7 @@ public class WorkflowOrchestrator {
       final TriggerPlugin trigger = (TriggerPlugin) plugin;
       final Flux<Message> stream =
           tracker
-              .updateTaskStatus(
-                  sessionId, workflowId, node.nodeId(), DEFAULT_TASK_ID, STATUS_RUNNING)
+              .updateTaskStatus(executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_RUNNING)
               .thenMany(trigger.start(node.config(), payload))
               .contextWrite(ctx -> ctx.put("nodeId", node.nodeId()))
               .concatWith(
@@ -212,23 +217,18 @@ public class WorkflowOrchestrator {
                       () ->
                           tracker
                               .updateTaskStatus(
-                                  sessionId,
-                                  workflowId,
-                                  node.nodeId(),
-                                  DEFAULT_TASK_ID,
-                                  STATUS_SUCCESS)
+                                  executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_SUCCESS)
                               .then(Mono.empty())))
               .onErrorResume(
                   e ->
                       tracker
                           .updateTaskStatus(
-                              sessionId, workflowId, node.nodeId(), DEFAULT_TASK_ID, STATUS_FAILURE)
+                              executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_FAILURE)
                           .then(Mono.error(e)));
 
       nodeStreams.put(
           node.nodeId(),
-          applyLoggingAndBroadcasting(
-              sessionId, workflowId, node.nodeId(), stream, children.size()));
+          applyLoggingAndBroadcasting(executionId, node.nodeId(), stream, children.size()));
     } else {
       final Flux<Message> mergedInput =
           Flux.merge(
@@ -257,11 +257,7 @@ public class WorkflowOrchestrator {
                                 msg ->
                                     tracker
                                         .updateTaskStatus(
-                                            sessionId,
-                                            workflowId,
-                                            node.nodeId(),
-                                            DEFAULT_TASK_ID,
-                                            STATUS_RUNNING)
+                                            executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_RUNNING)
                                         .thenMany(
                                             processor.process(
                                                 Flux.concat(Mono.just(msg), f), node.config()))
@@ -270,8 +266,7 @@ public class WorkflowOrchestrator {
                                                 () ->
                                                     tracker
                                                         .updateTaskStatus(
-                                                            sessionId,
-                                                            workflowId,
+                                                            executionId,
                                                             node.nodeId(),
                                                             DEFAULT_TASK_ID,
                                                             STATUS_SUCCESS)
@@ -280,28 +275,19 @@ public class WorkflowOrchestrator {
                                 Mono.defer(
                                         () ->
                                             tracker.updateTaskStatus(
-                                                sessionId,
-                                                workflowId,
-                                                node.nodeId(),
-                                                DEFAULT_TASK_ID,
-                                                "SKIPPED"))
+                                                executionId, node.nodeId(), DEFAULT_TASK_ID, "SKIPPED"))
                                     .thenMany(Flux.empty())))
                 .contextWrite(ctx -> ctx.put("nodeId", node.nodeId()))
                 .onErrorResume(
                     e ->
                         tracker
                             .updateTaskStatus(
-                                sessionId,
-                                workflowId,
-                                node.nodeId(),
-                                DEFAULT_TASK_ID,
-                                STATUS_FAILURE)
+                                executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_FAILURE)
                             .then(Mono.error(e)));
 
         nodeStreams.put(
             node.nodeId(),
-            applyLoggingAndBroadcasting(
-                sessionId, workflowId, node.nodeId(), stream, children.size()));
+            applyLoggingAndBroadcasting(executionId, node.nodeId(), stream, children.size()));
       } else if (plugin instanceof TerminalPlugin terminal) {
         final Flux<Message> inputToTerminal =
             mergedInput.concatMap(
@@ -321,30 +307,18 @@ public class WorkflowOrchestrator {
                                 msg ->
                                     tracker
                                         .updateTaskStatus(
-                                            sessionId,
-                                            workflowId,
-                                            node.nodeId(),
-                                            DEFAULT_TASK_ID,
-                                            STATUS_RUNNING)
+                                            executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_RUNNING)
                                         .then(
                                             terminal.consume(
                                                 Flux.concat(Mono.just(msg), f), node.config()))
                                         .then(
                                             tracker.updateTaskStatus(
-                                                sessionId,
-                                                workflowId,
-                                                node.nodeId(),
-                                                DEFAULT_TASK_ID,
-                                                STATUS_SUCCESS)))
+                                                executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_SUCCESS)))
                             .switchIfEmpty(
                                 Mono.defer(
                                     () ->
                                         tracker.updateTaskStatus(
-                                            sessionId,
-                                            workflowId,
-                                            node.nodeId(),
-                                            DEFAULT_TASK_ID,
-                                            "SKIPPED"))))
+                                            executionId, node.nodeId(), DEFAULT_TASK_ID, "SKIPPED"))))
                 .contextWrite(ctx -> ctx.put("nodeId", node.nodeId()))
                 .timeout(nodeTimeout)
                 .then()
@@ -352,11 +326,7 @@ public class WorkflowOrchestrator {
                     e ->
                         tracker
                             .updateTaskStatus(
-                                sessionId,
-                                workflowId,
-                                node.nodeId(),
-                                DEFAULT_TASK_ID,
-                                STATUS_FAILURE)
+                                executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_FAILURE)
                             .then(Mono.error(e)));
         terminals.add(completion);
       }
@@ -373,8 +343,7 @@ public class WorkflowOrchestrator {
   }
 
   private Flux<Message> applyLoggingAndBroadcasting(
-      final String sessionId,
-      final String workflowId,
+      final String executionId,
       final String nodeId,
       final Flux<Message> stream,
       final int childCount) {
@@ -386,9 +355,7 @@ public class WorkflowOrchestrator {
             .doOnNext(
                 msg ->
                     Mono.fromRunnable(
-                            () ->
-                                tracker.appendLog(
-                                    sessionId, workflowId, String.valueOf(msg.payload())))
+                            () -> tracker.appendLog(executionId, String.valueOf(msg.payload())))
                         .subscribeOn(Schedulers.boundedElastic())
                         .subscribe());
 
