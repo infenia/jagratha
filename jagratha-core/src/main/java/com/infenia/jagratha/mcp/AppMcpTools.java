@@ -123,15 +123,19 @@ public class AppMcpTools {
   @Tool(description = "Trigger a Jagratha workflow with an optional JSON payload")
   public Mono<String> triggerWorkflow(
       final String sessionId, final String workflowId, final String payloadJson) {
-    Map<String, Object> payload = Map.of();
+    Mono<String> result;
     if (payloadJson != null && !payloadJson.isBlank()) {
       try {
-        payload = objectMapper.readValue(payloadJson, new TypeReference<>() {});
-      } catch (Exception e) {
-        return Mono.error(new IllegalArgumentException("Invalid JSON payload: " + e.getMessage()));
+        final Map<String, Object> payload =
+            objectMapper.readValue(payloadJson, new TypeReference<>() {});
+        result = Mono.just(workflowService.runWorkflow(sessionId, workflowId, payload).executionId());
+      } catch (final com.fasterxml.jackson.core.JsonProcessingException e) {
+        result = Mono.error(new IllegalArgumentException("Invalid JSON payload: " + e.getMessage()));
       }
+    } else {
+      result = Mono.just(workflowService.runWorkflow(sessionId, workflowId, Map.of()).executionId());
     }
-    return Mono.just(workflowService.runWorkflow(sessionId, workflowId, payload).executionId());
+    return result;
   }
 
   /**
@@ -170,10 +174,14 @@ public class AppMcpTools {
    */
   @Tool(description = "Get full details of a specific Jagratha plugin including usage pattern")
   public PluginDetails getPluginDetails(final String type) {
-    final var p = registry.get(type);
-    if (p == null) {
+    final com.infenia.jagratha.plugin.WorkflowPlugin plugin = registry.get(type);
+    if (plugin == null) {
       throw new IllegalArgumentException("Plugin not found: " + type);
     }
-    return new PluginDetails(p.getType(), p.getCategory(), p.getDescription(), p.getUsagePattern());
+    return new PluginDetails(
+        plugin.getType(),
+        plugin.getCategory(),
+        plugin.getDescription(),
+        plugin.getUsagePattern());
   }
 }

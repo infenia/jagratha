@@ -19,12 +19,7 @@ import com.infenia.jagratha.mapper.AppConfigMapper;
 import com.infenia.jagratha.model.ApiResponse;
 import com.infenia.jagratha.model.AppConfigData;
 import com.infenia.jagratha.model.ConfigRequest;
-import com.infenia.jagratha.model.PluginDetails;
-import com.infenia.jagratha.model.PluginSummary;
-import com.infenia.jagratha.model.SessionDetails;
-import com.infenia.jagratha.model.SessionSummary;
 import com.infenia.jagratha.model.TriggerResponse;
-import com.infenia.jagratha.model.WorkflowDefinition;
 import com.infenia.jagratha.model.WorkflowExecution;
 import com.infenia.jagratha.model.WorkflowExecutionSummary;
 import com.infenia.jagratha.model.WorkflowProgress;
@@ -32,15 +27,12 @@ import com.infenia.jagratha.model.WorkflowTriggerRequest;
 import com.infenia.jagratha.service.LogRetrievalService;
 import com.infenia.jagratha.service.SessionService;
 import com.infenia.jagratha.service.TaskTrackerService;
-import com.infenia.jagratha.service.WorkflowRegistry;
 import com.infenia.jagratha.service.WorkflowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -71,7 +63,6 @@ public class AppController {
   private final SessionService sessionService;
   private final LogRetrievalService retrievalService;
   private final TaskTrackerService trackerService;
-  private final WorkflowRegistry registry;
   private final AppConfigMapper configMapper;
 
   private static final String HTTP_200 = "200";
@@ -285,125 +276,5 @@ public class AppController {
         .thenReturn(
             ResponseEntity.ok(
                 ApiResponse.success(200, "Configuration updated successfully", null)));
-  }
-
-  /**
-   * List all active sessions.
-   *
-   * @return list of session summaries
-   */
-  @GetMapping("/sessions")
-  @Operation(summary = "List sessions", description = "Lists all active sessions with summaries")
-  public Mono<ApiResponse<List<SessionSummary>>> listSessions() {
-    return sessionService
-        .getActiveSessions()
-        .flatMap(
-            id ->
-                sessionService
-                    .getSessionConfig(id)
-                    .map(
-                        config -> {
-                          final List<WorkflowExecutionSummary> history =
-                              trackerService.getHistory(id);
-                          final LocalDateTime lastActive =
-                              history.isEmpty() ? null : history.get(0).startTime();
-                          return new SessionSummary(
-                              id,
-                              (String) config.getOrDefault("initiator", ""),
-                              (String) config.getOrDefault("initiatedTime", ""),
-                              lastActive,
-                              (String) config.getOrDefault("description", ""),
-                              (Map<String, String>) config.getOrDefault("tags", Map.of()));
-                        }))
-        .collectList()
-        .map(sessions -> ApiResponse.success(200, "Sessions retrieved successfully", sessions));
-  }
-
-  /**
-   * Get details of a specific session.
-   *
-   * @param sessionId the session identifier
-   * @return session details
-   */
-  @GetMapping("/sessions/{sessionId}")
-  @Operation(
-      summary = "Get session details",
-      description = "Retrieves details of a specific session including workflow IDs")
-  public Mono<ResponseEntity<ApiResponse<SessionDetails>>> getSessionDetails(
-      @PathVariable final String sessionId) {
-    return sessionService
-        .getSessionConfig(sessionId)
-        .map(
-            config -> {
-              final Map<String, Object> workflows =
-                  (Map<String, Object>) config.getOrDefault("workflows", Map.of());
-              final List<String> workflowIds = List.copyOf(workflows.keySet());
-              return ResponseEntity.ok(
-                  ApiResponse.success(
-                      200,
-                      "Session details retrieved",
-                      new SessionDetails(sessionId, workflowIds)));
-            })
-        .defaultIfEmpty(ResponseEntity.notFound().build());
-  }
-
-  /**
-   * Get workflow definition.
-   *
-   * @param sessionId the session identifier
-   * @param workflowId the workflow identifier
-   * @return workflow definition
-   */
-  @GetMapping("/sessions/{sessionId}/workflows/{workflowId}")
-  @Operation(summary = "Get workflow", description = "Retrieves the definition of a workflow")
-  public Mono<ResponseEntity<ApiResponse<WorkflowDefinition>>> getWorkflow(
-      @PathVariable final String sessionId, @PathVariable final String workflowId) {
-    return sessionService
-        .getSessionWorkflow(sessionId, workflowId)
-        .map(def -> ResponseEntity.ok(ApiResponse.success(200, "Workflow retrieved", def)))
-        .defaultIfEmpty(ResponseEntity.notFound().build());
-  }
-
-  /**
-   * List all available plugins.
-   *
-   * @return list of plugin summaries
-   */
-  @GetMapping("/plugins")
-  @Operation(summary = "List plugins", description = "Lists all registered workflow plugins")
-  public Mono<ApiResponse<List<PluginSummary>>> listPlugins() {
-    return Mono.just(registry.listPlugins())
-        .map(
-            plugins ->
-                plugins.stream().map(p -> new PluginSummary(p.getType(), p.getCategory())).toList())
-        .map(summaries -> ApiResponse.success(200, "Plugins retrieved successfully", summaries));
-  }
-
-  /**
-   * Get details of a specific plugin.
-   *
-   * @param type the plugin type
-   * @return plugin details
-   */
-  @GetMapping("/plugins/{type}")
-  @Operation(summary = "Get plugin details", description = "Retrieves details of a specific plugin")
-  public Mono<ResponseEntity<ApiResponse<PluginDetails>>> getPluginDetails(
-      @PathVariable final String type) {
-    return Mono.fromCallable(() -> registry.get(type))
-        .map(
-            p -> {
-              if (p != null) {
-                return ResponseEntity.ok(
-                    ApiResponse.success(
-                        200,
-                        "Plugin details retrieved",
-                        new PluginDetails(
-                            p.getType(),
-                            p.getCategory(),
-                            p.getDescription(),
-                            p.getUsagePattern())));
-              }
-              return ResponseEntity.notFound().build();
-            });
   }
 }
