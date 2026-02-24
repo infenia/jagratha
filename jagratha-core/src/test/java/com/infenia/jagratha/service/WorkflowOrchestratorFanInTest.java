@@ -53,7 +53,7 @@ class WorkflowOrchestratorFanInTest {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
     validator = new WorkflowValidator(registry);
-    when(tracker.startWorkflow(any(), any(), any())).thenReturn(Mono.empty());
+    when(tracker.startWorkflow(any(), any(), any(), any())).thenReturn(Mono.empty());
     when(tracker.updateTaskStatus(any(), any(), any(), any())).thenReturn(Mono.empty());
     when(tracker.finishWorkflow(any(), any())).thenReturn(Mono.empty());
     when(tracker.appendLog(any(), any())).thenReturn(Mono.empty());
@@ -119,7 +119,7 @@ class WorkflowOrchestratorFanInTest {
 
     // Verify that terminal received 2 messages (one from each trigger path)
     verify(terminal).consume(any(), any());
-    verify(tracker, atLeastOnce()).finishWorkflow(eq(sessionId), eq("COMPLETED"));
+    verify(tracker, atLeastOnce()).finishWorkflow(anyString(), eq("SUCCESS"));
   }
 
   @Test
@@ -184,7 +184,7 @@ class WorkflowOrchestratorFanInTest {
                 .flatMap(p -> orchestrator.execute(sessionId, "test-workflow", p, Map.of())))
         .verifyComplete();
 
-    verify(tracker, atLeastOnce()).finishWorkflow(eq(sessionId), eq("COMPLETED"));
+    verify(tracker, atLeastOnce()).finishWorkflow(anyString(), eq("SUCCESS"));
   }
 
   @Test
@@ -257,8 +257,8 @@ class WorkflowOrchestratorFanInTest {
         .verify();
 
     verify(tracker, timeout(1000).atLeastOnce())
-        .updateTaskStatus(eq(sessionId), eq("t1"), anyString(), eq("FAILURE"));
-    // FAILURE now since I changed the error handling in execute()
-    verify(tracker, timeout(1000)).finishWorkflow(eq(sessionId), eq("FAILURE"));
+        .updateTaskStatus(anyString(), eq("t1"), anyString(), eq("FAILURE"));
+    // ERROR now since I changed the error handling in execute() to STATUS_ERROR
+    verify(tracker, timeout(1000)).finishWorkflow(anyString(), eq("ERROR"));
   }
 }

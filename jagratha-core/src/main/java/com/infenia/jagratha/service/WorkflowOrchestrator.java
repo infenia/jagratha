@@ -59,6 +59,7 @@ public class WorkflowOrchestrator {
   private static final String STATUS_RUNNING = "RUNNING";
   private static final String STATUS_SUCCESS = "SUCCESS";
   private static final String STATUS_FAILURE = "FAILURE";
+  private static final String STATUS_ERROR = "ERROR";
   private static final String DEFAULT_TASK_ID = "default";
 
   private final WorkflowRegistry registry;
@@ -149,7 +150,7 @@ public class WorkflowOrchestrator {
       @WorkflowId final String workflowId,
       @NotNull @Valid final PreparedWorkflow prepared,
       @NotEmpty final Map<String, Object> payload) {
-    return execute(sessionId, workflowId, sessionId, prepared, payload);
+    return execute(sessionId, workflowId, java.util.UUID.randomUUID().toString(), prepared, payload);
   }
 
   /**
@@ -172,12 +173,13 @@ public class WorkflowOrchestrator {
     return Mono.deferContextual(
             ctx -> {
               final String sId = ctx.get("sessionId");
+              final String wId = ctx.get("workflowId");
               final String execId = ctx.get("executionId");
               final List<String> nodeIds =
                   prepared.definition().nodes().stream().map(Node::nodeId).toList();
 
               return tracker
-                  .startWorkflow(sId, execId, nodeIds)
+                  .startWorkflow(sId, wId, execId, nodeIds)
                   .then(
                       Mono.defer(
                           () -> {
@@ -187,16 +189,16 @@ public class WorkflowOrchestrator {
 
                             for (final Node node : prepared.topologicalOrder()) {
                               buildNodeIterative(
-                                  sId, execId, node, prepared, payload, nodeStreams, terminals);
+                                  execId, node, prepared, payload, nodeStreams, terminals);
                             }
 
                             return Flux.fromIterable(terminals)
                                 .flatMapDelayError(m -> m, 256, 32)
-                                .then(tracker.finishWorkflow(execId, "COMPLETED"))
+                                .then(tracker.finishWorkflow(execId, STATUS_SUCCESS))
                                 .onErrorResume(
                                     e ->
                                         tracker
-                                            .finishWorkflow(execId, STATUS_FAILURE)
+                                            .finishWorkflow(execId, STATUS_ERROR)
                                             .then(Mono.error(e)));
                           }))
                   .timeout(Duration.ofSeconds(GLOBAL_TIMEOUT));
@@ -207,7 +209,6 @@ public class WorkflowOrchestrator {
 
   @SuppressWarnings("PMD.LawOfDemeter")
   private void buildNodeIterative(
-      final String sessionId,
       final String executionId,
       final Node node,
       final PreparedWorkflow prepared,

@@ -19,6 +19,7 @@ import com.infenia.jagratha.model.TaskProgress;
 import com.infenia.jagratha.model.WorkflowProgress;
 import com.infenia.jagratha.validation.NodeId;
 import com.infenia.jagratha.validation.SessionId;
+import com.infenia.jagratha.validation.WorkflowId;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -42,8 +43,10 @@ public class TaskTrackerService {
 
   private final Map<String, WorkflowState> executionStates = new ConcurrentHashMap<>();
   private final Map<String, Sinks.Many<String>> executionLogSinks = new ConcurrentHashMap<>();
-  private final Map<String, Sinks.Many<String>> executionStatusSinks = new ConcurrentHashMap<>();
+  private final Map<String, Sinks.Many<WorkflowProgress>> executionStatusSinks =
+      new ConcurrentHashMap<>();
   private final Map<String, String> latestExecutionBySession = new ConcurrentHashMap<>();
+  private final Map<String, String> latestExecutionByWorkflow = new ConcurrentHashMap<>();
   private final Map<String, List<String>> executionsBySession = new ConcurrentHashMap<>();
 
   /** Default constructor. */
@@ -55,26 +58,29 @@ public class TaskTrackerService {
    * Start tracking a new workflow for a session.
    *
    * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
    * @param nodeIds the list of node IDs in the workflow DAG
    * @return a Mono that completes when the workflow tracking is started
-   * @deprecated use {@link #startWorkflow(String, String, List)}
    */
-  @Deprecated(since = "1.1.0")
   public Mono<Void> startWorkflow(
-      @SessionId final String sessionId, @NotEmpty final List<String> nodeIds) {
-    return startWorkflow(sessionId, sessionId, nodeIds);
+      @SessionId final String sessionId,
+      @WorkflowId final String workflowId,
+      @NotEmpty final List<String> nodeIds) {
+    return startWorkflow(sessionId, workflowId, java.util.UUID.randomUUID().toString(), nodeIds);
   }
 
   /**
    * Start tracking a new workflow for a session with a unique execution ID.
    *
    * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
    * @param executionId the unique execution identifier
    * @param nodeIds the list of node IDs in the workflow DAG
    * @return a Mono that completes when the workflow tracking is started
    */
   public Mono<Void> startWorkflow(
       @SessionId final String sessionId,
+      @WorkflowId final String workflowId,
       @NotBlank final String executionId,
       @NotEmpty final List<String> nodeIds) {
     return Mono.fromRunnable(
@@ -87,6 +93,7 @@ public class TaskTrackerService {
               executionId,
               new WorkflowState(
                   sessionId,
+                  workflowId,
                   executionId,
                   "RUNNING",
                   new ArrayList<>(initialTasks),
@@ -95,10 +102,12 @@ public class TaskTrackerService {
           final Sinks.Many<String> sink = Sinks.many().multicast().directBestEffort();
           executionLogSinks.put(executionId, sink);
 
-          final Sinks.Many<String> statusSink = Sinks.many().multicast().directBestEffort();
+          final Sinks.Many<WorkflowProgress> statusSink =
+              Sinks.many().multicast().directBestEffort();
           executionStatusSinks.put(executionId, statusSink);
 
           latestExecutionBySession.put(sessionId, executionId);
+          latestExecutionByWorkflow.put(getWorkflowKey(sessionId, workflowId), executionId);
           executionsBySession
               .computeIfAbsent(sessionId, k -> new CopyOnWriteArrayList<>())
               .add(executionId);
@@ -108,7 +117,7 @@ public class TaskTrackerService {
   /**
    * Update the status of a specific node.
    *
-   * @param id the identifier (sessionId or executionId)
+   * @param executionId the unique execution identifier
    * @param nodeId the ID of the node
    * @param module the module name
    * @param status the new status
@@ -116,17 +125,17 @@ public class TaskTrackerService {
    */
   @SuppressWarnings("PMD.UseObjectForClearerAPI")
   public Mono<Void> updateTaskStatus(
-      @NotBlank final String id,
+      @NotBlank final String executionId,
       @NodeId final String nodeId,
       @NotBlank @Size(max = 256) final String module,
       @NotBlank @Size(max = 256) final String status) {
-    return updateTaskStatus(id, nodeId, module, status, Map.of());
+    return updateTaskStatus(executionId, nodeId, module, status, Map.of());
   }
 
   /**
    * Update the status and metadata of a specific node.
    *
-   * @param id the identifier (sessionId or executionId)
+   * @param executionId the unique execution identifier
    * @param nodeId the ID of the node
    * @param module the module name
    * @param status the new status
@@ -135,22 +144,17 @@ public class TaskTrackerService {
    */
   @SuppressWarnings("PMD.UseObjectForClearerAPI")
   public Mono<Void> updateTaskStatus(
-      @NotBlank final String id,
+      @NotBlank final String executionId,
       @NodeId final String nodeId,
       @NotBlank @Size(max = 256) final String module,
       @NotBlank @Size(max = 256) final String status,
       @NotNull final Map<String, Object> metadata) {
     return Mono.fromRunnable(
         () -> {
-          final String executionId = resolveExecutionId(id);
           final WorkflowState state = executionStates.get(executionId);
           if (state != null) {
             state.updateTask(nodeId, module, status, metadata);
             notifyStatusChange(executionId);
-            // Also notify session status change if different
-            if (!id.equals(executionId)) {
-              notifyStatusChange(id);
-            }
           }
         });
   }
@@ -158,23 +162,19 @@ public class TaskTrackerService {
   /**
    * Finish the workflow.
    *
-   * @param id the identifier (sessionId or executionId)
+   * @param executionId the unique execution identifier
    * @param status the final status
    * @return a Mono that completes when the workflow is finished
    */
   public Mono<Void> finishWorkflow(
-      @NotBlank final String id, @NotBlank @Size(max = 256) final String status) {
+      @NotBlank final String executionId, @NotBlank @Size(max = 256) final String status) {
     return Mono.fromRunnable(
         () -> {
-          final String executionId = resolveExecutionId(id);
           final WorkflowState state = executionStates.get(executionId);
           if (state != null) {
             state.setStatus(status);
             state.setEndTime(LocalDateTime.now());
             notifyStatusChange(executionId);
-            if (!id.equals(executionId)) {
-              notifyStatusChange(id);
-            }
           }
         });
   }
@@ -182,15 +182,14 @@ public class TaskTrackerService {
   /**
    * Append a log line to the live output.
    *
-   * @param id the identifier (sessionId or executionId)
+   * @param executionId the unique execution identifier
    * @param line the log line
    * @return a Mono that completes when the log line is appended
    */
   public Mono<Void> appendLog(
-      @NotBlank final String id, @NotBlank @Size(max = 16_384) final String line) {
+      @NotBlank final String executionId, @NotBlank @Size(max = 16_384) final String line) {
     return Mono.fromRunnable(
         () -> {
-          final String executionId = resolveExecutionId(id);
           final Sinks.Many<String> sink = executionLogSinks.get(executionId);
           if (sink != null) {
             sink.tryEmitNext(line);
@@ -202,14 +201,24 @@ public class TaskTrackerService {
    * Get the current progress of a workflow for a session.
    *
    * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @return the workflow progress
+   */
+  public WorkflowProgress getProgress(
+      @SessionId final String sessionId, @WorkflowId final String workflowId) {
+    final String executionId = latestExecutionByWorkflow.get(getWorkflowKey(sessionId, workflowId));
+    return executionId != null ? getExecutionProgress(executionId) : null;
+  }
+
+  /**
+   * Get the current progress of the latest workflow for a session.
+   *
+   * @param sessionId the session identifier
    * @return the workflow progress
    */
   public WorkflowProgress getProgress(@SessionId final String sessionId) {
     final String executionId = latestExecutionBySession.get(sessionId);
-    if (executionId != null) {
-      return getExecutionProgress(executionId);
-    }
-    return null;
+    return executionId != null ? getExecutionProgress(executionId) : null;
   }
 
   /**
@@ -225,6 +234,7 @@ public class TaskTrackerService {
       progress =
           new WorkflowProgress(
               state.sessionId,
+              state.workflowId,
               state.executionId,
               state.status,
               List.copyOf(state.tasks),
@@ -235,15 +245,27 @@ public class TaskTrackerService {
   }
 
   /**
-   * Get the log stream for a session or execution.
+   * Get the log stream for a specific execution.
    *
-   * @param id the identifier (sessionId or executionId)
+   * @param executionId the execution identifier
    * @return the log flux
    */
-  public Flux<String> getLogStream(@NotBlank final String id) {
-    final String executionId = resolveExecutionId(id);
+  public Flux<String> getLogStream(@NotBlank final String executionId) {
     final Sinks.Many<String> sink = executionLogSinks.get(executionId);
     return sink != null ? sink.asFlux() : Flux.empty();
+  }
+
+  /**
+   * Get the log stream for a specific session and workflow.
+   *
+   * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @return the log flux
+   */
+  public Flux<String> getLogStream(
+      @SessionId final String sessionId, @WorkflowId final String workflowId) {
+    final String executionId = latestExecutionByWorkflow.get(getWorkflowKey(sessionId, workflowId));
+    return executionId != null ? getLogStream(executionId) : Flux.empty();
   }
 
   /**
@@ -256,27 +278,33 @@ public class TaskTrackerService {
   }
 
   /**
-   * Remove tracking data for a session.
+   * Remove tracking data for a session and workflow.
    *
    * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
    */
-  public void removeSession(@SessionId final String sessionId) {
-    final List<String> executions = executionsBySession.remove(sessionId);
-    if (executions != null) {
-      executions.forEach(
-          execId -> {
-            executionStates.remove(execId);
-            executionLogSinks.remove(execId);
-            executionStatusSinks.remove(execId);
-          });
+  public void removeSession(
+      @SessionId final String sessionId, @WorkflowId final String workflowId) {
+    final String executionId = latestExecutionByWorkflow.remove(getWorkflowKey(sessionId, workflowId));
+    if (executionId != null) {
+      executionStates.remove(executionId);
+      executionLogSinks.remove(executionId);
+      executionStatusSinks.remove(executionId);
+      final List<String> executions = executionsBySession.get(sessionId);
+      if (executions != null) {
+        executions.remove(executionId);
+        if (executions.isEmpty()) {
+          executionsBySession.remove(sessionId);
+          latestExecutionBySession.remove(sessionId);
+        }
+      }
     }
-    latestExecutionBySession.remove(sessionId);
   }
 
-  private void notifyStatusChange(final String id) {
-    final Sinks.Many<String> sink = executionStatusSinks.get(id);
+  private void notifyStatusChange(final String executionId) {
+    final Sinks.Many<WorkflowProgress> sink = executionStatusSinks.get(executionId);
     if (sink != null) {
-      sink.tryEmitNext("update");
+      sink.tryEmitNext(getExecutionProgress(executionId));
     }
   }
 
@@ -291,23 +319,36 @@ public class TaskTrackerService {
   }
 
   /**
-   * Get the status stream for a session or execution.
+   * Get the status stream for a specific execution.
    *
-   * @param id the identifier (sessionId or executionId)
+   * @param executionId the execution identifier
    * @return the status flux
    */
-  public Flux<String> getStatusStream(@NotBlank final String id) {
-    final String executionId = resolveExecutionId(id);
-    final Sinks.Many<String> sink = executionStatusSinks.get(executionId);
+  public Flux<WorkflowProgress> getStatusStream(@NotBlank final String executionId) {
+    final Sinks.Many<WorkflowProgress> sink = executionStatusSinks.get(executionId);
     return sink != null ? sink.asFlux() : Flux.empty();
   }
 
-  private String resolveExecutionId(final String id) {
-    return latestExecutionBySession.getOrDefault(id, id);
+  /**
+   * Get the status stream for a specific session and workflow.
+   *
+   * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @return the status flux
+   */
+  public Flux<WorkflowProgress> getStatusStream(
+      @SessionId final String sessionId, @WorkflowId final String workflowId) {
+    final String executionId = latestExecutionByWorkflow.get(getWorkflowKey(sessionId, workflowId));
+    return executionId != null ? getStatusStream(executionId) : Flux.empty();
+  }
+
+  private String getWorkflowKey(final String sessionId, final String workflowId) {
+    return sessionId + ":" + workflowId;
   }
 
   private static final class WorkflowState {
     private final String sessionId;
+    private final String workflowId;
     private final String executionId;
     private String status;
     private final List<TaskProgress> tasks;
@@ -316,11 +357,13 @@ public class TaskTrackerService {
 
     /* default */ WorkflowState(
         final String sessionId,
+        final String workflowId,
         final String executionId,
         final String status,
         final List<TaskProgress> tasks,
         final LocalDateTime startTime) {
       this.sessionId = sessionId;
+      this.workflowId = workflowId;
       this.executionId = executionId;
       this.status = status;
       this.tasks = new CopyOnWriteArrayList<>(tasks);

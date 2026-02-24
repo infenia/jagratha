@@ -16,6 +16,7 @@
 package com.infenia.jagratha.service;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -51,7 +52,7 @@ class WorkflowOrchestratorImprovementsTest {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
     validator = new WorkflowValidator(registry);
-    when(tracker.startWorkflow(any(), any(), any())).thenReturn(Mono.empty());
+    when(tracker.startWorkflow(any(), any(), any(), any())).thenReturn(Mono.empty());
     when(tracker.updateTaskStatus(any(), any(), any(), any())).thenReturn(Mono.empty());
     when(tracker.finishWorkflow(any(), any())).thenReturn(Mono.empty());
     when(tracker.appendLog(any(), any())).thenReturn(Mono.empty());
@@ -90,6 +91,7 @@ class WorkflowOrchestratorImprovementsTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   void testExecuteWithFlatMapDelayError() {
     String sessionId = "sess-1";
     Node n1 = new Node("t", "type-t", Map.of());
@@ -197,6 +199,7 @@ class WorkflowOrchestratorImprovementsTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   void testContextPropagation() {
     String sessionId = "sess-test-context";
     Node t = new Node("t", "trigger", Map.of());
@@ -227,8 +230,8 @@ class WorkflowOrchestratorImprovementsTest {
                 .flatMap(p -> orchestrator.execute(sessionId, "test-workflow", p, Map.of())))
         .verifyComplete();
 
-    verify(tracker).startWorkflow(eq(sessionId), eq(sessionId), any());
-    verify(tracker, atLeastOnce()).updateTaskStatus(eq(sessionId), any(), any(), any());
-    verify(tracker).finishWorkflow(eq(sessionId), any());
+    verify(tracker).startWorkflow(eq(sessionId), eq("test-workflow"), anyString(), any());
+    verify(tracker, atLeastOnce()).updateTaskStatus(anyString(), any(), any(), any());
+    verify(tracker).finishWorkflow(anyString(), any());
   }
 }

@@ -50,7 +50,7 @@ class WorkflowOrchestratorTest {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
     validator = new WorkflowValidator(registry);
-    when(tracker.startWorkflow(anyString(), anyString(), any())).thenReturn(Mono.empty());
+    when(tracker.startWorkflow(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
     when(tracker.updateTaskStatus(anyString(), anyString(), anyString(), anyString()))
         .thenReturn(Mono.empty());
     when(tracker.finishWorkflow(anyString(), anyString())).thenReturn(Mono.empty());
@@ -237,6 +237,7 @@ class WorkflowOrchestratorTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   void testExecuteWorkflow() {
     String sessionId = "sess-1";
     UUID traceId = UUID.randomUUID();
@@ -274,13 +275,13 @@ class WorkflowOrchestratorTest {
 
     verify(trigger).start(any(), any());
     verify(terminal).consume(any(), any());
-    verify(tracker).startWorkflow(eq(sessionId), eq(sessionId), any());
-    verify(tracker, atLeastOnce())
-        .updateTaskStatus(eq(sessionId), anyString(), anyString(), anyString());
-    verify(tracker).finishWorkflow(sessionId, "COMPLETED");
+    verify(tracker).startWorkflow(eq(sessionId), eq("test-workflow"), anyString(), any());
+    verify(tracker, atLeastOnce()).updateTaskStatus(anyString(), anyString(), anyString(), anyString());
+    verify(tracker).finishWorkflow(anyString(), eq("SUCCESS"));
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   void testExecuteWorkflowWithBranching() {
     String sessionId = "sess-1";
     Message msg = Message.create(UUID.randomUUID(), "payload");
@@ -323,6 +324,7 @@ class WorkflowOrchestratorTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   void testExecuteWorkflowWithProcessor() {
     String sessionId = "sess-1";
     Message msg = Message.create(UUID.randomUUID(), "payload");
@@ -388,6 +390,7 @@ class WorkflowOrchestratorTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   void testChainWithProcessorAndMultipleChildren() {
     String sessionId = "sess-1";
     Message msg = Message.create(UUID.randomUUID(), "payload");

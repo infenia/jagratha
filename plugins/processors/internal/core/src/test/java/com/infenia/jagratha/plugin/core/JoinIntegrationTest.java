@@ -16,6 +16,7 @@
 package com.infenia.jagratha.plugin.core;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,7 +58,7 @@ class JoinIntegrationTest {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
     validator = new WorkflowValidator(registry);
-    when(tracker.startWorkflow(any(), any(), any())).thenReturn(Mono.empty());
+    when(tracker.startWorkflow(any(), any(), any(), any())).thenReturn(Mono.empty());
     when(tracker.updateTaskStatus(any(), any(), any(), any())).thenReturn(Mono.empty());
     when(tracker.finishWorkflow(any(), any())).thenReturn(Mono.empty());
     when(tracker.appendLog(any(), any())).thenReturn(Mono.empty());
@@ -70,6 +71,7 @@ class JoinIntegrationTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   void testWorkflowWithJoin() {
     String sessionId = "sess-join-int";
     Node t1 = new Node("t1", "trigger", Map.of("id", "t1"));

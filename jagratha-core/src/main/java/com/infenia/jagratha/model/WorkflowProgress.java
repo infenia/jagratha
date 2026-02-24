@@ -21,6 +21,7 @@ import java.util.List;
 /** Represents the progress of a workflow. */
 public record WorkflowProgress(
     String sessionId,
+    String workflowId,
     String executionId,
     String status,
     List<TaskProgress> tasks,
@@ -31,6 +32,7 @@ public record WorkflowProgress(
    * Compact constructor to ensure immutability.
    *
    * @param sessionId session identifier
+   * @param workflowId workflow identifier
    * @param executionId execution identifier
    * @param status workflow status
    * @param tasks list of task progress
