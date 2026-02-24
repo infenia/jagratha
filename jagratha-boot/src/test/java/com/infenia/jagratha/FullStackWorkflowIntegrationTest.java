@@ -245,7 +245,8 @@ class FullStackWorkflowIntegrationTest {
                 "child-flow", childWorkflow));
 
     harness.initSession(configRequest);
-    final String executionId = harness.triggerWorkflow(sessionId, "main-flow", Map.of("amount", 150));
+    final String executionId =
+        harness.triggerWorkflow(sessionId, "main-flow", Map.of("amount", 150));
 
     final WorkflowProgress progress = harness.pollUntilFinished(sessionId, executionId);
     harness.verifyStatus(progress, "SUCCESS");

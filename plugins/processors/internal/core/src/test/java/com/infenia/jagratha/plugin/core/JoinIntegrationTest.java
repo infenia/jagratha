@@ -128,8 +128,7 @@ class JoinIntegrationTest {
                 .prepareWorkflow(def)
                 .flatMap(
                     p ->
-                        orchestrator.execute(
-                            sessionId, "test-workflow", executionId, p, Map.of())))
+                        orchestrator.execute(sessionId, "test-workflow", executionId, p, Map.of())))
         .verifyComplete();
 
     verify(terminal).consume(any(), any());

@@ -50,8 +50,10 @@ class WorkflowOrchestratorTest {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
     validator = new WorkflowValidator(registry);
-    when(tracker.startWorkflow(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
-    when(tracker.updateTaskStatus(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
+    when(tracker.startWorkflow(anyString(), anyString(), anyString(), any()))
+        .thenReturn(Mono.empty());
+    when(tracker.updateTaskStatus(anyString(), anyString(), anyString(), any()))
+        .thenReturn(Mono.empty());
     when(tracker.finishWorkflow(anyString(), anyString())).thenReturn(Mono.empty());
     when(tracker.appendLog(anyString(), anyString())).thenReturn(Mono.empty());
     orchestrator = new WorkflowOrchestrator(registry, tracker, validator);
@@ -269,7 +271,10 @@ class WorkflowOrchestratorTest {
     StepVerifier.create(
             orchestrator
                 .prepareWorkflow(def)
-                .flatMap(pw -> orchestrator.execute(sessionId, "test-workflow", executionId, pw, Map.of())))
+                .flatMap(
+                    pw ->
+                        orchestrator.execute(
+                            sessionId, "test-workflow", executionId, pw, Map.of())))
         .verifyComplete();
 
     verify(trigger).start(any(), any());
@@ -317,7 +322,10 @@ class WorkflowOrchestratorTest {
     StepVerifier.create(
             orchestrator
                 .prepareWorkflow(def)
-                .flatMap(pw -> orchestrator.execute(sessionId, "test-workflow", executionId, pw, Map.of())))
+                .flatMap(
+                    pw ->
+                        orchestrator.execute(
+                            sessionId, "test-workflow", executionId, pw, Map.of())))
         .verifyComplete();
 
     verify(terminal, atLeastOnce()).consume(any(), any());
@@ -366,7 +374,10 @@ class WorkflowOrchestratorTest {
     StepVerifier.create(
             orchestrator
                 .prepareWorkflow(def)
-                .flatMap(pw -> orchestrator.execute(sessionId, "test-workflow", executionId, pw, Map.of())))
+                .flatMap(
+                    pw ->
+                        orchestrator.execute(
+                            sessionId, "test-workflow", executionId, pw, Map.of())))
         .verifyComplete();
 
     verify(trigger).start(any(), any());
@@ -435,7 +446,10 @@ class WorkflowOrchestratorTest {
     StepVerifier.create(
             orchestrator
                 .prepareWorkflow(def)
-                .flatMap(pw -> orchestrator.execute(sessionId, "test-workflow", executionId, pw, Map.of())))
+                .flatMap(
+                    pw ->
+                        orchestrator.execute(
+                            sessionId, "test-workflow", executionId, pw, Map.of())))
         .verifyComplete();
 
     verify(processor).process(any(), any());

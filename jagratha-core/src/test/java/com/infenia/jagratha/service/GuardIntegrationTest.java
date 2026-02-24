@@ -87,8 +87,10 @@ class GuardIntegrationTest {
     when(terminalFalse.validateConfig(any())).thenReturn(Mono.empty());
     when(terminalFalse.consume(any(), any())).thenReturn(Mono.empty());
 
-    when(tracker.startWorkflow(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
-    when(tracker.updateTaskStatus(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
+    when(tracker.startWorkflow(anyString(), anyString(), anyString(), any()))
+        .thenReturn(Mono.empty());
+    when(tracker.updateTaskStatus(anyString(), anyString(), anyString(), any()))
+        .thenReturn(Mono.empty());
     when(tracker.finishWorkflow(anyString(), anyString())).thenReturn(Mono.empty());
     when(tracker.appendLog(anyString(), anyString())).thenReturn(Mono.empty());
   }

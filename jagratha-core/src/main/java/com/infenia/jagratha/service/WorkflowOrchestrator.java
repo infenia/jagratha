@@ -51,6 +51,7 @@ import reactor.util.context.Context;
 @Service
 @Validated
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.ExcessiveImports")
 public class WorkflowOrchestrator {
 
   private static final int BUFFER_SIZE = 1024;
@@ -172,7 +173,7 @@ public class WorkflowOrchestrator {
 
                             for (final Node node : prepared.topologicalOrder()) {
                               buildNodeIterative(
-                                  sId, wId, eId, node, prepared, payload, nodeStreams, terminals);
+                                  eId, node, prepared, payload, nodeStreams, terminals);
                             }
 
                             return Flux.fromIterable(terminals)
@@ -187,13 +188,12 @@ public class WorkflowOrchestrator {
                   .timeout(Duration.ofSeconds(GLOBAL_TIMEOUT));
             })
         .contextWrite(
-            Context.of("sessionId", sessionId, "workflowId", workflowId, "executionId", executionId));
+            Context.of(
+                "sessionId", sessionId, "workflowId", workflowId, "executionId", executionId));
   }
 
   @SuppressWarnings("PMD.LawOfDemeter")
   private void buildNodeIterative(
-      final String sessionId,
-      final String workflowId,
       final String executionId,
       final Node node,
       final PreparedWorkflow prepared,
@@ -257,7 +257,10 @@ public class WorkflowOrchestrator {
                                 msg ->
                                     tracker
                                         .updateTaskStatus(
-                                            executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_RUNNING)
+                                            executionId,
+                                            node.nodeId(),
+                                            DEFAULT_TASK_ID,
+                                            STATUS_RUNNING)
                                         .thenMany(
                                             processor.process(
                                                 Flux.concat(Mono.just(msg), f), node.config()))
@@ -275,7 +278,10 @@ public class WorkflowOrchestrator {
                                 Mono.defer(
                                         () ->
                                             tracker.updateTaskStatus(
-                                                executionId, node.nodeId(), DEFAULT_TASK_ID, "SKIPPED"))
+                                                executionId,
+                                                node.nodeId(),
+                                                DEFAULT_TASK_ID,
+                                                "SKIPPED"))
                                     .thenMany(Flux.empty())))
                 .contextWrite(ctx -> ctx.put("nodeId", node.nodeId()))
                 .onErrorResume(
@@ -307,18 +313,27 @@ public class WorkflowOrchestrator {
                                 msg ->
                                     tracker
                                         .updateTaskStatus(
-                                            executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_RUNNING)
+                                            executionId,
+                                            node.nodeId(),
+                                            DEFAULT_TASK_ID,
+                                            STATUS_RUNNING)
                                         .then(
                                             terminal.consume(
                                                 Flux.concat(Mono.just(msg), f), node.config()))
                                         .then(
                                             tracker.updateTaskStatus(
-                                                executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_SUCCESS)))
+                                                executionId,
+                                                node.nodeId(),
+                                                DEFAULT_TASK_ID,
+                                                STATUS_SUCCESS)))
                             .switchIfEmpty(
                                 Mono.defer(
                                     () ->
                                         tracker.updateTaskStatus(
-                                            executionId, node.nodeId(), DEFAULT_TASK_ID, "SKIPPED"))))
+                                            executionId,
+                                            node.nodeId(),
+                                            DEFAULT_TASK_ID,
+                                            "SKIPPED"))))
                 .contextWrite(ctx -> ctx.put("nodeId", node.nodeId()))
                 .timeout(nodeTimeout)
                 .then()

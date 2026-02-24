@@ -117,8 +117,7 @@ class WorkflowOrchestratorFanInTest {
                 .prepareWorkflow(def)
                 .flatMap(
                     p ->
-                        orchestrator.execute(
-                            sessionId, "test-workflow", executionId, p, Map.of())))
+                        orchestrator.execute(sessionId, "test-workflow", executionId, p, Map.of())))
         .verifyComplete();
 
     // Verify that terminal received 2 messages (one from each trigger path)
@@ -188,8 +187,7 @@ class WorkflowOrchestratorFanInTest {
                 .prepareWorkflow(def)
                 .flatMap(
                     p ->
-                        orchestrator.execute(
-                            sessionId, "test-workflow", executionId, p, Map.of())))
+                        orchestrator.execute(sessionId, "test-workflow", executionId, p, Map.of())))
         .verifyComplete();
 
     verify(tracker, atLeastOnce()).finishWorkflow(eq(executionId), eq("SUCCESS"));
@@ -258,7 +256,9 @@ class WorkflowOrchestratorFanInTest {
             orchestrator
                 .prepareWorkflow(def2)
                 .flatMap(
-                    pw -> orchestrator.execute(sessionId, "test-workflow", executionId, pw, Map.of())))
+                    pw ->
+                        orchestrator.execute(
+                            sessionId, "test-workflow", executionId, pw, Map.of())))
         .expectErrorMatches(
             e ->
                 e.getMessage().contains("Trigger 1 failed")

@@ -41,10 +41,11 @@ import reactor.core.publisher.Sinks;
 /** Service for tracking the progress of workflows and tasks. */
 @Service
 @Validated
+@SuppressWarnings("PMD.TooManyMethods")
 public class TaskTrackerService {
 
   private final Map<String, Map<String, WorkflowState>> sessionStates = new ConcurrentHashMap<>();
-  private final Map<String, String> latestExecutionIds = new ConcurrentHashMap<>();
+  private final Map<String, String> latestExecs = new ConcurrentHashMap<>();
   private final Map<String, Sinks.Many<String>> logSinks = new ConcurrentHashMap<>();
   private final Map<String, Sinks.Many<WorkflowProgress>> statusSinks = new ConcurrentHashMap<>();
 
@@ -74,7 +75,8 @@ public class TaskTrackerService {
                   .map(id -> new TaskProgress(id, "", "PENDING", null, null, Map.of()))
                   .toList();
 
-          final WorkflowState state = new WorkflowState(
+          final WorkflowState state =
+              new WorkflowState(
                   executionId,
                   sessionId,
                   workflowId,
@@ -82,10 +84,11 @@ public class TaskTrackerService {
                   new ArrayList<>(initialTasks),
                   LocalDateTime.now());
 
-          sessionStates.computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>())
+          sessionStates
+              .computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>())
               .put(executionId, state);
 
-          latestExecutionIds.put(getLatestKey(sessionId, workflowId), executionId);
+          latestExecs.put(getLatestKey(sessionId, workflowId), executionId);
 
           final Sinks.Many<String> sink = Sinks.many().multicast().directBestEffort();
           logSinks.put(executionId, sink);
@@ -149,8 +152,7 @@ public class TaskTrackerService {
    * @return a Mono that completes when the workflow is finished
    */
   public Mono<Void> finishWorkflow(
-      @NotBlank final String executionId,
-      @NotBlank @Size(max = 256) final String status) {
+      @NotBlank final String executionId, @NotBlank @Size(max = 256) final String status) {
     return Mono.fromRunnable(
         () -> {
           final WorkflowState state = findState(executionId);
@@ -170,8 +172,7 @@ public class TaskTrackerService {
    * @return a Mono that completes when the log line is appended
    */
   public Mono<Void> appendLog(
-      @NotBlank final String executionId,
-      @NotBlank @Size(max = 16_384) final String line) {
+      @NotBlank final String executionId, @NotBlank @Size(max = 16_384) final String line) {
     return Mono.fromRunnable(
         () -> {
           final Sinks.Many<String> sink = logSinks.get(executionId);
@@ -191,21 +192,22 @@ public class TaskTrackerService {
   public WorkflowProgress getProgress(
       @SessionId final String sessionId, @NotBlank final String executionId) {
     final Map<String, WorkflowState> states = sessionStates.get(sessionId);
-    if (states == null) {
-      return null;
+    WorkflowProgress progress = null;
+    if (states != null) {
+      final WorkflowState state = states.get(executionId);
+      if (state != null) {
+        progress =
+            new WorkflowProgress(
+                state.executionId,
+                state.sessionId,
+                state.workflowId,
+                state.status,
+                List.copyOf(state.tasks),
+                state.startTime,
+                state.endTime);
+      }
     }
-    final WorkflowState state = states.get(executionId);
-    if (state == null) {
-      return null;
-    }
-    return new WorkflowProgress(
-              state.executionId,
-              state.sessionId,
-              state.workflowId,
-              state.status,
-              List.copyOf(state.tasks),
-              state.startTime,
-              state.endTime);
+    return progress;
   }
 
   /**
@@ -217,7 +219,7 @@ public class TaskTrackerService {
    */
   public String getLatestExecutionId(
       @SessionId final String sessionId, @WorkflowId final String workflowId) {
-    return latestExecutionIds.get(getLatestKey(sessionId, workflowId));
+    return latestExecs.get(getLatestKey(sessionId, workflowId));
   }
 
   /**
@@ -239,13 +241,18 @@ public class TaskTrackerService {
    */
   public List<WorkflowExecutionSummary> getHistory(@SessionId final String sessionId) {
     final Map<String, WorkflowState> states = sessionStates.get(sessionId);
-    if (states == null) {
-      return Collections.emptyList();
+    List<WorkflowExecutionSummary> history = Collections.emptyList();
+    if (states != null) {
+      history =
+          states.values().stream()
+              .map(
+                  s ->
+                      new WorkflowExecutionSummary(
+                          s.executionId, s.workflowId, s.status, s.startTime))
+              .sorted((a, b) -> b.startTime().compareTo(a.startTime()))
+              .toList();
     }
-    return states.values().stream()
-        .map(s -> new WorkflowExecutionSummary(s.executionId, s.workflowId, s.status, s.startTime))
-        .sorted((a, b) -> b.startTime().compareTo(a.startTime()))
-        .toList();
+    return history;
   }
 
   /**
@@ -265,11 +272,14 @@ public class TaskTrackerService {
   public void removeSession(@SessionId final String sessionId) {
     final Map<String, WorkflowState> states = sessionStates.remove(sessionId);
     if (states != null) {
-      states.keySet().forEach(execId -> {
-        logSinks.remove(execId);
-        statusSinks.remove(execId);
-      });
-      latestExecutionIds.keySet().removeIf(key -> key.startsWith(sessionId + ":"));
+      states
+          .keySet()
+          .forEach(
+              execId -> {
+                logSinks.remove(execId);
+                statusSinks.remove(execId);
+              });
+      latestExecs.keySet().removeIf(key -> key.startsWith(sessionId + ":"));
     }
   }
 
@@ -295,13 +305,15 @@ public class TaskTrackerService {
   }
 
   private WorkflowState findState(final String executionId) {
+    WorkflowState result = null;
     for (final Map<String, WorkflowState> states : sessionStates.values()) {
       final WorkflowState state = states.get(executionId);
       if (state != null) {
-        return state;
+        result = state;
+        break;
       }
     }
-    return null;
+    return result;
   }
 
   private String getLatestKey(final String sessionId, final String workflowId) {

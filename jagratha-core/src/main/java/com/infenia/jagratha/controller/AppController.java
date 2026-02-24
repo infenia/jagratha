@@ -22,6 +22,7 @@ import com.infenia.jagratha.model.ConfigRequest;
 import com.infenia.jagratha.model.TriggerResponse;
 import com.infenia.jagratha.model.WorkflowExecution;
 import com.infenia.jagratha.model.WorkflowExecutionSummary;
+import com.infenia.jagratha.model.WorkflowProgress;
 import com.infenia.jagratha.model.WorkflowTriggerRequest;
 import com.infenia.jagratha.service.LogRetrievalService;
 import com.infenia.jagratha.service.SessionService;
@@ -55,6 +56,7 @@ import reactor.core.publisher.Mono;
 @Tag(
     name = "Jagratha API",
     description = "Endpoints for file management, task execution, and configuration")
+@SuppressWarnings("PMD.ExcessiveImports")
 public class AppController {
 
   private final WorkflowService workflowService;
@@ -109,10 +111,9 @@ public class AppController {
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "404",
       description = "Execution not found")
-  public Mono<ResponseEntity<ApiResponse<com.infenia.jagratha.model.WorkflowProgress>>>
-      getWorkflowStatus(
-          @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
-          @Parameter(description = "Execution ID") @PathVariable final String executionId) {
+  public Mono<ResponseEntity<ApiResponse<WorkflowProgress>>> getWorkflowStatus(
+      @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
+      @Parameter(description = "Execution ID") @PathVariable final String executionId) {
     return Mono.fromCallable(() -> trackerService.getProgress(sessionId, executionId))
         .map(
             progress -> {
@@ -141,16 +142,12 @@ public class AppController {
   @Operation(
       summary = "Stream workflow execution status",
       description = "Streams the status and progress of a specific workflow execution via SSE")
-  public Flux<ServerSentEvent<com.infenia.jagratha.model.WorkflowProgress>> streamWorkflowStatus(
+  public Flux<ServerSentEvent<WorkflowProgress>> streamWorkflowStatus(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Execution ID") @PathVariable final String executionId) {
     return trackerService
         .getStatusStream(executionId)
-        .map(
-            progress ->
-                ServerSentEvent.<com.infenia.jagratha.model.WorkflowProgress>builder()
-                    .data(progress)
-                    .build());
+        .map(progress -> ServerSentEvent.<WorkflowProgress>builder().data(progress).build());
   }
 
   /**
