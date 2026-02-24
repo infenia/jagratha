@@ -222,11 +222,7 @@ public class WorkflowOrchestrator {
                   e ->
                       tracker
                           .updateTaskStatus(
-                              sessionId,
-                              workflowId,
-                              node.nodeId(),
-                              DEFAULT_TASK_ID,
-                              STATUS_FAILURE)
+                              sessionId, workflowId, node.nodeId(), DEFAULT_TASK_ID, STATUS_FAILURE)
                           .then(Mono.error(e)));
 
       nodeStreams.put(

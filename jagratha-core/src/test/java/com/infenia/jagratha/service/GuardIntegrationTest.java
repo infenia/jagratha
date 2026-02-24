@@ -138,10 +138,12 @@ class GuardIntegrationTest {
 
     // Verify termTrue was executed
     verify(tracker, atLeastOnce())
-        .updateTaskStatus(eq(sessionId), eq("test-workflow"), eq("termTrue"), anyString(), eq("RUNNING"));
+        .updateTaskStatus(
+            eq(sessionId), eq("test-workflow"), eq("termTrue"), anyString(), eq("RUNNING"));
     // Verify termFalse was NOT executed
     verify(tracker, never())
-        .updateTaskStatus(eq(sessionId), eq("test-workflow"), eq("termFalse"), anyString(), eq("RUNNING"));
+        .updateTaskStatus(
+            eq(sessionId), eq("test-workflow"), eq("termFalse"), anyString(), eq("RUNNING"));
   }
 
   @SuppressWarnings("unchecked")
@@ -188,9 +190,11 @@ class GuardIntegrationTest {
 
     // Verify termFalse was executed
     verify(tracker, atLeastOnce())
-        .updateTaskStatus(eq(sessionId), eq("test-workflow"), eq("termFalse"), anyString(), eq("RUNNING"));
+        .updateTaskStatus(
+            eq(sessionId), eq("test-workflow"), eq("termFalse"), anyString(), eq("RUNNING"));
     // Verify termTrue was NOT executed
     verify(tracker, never())
-        .updateTaskStatus(eq(sessionId), eq("test-workflow"), eq("termTrue"), anyString(), eq("RUNNING"));
+        .updateTaskStatus(
+            eq(sessionId), eq("test-workflow"), eq("termTrue"), anyString(), eq("RUNNING"));
   }
 }

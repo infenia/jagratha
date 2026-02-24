@@ -119,7 +119,8 @@ class WorkflowOrchestratorFanInTest {
 
     // Verify that terminal received 2 messages (one from each trigger path)
     verify(terminal).consume(any(), any());
-    verify(tracker, atLeastOnce()).finishWorkflow(eq(sessionId), eq("test-workflow"), eq("SUCCESS"));
+    verify(tracker, atLeastOnce())
+        .finishWorkflow(eq(sessionId), eq("test-workflow"), eq("SUCCESS"));
   }
 
   @Test
@@ -184,7 +185,8 @@ class WorkflowOrchestratorFanInTest {
                 .flatMap(p -> orchestrator.execute(sessionId, "test-workflow", p, Map.of())))
         .verifyComplete();
 
-    verify(tracker, atLeastOnce()).finishWorkflow(eq(sessionId), eq("test-workflow"), eq("SUCCESS"));
+    verify(tracker, atLeastOnce())
+        .finishWorkflow(eq(sessionId), eq("test-workflow"), eq("SUCCESS"));
   }
 
   @Test

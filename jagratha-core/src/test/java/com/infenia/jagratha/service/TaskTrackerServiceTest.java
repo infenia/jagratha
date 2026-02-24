@@ -48,13 +48,15 @@ class TaskTrackerServiceTest {
     assertEquals("node1", progress.tasks().get(0).nodeId());
     assertEquals("PENDING", progress.tasks().get(0).status());
 
-    StepVerifier.create(tracker.updateTaskStatus(sessionId, workflowId, "node1", "moduleA", "SUCCESS"))
+    StepVerifier.create(
+            tracker.updateTaskStatus(sessionId, workflowId, "node1", "moduleA", "SUCCESS"))
         .verifyComplete();
     progress = tracker.getProgress(sessionId, workflowId);
     assertEquals("SUCCESS", progress.tasks().get(0).status());
     assertEquals("moduleA", progress.tasks().get(0).module());
 
-    StepVerifier.create(tracker.finishWorkflow(sessionId, workflowId, "COMPLETED")).verifyComplete();
+    StepVerifier.create(tracker.finishWorkflow(sessionId, workflowId, "COMPLETED"))
+        .verifyComplete();
     progress = tracker.getProgress(sessionId, workflowId);
     assertEquals("COMPLETED", progress.status());
     assertNotNull(progress.endTime());
@@ -77,10 +79,13 @@ class TaskTrackerServiceTest {
   void testStatusStreaming() {
     String sessionId = "sess-1";
     String workflowId = "wf-1";
-    StepVerifier.create(tracker.startWorkflow(sessionId, workflowId, List.of("n1"))).verifyComplete();
+    StepVerifier.create(tracker.startWorkflow(sessionId, workflowId, List.of("n1")))
+        .verifyComplete();
 
     StepVerifier.create(tracker.getStatusStream(sessionId, workflowId))
-        .then(() -> tracker.updateTaskStatus(sessionId, workflowId, "n1", "mod", "SUCCESS").subscribe())
+        .then(
+            () ->
+                tracker.updateTaskStatus(sessionId, workflowId, "n1", "mod", "SUCCESS").subscribe())
         .assertNext(progress -> assertEquals("wf-1", progress.workflowId()))
         .thenCancel()
         .verify();

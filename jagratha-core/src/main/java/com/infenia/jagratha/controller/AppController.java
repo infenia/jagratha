@@ -128,7 +128,8 @@ public class AppController {
    * @param workflowId the workflow identifier
    * @return a flux of status update events
    */
-  @GetMapping(value = "/workflow/{sessionId}/{workflowId}/status/stream",
+  @GetMapping(
+      value = "/workflow/{sessionId}/{workflowId}/status/stream",
       produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   @Operation(
       summary = "Stream workflow status",
@@ -138,9 +139,11 @@ public class AppController {
       @Parameter(description = "Workflow ID") @PathVariable final String workflowId) {
     return trackerService
         .getStatusStream(sessionId, workflowId)
-        .map(progress -> ServerSentEvent.<com.infenia.jagratha.model.WorkflowProgress>builder()
-            .data(progress)
-            .build());
+        .map(
+            progress ->
+                ServerSentEvent.<com.infenia.jagratha.model.WorkflowProgress>builder()
+                    .data(progress)
+                    .build());
   }
 
   /**

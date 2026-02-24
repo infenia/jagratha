@@ -228,7 +228,8 @@ class WorkflowOrchestratorImprovementsTest {
         .verifyComplete();
 
     verify(tracker).startWorkflow(eq(sessionId), eq("test-workflow"), any());
-    verify(tracker, atLeastOnce()).updateTaskStatus(eq(sessionId), eq("test-workflow"), any(), any(), any());
+    verify(tracker, atLeastOnce())
+        .updateTaskStatus(eq(sessionId), eq("test-workflow"), any(), any(), any());
     verify(tracker).finishWorkflow(eq(sessionId), eq("test-workflow"), any());
   }
 }
