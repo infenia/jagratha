@@ -319,7 +319,7 @@ public class WorkflowOrchestrator {
                                 STATUS_FAILURE,
                                 Map.of()))
                     .contextWrite(ctx -> ctx.put("nodeId", node.nodeId()));
-        streams[nodeIndex] =
+            streams[nodeIndex] =
                 applyLoggingAndBroadcasting(executionId, node.nodeId(), stream, childCount);
           };
     } else {
@@ -341,8 +341,8 @@ public class WorkflowOrchestrator {
                                   .flatMapMany(
                                       msg ->
                                           processor
-                                        .process(
-                                            Flux.concat(Mono.just(msg), f), node.config())
+                                              .process(
+                                                  Flux.concat(Mono.just(msg), f), node.config())
                                               .timeout(nodeTimeout)
                                               .doOnSubscribe(
                                                   s ->
@@ -403,8 +403,8 @@ public class WorkflowOrchestrator {
                                   .flatMap(
                                       msg ->
                                           terminal
-                                        .consume(
-                                            Flux.concat(Mono.just(msg), f), node.config())
+                                              .consume(
+                                                  Flux.concat(Mono.just(msg), f), node.config())
                                               .timeout(nodeTimeout)
                                               .doOnSubscribe(
                                                   s ->
