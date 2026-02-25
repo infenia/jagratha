@@ -145,7 +145,8 @@ public class TaskTrackerService {
         () -> {
           final List<TaskProgress> initialTasks =
               nodeIds.stream()
-                  .map(id -> new TaskProgress(id, "", "PENDING", null, null, Collections.emptyMap()))
+                  .map(
+                      id -> new TaskProgress(id, "", "PENDING", null, null, Collections.emptyMap()))
                   .toList();
 
           final WorkflowState state =

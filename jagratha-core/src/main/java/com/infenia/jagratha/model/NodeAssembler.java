@@ -32,6 +32,9 @@ public interface NodeAssembler {
    * Assembles the reactive stream for a node.
    *
    * @param executionId the execution identifier
+   * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @param payload the initial trigger payload
    * @param streams the array of all node streams in the workflow
    * @param terminals the list of terminal node completion Monos
    * @param disposables the list of disposables to manage resource lifecycle

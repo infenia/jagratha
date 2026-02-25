@@ -76,13 +76,19 @@ public class WorkflowOrchestrator {
   private static final String STATUS_ERROR = "ERROR";
   private static final String DEFAULT_TASK_ID = "default";
 
+  private static final String CTX_SESSION_ID = "sessionId";
+  private static final String CTX_WORKFLOW_ID = "workflowId";
+  private static final String CTX_EXECUTION_ID = "executionId";
+  private static final String CTX_PAYLOAD = "payload";
+  private static final String CTX_NODE_ID = "nodeId";
+
   private final WorkflowRegistry registry;
   private final TaskTrackerService tracker;
   private final WorkflowValidator validator;
   private final AppConfigService configService;
 
   @Qualifier("virtualThreadScheduler")
-  private final Scheduler virtualThreadScheduler;
+  private final Scheduler vtScheduler;
 
   /**
    * Prepares a workflow for execution.
@@ -90,6 +96,7 @@ public class WorkflowOrchestrator {
    * @param def the workflow definition
    * @return a Mono containing the prepared workflow
    */
+  @SuppressWarnings("PMD.UseConcurrentHashMap")
   public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
     final Map<String, List<Node>> adjacencyList = new HashMap<>();
     final Map<String, List<Node>> parentsList = new HashMap<>();
@@ -177,19 +184,21 @@ public class WorkflowOrchestrator {
         .instantiate(executionId, payload)
         .contextWrite(
             Context.of(
-                "sessionId", sessionId, "workflowId", workflowId, "executionId", executionId));
+                CTX_SESSION_ID, sessionId,
+                CTX_WORKFLOW_ID, workflowId,
+                CTX_EXECUTION_ID, executionId));
   }
 
   /**
    * Compiles a workflow template for high-performance execution.
    *
    * @param def the workflow definition
-   * @param adjacencyList map of nodeId to child nodes
    * @param parentsList map of nodeId to parent nodes
    * @param pluginCache map of nodeId to initialized plugin instances
    * @param topologicalOrder list of nodes in topological order
    * @return the compiled workflow template
    */
+  @SuppressWarnings("PMD.UseConcurrentHashMap")
   private WorkflowTemplate compileTemplate(
       final WorkflowDefinition def,
       final Map<String, List<Node>> parentsList,
@@ -215,7 +224,7 @@ public class WorkflowOrchestrator {
             ctx ->
                 tracker
                     .startWorkflow(
-                        executionId, ctx.get("sessionId"), ctx.get("workflowId"), nodeIds)
+                        executionId, ctx.get(CTX_SESSION_ID), ctx.get(CTX_WORKFLOW_ID), nodeIds)
                     .then(
                         Mono.defer(
                             () ->
@@ -224,9 +233,9 @@ public class WorkflowOrchestrator {
                                     payload,
                                     nodeCount,
                                     assemblers,
-                                    ctx.get("sessionId"),
-                                    ctx.get("workflowId"))))
-                    .contextWrite(c -> c.put("payload", payload)));
+                                    ctx.get(CTX_SESSION_ID),
+                                    ctx.get(CTX_WORKFLOW_ID))))
+                    .contextWrite(c -> c.put(CTX_PAYLOAD, payload)));
   }
 
   /**
@@ -335,8 +344,7 @@ public class WorkflowOrchestrator {
       } else if (plugin instanceof TerminalPlugin terminal) {
         result = createTerminalAssembler(node, terminal, nodeTimeout, parentEdges);
       } else {
-        result =
-            (executionId, sessionId, workflowId, payload, streams, terminals, disposables, connectors) -> {};
+        result = (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {};
       }
     }
 
@@ -350,16 +358,16 @@ public class WorkflowOrchestrator {
       final int index,
       final int bufferSize) {
 
-    return (executionId, sessionId, workflowId, payload, streams, terminals, disposables, connectors) -> {
+    return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
       final Flux<Message> stream =
           trigger
               .start(node.config())
-              .subscribeOn(virtualThreadScheduler)
+              .subscribeOn(vtScheduler)
               .timeout(timeout)
               .doOnSubscribe(
                   s ->
                       tracker.emitTaskStatusEvent(
-                          executionId,
+                          execId,
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_RUNNING,
@@ -367,7 +375,7 @@ public class WorkflowOrchestrator {
               .doOnComplete(
                   () ->
                       tracker.emitTaskStatusEvent(
-                          executionId,
+                          execId,
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_SUCCESS,
@@ -375,24 +383,24 @@ public class WorkflowOrchestrator {
               .doOnError(
                   e ->
                       tracker.emitTaskStatusEvent(
-                          executionId,
+                          execId,
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_FAILURE,
                           Collections.emptyMap()))
               .contextWrite(
                   ctx ->
-                      ctx.put("nodeId", node.nodeId())
-                          .put("payload", payload)
-                          .put("sessionId", sessionId)
-                          .put("workflowId", workflowId)
-                          .put("executionId", executionId));
-      streams[index] =
-          applyLoggingAndBroadcasting(
-              executionId, node.nodeId(), stream, bufferSize, disposables, connectors);
+                      ctx.put(CTX_NODE_ID, node.nodeId())
+                          .put(CTX_PAYLOAD, pld)
+                          .put(CTX_SESSION_ID, sessId)
+                          .put(CTX_WORKFLOW_ID, wfId)
+                          .put(CTX_EXECUTION_ID, execId));
+      strms[index] =
+          applyLoggingAndBroadcasting(execId, node.nodeId(), stream, bufferSize, disps, conns);
     };
   }
 
+  @SuppressWarnings("PMD.UseVarargs")
   private NodeAssembler createProcessorAssembler(
       final Node node,
       final ProcessorPlugin processor,
@@ -401,17 +409,17 @@ public class WorkflowOrchestrator {
       final int bufferSize,
       final ParentEdgeInfo[] parentEdges) {
 
-    return (executionId, sessionId, workflowId, payload, streams, terminals, disposables, connectors) -> {
-      final Flux<Message> mergedInput = mergeParentStreams(streams, parentEdges);
+    return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
+      final Flux<Message> mergedInput = mergeParentStreams(strms, parentEdges);
       final Flux<Message> stream =
           processor
               .process(mergedInput, node.config())
-              .subscribeOn(virtualThreadScheduler)
+              .subscribeOn(vtScheduler)
               .timeout(timeout)
               .doOnSubscribe(
                   s ->
                       tracker.emitTaskStatusEvent(
-                          executionId,
+                          execId,
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_RUNNING,
@@ -419,40 +427,40 @@ public class WorkflowOrchestrator {
               .doOnComplete(
                   () ->
                       tracker.emitTaskStatusEvent(
-                          executionId,
+                          execId,
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_SUCCESS,
                           Collections.emptyMap()))
               .contextWrite(
                   ctx ->
-                      ctx.put("nodeId", node.nodeId())
-                          .put("payload", payload)
-                          .put("sessionId", sessionId)
-                          .put("workflowId", workflowId)
-                          .put("executionId", executionId))
+                      ctx.put(CTX_NODE_ID, node.nodeId())
+                          .put(CTX_PAYLOAD, pld)
+                          .put(CTX_SESSION_ID, sessId)
+                          .put(CTX_WORKFLOW_ID, wfId)
+                          .put(CTX_EXECUTION_ID, execId))
               .doOnError(
                   e ->
                       tracker.emitTaskStatusEvent(
-                          executionId,
+                          execId,
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_FAILURE,
                           Collections.emptyMap()));
-      streams[index] =
-          applyLoggingAndBroadcasting(
-              executionId, node.nodeId(), stream, bufferSize, disposables, connectors);
+      strms[index] =
+          applyLoggingAndBroadcasting(execId, node.nodeId(), stream, bufferSize, disps, conns);
     };
   }
 
+  @SuppressWarnings("PMD.UseVarargs")
   private NodeAssembler createTerminalAssembler(
       final Node node,
       final TerminalPlugin terminal,
       final Duration timeout,
       final ParentEdgeInfo[] parentEdges) {
 
-    return (executionId, sessionId, workflowId, payload, streams, terminalsList, disposables, connectors) -> {
-      final Flux<Message> mergedInput = mergeParentStreams(streams, parentEdges);
+    return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
+      final Flux<Message> mergedInput = mergeParentStreams(strms, parentEdges);
       final Flux<Message> inputToTerminal =
           mergedInput.transformDeferredContextual(
               (flux, ctx) -> {
@@ -462,12 +470,12 @@ public class WorkflowOrchestrator {
       final Mono<Void> completion =
           terminal
               .consume(inputToTerminal, node.config())
-              .subscribeOn(virtualThreadScheduler)
+              .subscribeOn(vtScheduler)
               .timeout(timeout)
               .doOnSubscribe(
                   s ->
                       tracker.emitTaskStatusEvent(
-                          executionId,
+                          execId,
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_RUNNING,
@@ -475,31 +483,39 @@ public class WorkflowOrchestrator {
               .doOnSuccess(
                   v ->
                       tracker.emitTaskStatusEvent(
-                          executionId,
+                          execId,
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_SUCCESS,
                           Collections.emptyMap()))
               .contextWrite(
                   ctx ->
-                      ctx.put("nodeId", node.nodeId())
-                          .put("payload", payload)
-                          .put("sessionId", sessionId)
-                          .put("workflowId", workflowId)
-                          .put("executionId", executionId))
+                      ctx.put(CTX_NODE_ID, node.nodeId())
+                          .put(CTX_PAYLOAD, pld)
+                          .put(CTX_SESSION_ID, sessId)
+                          .put(CTX_WORKFLOW_ID, wfId)
+                          .put(CTX_EXECUTION_ID, execId))
               .doOnError(
                   e ->
                       tracker.emitTaskStatusEvent(
-                          executionId,
+                          execId,
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_FAILURE,
                           Collections.emptyMap()))
               .then();
-      terminalsList.add(completion);
+      terms.add(completion);
     };
   }
 
+  /**
+   * Merges parent streams.
+   *
+   * @param streams the array of streams
+   * @param parentEdges the parent edges
+   * @return the merged stream
+   */
+  @SuppressWarnings({"PMD.UseVarargs", "PMD.OnlyOneReturn", "PMD.AvoidLiteralsInIfCondition"})
   private Flux<Message> mergeParentStreams(
       final Flux<Message>[] streams, final ParentEdgeInfo[] parentEdges) {
     if (parentEdges.length == 0) {
@@ -582,6 +598,7 @@ public class WorkflowOrchestrator {
    * @param connectors the list of tasks to connect upstreams to sinks
    * @return the processed stream
    */
+  @SuppressWarnings("PMD.UnusedFormalParameter")
   private Flux<Message> applyLoggingAndBroadcasting(
       final String executionId,
       final String nodeId,
