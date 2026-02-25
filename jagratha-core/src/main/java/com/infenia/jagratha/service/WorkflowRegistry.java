@@ -36,7 +36,8 @@ public class WorkflowRegistry {
    * @param pluginList list of plugins discovered by Spring
    */
   public WorkflowRegistry(@NotEmpty final List<WorkflowPlugin> pluginList) {
-    final java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("^[a-z0-9]+(-[a-z0-9]+)*$");
+    final java.util.regex.Pattern pattern =
+        java.util.regex.Pattern.compile("^[a-z0-9]+(-[a-z0-9]+)*$");
     pluginList.forEach(
         plugin -> {
           final String type = plugin.getType();
