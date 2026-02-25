@@ -52,7 +52,7 @@ import reactor.util.context.Context;
 @Service
 @Validated
 @RequiredArgsConstructor
-@SuppressWarnings("PMD.ExcessiveImports")
+@SuppressWarnings({"PMD.ExcessiveImports", "PMD.CouplingBetweenObjects", "PMD.LawOfDemeter"})
 public class WorkflowOrchestrator {
 
   private static final int BUFFER_SIZE = 1024;
@@ -69,6 +69,12 @@ public class WorkflowOrchestrator {
   private final WorkflowValidator validator;
   private final AppConfigService configService;
 
+  /**
+   * Prepares a workflow for execution.
+   *
+   * @param def the workflow definition
+   * @return a Mono containing the prepared workflow
+   */
   public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
     final Map<String, List<Node>> adjacencyList = new ConcurrentHashMap<>();
     final Map<String, List<Node>> parentsList = new ConcurrentHashMap<>();
@@ -82,7 +88,9 @@ public class WorkflowOrchestrator {
               adjacencyList.put(node.nodeId(), new ArrayList<>());
               parentsList.put(node.nodeId(), new ArrayList<>());
               final WorkflowPlugin plugin = registry.get(node.type());
-              if (plugin != null) pluginCache.put(node.nodeId(), plugin);
+              if (plugin != null) {
+                pluginCache.put(node.nodeId(), plugin);
+              }
             });
 
     def.edges()
@@ -99,9 +107,10 @@ public class WorkflowOrchestrator {
                 .flatMap(
                     node -> {
                       final WorkflowPlugin plugin = pluginCache.get(node.nodeId());
-                      if (plugin == null)
+                      if (plugin == null) {
                         return Mono.error(
                             new IllegalArgumentException("Plugin not found: " + node.type()));
+                      }
                       return plugin.initialize(node.config());
                     })
                 .then())
@@ -129,6 +138,16 @@ public class WorkflowOrchestrator {
                     .then(Mono.error(e)));
   }
 
+  /**
+   * Executes a workflow.
+   *
+   * @param sessionId the session ID
+   * @param workflowId the workflow ID
+   * @param executionId the execution ID
+   * @param prepared the prepared workflow
+   * @param payload the initial payload
+   * @return a Mono that completes when the workflow execution is finished
+   */
   public Mono<Void> execute(
       @SessionId final String sessionId,
       @WorkflowId final String workflowId,
@@ -156,19 +175,20 @@ public class WorkflowOrchestrator {
                               buildNodeIterative(
                                   eId, node, prepared, payload, nodeStreams, terminals);
                             }
-                            final Mono<Long> executionTimeoutMono =
+                            final Mono<Long> timeoutMono =
                                 configService
                                     .getExecutionTimeout(sId)
                                     .defaultIfEmpty(GLOBAL_TIMEOUT);
-                            return executionTimeoutMono
+                            return timeoutMono
                                 .flatMap(
                                     wfTimeout -> {
                                       Flux<Void> terminalFlux =
                                           Flux.fromIterable(terminals)
                                               .flatMapDelayError(m -> m, 256, 32);
-                                      if (wfTimeout > 0)
+                                      if (wfTimeout > 0) {
                                         terminalFlux =
                                             terminalFlux.timeout(Duration.ofSeconds(wfTimeout));
+                                      }
                                       return terminalFlux.then(
                                           tracker.finishWorkflow(eId, STATUS_SUCCESS));
                                     })
@@ -184,6 +204,16 @@ public class WorkflowOrchestrator {
                 "sessionId", sessionId, "workflowId", workflowId, "executionId", executionId));
   }
 
+  /**
+   * Iteratively builds the reactive stream for a node.
+   *
+   * @param executionId the execution ID
+   * @param node the node to build
+   * @param prepared the prepared workflow
+   * @param payload the initial payload
+   * @param nodeStreams the map of node IDs to their output streams
+   * @param terminals the list of terminal node completion Monos
+   */
   private void buildNodeIterative(
       final String executionId,
       final Node node,
@@ -197,8 +227,16 @@ public class WorkflowOrchestrator {
     final Duration nodeTimeout = getNodeTimeout(node, plugin);
     final boolean hasParents = !prepared.parentsList().get(node.nodeId()).isEmpty();
 
-    if (plugin instanceof TriggerPlugin trigger
-        && (plugin.getCategory() == PluginCategory.TRIGGER || !hasParents)) {
+    boolean treatAsTrigger = false;
+    if (plugin instanceof TriggerPlugin) {
+      final PluginCategory category = plugin.getCategory();
+      if (category == PluginCategory.TRIGGER || !hasParents) {
+        treatAsTrigger = true;
+      }
+    }
+
+    if (treatAsTrigger) {
+      final TriggerPlugin trigger = (TriggerPlugin) plugin;
       final Flux<Message> stream =
           tracker
               .updateTaskStatus(executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_RUNNING)
@@ -230,9 +268,10 @@ public class WorkflowOrchestrator {
                         final Flux<Message> parentStream = nodeStreams.get(edge.source());
                         final Flux<Message> stampedStream =
                             parentStream.map(msg -> msg.withSourceNodeId(edge.source()));
-                        if (edge.sourcePort() != null)
+                        if (edge.sourcePort() != null) {
                           return stampedStream.filter(
                               msg -> edge.sourcePort().equals(msg.sourcePort()));
+                        }
                         return stampedStream;
                       })
                   .toList());
@@ -340,18 +379,48 @@ public class WorkflowOrchestrator {
     }
   }
 
+  /**
+   * Gets the timeout for a node.
+   *
+   * @param node the node
+   * @param plugin the plugin
+   * @return the timeout duration
+   */
   private Duration getNodeTimeout(final Node node, final WorkflowPlugin plugin) {
     final Object timeoutVal =
         node.config().getOrDefault("timeoutSeconds", node.config().get("timeout"));
+    final Duration finalTimeout;
     if (timeoutVal instanceof Number numValue && numValue.longValue() > 0) {
-      return Duration.ofSeconds(numValue.longValue());
+      finalTimeout = Duration.ofSeconds(numValue.longValue());
+    } else {
+      Duration defaultTimeout = null;
+      if (plugin != null) {
+        defaultTimeout = plugin.getDefaultTimeout();
+      }
+
+      if (defaultTimeout != null) {
+        finalTimeout = defaultTimeout;
+      } else {
+        finalTimeout = Duration.ofSeconds(REF_COUNT_TIMEOUT);
+      }
     }
-    final Duration defaultTimeout = (plugin != null) ? plugin.getDefaultTimeout() : null;
-    return defaultTimeout != null ? defaultTimeout : Duration.ofSeconds(REF_COUNT_TIMEOUT);
+    return finalTimeout;
   }
 
+  /**
+   * Applies logging and broadcasting (replay/refCount) to a stream.
+   *
+   * @param executionId the execution ID
+   * @param nodeId the node ID
+   * @param stream the stream to process
+   * @param childCount the number of children
+   * @return the processed stream
+   */
   private Flux<Message> applyLoggingAndBroadcasting(
-      String executionId, String nodeId, Flux<Message> stream, int childCount) {
+      final String executionId,
+      final String nodeId,
+      final Flux<Message> stream,
+      final int childCount) {
     Flux<Message> processedStream =
         stream
             .onBackpressureBuffer(BUFFER_SIZE, BufferOverflowStrategy.ERROR)
@@ -362,10 +431,12 @@ public class WorkflowOrchestrator {
                             () -> tracker.appendLog(executionId, String.valueOf(msg.payload())))
                         .subscribeOn(Schedulers.boundedElastic())
                         .subscribe());
-    if (childCount > 0)
+    if (childCount > 0) {
       processedStream =
           processedStream.replay(1).refCount(childCount, Duration.ofSeconds(REF_COUNT_TIMEOUT));
-    else processedStream = processedStream.replay(1).autoConnect(0);
+    } else {
+      processedStream = processedStream.replay(1).autoConnect(0);
+    }
     return processedStream;
   }
 }
