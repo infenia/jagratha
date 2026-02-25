@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -307,7 +308,6 @@ public class WorkflowOrchestrator {
    *
    * @param def the workflow definition
    * @param node the node to assemble
-   * @param adjacencyList map of nodeId to child nodes
    * @param parentsList map of nodeId to parent nodes
    * @param pluginCache map of nodeId to initialized plugin instances
    * @param nodeToIndex map of nodeId to stream array index
@@ -363,7 +363,12 @@ public class WorkflowOrchestrator {
           trigger
               .start(node.config())
               .subscribeOn(vtScheduler)
-              .timeout(timeout)
+              .flatMap(
+                  msg ->
+                      Mono.just(msg)
+                          .timeout(timeout, vtScheduler)
+                          .onErrorMap(TimeoutException.class, e -> e),
+                  1)
               .doOnSubscribe(
                   s ->
                       tracker.emitTaskStatusEvent(
@@ -415,7 +420,12 @@ public class WorkflowOrchestrator {
           processor
               .process(mergedInput, node.config())
               .subscribeOn(vtScheduler)
-              .timeout(timeout)
+              .flatMap(
+                  msg ->
+                      Mono.just(msg)
+                          .timeout(timeout, vtScheduler)
+                          .onErrorMap(TimeoutException.class, e -> e),
+                  1)
               .doOnSubscribe(
                   s ->
                       tracker.emitTaskStatusEvent(
@@ -462,16 +472,22 @@ public class WorkflowOrchestrator {
     return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
       final Flux<Message> mergedInput = mergeParentStreams(strms, parentEdges);
       final Flux<Message> inputToTerminal =
-          mergedInput.transformDeferredContextual(
-              (flux, ctx) -> {
-                final ResultCollector collector = ctx.getOrDefault("resultCollector", null);
-                return collector != null ? flux.doOnNext(collector::add) : flux;
-              });
+          mergedInput
+              .flatMap(
+                  msg ->
+                      Mono.just(msg)
+                          .timeout(timeout, vtScheduler)
+                          .onErrorMap(TimeoutException.class, e -> e),
+                  1)
+              .transformDeferredContextual(
+                  (flux, ctx) -> {
+                    final ResultCollector collector = ctx.getOrDefault("resultCollector", null);
+                    return collector != null ? flux.doOnNext(collector::add) : flux;
+                  });
       final Mono<Void> completion =
           terminal
               .consume(inputToTerminal, node.config())
               .subscribeOn(vtScheduler)
-              .timeout(timeout)
               .doOnSubscribe(
                   s ->
                       tracker.emitTaskStatusEvent(
