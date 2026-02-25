@@ -415,7 +415,7 @@ public class WorkflowOrchestrator {
         rawStream = processor.process(mergedInput, node.config());
       } else {
         rawStream =
-            mergedInput.flatMap(
+            mergedInput.concatMap(
                 msg ->
                     processor
                         .process(Flux.just(msg), node.config())
@@ -491,7 +491,7 @@ public class WorkflowOrchestrator {
       } else {
         rawCompletion =
             inputToTerminal
-                .flatMap(
+                .concatMap(
                     msg ->
                         terminal
                             .consume(Flux.just(msg), node.config())
