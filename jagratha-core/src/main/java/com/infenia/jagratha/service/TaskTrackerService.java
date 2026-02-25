@@ -52,7 +52,7 @@ import reactor.util.concurrent.Queues;
 @Slf4j
 @Service
 @Validated
-@SuppressWarnings("PMD.TooManyMethods")
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.ExcessiveImports", "PMD.CouplingBetweenObjects"})
 public class TaskTrackerService {
 
   private static final int BATCH_SIZE = 100;
@@ -65,11 +65,11 @@ public class TaskTrackerService {
   private final Map<String, Sinks.Many<WorkflowProgress>> statusSinks = new ConcurrentHashMap<>();
 
   // Global event sinks for decoupled tracking
-  private final Sinks.Many<TaskStatusEvent> statusEventSink =
+  private final Sinks.Many<TaskStatusEvent> taskStatusSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
-  private final Sinks.Many<WorkflowLogEvent> logEventSink =
+  private final Sinks.Many<WorkflowLogEvent> logSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE * 4, false);
-  private final Sinks.Many<WorkflowStatusEvent> workflowStatusEventSink =
+  private final Sinks.Many<WorkflowStatusEvent> wfStatusSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
 
   /** Default constructor. */
@@ -81,7 +81,7 @@ public class TaskTrackerService {
   @PostConstruct
   public void init() {
     // Status Event Consumer
-    statusEventSink
+    taskStatusSink
         .asFlux()
         .publishOn(Schedulers.parallel())
         .bufferTimeout(BATCH_SIZE, BATCH_TIMEOUT)
@@ -96,7 +96,7 @@ public class TaskTrackerService {
         .subscribe();
 
     // Workflow Status Event Consumer
-    workflowStatusEventSink
+    wfStatusSink
         .asFlux()
         .publishOn(Schedulers.parallel())
         .bufferTimeout(BATCH_SIZE, BATCH_TIMEOUT)
@@ -111,7 +111,7 @@ public class TaskTrackerService {
         .subscribe();
 
     // Log Event Consumer
-    logEventSink
+    logSink
         .asFlux()
         .publishOn(Schedulers.parallel())
         .bufferTimeout(BATCH_SIZE, BATCH_TIMEOUT)
@@ -190,52 +190,6 @@ public class TaskTrackerService {
   }
 
   /**
-   * Emit a task status event for asynchronous processing.
-   *
-   * @param executionId the execution identifier
-   * @param nodeId the node identifier
-   * @param module the module name
-   * @param status the new status
-   * @param metadata the task metadata
-   */
-  public void emitTaskStatusEvent(
-      @NotBlank final String executionId,
-      @NodeId final String nodeId,
-      @NotBlank @Size(max = 256) final String module,
-      @NotBlank @Size(max = 256) final String status,
-      @NotNull final Map<String, Object> metadata) {
-    statusEventSink.emitNext(
-        TaskStatusEvent.of(executionId, nodeId, module, status, metadata),
-        Sinks.EmitFailureHandler.busyLooping(BUSY_LOOP_TIMEOUT));
-  }
-
-  /**
-   * Emit a workflow status event for asynchronous processing.
-   *
-   * @param executionId the execution identifier
-   * @param status the final status
-   */
-  public void emitWorkflowStatusEvent(
-      @NotBlank final String executionId, @NotBlank @Size(max = 256) final String status) {
-    workflowStatusEventSink.emitNext(
-        WorkflowStatusEvent.of(executionId, status),
-        Sinks.EmitFailureHandler.busyLooping(BUSY_LOOP_TIMEOUT));
-  }
-
-  /**
-   * Emit a log event for asynchronous processing.
-   *
-   * @param executionId the execution identifier
-   * @param line the log line
-   */
-  public void emitLogEvent(
-      @NotBlank final String executionId, @NotBlank @Size(max = 16_384) final String line) {
-    logEventSink.emitNext(
-        WorkflowLogEvent.of(executionId, line),
-        (signalType, emitResult) -> false); // Drop on overflow
-  }
-
-  /**
    * Update the status and metadata of a specific node.
    *
    * @param executionId the execution identifier
@@ -254,6 +208,53 @@ public class TaskTrackerService {
       @NotNull final Map<String, Object> metadata) {
     return Mono.fromRunnable(
         () -> emitTaskStatusEvent(executionId, nodeId, module, status, metadata));
+  }
+
+  /**
+   * Emit a task status event for asynchronous processing.
+   *
+   * @param executionId the execution identifier
+   * @param nodeId the node identifier
+   * @param module the module name
+   * @param status the new status
+   * @param metadata the task metadata
+   */
+  @SuppressWarnings("PMD.UseObjectForClearerAPI")
+  public void emitTaskStatusEvent(
+      @NotBlank final String executionId,
+      @NodeId final String nodeId,
+      @NotBlank @Size(max = 256) final String module,
+      @NotBlank @Size(max = 256) final String status,
+      @NotNull final Map<String, Object> metadata) {
+    taskStatusSink.emitNext(
+        TaskStatusEvent.create(executionId, nodeId, module, status, metadata),
+        Sinks.EmitFailureHandler.busyLooping(BUSY_LOOP_TIMEOUT));
+  }
+
+  /**
+   * Emit a workflow status event for asynchronous processing.
+   *
+   * @param executionId the execution identifier
+   * @param status the final status
+   */
+  public void emitWorkflowStatusEvent(
+      @NotBlank final String executionId, @NotBlank @Size(max = 256) final String status) {
+    wfStatusSink.emitNext(
+        WorkflowStatusEvent.create(executionId, status),
+        Sinks.EmitFailureHandler.busyLooping(BUSY_LOOP_TIMEOUT));
+  }
+
+  /**
+   * Emit a log event for asynchronous processing.
+   *
+   * @param executionId the execution identifier
+   * @param line the log line
+   */
+  public void emitLogEvent(
+      @NotBlank final String executionId, @NotBlank @Size(max = 16_384) final String line) {
+    logSink.emitNext(
+        WorkflowLogEvent.create(executionId, line),
+        (signalType, emitResult) -> false); // Drop on overflow
   }
 
   /**
@@ -382,28 +383,28 @@ public class TaskTrackerService {
   }
 
   private void handleTaskStatusEvents(final List<TaskStatusEvent> events) {
-    final Set<String> executionIdsToNotify = new HashSet<>();
+    final Set<String> execIds = new HashSet<>();
     for (final TaskStatusEvent event : events) {
       final WorkflowState state = findState(event.executionId());
       if (state != null) {
         state.updateTask(event.nodeId(), event.module(), event.status(), event.metadata());
-        executionIdsToNotify.add(event.executionId());
+        execIds.add(event.executionId());
       }
     }
-    executionIdsToNotify.forEach(this::notifyStatusChange);
+    execIds.forEach(this::notifyStatusChange);
   }
 
   private void handleWorkflowStatusEvents(final List<WorkflowStatusEvent> events) {
-    final Set<String> executionIdsToNotify = new HashSet<>();
+    final Set<String> execIds = new HashSet<>();
     for (final WorkflowStatusEvent event : events) {
       final WorkflowState state = findState(event.executionId());
       if (state != null) {
         state.setStatus(event.status());
         state.setEndTime(event.timestamp());
-        executionIdsToNotify.add(event.executionId());
+        execIds.add(event.executionId());
       }
     }
-    executionIdsToNotify.forEach(this::notifyStatusChange);
+    execIds.forEach(this::notifyStatusChange);
   }
 
   private void handleLogEvents(final List<WorkflowLogEvent> events) {

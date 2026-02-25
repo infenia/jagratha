@@ -26,7 +26,7 @@ public record WorkflowLogEvent(String executionId, String line, LocalDateTime ti
    * @param line the log line
    * @return a new WorkflowLogEvent
    */
-  public static WorkflowLogEvent of(String executionId, String line) {
+  public static WorkflowLogEvent create(final String executionId, final String line) {
     return new WorkflowLogEvent(executionId, line, LocalDateTime.now());
   }
 }

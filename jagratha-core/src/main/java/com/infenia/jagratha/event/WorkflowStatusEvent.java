@@ -26,7 +26,7 @@ public record WorkflowStatusEvent(String executionId, String status, LocalDateTi
    * @param status the new status
    * @return a new WorkflowStatusEvent
    */
-  public static WorkflowStatusEvent of(String executionId, String status) {
+  public static WorkflowStatusEvent create(final String executionId, final String status) {
     return new WorkflowStatusEvent(executionId, status, LocalDateTime.now());
   }
 }
