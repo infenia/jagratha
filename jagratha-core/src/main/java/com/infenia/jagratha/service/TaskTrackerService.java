@@ -252,7 +252,8 @@ public class TaskTrackerService {
       @NotBlank @Size(max = 256) final String module,
       @NotBlank @Size(max = 256) final String status,
       @NotNull final Map<String, Object> metadata) {
-    return Mono.fromRunnable(() -> emitTaskStatusEvent(executionId, nodeId, module, status, metadata));
+    return Mono.fromRunnable(
+        () -> emitTaskStatusEvent(executionId, nodeId, module, status, metadata));
   }
 
   /**

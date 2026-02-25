@@ -247,8 +247,7 @@ class WorkflowOrchestratorImprovementsTest {
         .verifyComplete();
 
     verify(tracker).startWorkflow(eq(executionId), eq(sessionId), eq("test-workflow"), any());
-    verify(tracker, atLeastOnce())
-        .emitTaskStatusEvent(eq(executionId), any(), any(), any(), any());
+    verify(tracker, atLeastOnce()).emitTaskStatusEvent(eq(executionId), any(), any(), any(), any());
     verify(tracker).emitWorkflowStatusEvent(eq(executionId), any());
   }
 }

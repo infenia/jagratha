@@ -18,10 +18,7 @@ package com.infenia.jagratha.event;
 import java.time.LocalDateTime;
 
 /** Event representing a change in workflow status. */
-public record WorkflowStatusEvent(
-    String executionId,
-    String status,
-    LocalDateTime timestamp) {
+public record WorkflowStatusEvent(String executionId, String status, LocalDateTime timestamp) {
   /**
    * Creates a new WorkflowStatusEvent with the current timestamp.
    *

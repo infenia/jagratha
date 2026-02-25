@@ -92,7 +92,10 @@ class TaskTrackerServiceTest {
         .verifyComplete();
 
     StepVerifier.create(tracker.getStatusStream(executionId))
-        .then(() -> tracker.emitTaskStatusEvent(executionId, "n1", "mod", "SUCCESS", java.util.Map.of()))
+        .then(
+            () ->
+                tracker.emitTaskStatusEvent(
+                    executionId, "n1", "mod", "SUCCESS", java.util.Map.of()))
         .assertNext(progress -> assertEquals("wf-1", progress.workflowId()))
         .thenCancel()
         .verify();

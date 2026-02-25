@@ -37,7 +37,11 @@ public record TaskStatusEvent(
    * @return a new TaskStatusEvent
    */
   public static TaskStatusEvent of(
-      String executionId, String nodeId, String module, String status, Map<String, Object> metadata) {
+      String executionId,
+      String nodeId,
+      String module,
+      String status,
+      Map<String, Object> metadata) {
     return new TaskStatusEvent(executionId, nodeId, module, status, metadata, LocalDateTime.now());
   }
 }

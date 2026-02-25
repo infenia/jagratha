@@ -18,10 +18,7 @@ package com.infenia.jagratha.event;
 import java.time.LocalDateTime;
 
 /** Event representing a workflow log entry. */
-public record WorkflowLogEvent(
-    String executionId,
-    String line,
-    LocalDateTime timestamp) {
+public record WorkflowLogEvent(String executionId, String line, LocalDateTime timestamp) {
   /**
    * Creates a new WorkflowLogEvent with the current timestamp.
    *
