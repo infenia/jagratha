@@ -21,6 +21,7 @@ import com.infenia.jagratha.plugin.TerminalPlugin;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -32,6 +33,12 @@ import reactor.core.scheduler.Schedulers;
 /** Plugin to record and update file status on the filesystem. */
 @Slf4j
 public class FileUpdateRecordPlugin implements TerminalPlugin {
+
+  @Override
+  public Duration getDefaultTimeout() {
+    return Duration.ofSeconds(30);
+  }
+
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final Map<String, ReentrantLock> locks = new java.util.concurrent.ConcurrentHashMap<>();
 
