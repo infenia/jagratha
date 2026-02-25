@@ -17,6 +17,7 @@ package com.infenia.jagratha.model;
 
 import com.infenia.jagratha.plugin.Message;
 import java.util.List;
+import java.util.Map;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -38,6 +39,9 @@ public interface NodeAssembler {
    */
   void assemble(
       String executionId,
+      String sessionId,
+      String workflowId,
+      Map<String, Object> payload,
       Flux<Message>[] streams,
       List<Mono<Void>> terminals,
       List<Disposable> disposables,
