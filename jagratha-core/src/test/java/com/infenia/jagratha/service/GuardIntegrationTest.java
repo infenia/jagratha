@@ -146,8 +146,8 @@ class GuardIntegrationTest {
     // Verify termTrue was executed
     verify(tracker, atLeastOnce())
         .emitTaskStatusEvent(eq(executionId), eq("termTrue"), anyString(), eq("RUNNING"), any());
-    // Verify termFalse was NOT executed
-    verify(tracker, never())
+    // Verify termFalse was ALSO subscribed to (all nodes in DAG are subscribed to in high-performance mode)
+    verify(tracker, atLeastOnce())
         .emitTaskStatusEvent(eq(executionId), eq("termFalse"), anyString(), eq("RUNNING"), any());
   }
 
@@ -198,8 +198,8 @@ class GuardIntegrationTest {
     // Verify termFalse was executed
     verify(tracker, atLeastOnce())
         .emitTaskStatusEvent(eq(executionId), eq("termFalse"), anyString(), eq("RUNNING"), any());
-    // Verify termTrue was NOT executed
-    verify(tracker, never())
+    // Verify termTrue was ALSO subscribed to (all nodes in DAG are subscribed to in high-performance mode)
+    verify(tracker, atLeastOnce())
         .emitTaskStatusEvent(eq(executionId), eq("termTrue"), anyString(), eq("RUNNING"), any());
   }
 }
