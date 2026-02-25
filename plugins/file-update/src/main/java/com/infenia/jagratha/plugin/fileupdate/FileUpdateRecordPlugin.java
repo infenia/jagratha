@@ -34,17 +34,17 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 public class FileUpdateRecordPlugin implements TerminalPlugin {
 
-  @Override
-  public Duration getDefaultTimeout() {
-    return Duration.ofSeconds(30);
-  }
-
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final Map<String, ReentrantLock> locks = new java.util.concurrent.ConcurrentHashMap<>();
 
   /** Default constructor. */
   public FileUpdateRecordPlugin() {
     super();
+  }
+
+  @Override
+  public Duration getDefaultTimeout() {
+    return Duration.ofSeconds(30);
   }
 
   @Override
