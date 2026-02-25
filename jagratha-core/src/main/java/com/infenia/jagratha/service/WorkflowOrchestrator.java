@@ -44,7 +44,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.Disposable;
-import reactor.core.publisher.BufferOverflowStrategy;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -243,7 +242,9 @@ public class WorkflowOrchestrator {
                                           return terminalFlux
                                               .doOnSubscribe(
                                                   s -> {
-                                                    for (int i = connectors.size() - 1; i >= 0; i--) {
+                                                    for (int i = connectors.size() - 1;
+                                                        i >= 0;
+                                                        i--) {
                                                       connectors.get(i).run();
                                                     }
                                                   })
