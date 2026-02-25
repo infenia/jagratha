@@ -329,7 +329,7 @@ public class WorkflowOrchestrator {
     final NodeAssembler result;
     if (plugin instanceof TriggerPlugin trigger
         && (plugin.getCategory() == PluginCategory.TRIGGER || !hasParents)) {
-      result = createTriggerAssembler(node, trigger, nodeTimeout, nodeIndex, bufferSize);
+      result = createTriggerAssembler(node, trigger, nodeIndex, bufferSize);
     } else {
       final ParentEdgeInfo[] parentEdges =
           def.edges().stream()
@@ -354,7 +354,6 @@ public class WorkflowOrchestrator {
   private NodeAssembler createTriggerAssembler(
       final Node node,
       final TriggerPlugin trigger,
-      final Duration timeout,
       final int index,
       final int bufferSize) {
 
