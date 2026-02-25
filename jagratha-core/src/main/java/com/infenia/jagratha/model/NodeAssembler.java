@@ -13,23 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.jagratha.plugin;
+package com.infenia.jagratha.model;
 
-import java.util.Map;
+import com.infenia.jagratha.plugin.Message;
+import java.util.List;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-/** Produces data from an external source. */
-public interface TriggerPlugin extends WorkflowPlugin {
-  @Override
-  default PluginCategory getCategory() {
-    return PluginCategory.TRIGGER;
-  }
-
+/**
+ * A functional interface for reifying a single node's reactive stream during workflow
+ * instantiation.
+ */
+@FunctionalInterface
+public interface NodeAssembler {
   /**
-   * Start producing data.
+   * Assembles the reactive stream for a node.
    *
-   * @param config the plugin configuration
-   * @return a Flux of messages
+   * @param executionId the execution identifier
+   * @param streams the array of all node streams in the workflow
+   * @param terminals the list of terminal node completion Monos
    */
-  Flux<Message> start(Map<String, Object> config);
+  void assemble(String executionId, Flux<Message>[] streams, List<Mono<Void>> terminals);
 }
