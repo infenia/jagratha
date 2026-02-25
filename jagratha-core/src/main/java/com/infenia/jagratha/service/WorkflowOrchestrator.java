@@ -363,7 +363,6 @@ public class WorkflowOrchestrator {
           trigger
               .start(node.config())
               .subscribeOn(vtScheduler)
-              .timeout(timeout)
               .doOnSubscribe(
                   s ->
                       tracker.emitTaskStatusEvent(
@@ -411,11 +410,30 @@ public class WorkflowOrchestrator {
 
     return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
       final Flux<Message> mergedInput = mergeParentStreams(strms, parentEdges);
+      final Flux<Message> rawStream;
+      if (processor.isTimeoutManagedByPlugin()) {
+        rawStream = processor.process(mergedInput, node.config());
+      } else {
+        rawStream =
+            mergedInput.flatMap(
+                msg ->
+                    processor
+                        .process(Flux.just(msg), node.config())
+                        .timeout(timeout)
+                        .onErrorResume(
+                            java.util.concurrent.TimeoutException.class,
+                            e ->
+                                Mono.error(
+                                    new java.util.concurrent.TimeoutException(
+                                        "Timeout processing message in node "
+                                            + node.nodeId()
+                                            + " after "
+                                            + timeout.toSeconds()
+                                            + "s"))));
+      }
       final Flux<Message> stream =
-          processor
-              .process(mergedInput, node.config())
+          rawStream
               .subscribeOn(vtScheduler)
-              .timeout(timeout)
               .doOnSubscribe(
                   s ->
                       tracker.emitTaskStatusEvent(
@@ -467,11 +485,32 @@ public class WorkflowOrchestrator {
                 final ResultCollector collector = ctx.getOrDefault("resultCollector", null);
                 return collector != null ? flux.doOnNext(collector::add) : flux;
               });
+      final Mono<Void> rawCompletion;
+      if (terminal.isTimeoutManagedByPlugin()) {
+        rawCompletion = terminal.consume(inputToTerminal, node.config());
+      } else {
+        rawCompletion =
+            inputToTerminal
+                .flatMap(
+                    msg ->
+                        terminal
+                            .consume(Flux.just(msg), node.config())
+                            .timeout(timeout)
+                            .onErrorResume(
+                                java.util.concurrent.TimeoutException.class,
+                                e ->
+                                    Mono.error(
+                                        new java.util.concurrent.TimeoutException(
+                                            "Timeout consuming message in node "
+                                                + node.nodeId()
+                                                + " after "
+                                                + timeout.toSeconds()
+                                                + "s"))))
+                .then();
+      }
       final Mono<Void> completion =
-          terminal
-              .consume(inputToTerminal, node.config())
+          rawCompletion
               .subscribeOn(vtScheduler)
-              .timeout(timeout)
               .doOnSubscribe(
                   s ->
                       tracker.emitTaskStatusEvent(
