@@ -13,23 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.jagratha.plugin;
+package com.infenia.jagratha.model;
 
 import java.util.Map;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-/** Produces data from an external source. */
-public interface TriggerPlugin extends WorkflowPlugin {
-  @Override
-  default PluginCategory getCategory() {
-    return PluginCategory.TRIGGER;
-  }
-
+/**
+ * A functional interface for a pre-compiled workflow template that can be instantiated for
+ * execution.
+ */
+@FunctionalInterface
+public interface WorkflowTemplate {
   /**
-   * Start producing data.
+   * Instantiates the workflow for a specific execution.
    *
-   * @param config the plugin configuration
-   * @return a Flux of messages
+   * @param executionId the unique execution identifier
+   * @param payload the initial trigger payload
+   * @return a Mono that completes when the workflow execution is finished
    */
-  Flux<Message> start(Map<String, Object> config);
+  Mono<Void> instantiate(String executionId, Map<String, Object> payload);
 }
