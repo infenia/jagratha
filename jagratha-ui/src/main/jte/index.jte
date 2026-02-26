@@ -67,7 +67,7 @@
                                     if (initiatedTime != null && !initiatedTime.isEmpty()) {
                                         try {
                                             java.time.Instant initiatedAt = java.time.Instant.parse(initiatedTime);
-                                            java.time.ZonedDateTime zdt = initiatedAt.atZone(java.time.ZoneId.of("UTC"));
+                                            java.time.ZonedDateTime zdt = initiatedAt.atZone(java.time.ZoneId.systemDefault());
                                             java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a");
                                             formattedTime = zdt.format(formatter);
                                         } catch (Exception e) {
