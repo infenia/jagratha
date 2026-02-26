@@ -285,7 +285,8 @@ public class WorkflowOrchestrator {
                 wfTimeout -> {
                   Mono<Void> terminalMono = Mono.whenDelayError(terminals);
                   if (wfTimeout > 0) {
-                    terminalMono = terminalMono.timeout(Duration.ofSeconds(wfTimeout));
+                    terminalMono =
+                        terminalMono.timeout(Duration.ofSeconds(wfTimeout), virtualThreadScheduler);
                   }
                   return terminalMono
                       .doOnSubscribe(
