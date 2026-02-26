@@ -130,7 +130,8 @@ class FullStackWorkflowIntegrationTest {
   }
 
   @Test
-  @org.junit.jupiter.api.Disabled("TODO: Fix LoopStreamProcessor integration - returns ERROR status")
+  @org.junit.jupiter.api.Disabled(
+      "TODO: Fix LoopStreamProcessor integration - returns ERROR status")
   void testLoopPlugin() {
     final String sessionId = "loop-session-" + UUID.randomUUID();
 
