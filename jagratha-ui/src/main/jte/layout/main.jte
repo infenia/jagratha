@@ -63,15 +63,18 @@
             <!-- Theme Toggle -->
             <div class="flex bg-white dark:bg-slate-900 p-1 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
                 <button class="p-1.5 rounded-full hover:bg-white/10 transition-all flex items-center justify-center text-slate-400"
-                        id="theme-light" onclick="setTheme('light')">
+                        id="theme-light" data-theme="light" onclick="setTheme('light')"
+                        style="">
                     <span class="material-symbols-outlined text-[18px]">light_mode</span>
                 </button>
                 <button class="p-1.5 rounded-full hover:bg-white/10 transition-all flex items-center justify-center text-slate-400"
-                        id="theme-dark" onclick="setTheme('dark')">
+                        id="theme-dark" data-theme="dark" onclick="setTheme('dark')"
+                        style="">
                     <span class="material-symbols-outlined text-[18px]">dark_mode</span>
                 </button>
                 <button class="p-1.5 rounded-full hover:bg-white/10 transition-all flex items-center justify-center text-slate-400 border-l border-white/10 ml-1 pl-2"
-                        id="theme-system" onclick="setTheme('system')">
+                        id="theme-system" data-theme="system" onclick="setTheme('system')"
+                        style="">
                     <span class="material-symbols-outlined text-[18px]">desktop_windows</span>
                 </button>
             </div>
@@ -101,14 +104,14 @@
 
         function updateThemeButtons() {
             const current = localStorage.getItem('theme') || 'system';
-            ['light', 'dark', 'system'].forEach(t => {
-                const btn = document.getElementById(t);
-                if (btn) {
-                    if (current === t) {
-                        btn.classList.add('bg-slate-100', 'dark:bg-slate-700', 'text-primary');
-                    } else {
-                        btn.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'text-primary');
-                    }
+            document.querySelectorAll('[data-theme]').forEach(btn => {
+                if (btn.dataset.theme === current) {
+                    const isDark = document.documentElement.classList.contains('dark');
+                    btn.style.backgroundColor = isDark ? '#475569' : '#f1f5f9';
+                    btn.style.color = '#3c83f6';
+                } else {
+                    btn.style.backgroundColor = '';
+                    btn.style.color = '';
                 }
             });
         }
