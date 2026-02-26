@@ -24,9 +24,8 @@
             <div class="w-20 h-20 mx-auto bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-600 mb-6">
                 <span class="material-symbols-outlined text-4xl">sensors_off</span>
             </div>
-            <h3 class="text-xl font-heading font-bold text-slate-800 dark:text-white mb-2 uppercase tracking-widest">Ready for Vigilance</h3>
             <p class="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                No active sessions found. Start an agent or a workflow to begin monitoring.
+                No active sessions found.
             </p>
         </div>
     @else
@@ -45,10 +44,10 @@
                     </h3>
 
                     <div class="flex flex-wrap gap-2 mb-5">
-                        @if(session.get("tags") instanceof Map tags)
-                            @for(Object tagValue : tags.values())
+                        @if(session.get("workflows") instanceof Map workflows)
+                            @for(Object workflowId : workflows.keySet())
                                 <span class="inline-flex items-center px-3 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full border border-slate-200 dark:border-slate-700">
-                                    ${String.valueOf(tagValue)}
+                                    ${String.valueOf(workflowId)}
                                 </span>
                             @endfor
                         @endif
@@ -76,7 +75,7 @@
                                         }
                                     }
                                 }
-                            }${formattedTime}</span>
+                            ${formattedTime}</span>
                         </div>
                     </div>
                 </div>
