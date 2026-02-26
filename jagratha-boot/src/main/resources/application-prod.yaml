@@ -1,6 +1,4 @@
 spring:
-  profiles:
-    default: dev
   threads:
     virtual:
       enabled: true
@@ -24,5 +22,5 @@ logging:
 
 gg:
   jte:
-    developmentMode: true
-    usePrecompiledTemplates: false
+    developmentMode: false
+    usePrecompiledTemplates: true
