@@ -50,7 +50,7 @@
     <script src="/js/app.js" defer></script>
 </head>
 <body class="font-body bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-50 antialiased min-h-screen">
-    <div class="max-w-[1200px] flex flex-col px-6 lg:px-10 min-h-screen">
+    <div class="mx-auto max-w-[1200px] flex flex-col px-6 lg:px-10 min-h-screen">
         <!-- Header -->
         <header class="flex items-center justify-between border-b sticky top-0 z-10 backdrop-blur-md bg-background-light/80 dark:bg-background-dark/80 border-slate-200 dark:border-slate-800 py-4">
             <a href="/ui" class="flex items-center gap-4 group transition-transform hover:scale-[1.02]">
@@ -103,7 +103,13 @@
             const current = localStorage.getItem('theme') || 'system';
             ['light', 'dark', 'system'].forEach(t => {
                 const btn = document.getElementById(t);
-                if (btn) btn.classList.toggle('bg-slate-100', current === t);
+                if (btn) {
+                    if (current === t) {
+                        btn.classList.add('bg-slate-100', 'dark:bg-slate-700', 'text-primary');
+                    } else {
+                        btn.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'text-primary');
+                    }
+                }
             });
         }
 
