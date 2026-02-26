@@ -59,7 +59,7 @@
                             <span class="font-medium">${(String)session.getOrDefault("initiator", "System")}</span>
                         </div>
                         <div class="text-right">
-                            <span class="text-slate-500 dark:text-slate-400">Initiated At</span>
+                            <span class="text-slate-500 dark:text-slate-400">Initiated</span>
                             <span class="font-medium">
                                 !{
                                     String initiatedTime = (String) session.get("initiatedTime");
@@ -67,9 +67,20 @@
                                     if (initiatedTime != null && !initiatedTime.isEmpty()) {
                                         try {
                                             java.time.Instant initiatedAt = java.time.Instant.parse(initiatedTime);
-                                            java.time.ZonedDateTime zdt = initiatedAt.atZone(java.time.ZoneId.systemDefault());
-                                            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a");
-                                            formattedTime = zdt.format(formatter);
+                                            java.time.Instant now = java.time.Instant.now();
+                                            long secondsAgo = java.time.temporal.ChronoUnit.SECONDS.between(initiatedAt, now);
+                                            if (secondsAgo < 60) {
+                                                formattedTime = "just now";
+                                            } else if (secondsAgo < 3600) {
+                                                long minutesAgo = secondsAgo / 60;
+                                                formattedTime = minutesAgo + (minutesAgo == 1 ? " minute ago" : " minutes ago");
+                                            } else if (secondsAgo < 86400) {
+                                                long hoursAgo = secondsAgo / 3600;
+                                                formattedTime = hoursAgo + (hoursAgo == 1 ? " hour ago" : " hours ago");
+                                            } else {
+                                                long daysAgo = secondsAgo / 86400;
+                                                formattedTime = daysAgo + (daysAgo == 1 ? " day ago" : " days ago");
+                                            }
                                         } catch (Exception e) {
                                             formattedTime = "Invalid date";
                                         }
