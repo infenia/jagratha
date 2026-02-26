@@ -1,6 +1,4 @@
 spring:
-  profiles:
-    default: dev
   threads:
     virtual:
       enabled: true
@@ -26,3 +24,5 @@ gg:
   jte:
     developmentMode: true
     usePrecompiledTemplates: false
+    trimControlStructures: true
+    template-location: ../jagratha-ui/src/main/jte
