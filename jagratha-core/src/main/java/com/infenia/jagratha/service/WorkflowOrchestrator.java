@@ -62,7 +62,8 @@ import reactor.util.context.Context;
   "PMD.ExcessiveImports",
   "PMD.CouplingBetweenObjects",
   "PMD.LawOfDemeter",
-  "PMD.TooManyMethods"
+  "PMD.TooManyMethods",
+  "PMD.LongVariable"
 })
 public class WorkflowOrchestrator {
 
@@ -285,7 +286,8 @@ public class WorkflowOrchestrator {
                 wfTimeout -> {
                   Mono<Void> terminalMono = Mono.whenDelayError(terminals);
                   if (wfTimeout > 0) {
-                    terminalMono = terminalMono.timeout(Duration.ofSeconds(wfTimeout));
+                    terminalMono =
+                        terminalMono.timeout(Duration.ofSeconds(wfTimeout), virtualThreadScheduler);
                   }
                   return terminalMono
                       .doOnSubscribe(
@@ -633,7 +635,6 @@ public class WorkflowOrchestrator {
    * @param connectors the list of tasks to connect upstreams to sinks
    * @return the processed stream
    */
-  @SuppressWarnings("PMD.UnusedFormalParameter")
   private Flux<Message> applyLoggingAndBroadcasting(
       final String executionId,
       final String nodeId,
@@ -641,7 +642,7 @@ public class WorkflowOrchestrator {
       final int bufferSize,
       final List<Disposable> disposables,
       final List<Runnable> connectors) {
-    final var processedStream = getMessageFlux(executionId, nodeId, stream);
+    final Flux<Message> processedStream = getMessageFlux(executionId, nodeId, stream);
 
     final Sinks.Many<Message> sink = Sinks.many().multicast().onBackpressureBuffer(bufferSize);
 
