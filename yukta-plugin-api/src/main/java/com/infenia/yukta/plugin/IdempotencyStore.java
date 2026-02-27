@@ -15,21 +15,26 @@
  */
 package com.infenia.yukta.plugin;
 
-import java.util.Map;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-/** Produces data from an external source. */
-public interface TriggerPlugin extends WorkflowPlugin {
-  @Override
-  default PluginCategory getCategory() {
-    return PluginCategory.TRIGGER;
-  }
+/**
+ * Interface for detecting and preventing duplicate message processing.
+ */
+public interface IdempotencyStore {
 
   /**
-   * Start producing data.
+   * Check if a message has already been processed.
    *
-   * @param config the plugin configuration
-   * @return a Flux of messages
+   * @param messageId the unique message identifier
+   * @return a Mono emitting true if the message is a duplicate
    */
-  Flux<Message<?>> start(Map<String, Object> config);
+  Mono<Boolean> isDuplicate(String messageId);
+
+  /**
+   * Mark a message as processed.
+   *
+   * @param messageId the unique message identifier
+   * @return a Mono that completes when the message is recorded
+   */
+  Mono<Void> markProcessed(String messageId);
 }

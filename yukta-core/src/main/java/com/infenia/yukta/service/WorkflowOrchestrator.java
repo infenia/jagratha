@@ -21,7 +21,9 @@ import com.infenia.yukta.model.PreparedWorkflow;
 import com.infenia.yukta.model.WorkflowDefinition;
 import com.infenia.yukta.model.WorkflowDefinition.Node;
 import com.infenia.yukta.model.WorkflowTemplate;
+import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
+import com.infenia.yukta.plugin.MessageStore;
 import com.infenia.yukta.plugin.PluginCategory;
 import com.infenia.yukta.plugin.ProcessorPlugin;
 import com.infenia.yukta.plugin.ResultCollector;
@@ -95,6 +97,7 @@ public class WorkflowOrchestrator {
   private final TaskTrackerService tracker;
   private final WorkflowValidator validator;
   private final AppConfigService configService;
+  private final MessageStore messageStore;
 
   private final Scheduler virtualThreadScheduler;
 
@@ -266,7 +269,7 @@ public class WorkflowOrchestrator {
       final String workflowId) {
 
     @SuppressWarnings("unchecked")
-    final Flux<Message>[] streams = new Flux[nodeCount];
+    final Flux<Message<?>>[] streams = new Flux[nodeCount];
     final List<Mono<Void>> terminals = new ArrayList<>(nodeCount);
     final List<Disposable> disposables = new ArrayList<>(nodeCount);
     final List<Runnable> connectors = new ArrayList<>(nodeCount);
@@ -367,7 +370,7 @@ public class WorkflowOrchestrator {
       final int bufferSize) {
 
     return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
-      Flux<Message> stream = trigger.start(node.config());
+      Flux<Message<?>> stream = trigger.start(node.config());
       if (trigger.isBlocking()) {
         stream = stream.subscribeOn(virtualThreadScheduler);
       }
@@ -425,8 +428,8 @@ public class WorkflowOrchestrator {
       final ParentEdgeInfo[] parentEdges) {
 
     return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
-      final Flux<Message> mergedInput = mergeParentStreams(strms, parentEdges);
-      Flux<Message> stream = processor.process(mergedInput, node.config());
+      final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
+      Flux<Message<?>> stream = processor.process(mergedInput, node.config());
       if (processor.isBlocking()) {
         stream = stream.subscribeOn(virtualThreadScheduler);
       }
@@ -483,8 +486,8 @@ public class WorkflowOrchestrator {
       final ParentEdgeInfo[] parentEdges) {
 
     return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
-      final Flux<Message> mergedInput = mergeParentStreams(strms, parentEdges);
-      final Flux<Message> inputToTerminal =
+      final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
+      final Flux<Message<?>> inputToTerminal =
           mergedInput
               .flatMap(
                   msg ->
@@ -548,8 +551,8 @@ public class WorkflowOrchestrator {
    * @return the merged stream
    */
   @SuppressWarnings({"PMD.UseVarargs", "PMD.OnlyOneReturn", "PMD.AvoidLiteralsInIfCondition"})
-  private Flux<Message> mergeParentStreams(
-      final Flux<Message>[] streams, final ParentEdgeInfo[] parentEdges) {
+  private Flux<Message<?>> mergeParentStreams(
+      final Flux<Message<?>>[] streams, final ParentEdgeInfo[] parentEdges) {
     if (parentEdges.length == 0) {
       return Flux.empty();
     }
@@ -557,19 +560,20 @@ public class WorkflowOrchestrator {
       return applyEdgeRouting(streams, parentEdges[0]);
     }
 
-    final List<Flux<Message>> parentFluxes = new ArrayList<>(parentEdges.length);
+    final List<Flux<Message<?>>> parentFluxes = new ArrayList<>(parentEdges.length);
     for (final ParentEdgeInfo edge : parentEdges) {
       parentFluxes.add(applyEdgeRouting(streams, edge));
     }
     return Flux.merge(parentFluxes);
   }
 
-  private Flux<Message> applyEdgeRouting(final Flux<Message>[] streams, final ParentEdgeInfo edge) {
-    Flux<Message> stream =
+  private Flux<Message<?>> applyEdgeRouting(
+      final Flux<Message<?>>[] streams, final ParentEdgeInfo edge) {
+    Flux<Message<?>> stream =
         streams[edge.parentIndex()].map(msg -> msg.withSourceNodeId(edge.sourceNodeId()));
 
     if (edge.sourcePort() != null) {
-      stream = stream.filter(msg -> edge.sourcePort().equals(msg.sourcePort()));
+      stream = stream.filter(msg -> edge.sourcePort().equals(msg.getSourcePort()));
     }
     return stream;
   }
@@ -629,16 +633,17 @@ public class WorkflowOrchestrator {
    * @param connectors the list of tasks to connect upstreams to sinks
    * @return the processed stream
    */
-  private Flux<Message> applyLoggingAndBroadcasting(
+  private Flux<Message<?>> applyLoggingAndBroadcasting(
       final String executionId,
       final String nodeId,
-      final Flux<Message> stream,
+      final Flux<Message<?>> stream,
       final int bufferSize,
       final List<Disposable> disposables,
       final List<Runnable> connectors) {
-    final Flux<Message> processedStream = getMessageFlux(executionId, nodeId, stream);
+    final Flux<Message<?>> historiedStream = stream.map(msg -> msg.withAddedHistory(nodeId));
+    final Flux<Message<?>> processedStream = getMessageFlux(executionId, nodeId, historiedStream);
 
-    final Sinks.Many<Message> sink = Sinks.many().multicast().onBackpressureBuffer(bufferSize);
+    final Sinks.Many<Message<?>> sink = Sinks.many().multicast().onBackpressureBuffer(bufferSize);
 
     connectors.add(
         () ->
@@ -651,18 +656,24 @@ public class WorkflowOrchestrator {
     return sink.asFlux();
   }
 
-  private Flux<Message> getMessageFlux(
-      final String executionId, final String nodeId, final Flux<Message> stream) {
-    Flux<Message> logStream = stream;
+  private Flux<Message<?>> getMessageFlux(
+      final String executionId, final String nodeId, final Flux<Message<?>> stream) {
+    Flux<Message<?>> logStream = stream;
     // 1. Conditional Reactor Logging: Only active if DEBUG level is set for this class
     if (log.isDebugEnabled()) {
       logStream = logStream.log("Node-" + nodeId);
     }
-    final Flux<Message> processedStream;
+
+    // 2. Wire Tap: Send to MessageStore if available
+    if (messageStore != null) {
+      logStream = logStream.flatMap(msg -> messageStore.store(msg).thenReturn(msg));
+    }
+
+    final Flux<Message<?>> processedStream;
     if (log.isTraceEnabled()) {
       processedStream =
           logStream.doOnNext(
-              msg -> tracker.emitLogEvent(executionId, String.valueOf(msg.payload())));
+              msg -> tracker.emitLogEvent(executionId, String.valueOf(msg.getPayload())));
     } else {
       processedStream = logStream;
     }

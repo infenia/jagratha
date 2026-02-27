@@ -15,23 +15,34 @@
  */
 package com.infenia.yukta.plugin;
 
-import java.util.Map;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/** Logic for side-effects. */
-public interface TerminalPlugin extends WorkflowPlugin {
-  @Override
-  default PluginCategory getCategory() {
-    return PluginCategory.TERMINAL;
-  }
+/**
+ * Interface for storing large payloads outside the message envelope.
+ */
+public interface ClaimCheckStore {
 
   /**
-   * Consume the input stream of messages.
+   * Store a large payload and return a claim check key.
    *
-   * @param input the input Flux
-   * @param config the plugin configuration
-   * @return a Mono that completes when all messages are consumed
+   * @param payload the payload to store
+   * @return a Mono containing the claim check key
    */
-  Mono<Void> consume(Flux<Message<?>> input, Map<String, Object> config);
+  Mono<String> store(Object payload);
+
+  /**
+   * Retrieve a payload using its claim check key.
+   *
+   * @param key the claim check key
+   * @return a Mono containing the retrieved payload
+   */
+  Mono<Object> retrieve(String key);
+
+  /**
+   * Remove a payload from the store.
+   *
+   * @param key the claim check key
+   * @return a Mono that completes when removal is done
+   */
+  Mono<Void> remove(String key);
 }
