@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title} - Jagratha</title>
-    <link rel="icon" type="image/png" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" href="/images/favicon-96x96.png">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
@@ -52,10 +52,14 @@
 <body class="font-body bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-50 antialiased min-h-screen">
     <div class="mx-auto max-w-[1200px] flex flex-col px-6 lg:px-10 min-h-screen">
         <!-- Header -->
-        <header class="flex items-center justify-between border-b sticky top-0 z-10 backdrop-blur-md bg-background-light/80 dark:bg-background-dark/80 border-slate-200 dark:border-slate-800 py-4">
+        <header class="flex items-center justify-between border-b sticky top-0 z-10 backdrop-blur-md bg-background-light/80 dark:bg-background-dark/80 border-slate-200 dark:border-slate-800 p-4">
             <a href="/ui" class="flex items-center gap-4 group transition-transform hover:scale-[1.02]">
                 <div class="text-primary">
-                    <span class="material-symbols-outlined text-4xl">settings_input_antenna</span>
+                    <img
+                            class="relative inline-block h-8 w-8 rounded-xl object-center"
+                            src="/images/favicon.svg"
+                            alt="Logo"
+                    />
                 </div>
                 <h1 class="text-xl font-bold tracking-tight">Jagratha</h1>
             </a>
@@ -72,7 +76,7 @@
                         style="">
                     <span class="material-symbols-outlined text-[18px]">dark_mode</span>
                 </button>
-                <button class="p-1.5 rounded-full hover:bg-white/10 transition-all flex items-center justify-center text-slate-400 border-l border-white/10 ml-1 pl-2"
+                <button class="p-1.5 rounded-full hover:bg-white/10 transition-all flex items-center justify-center text-slate-400"
                         id="theme-system" data-theme="system" onclick="setTheme('system')"
                         style="">
                     <span class="material-symbols-outlined text-[18px]">desktop_windows</span>

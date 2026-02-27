@@ -40,6 +40,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 /** Controller for the Jagratha UI. */
+@SuppressWarnings("PMD.TooManyMethods")
 @Controller
 @RequestMapping("/ui")
 @RequiredArgsConstructor
@@ -141,71 +142,83 @@ public class UiController {
               final Object workflowsObj = config.get("workflows");
               model.addAttribute(
                   "workflows", workflowsObj instanceof Map ? workflowsObj : Map.of());
-              final String actualWorkflowId;
-              if (workflowId != null) {
-                actualWorkflowId = workflowId;
-              } else if (workflowsObj instanceof Map workflows && !workflows.isEmpty()) {
-                actualWorkflowId = (String) workflows.keySet().iterator().next();
-              } else {
-                actualWorkflowId = null;
-              }
+              final String actualWorkflowId = resolveWorkflowId(workflowId, workflowsObj);
 
-              if (actualWorkflowId != null) {
-                final String execId = tracker.getLatestExecutionId(sessionId, actualWorkflowId);
-                model.addAttribute(
-                    "progress", execId != null ? tracker.getProgress(sessionId, execId) : null);
-              } else {
-                model.addAttribute("progress", null);
-              }
-
-              final Mono<com.infenia.jagratha.model.WorkflowDefinition> workflowMono;
-              if (actualWorkflowId != null) {
-                workflowMono =
-                    sessionService
-                        .getSessionWorkflow(sessionId, actualWorkflowId)
-                        .defaultIfEmpty(
-                            new com.infenia.jagratha.model.WorkflowDefinition(
-                                "No workflow found", java.util.List.of(), java.util.List.of()));
-              } else {
-                workflowMono =
-                    Mono.just(
-                        new com.infenia.jagratha.model.WorkflowDefinition(
-                            "No workflow defined", java.util.List.of(), java.util.List.of()));
-              }
-
-              return workflowMono.flatMap(
-                  workflow -> {
-                    model.addAttribute("workflow", workflow);
-                    model.addAttribute("actualWorkflowId", actualWorkflowId);
-
-                    final Map<String, PluginDetails> pluginDetails =
-                        workflow.nodes().stream()
-                            .map(com.infenia.jagratha.model.WorkflowDefinition.Node::type)
-                            .distinct()
-                            .map(registry::get)
-                            .filter(java.util.Objects::nonNull)
-                            .collect(
-                                Collectors.toMap(
-                                    com.infenia.jagratha.plugin.WorkflowPlugin::getType,
-                                    p ->
-                                        new PluginDetails(
-                                            p.getType(),
-                                            p.getCategory(),
-                                            p.getDescription(),
-                                            p.getUsagePattern(),
-                                            p.getUiDesign().orElse(null),
-                                            p.getOutputPorts())));
-                    model.addAttribute("pluginDetails", pluginDetails);
-
-                    return Mono.fromCallable(
-                            () -> {
-                              final StringOutput output = new StringOutput();
-                              templateEngine.render("session.jte", model.asMap(), output);
-                              return output.toString();
-                            })
-                        .subscribeOn(Schedulers.boundedElastic());
-                  });
+              addProgressToModel(sessionId, actualWorkflowId, model);
+              return fetchAndRenderSession(sessionId, actualWorkflowId, model);
             });
+  }
+
+  @SuppressWarnings("PMD.OnlyOneReturn")
+  private String resolveWorkflowId(final String workflowId, final Object workflowsObj) {
+    if (workflowId != null) {
+      return workflowId;
+    }
+    return workflowsObj instanceof Map workflows && !workflows.isEmpty()
+        ? (String) workflows.keySet().iterator().next()
+        : null;
+  }
+
+  private void addProgressToModel(
+      final String sessionId, final String workflowId, final Model model) {
+    if (workflowId != null) {
+      final String execId = tracker.getLatestExecutionId(sessionId, workflowId);
+      model.addAttribute(
+          "progress", execId != null ? tracker.getProgress(sessionId, execId) : null);
+    } else {
+      model.addAttribute("progress", null);
+    }
+  }
+
+  private Mono<String> fetchAndRenderSession(
+      final String sessionId, final String workflowId, final Model model) {
+    final Mono<com.infenia.jagratha.model.WorkflowDefinition> workflowMono =
+        workflowId != null
+            ? sessionService
+                .getSessionWorkflow(sessionId, workflowId)
+                .defaultIfEmpty(
+                    new com.infenia.jagratha.model.WorkflowDefinition(
+                        "No workflow found", java.util.List.of(), java.util.List.of()))
+            : Mono.just(
+                new com.infenia.jagratha.model.WorkflowDefinition(
+                    "No workflow defined", java.util.List.of(), java.util.List.of()));
+
+    return workflowMono.flatMap(workflow -> renderSessionTemplate(workflow, workflowId, model));
+  }
+
+  private Mono<String> renderSessionTemplate(
+      final com.infenia.jagratha.model.WorkflowDefinition workflow,
+      final String workflowId,
+      final Model model) {
+    model.addAttribute("workflow", workflow);
+    model.addAttribute("actualWorkflowId", workflowId);
+
+    final Map<String, PluginDetails> pluginDetails =
+        workflow.nodes().stream()
+            .map(com.infenia.jagratha.model.WorkflowDefinition.Node::type)
+            .distinct()
+            .map(registry::get)
+            .filter(java.util.Objects::nonNull)
+            .collect(
+                Collectors.toMap(
+                    com.infenia.jagratha.plugin.WorkflowPlugin::getType,
+                    p ->
+                        new PluginDetails(
+                            p.getType(),
+                            p.getCategory(),
+                            p.getDescription(),
+                            p.getUsagePattern(),
+                            p.getUiDesign().orElse(null),
+                            p.getOutputPorts())));
+    model.addAttribute("pluginDetails", pluginDetails);
+
+    return Mono.fromCallable(
+            () -> {
+              final StringOutput output = new StringOutput();
+              templateEngine.render("session.jte", model.asMap(), output);
+              return output.toString();
+            })
+        .subscribeOn(Schedulers.boundedElastic());
   }
 
   /**
@@ -261,6 +274,8 @@ public class UiController {
 
               return Mono.fromCallable(
                       () -> {
+                        final String pluginDetailsJson = buildPluginDetailsJson(pluginDetails);
+                        model.addAttribute("pluginDetailsJson", pluginDetailsJson);
                         final StringOutput output = new StringOutput();
                         templateEngine.render("workflow.jte", model.asMap(), output);
                         return output.toString();
@@ -321,23 +336,47 @@ public class UiController {
   public Flux<String> streamStatus(
       @PathVariable final String sessionId, @PathVariable final String workflowId) {
     final String execId = tracker.getLatestExecutionId(sessionId, workflowId);
-    final Flux<String> result;
-    if (execId != null) {
-      result =
-          tracker
-              .getStatusStream(execId)
-              .map(
-                  progress -> {
-                    final String status = progress.status();
-                    return "<span class=\"px-5 py-2 rounded-xl text-xs font-display font-bold"
-                        + " uppercase tracking-widest glass-panel text-primary"
-                        + " border-primary/20 animate-pulse\">"
-                        + status
-                        + "</span>";
-                  });
-    } else {
-      result = Flux.empty();
-    }
-    return result;
+    return execId != null
+        ? tracker
+            .getStatusStream(execId)
+            .map(
+                progress -> {
+                  final String status = progress.status();
+                  return "<span class=\"px-5 py-2 rounded-xl text-xs font-display font-bold"
+                      + " uppercase tracking-widest glass-panel text-primary"
+                      + " border-primary/20 animate-pulse\">"
+                      + status
+                      + "</span>";
+                })
+        : Flux.empty();
+  }
+
+  private String buildPluginDetailsJson(final Map<String, PluginDetails> pluginDetails) {
+    final StringBuilder json = new StringBuilder(256);
+    final int openBraceLen = 1;
+    json.append('{');
+    pluginDetails.forEach(
+        (key, plugin) -> {
+          if (json.length() > openBraceLen) {
+            json.append(',');
+          }
+          json.append('"')
+              .append(escapeJson(key))
+              .append("\":{\"type\":\"")
+              .append(escapeJson(plugin.type()))
+              .append("\"}");
+        });
+    json.append('}');
+    return json.toString();
+  }
+
+  private String escapeJson(final String str) {
+    return str == null
+        ? ""
+        : str.replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t");
   }
 }

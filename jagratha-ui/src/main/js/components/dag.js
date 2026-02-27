@@ -8,16 +8,86 @@ export default function dagComponent(nodesData, edgesData, pluginDetails) {
         nodes: nodesData,
         edges: edgesData,
         plugins: pluginDetails,
+        isFullscreen: false,
+        zoomLevel: 1,
+        panX: 0,
+        panY: 0,
+        isDragging: false,
+        dragStart: { x: 0, y: 0 },
+
         async init() {
             this.$nextTick(async () => {
                 await this.render();
+                this.setupInteractions();
             });
             window.addEventListener('resize', () => this.render());
         },
+
+        setupInteractions() {
+            const svg = d3.select(this.$refs.dagSvg);
+            if (!svg.node()) return;
+
+            // Zoom behavior
+            const zoom = d3.zoom()
+                .on('zoom', (event) => {
+                    d3.select(this.$refs.dagSvg).select('g').attr('transform', event.transform);
+                    this.zoomLevel = event.transform.k;
+                    this.panX = event.transform.x;
+                    this.panY = event.transform.y;
+                });
+
+            svg.call(zoom);
+
+            // Reset zoom on double-click
+            svg.on('dblclick.zoom', null);
+        },
+
+        zoomIn() {
+            this.zoomLevel = Math.min(this.zoomLevel + 0.2, 3);
+            this.applyTransform();
+        },
+
+        zoomOut() {
+            this.zoomLevel = Math.max(this.zoomLevel - 0.2, 0.5);
+            this.applyTransform();
+        },
+
+        resetZoom() {
+            this.zoomLevel = 1;
+            this.panX = 0;
+            this.panY = 0;
+            this.applyTransform();
+        },
+
+        applyTransform() {
+            const svg = d3.select(this.$refs.dagSvg);
+            const g = svg.select('g');
+            g.attr('transform', `translate(${this.panX}, ${this.panY}) scale(${this.zoomLevel})`);
+        },
+
+        toggleFullscreen() {
+            this.isFullscreen = !this.isFullscreen;
+            this.$nextTick(async () => {
+                if (this.isFullscreen && this.$refs.dagSvgFullscreen) {
+                    await this.renderFullscreen();
+                }
+            });
+        },
+
+        async renderFullscreen() {
+            const svg = d3.select(this.$refs.dagSvgFullscreen);
+            await this.renderDAG(svg, window.innerWidth, window.innerHeight);
+        },
+
         async render() {
             const svg = d3.select(this.$refs.dagSvg);
             const width = this.$refs.dagSvg.clientWidth || 600;
             const height = this.$refs.dagSvg.clientHeight || 400;
+            await this.renderDAG(svg, width, height);
+            this.setupInteractions();
+        },
+
+        async renderDAG(svg, width, height) {
             svg.selectAll("*").remove();
 
             if (this.nodes.length === 0) return;

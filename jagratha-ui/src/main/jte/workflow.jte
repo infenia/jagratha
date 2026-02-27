@@ -8,6 +8,7 @@
 @param String workflowId
 @param WorkflowDefinition workflow
 @param Map<String, PluginDetails> pluginDetails
+@param String pluginDetailsJson
 @param WorkflowProgress progress
 @param List<String> logs
 
@@ -27,59 +28,65 @@
         </div>
     </div>
 
-    <!-- DAG Visualization Area -->
-    <div class="relative w-full aspect-[21/9] bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800/60 backdrop-blur-sm overflow-hidden shadow-xl flex items-center justify-center p-8 mb-6">
-        <!-- SVG DAG Lines -->
-        <svg class="absolute inset-0 w-full h-full pointer-events-none">
-            !{
-                java.util.List<WorkflowDefinition.Edge> edges = workflow.edges();
-                java.util.List<WorkflowDefinition.Node> nodes = workflow.nodes();
-            }
-            @for(WorkflowDefinition.Edge edge : edges)
-                <!-- Connection lines between nodes would be drawn here -->
-            @endfor
-        </svg>
+    <!-- DAG Visualization Area with Alpine Component -->
+    !{
+        // Convert nodes and edges to JSON format for Alpine.js
+        java.util.List<String> nodesJson = workflow.nodes().stream()
+            .map(n -> "{id:\"" + n.nodeId() + "\",type:\"" + n.type() + "\"}")
+            .collect(java.util.stream.Collectors.toList());
+        java.util.List<String> edgesJson = workflow.edges().stream()
+            .map(e -> "{source:\"" + e.source() + "\",target:\"" + e.target() + "\",sourcePort:\"" + (e.sourcePort() != null ? e.sourcePort() : "null") + "\"}")
+            .collect(java.util.stream.Collectors.toList());
+        String nodesStr = "[" + String.join(",", nodesJson) + "]";
+        String edgesStr = "[" + String.join(",", edgesJson) + "]";
+    }
+    <div class="relative w-full aspect-[21/9] bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800/60 backdrop-blur-sm overflow-hidden shadow-xl mb-6"
+         class="group"
+         id="dag-container"
+         data-nodes="${nodesStr}"
+         data-edges="${edgesStr}"
+         data-plugins="${pluginDetailsJson}">
 
-        <div class="flex items-center justify-between w-full relative z-10 px-12 flex-wrap gap-8">
-            @if(workflow.nodes() != null && !workflow.nodes().isEmpty())
-                @for(WorkflowDefinition.Node node : workflow.nodes())
-                    !{
-                        String nodeType = node.type();
-                        String nodeIcon = "settings";
-                        String nodeColor = "text-slate-500";
-                        if ("trigger".equalsIgnoreCase(nodeType)) {
-                            nodeIcon = "input";
-                            nodeColor = "text-primary";
-                        } else if ("processor".equalsIgnoreCase(nodeType)) {
-                            nodeIcon = "settings";
-                            nodeColor = "text-emerald-500";
-                        } else if ("terminal".equalsIgnoreCase(nodeType)) {
-                            nodeIcon = "output";
-                            nodeColor = "text-blue-500";
-                        }
-                    }
-                    <div class="dag-node p-4 rounded-xl shadow-sm border border-slate-200/50 dark:border-slate-700/50 bg-white/40 dark:bg-slate-800/40 backdrop-blur-md flex flex-col gap-2 min-w-[160px]">
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined ${nodeColor} text-lg">${nodeIcon}</span>
-                            <span class="font-bold text-xs uppercase text-slate-500 dark:text-slate-400 tracking-widest">${nodeType}</span>
-                        </div>
-                        <p class="text-sm font-semibold text-slate-900 dark:text-white">${node.nodeId()}</p>
-                    </div>
-                @endfor
-            @endif
-        </div>
+        <!-- DAG Canvas -->
+        <svg x-ref="dagSvg" class="w-full h-full"></svg>
 
         <!-- Controls Overlay -->
-        <div class="absolute bottom-4 right-4 flex gap-2">
-            <button class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white shadow-sm transition-colors">
+        <div class="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button @click="zoomIn()"
+                    class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white shadow-sm transition-colors"
+                    title="Zoom in">
                 <span class="material-symbols-outlined">zoom_in</span>
             </button>
-            <button class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white shadow-sm transition-colors">
+            <button @click="zoomOut()"
+                    class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white shadow-sm transition-colors"
+                    title="Zoom out">
                 <span class="material-symbols-outlined">zoom_out</span>
             </button>
-            <button class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white shadow-sm transition-colors">
+            <button @click="resetZoom()"
+                    class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white shadow-sm transition-colors"
+                    title="Center focus">
                 <span class="material-symbols-outlined">center_focus_strong</span>
             </button>
+            <button @click="toggleFullscreen()"
+                    class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white shadow-sm transition-colors"
+                    title="Toggle fullscreen">
+                <span class="material-symbols-outlined" x-text="isFullscreen ? 'fullscreen_exit' : 'fullscreen'"></span>
+            </button>
+        </div>
+
+        <!-- Fullscreen Container -->
+        <div x-show="isFullscreen"
+             class="fixed inset-0 z-50 bg-white dark:bg-slate-900 rounded-none"
+             x-transition>
+            <div class="absolute inset-0 overflow-hidden">
+                <svg x-ref="dagSvgFullscreen" class="w-full h-full"></svg>
+            </div>
+            <div class="absolute top-4 right-4 flex gap-2">
+                <button @click="toggleFullscreen()"
+                        class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white shadow-sm transition-colors">
+                    <span class="material-symbols-outlined">fullscreen_exit</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -139,4 +146,22 @@
             border-color: #1e2937;
         }
     </style>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            const container = document.getElementById('dag-container');
+            if (!container) return;
+
+            const nodesData = JSON.parse(container.dataset.nodes);
+            const edgesData = JSON.parse(container.dataset.edges);
+            const pluginsData = JSON.parse(container.dataset.plugins);
+
+            container.removeAttribute('data-nodes');
+            container.removeAttribute('data-edges');
+            container.removeAttribute('data-plugins');
+
+            container.setAttribute('x-data', 'dagComponent(' + JSON.stringify(nodesData) + ', ' + JSON.stringify(edgesData) + ', ' + JSON.stringify(pluginsData) + ')');
+            Alpine.initTree(container);
+        });
+    </script>
 `)

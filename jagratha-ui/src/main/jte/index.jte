@@ -4,18 +4,19 @@
 
 @template.layout.main(title = "Dashboard", content = @`
     <div class="mb-6">
-        <h1 class="text-4xl font-black mb-2 text-slate-800 dark:text-slate-50">Active Sessions</h1>
+        <h1 class="text-3xl font-black mb-2 text-slate-800 dark:text-slate-50">Active Sessions</h1>
         <p class="text-slate-500 dark:text-slate-300 text-lg max-w-2xl leading-relaxed">
-            Manage and monitor your current engineering sessions and AI agent workflows.
+            Monitor your active sessions.
         </p>
     </div>
 
-    <div class="mb-6 max-w-xl">
-        <div class="relative">
-            <span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-            <input id="search-input" type="text"
-                   class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl py-4 pl-14 pr-6 focus:outline-none focus:border-primary transition-all"
-                   placeholder="Search sessions by ID, name, or initiator...">
+    <div class="mb-8 max-w-md">
+        <div class="glass flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 group focus-within:border-primary/50 transition-all">
+            <span class="material-symbols-outlined text-slate-500 group-focus-within:text-primary transition-colors">search</span>
+            <input id="workflow-search"
+                   class="bg-transparent border-none outline-none focus:ring-0 p-0 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 w-full"
+                   placeholder="Search sessions by ID, name, or initiator..."
+                   type="text"/>
         </div>
     </div>
 
@@ -73,7 +74,7 @@
                                                 formattedTime = "just now";
                                             } else if (secondsAgo < 3600) {
                                                 long minutesAgo = secondsAgo / 60;
-                                                formattedTime = minutesAgo + (minutesAgo == 1 ? " minute ago" : " minutes ago");
+                                                formattedTime = minutesAgo + (minutesAgo == 1 ? " min ago" : " mins ago");
                                             } else if (secondsAgo < 86400) {
                                                 long hoursAgo = secondsAgo / 3600;
                                                 formattedTime = hoursAgo + (hoursAgo == 1 ? " hour ago" : " hours ago");
