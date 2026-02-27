@@ -209,6 +209,65 @@ public class UiController {
   }
 
   /**
+   * Render the workflow detail page.
+   *
+   * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @param model the UI model
+   * @return the rendered HTML
+   */
+  @GetMapping(value = "/sessions/{sessionId}/{workflowId}", produces = MediaType.TEXT_HTML_VALUE)
+  @ResponseBody
+  public Mono<String> workflow(
+      @PathVariable final String sessionId,
+      @PathVariable final String workflowId,
+      final Model model) {
+    model.addAttribute("sessionId", sessionId);
+    model.addAttribute("workflowId", workflowId);
+
+    return Mono.zip(
+            sessionService.getSessionWorkflow(sessionId, workflowId),
+            retrievalService.listLogs(sessionId))
+        .flatMap(
+            tuple -> {
+              final com.infenia.jagratha.model.WorkflowDefinition workflow = tuple.getT1();
+              model.addAttribute("workflow", workflow);
+              model.addAttribute("logs", tuple.getT2());
+
+              final String execId = tracker.getLatestExecutionId(sessionId, workflowId);
+              model.addAttribute(
+                  "progress", execId != null ? tracker.getProgress(sessionId, execId) : null);
+
+              final Map<String, PluginDetails> pluginDetails =
+                  workflow.nodes().stream()
+                      .map(com.infenia.jagratha.model.WorkflowDefinition.Node::type)
+                      .distinct()
+                      .map(registry::get)
+                      .filter(java.util.Objects::nonNull)
+                      .collect(
+                          Collectors.toMap(
+                              com.infenia.jagratha.plugin.WorkflowPlugin::getType,
+                              p ->
+                                  new PluginDetails(
+                                      p.getType(),
+                                      p.getCategory(),
+                                      p.getDescription(),
+                                      p.getUsagePattern(),
+                                      p.getUiDesign().orElse(null),
+                                      p.getOutputPorts())));
+              model.addAttribute("pluginDetails", pluginDetails);
+
+              return Mono.fromCallable(
+                      () -> {
+                        final StringOutput output = new StringOutput();
+                        templateEngine.render("workflow.jte", model.asMap(), output);
+                        return output.toString();
+                      })
+                  .subscribeOn(Schedulers.boundedElastic());
+            });
+  }
+
+  /**
    * Stream logs for a session via SSE.
    *
    * @param sessionId the session identifier
