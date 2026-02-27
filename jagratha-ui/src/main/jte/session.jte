@@ -1,22 +1,27 @@
 @import java.util.Map
 @import java.util.List
+@import com.infenia.jagratha.model.WorkflowProgress
+@import com.infenia.jagratha.model.PluginDetails
+@import com.infenia.jagratha.model.WorkflowDefinition
 
 @param String sessionId
 @param String actualWorkflowId
 @param Map<String, Object> config
 @param List<String> logs
 @param Map<String, Object> workflows
+@param Map<String, PluginDetails> pluginDetails
+@param WorkflowProgress progress
 
 @template.layout.main(title = "Session " + sessionId, content = @`
     <!-- Breadcrumbs & Title Area -->
-    <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div class="mb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
             <nav class="flex items-center gap-2 text-sm text-slate-500 mb-2">
                 <a class="hover:text-primary transition-colors" href="/ui">Sessions</a>
                 <span class="material-symbols-outlined text-xs">chevron_right</span>
                 <span class="text-slate-900 dark:text-slate-100 font-bold">${sessionId}</span>
             </nav>
-            <h2 class="text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+            <h2 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                 ${(String) config.getOrDefault("description", "Session " + sessionId)}
             </h2>
             <p class="text-slate-500 dark:text-slate-400 mt-1">
@@ -49,24 +54,56 @@
             @if(workflows != null && !workflows.isEmpty())
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="workflow-grid">
                     @for(String workflowId : workflows.keySet())
+                        !{
+                            String workflowStatus = "IDLE";
+                            String statusColor = "bg-slate-400";
+                            String pulseColor = "bg-slate-400";
+                            if (progress != null && progress.workflowId().equals(workflowId)) {
+                                workflowStatus = progress.status();
+                                if ("RUNNING".equalsIgnoreCase(workflowStatus)) {
+                                    statusColor = "bg-blue-400";
+                                    pulseColor = "bg-blue-500";
+                                } else if ("SUCCESS".equalsIgnoreCase(workflowStatus)) {
+                                    statusColor = "bg-green-400";
+                                    pulseColor = "bg-green-500";
+                                } else if ("FAILURE".equalsIgnoreCase(workflowStatus) || "ERROR".equalsIgnoreCase(workflowStatus)) {
+                                    statusColor = "bg-red-400";
+                                    pulseColor = "bg-red-500";
+                                }
+                            }
+                        }
                         <div class="workflow-card glass p-6 rounded-xl flex flex-col gap-4 cursor-pointer hover:border-primary/50 transition-all"
                              onclick="window.location='/ui/sessions/${sessionId}/${workflowId}'">
                             <div class="flex items-start justify-between">
                                 <div class="flex items-center gap-3">
                                     <div>
                                         <h4 class="font-bold text-lg text-slate-900 dark:text-white">${workflowId}</h4>
-                                        <span class="text-xs text-slate-500 dark:text-slate-400">Active</span>
+                                        <span class="text-xs text-slate-500 dark:text-slate-400">${workflowStatus}</span>
                                     </div>
                                 </div>
-                                <span class="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
+                                <span class="flex h-2 w-2 rounded-full ${pulseColor} animate-pulse"></span>
                             </div>
                             <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                                Workflow execution and monitoring
+                                !{
+                                    Object workflowObj = workflows.get(workflowId);
+                                    String description = "Workflow execution and monitoring";
+                                    if (workflowObj instanceof Map workflowMap) {
+                                        Object desc = workflowMap.get("description");
+                                        if (desc != null) {
+                                            description = String.valueOf(desc);
+                                        }
+                                    }
+                                }
+                                ${description}
                             </p>
                             <div class="flex flex-wrap gap-2 mt-2">
-                                <div class="px-4 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
-                                    ${workflowId}
-                                </div>
+                                @if(pluginDetails != null && !pluginDetails.isEmpty())
+                                    @for(var entry : pluginDetails.entrySet())
+                                        <div class="px-4 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+                                            ${entry.getValue().type()}
+                                        </div>
+                                    @endfor
+                                @endif
                             </div>
                         </div>
                     @endfor
