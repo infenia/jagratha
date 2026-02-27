@@ -73,7 +73,7 @@
                             }
                         }
                         <div class="workflow-card glass p-6 rounded-xl flex flex-col gap-4 cursor-pointer hover:border-primary/50 transition-all"
-                             onclick="window.location='/ui/sessions/${sessionId}/${workflowId}'">
+                             onclick="window.location='/ui/sessions/${sessionId}/workflow/${workflowId}'">
                             <div class="flex items-start justify-between">
                                 <div class="flex items-center gap-3">
                                     <div>

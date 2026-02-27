@@ -216,7 +216,9 @@ public class UiController {
    * @param model the UI model
    * @return the rendered HTML
    */
-  @GetMapping(value = "/sessions/{sessionId}/{workflowId}", produces = MediaType.TEXT_HTML_VALUE)
+  @GetMapping(
+      value = "/sessions/{sessionId}/workflow/{workflowId}",
+      produces = MediaType.TEXT_HTML_VALUE)
   @ResponseBody
   public Mono<String> workflow(
       @PathVariable final String sessionId,
