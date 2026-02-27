@@ -459,8 +459,8 @@ class MapperProcessorTest {
     final Map<String, Object> metadata = Map.of("key", "val");
     final Message<?> message =
         new DefaultMessage<>(
-            UUID.randomUUID(),
-            traceId,
+            UUID.randomUUID().toString(),
+            traceId.toString(),
             null,
             null,
             0L,

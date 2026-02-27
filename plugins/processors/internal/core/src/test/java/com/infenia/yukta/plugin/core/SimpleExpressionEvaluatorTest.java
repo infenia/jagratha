@@ -59,8 +59,8 @@ class SimpleExpressionEvaluatorTest {
   void testMetadata() {
     final Message<?> msg =
         new DefaultMessage<>(
-            UUID.randomUUID(),
-            UUID.randomUUID(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
             null,
             null,
             0L,

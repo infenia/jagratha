@@ -37,8 +37,8 @@ class PluginInterfaceTest {
     metadata.put("key", "value");
     Message<String> msg =
         new DefaultMessage<>(
-            UUID.randomUUID(),
-            traceId,
+            UUID.randomUUID().toString(),
+            traceId.toString(),
             null,
             null,
             0L,
