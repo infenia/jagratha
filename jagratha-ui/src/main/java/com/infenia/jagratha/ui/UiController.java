@@ -139,6 +139,8 @@ public class UiController {
               model.addAttribute("logs", tuple.getT2());
 
               final Object workflowsObj = config.get("workflows");
+              model.addAttribute(
+                  "workflows", workflowsObj instanceof Map ? workflowsObj : Map.of());
               final String actualWorkflowId;
               if (workflowId != null) {
                 actualWorkflowId = workflowId;

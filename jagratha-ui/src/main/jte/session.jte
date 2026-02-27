@@ -1,155 +1,200 @@
-@import com.infenia.jagratha.model.WorkflowProgress
-@import com.infenia.jagratha.model.TaskProgress
-@import com.infenia.jagratha.model.WorkflowDefinition
-@import com.infenia.jagratha.model.PluginDetails
 @import java.util.Map
 @import java.util.List
+
 @param String sessionId
 @param String actualWorkflowId
 @param Map<String, Object> config
-@param WorkflowDefinition workflow
-@param Map<String, PluginDetails> pluginDetails
 @param List<String> logs
-@param WorkflowProgress progress
+@param Map<String, Object> workflows
 
 @template.layout.main(title = "Session " + sessionId, content = @`
-    <div class="mb-10 flex items-center justify-between">
-        <div class="flex items-center gap-6">
-            <a href="/ui" class="w-12 h-12 flex items-center justify-center rounded-2xl glass-panel text-text-slate-500 hover:text-primary transition-all duration-300 shadow-sm group">
-                <span class="material-symbols-outlined group-hover:-translate-x-1 transition-transform">arrow_back</span>
-            </a>
-            <h1 class="text-4xl font-display font-bold text-text-slate-800 tracking-tight">#${sessionId}</h1>
+    <!-- Breadcrumbs & Title Area -->
+    <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+            <nav class="flex items-center gap-2 text-sm text-slate-500 mb-2">
+                <a class="hover:text-primary transition-colors" href="/ui">Sessions</a>
+                <span class="material-symbols-outlined text-xs">chevron_right</span>
+                <span class="text-slate-900 dark:text-slate-100 font-bold">${sessionId}</span>
+            </nav>
+            <h2 class="text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+                ${(String) config.getOrDefault("description", "Session " + sessionId)}
+            </h2>
+            <p class="text-slate-500 dark:text-slate-400 mt-1">
+                Session initiated by ${(String) config.getOrDefault("initiator", "System")}
+            </p>
         </div>
-        <div class="flex items-center gap-4">
-            @if(config.get("workflows") instanceof Map)
-                <div class="glass-panel px-1">
-                    <select id="workflow-selector"
-                            onchange="window.location.href='/ui/sessions/${sessionId}/' + this.value"
-                            class="bg-transparent border-none outline-none focus:ring-0 px-4 py-2 text-sm font-display font-bold text-text-slate-800 cursor-pointer">
-                        @for(String wId : ((Map<String, Object>)config.get("workflows")).keySet())
-                            @if(wId.equals(actualWorkflowId))
-                                <option value="${wId}" selected class="bg-white text-text-slate-800">${wId}</option>
-                            @else
-                                <option value="${wId}" class="bg-white text-text-slate-800">${wId}</option>
-                            @endif
-                        @endfor
-                    </select>
-                </div>
-            @endif
-            <div id="workflow-status-badge"
-                 hx-ext="sse"
-                 sse-connect="/ui/api/sessions/${sessionId}/${actualWorkflowId}/status/stream"
-                 sse-swap="message">
-                @if(progress != null)
-                    <span class="px-5 py-2 rounded-xl text-xs font-display font-bold uppercase tracking-widest glass-panel text-primary border-primary/20">${progress.status()}</span>
-                @else
-                    <span class="px-5 py-2 rounded-xl text-xs font-display font-bold uppercase tracking-widest glass-panel text-text-slate-500 opacity-60">IDLE</span>
-                @endif
+    </div>
+
+    <!-- Search -->
+    <div class="mb-8 max-w-md">
+        <div class="glass flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 group focus-within:border-primary/50 transition-all">
+            <span class="material-symbols-outlined text-slate-500 group-focus-within:text-primary transition-colors">search</span>
+            <input id="workflow-search"
+                   class="bg-transparent border-none outline-none focus:ring-0 p-0 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 w-full"
+                   placeholder="Search workflows..."
+                   type="text"/>
+        </div>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Left Area: Workflow Cards -->
+        <div class="flex-1">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">account_tree</span>
+                    Active Workflows
+                </h3>
             </div>
-        </div>
-    </div>
 
-    <div id="plugin-designs" class="hidden">
-        @for(var entry : pluginDetails.entrySet())
-            @if(entry.getValue().uiDesign() != null)
-                <div id="design-${entry.getKey()}"
-                     data-width="${entry.getValue().uiDesign().width()}"
-                     data-height="${entry.getValue().uiDesign().height()}">
-                    $unsafe{entry.getValue().uiDesign().html()}
-                </div>
-            @endif
-        @endfor
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <!-- Sidebar -->
-        <div class="lg:col-span-4 space-y-8">
-            <section class="glass-panel rounded-3xl p-8">
-                <h2 class="font-display font-bold text-text-slate-500 uppercase tracking-wider text-xs mb-6">System Config</h2>
-                <div class="space-y-6">
-                    @for(Map.Entry<String, Object> entry : config.entrySet())
-                        @if(!entry.getKey().equals("workflows"))
-                            <div>
-                                <div class="text-[10px] font-mono font-bold uppercase text-text-slate-500/60 mb-1 tracking-widest">${entry.getKey()}</div>
-                                <div class="font-display font-medium text-text-slate-800 text-sm break-all">${String.valueOf(entry.getValue())}</div>
+            @if(workflows != null && !workflows.isEmpty())
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="workflow-grid">
+                    @for(String workflowId : workflows.keySet())
+                        <div class="workflow-card glass p-6 rounded-xl flex flex-col gap-4 cursor-pointer hover:border-primary/50 transition-all"
+                             onclick="window.location='/ui/sessions/${sessionId}/${workflowId}'">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div>
+                                        <h4 class="font-bold text-lg text-slate-900 dark:text-white">${workflowId}</h4>
+                                        <span class="text-xs text-slate-500 dark:text-slate-400">Active</span>
+                                    </div>
+                                </div>
+                                <span class="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
                             </div>
-                        @endif
+                            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                                Workflow execution and monitoring
+                            </p>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <div class="px-4 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+                                    ${workflowId}
+                                </div>
+                            </div>
+                        </div>
                     @endfor
                 </div>
-            </section>
+            @else
+                <div class="text-center py-12 bg-slate-50 dark:bg-slate-900/20 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <span class="material-symbols-outlined text-4xl text-slate-400 mx-auto block mb-3">account_tree</span>
+                    <p class="text-slate-500 dark:text-slate-400">No workflows found for this session</p>
+                </div>
+            @endif
         </div>
 
-        <!-- Main Content -->
-        <div class="lg:col-span-8 space-y-8">
-            <section class="glass-panel rounded-3xl overflow-hidden"
-                     x-data="dagComponent(
-                        [
-                            @for(WorkflowDefinition.Node node : workflow.nodes())
-                                { id: '${node.nodeId()}', type: '${node.type()}', label: '${node.nodeId()}' },
-                            @endfor
-                        ],
-                        [
-                            @for(WorkflowDefinition.Edge edge : workflow.edges())
-                                { source: '${edge.source()}', target: '${edge.target()}', sourcePort: '${edge.sourcePort()}' },
-                            @endfor
-                        ],
-                        {
-                            @for(var entry : pluginDetails.entrySet())
-                                '${entry.getKey()}': {
-                                    type: '${entry.getValue().type()}',
-                                    uiDesign: (() => {
-                                        const el = document.getElementById('design-${entry.getKey()}');
-                                        if (!el) return null;
-                                        return {
-                                            html: el.innerHTML,
-                                            width: parseInt(el.dataset.width),
-                                            height: parseInt(el.dataset.height)
-                                        };
-                                    })(),
-                                    outputPorts: [
-                                        @for(String port : entry.getValue().outputPorts())
-                                            '${port}',
-                                        @endfor
-                                    ]
-                                },
-                            @endfor
-                        }
-                     )">
-                <div class="px-8 py-5 border-b border-white/40 flex justify-between items-center">
-                    <h2 class="font-display font-bold text-text-slate-500 uppercase tracking-wider text-xs">Workflow Topology</h2>
-                </div>
-                <div class="p-8 flex justify-center min-h-[400px]">
-                    <svg x-ref="dagSvg" width="600" height="400" class="max-w-full"></svg>
-                </div>
-            </section>
+        <!-- Right Sidebar: Session Context -->
+        <aside class="w-full lg:w-[320px] shrink-0">
+            <div class="glass p-6 rounded-xl sticky top-28 shadow-xl shadow-slate-200/50 dark:shadow-blue-500/5 bg-white dark:bg-transparent">
+                <h3 class="text-lg font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
+                    <span class="material-symbols-outlined text-primary">info</span>
+                    Session Context
+                </h3>
 
-            <section class="bg-[#0f172a] rounded-3xl shadow-2xl border border-white/5 overflow-hidden flex flex-col h-[500px]">
-                <div class="bg-white/5 px-8 py-4 border-b border-white/5 flex items-center gap-4">
-                    <div class="flex gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-rose-500/80 shadow-[0_0_8px_rgba(244,63,94,0.4)]"></div>
-                        <div class="w-2.5 h-2.5 rounded-full bg-amber-500/80 shadow-[0_0_8px_rgba(245,158,11,0.4)]"></div>
-                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
+                <div class="space-y-6">
+                    <!-- Session ID -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">SESSION ID</label>
+                        <div class="flex items-center justify-between bg-blue-50 dark:bg-primary/5 p-3 rounded-lg border border-blue-100 dark:border-primary/10">
+                            <code class="text-sm font-bold text-primary">#${sessionId}</code>
+                            <button onclick="navigator.clipboard.writeText('#${sessionId}')"
+                                    class="material-symbols-outlined text-lg text-slate-500 hover:text-primary transition-colors">content_copy</button>
+                        </div>
                     </div>
-                    <span class="text-white/40 text-[10px] font-mono font-bold uppercase tracking-widest ml-4">Reactive Terminal</span>
+
+                    <!-- Description -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">DESCRIPTION</label>
+                        <div class="bg-blue-50 dark:bg-white/5 p-3 rounded-lg border border-blue-100 dark:border-white/10">
+                            <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                                ${(String) config.getOrDefault("description", "Session monitoring and workflow tracking")}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Initiator -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">INITIATED BY</label>
+                        <div class="flex items-center">
+                            <p class="text-sm font-bold text-slate-900 dark:text-white">
+                                ${(String) config.getOrDefault("initiator", "System")}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Timestamp -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">STARTED</label>
+                        <div class="space-y-3">
+                            !{
+                                String sessionInitTime = (String) config.getOrDefault("initiatedTime", "");
+                                String dateStr = "Unknown";
+                                String timeStr = "Unknown";
+                                if (sessionInitTime != null && !sessionInitTime.isEmpty()) {
+                                    try {
+                                        java.time.Instant instant = java.time.Instant.parse(sessionInitTime);
+                                        java.time.ZonedDateTime zdt = instant.atZone(java.time.ZoneId.systemDefault());
+                                        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy");
+                                        dateStr = zdt.format(dateFormatter);
+                                        java.time.format.DateTimeFormatter timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a");
+                                        timeStr = zdt.format(timeFormatter);
+                                    } catch (Exception e) {
+                                        dateStr = "Invalid date";
+                                        timeStr = "Invalid time";
+                                    }
+                                }
+                            }
+                            <div class="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
+                                <span class="material-symbols-outlined text-slate-400 text-lg">calendar_today</span>
+                                <span>${dateStr}</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
+                                <span class="material-symbols-outlined text-slate-400 text-lg">schedule</span>
+                                <span>${timeStr}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div id="console-output"
-                     hx-ext="sse"
-                     sse-connect="/ui/api/sessions/${sessionId}/${actualWorkflowId}/logs/stream"
-                     sse-swap="message"
-                     hx-swap="beforeend"
-                     @htmx:after-swap.camel="$el.scrollTop = $el.scrollHeight"
-                     @htmx:sse-message.camel="$el.innerHTML.includes('Listening') && ($el.innerHTML = '')"
-                     class="p-8 font-mono text-sm text-slate-300 overflow-y-auto flex-1 leading-relaxed no-scrollbar">
-                    <div class="text-slate-600 animate-pulse">➜ Listening for session emission...</div>
-                </div>
-            </section>
-        </div>
+            </div>
+        </aside>
     </div>
 
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(15, 23, 42, 0.1);
+        }
+        .dark .glass {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .workflow-card {
+            background: #FFFFFF;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            transition: all 0.3s ease;
+        }
+        .dark .workflow-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .workflow-card:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+        .dark .workflow-card:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            background: rgba(15, 23, 42, 0.8);
+        }
     </style>
 
+    <script>
+        // Workflow search functionality
+        document.getElementById('workflow-search').addEventListener('input', e => {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('#workflow-grid > div').forEach(card => {
+                card.style.display = card.textContent.toLowerCase().includes(term) ? '' : 'none';
+            });
+        });
+    </script>
 `)
