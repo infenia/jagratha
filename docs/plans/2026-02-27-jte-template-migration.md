@@ -13,17 +13,17 @@
 ## Task 1: Rewrite main.jte Layout Template
 
 **Files:**
-- Modify: `jagratha-ui/src/main/jte/layout/main.jte`
+- Modify: `yukta-ui/src/main/jte/layout/main.jte`
 
 **Step 1: Read the current main.jte**
 
-Run: `cat jagratha-ui/src/main/jte/layout/main.jte`
+Run: `cat yukta-ui/src/main/jte/layout/main.jte`
 
 Expected: See the current layout with Tailwind CDN links and Alpine.js setup.
 
 **Step 2: Read the design reference (session-list.html) for structure**
 
-Run: `cat jagratha-ui/src/main/design/html/session-list.html | head -100`
+Run: `cat yukta-ui/src/main/design/html/session-list.html | head -100`
 
 Expected: See the header, theme toggle structure, and inline Tailwind config.
 
@@ -41,7 +41,7 @@ Replace the entire file with:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} - Jagratha</title>
+    <title>${title} - Yukta</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
@@ -76,7 +76,7 @@ Replace the entire file with:
                 <div class="text-primary">
                     <span class="material-symbols-outlined text-4xl">settings_input_antenna</span>
                 </div>
-                <h1 class="text-xl font-bold tracking-tight">Jagratha</h1>
+                <h1 class="text-xl font-bold tracking-tight">Yukta</h1>
             </a>
 
             <!-- Theme Toggle -->
@@ -135,15 +135,15 @@ Replace the entire file with:
 
 **Step 4: Verify the file was written correctly**
 
-Run: `cat jagratha-ui/src/main/jte/layout/main.jte | head -50`
+Run: `cat yukta-ui/src/main/jte/layout/main.jte | head -50`
 
 Expected: See the new Tailwind configuration and updated header structure.
 
 **Step 5: Commit the layout changes**
 
 ```bash
-cd /media/arun/Infenia/Infenia/Development/Public/jagratha
-git add jagratha-ui/src/main/jte/layout/main.jte
+cd /media/arun/Infenia/Infenia/Development/Public/yukta
+git add yukta-ui/src/main/jte/layout/main.jte
 git commit -m "refactor: update main.jte layout to match session-list design"
 ```
 
@@ -154,11 +154,11 @@ Expected: Commit succeeds.
 ## Task 2: Rewrite index.jte Dashboard Template
 
 **Files:**
-- Modify: `jagratha-ui/src/main/jte/index.jte`
+- Modify: `yukta-ui/src/main/jte/index.jte`
 
 **Step 1: Read the design reference for session card structure**
 
-Run: `sed -n '82,140p' jagratha-ui/src/main/design/html/session-list.html`
+Run: `sed -n '82,140p' yukta-ui/src/main/design/html/session-list.html`
 
 Expected: See the session card HTML structure with badge, title, tags, and footer.
 
@@ -270,15 +270,15 @@ Replace the entire file with:
 
 **Step 3: Verify the file was written correctly**
 
-Run: `cat jagratha-ui/src/main/jte/index.jte | head -60`
+Run: `cat yukta-ui/src/main/jte/index.jte | head -60`
 
 Expected: See the new structure with session card markup and search functionality.
 
 **Step 4: Commit the dashboard changes**
 
 ```bash
-cd /media/arun/Infenia/Infenia/Development/Public/jagratha
-git add jagratha-ui/src/main/jte/index.jte
+cd /media/arun/Infenia/Infenia/Development/Public/yukta
+git add yukta-ui/src/main/jte/index.jte
 git commit -m "refactor: update index.jte to match session-list design with dynamic data binding"
 ```
 
@@ -289,11 +289,11 @@ Expected: Commit succeeds.
 ## Task 3: Simplify input.css
 
 **Files:**
-- Modify: `jagratha-ui/src/main/resources/static/css/input.css`
+- Modify: `yukta-ui/src/main/resources/static/css/input.css`
 
 **Step 1: Read the current input.css**
 
-Run: `cat jagratha-ui/src/main/resources/static/css/input.css`
+Run: `cat yukta-ui/src/main/resources/static/css/input.css`
 
 Expected: See the current file with @theme and custom utilities.
 
@@ -322,15 +322,15 @@ Replace the entire file with:
 
 **Step 3: Verify the file was written correctly**
 
-Run: `cat jagratha-ui/src/main/resources/static/css/input.css`
+Run: `cat yukta-ui/src/main/resources/static/css/input.css`
 
 Expected: See only the import and theme configuration, no custom utilities.
 
 **Step 4: Commit the CSS changes**
 
 ```bash
-cd /media/arun/Infenia/Infenia/Development/Public/jagratha
-git add jagratha-ui/src/main/resources/static/css/input.css
+cd /media/arun/Infenia/Infenia/Development/Public/yukta
+git add yukta-ui/src/main/resources/static/css/input.css
 git commit -m "refactor: simplify input.css to only required Tailwind theme"
 ```
 
@@ -342,13 +342,13 @@ Expected: Commit succeeds.
 
 **Step 1: Clean and build the UI module**
 
-Run: `cd /media/arun/Infenia/Infenia/Development/Public/jagratha && ./gradlew :jagratha-ui:clean :jagratha-ui:build`
+Run: `cd /media/arun/Infenia/Infenia/Development/Public/yukta && ./gradlew :yukta-ui:clean :yukta-ui:build`
 
 Expected: Build completes successfully without errors.
 
 **Step 2: Check for any Spotless formatting issues**
 
-Run: `./gradlew :jagratha-ui:spotlessCheck`
+Run: `./gradlew :yukta-ui:spotlessCheck`
 
 Expected: No formatting issues detected.
 
@@ -366,7 +366,7 @@ Expected: Check if any files were modified by Spotless.
 
 If files changed:
 ```bash
-git add jagratha-ui/src/main/jte/layout/main.jte jagratha-ui/src/main/jte/index.jte
+git add yukta-ui/src/main/jte/layout/main.jte yukta-ui/src/main/jte/index.jte
 git commit -m "style: apply spotless formatting"
 ```
 
