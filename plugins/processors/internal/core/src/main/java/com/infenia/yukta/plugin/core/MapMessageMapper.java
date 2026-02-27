@@ -19,9 +19,7 @@ import com.infenia.yukta.plugin.Message;
 import com.infenia.yukta.plugin.MessageMapper;
 import java.util.Map;
 
-/**
- * Example MessageMapper that maps between a generic Message and a Map domain object.
- */
+/** Example MessageMapper that maps between a generic Message and a Map domain object. */
 public class MapMessageMapper implements MessageMapper<Object, Map<String, Object>> {
 
   @Override

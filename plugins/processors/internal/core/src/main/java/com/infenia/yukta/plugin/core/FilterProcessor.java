@@ -127,7 +127,10 @@ public final class FilterProcessor implements ProcessorPlugin {
   }
 
   private Mono<Message<?>> handleMatchResult(
-      final Message<?> message, final String nodeId, final boolean isMatch, final String discardPort) {
+      final Message<?> message,
+      final String nodeId,
+      final boolean isMatch,
+      final String discardPort) {
     Mono<Message<?>> result = Mono.empty();
     if (isMatch) {
       reporter.incrementFilterCount(nodeId, "MATCH");

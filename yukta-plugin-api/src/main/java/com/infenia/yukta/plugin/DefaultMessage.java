@@ -48,8 +48,8 @@ import java.util.UUID;
  * @param <T> the type of the payload
  */
 public record DefaultMessage<T>(
-    @SuppressWarnings("PMD.ShortVariable") UUID id,
-    UUID traceId,
+    @SuppressWarnings("PMD.ShortVariable") String id,
+    String traceId,
     String correlationId,
     String replyTo,
     long expiration,
@@ -71,9 +71,7 @@ public record DefaultMessage<T>(
     String sourceNodeId)
     implements Message<T> {
 
-  /**
-   * Compact constructor to ensure metadata and history are immutable.
-   */
+  /** Compact constructor to ensure metadata and history are immutable. */
   public DefaultMessage {
     metadata = metadata != null ? Map.copyOf(metadata) : Map.of();
     messageHistory = messageHistory != null ? List.copyOf(messageHistory) : List.of();
@@ -84,7 +82,7 @@ public record DefaultMessage<T>(
 
   @Override
   public String getMessageId() {
-    return id.toString();
+    return id;
   }
 
   @Override
@@ -99,7 +97,7 @@ public record DefaultMessage<T>(
 
   @Override
   public String getTraceId() {
-    return traceId != null ? traceId.toString() : null;
+    return traceId;
   }
 
   @Override
@@ -485,6 +483,39 @@ public record DefaultMessage<T>(
         sourceNodeId);
   }
 
+  @Override
+  public Message<T> withMetadata(final Map<String, Object> newMetadata) {
+    return new DefaultMessage<>(
+        id,
+        traceId,
+        correlationId,
+        replyTo,
+        expiration,
+        formatIndicator,
+        newMetadata,
+        messageHistory,
+        sequenceId,
+        sequenceNumber,
+        sequenceSize,
+        priority,
+        controlMessage,
+        originalDestination,
+        failureReason,
+        exceptionDetail,
+        retryCount,
+        payload,
+        timestamp,
+        sourcePort,
+        sourceNodeId);
+  }
+
+  @Override
+  public Message<T> withHeader(final String key, final Object value) {
+    final java.util.Map<String, Object> newMetadata = new java.util.HashMap<>(metadata);
+    newMetadata.put(key, value);
+    return withMetadata(newMetadata);
+  }
+
   /**
    * Create a new message with metadata from another message but a new payload.
    *
@@ -495,8 +526,8 @@ public record DefaultMessage<T>(
    */
   public static <T> DefaultMessage<T> from(final Message<?> original, final T newPayload) {
     return new DefaultMessage<>(
-        UUID.fromString(original.getMessageId()),
-        original.getTraceId() != null ? UUID.fromString(original.getTraceId()) : null,
+        original.getMessageId(),
+        original.getTraceId(),
         original.getCorrelationId(),
         original.getReplyTo(),
         original.getExpiration(),
@@ -528,8 +559,8 @@ public record DefaultMessage<T>(
    */
   public static <T> DefaultMessage<T> create(final UUID traceId, final T payload) {
     return new DefaultMessage<>(
-        UUID.randomUUID(),
-        traceId,
+        UUID.randomUUID().toString(),
+        traceId != null ? traceId.toString() : null,
         null,
         null,
         0L,

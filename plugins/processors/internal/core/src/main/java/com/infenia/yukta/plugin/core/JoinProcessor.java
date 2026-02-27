@@ -24,7 +24,6 @@ import com.infenia.yukta.service.join.JoinStore.JoinConfig;
 import com.infenia.yukta.service.join.JoinStore.JoinResult;
 import com.infenia.yukta.util.SpelUtils;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -248,7 +247,9 @@ public class JoinProcessor implements ProcessorPlugin {
   }
 
   private Message<?> createMergedMessage(
-      final Map<String, Message<?>> messages, final Message<?> last, final Map<String, Object> config) {
+      final Map<String, Message<?>> messages,
+      final Message<?> last,
+      final Map<String, Object> config) {
     final String strategy = (String) config.getOrDefault(CFG_MERGE, STRAT_ARRAY);
     @SuppressWarnings("unchecked")
     final List<String> ancestors = (List<String>) config.get(CFG_ANCESTORS);

@@ -42,14 +42,16 @@ class SimpleExpressionEvaluatorTest {
 
   @Test
   void testMatches() {
-    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), Map.of("email", "test@example.com"));
+    final Message<?> msg =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("email", "test@example.com"));
     assertTrue(SimpleExpressionEvaluator.evaluate("payload.email matches '.*@example.com'", msg));
     assertFalse(SimpleExpressionEvaluator.evaluate("payload.email matches '.*@gmail.com'", msg));
   }
 
   @Test
   void testNested() {
-    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), Map.of("user", Map.of("id", 123)));
+    final Message<?> msg =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("user", Map.of("id", 123)));
     assertTrue(SimpleExpressionEvaluator.evaluate("payload.user.id == '123'", msg));
   }
 

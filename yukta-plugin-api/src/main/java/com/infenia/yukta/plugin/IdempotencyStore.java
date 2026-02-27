@@ -17,9 +17,7 @@ package com.infenia.yukta.plugin;
 
 import reactor.core.publisher.Mono;
 
-/**
- * Interface for detecting and preventing duplicate message processing.
- */
+/** Interface for detecting and preventing duplicate message processing. */
 public interface IdempotencyStore {
 
   /**

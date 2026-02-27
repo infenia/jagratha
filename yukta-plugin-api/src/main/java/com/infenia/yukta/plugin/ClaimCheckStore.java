@@ -17,9 +17,7 @@ package com.infenia.yukta.plugin;
 
 import reactor.core.publisher.Mono;
 
-/**
- * Interface for storing large payloads outside the message envelope.
- */
+/** Interface for storing large payloads outside the message envelope. */
 public interface ClaimCheckStore {
 
   /**

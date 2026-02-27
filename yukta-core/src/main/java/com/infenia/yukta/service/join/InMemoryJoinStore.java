@@ -71,12 +71,18 @@ public class InMemoryJoinStore implements JoinStore {
 
   @Override
   public Mono<JoinResult> addMessage(
-      final String key, final String sourceNodeId, final Message<?> message, final JoinConfig config) {
+      final String key,
+      final String sourceNodeId,
+      final Message<?> message,
+      final JoinConfig config) {
     return Mono.fromCallable(() -> processAdd(key, sourceNodeId, message, config));
   }
 
   private JoinResult processAdd(
-      final String key, final String sourceNodeId, final Message<?> message, final JoinConfig config) {
+      final String key,
+      final String sourceNodeId,
+      final Message<?> message,
+      final JoinConfig config) {
     final JoinState state =
         store.compute(key, (k, existing) -> updateState(existing, sourceNodeId, message, config));
 

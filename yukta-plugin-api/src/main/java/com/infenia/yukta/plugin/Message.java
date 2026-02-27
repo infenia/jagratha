@@ -295,4 +295,21 @@ public interface Message<T> {
    * @return a new message instance
    */
   <R> Message<R> withPayload(R payload);
+
+  /**
+   * Create a copy of this message with updated metadata.
+   *
+   * @param metadata the new metadata map
+   * @return a new message instance
+   */
+  Message<T> withMetadata(Map<String, Object> metadata);
+
+  /**
+   * Create a copy of this message with an additional or updated header in metadata.
+   *
+   * @param key the header key
+   * @param value the header value
+   * @return a new message instance
+   */
+  Message<T> withHeader(String key, Object value);
 }

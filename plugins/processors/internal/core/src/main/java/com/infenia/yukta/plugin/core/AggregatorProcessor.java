@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.plugin.core;
 
-import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import com.infenia.yukta.plugin.ProcessorPlugin;
 import com.infenia.yukta.service.aggregate.AggregateStore;
@@ -23,9 +22,7 @@ import com.infenia.yukta.service.aggregate.AggregateStore.AggregateConfig;
 import com.infenia.yukta.service.aggregate.AggregateStore.AggregateResult;
 import com.infenia.yukta.util.SpelUtils;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

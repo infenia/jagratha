@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.plugin.core;
 
-import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import com.infenia.yukta.plugin.ProcessorPlugin;
 import com.infenia.yukta.util.MapUtils;
@@ -108,6 +107,7 @@ public class ConstantProcessor implements ProcessorPlugin {
 
                       if (TARGET_METADATA.equalsIgnoreCase(target)) {
                         applyVariables(metadata, resolvedVars, mode, collisionPolicy);
+                        return message.withMetadata(metadata);
                       } else {
                         final Map<String, Object> payloadMap =
                             MODE_REPLACE.equalsIgnoreCase(mode)
@@ -115,9 +115,8 @@ public class ConstantProcessor implements ProcessorPlugin {
                                 : MapUtils.asMutableMap(payload);
                         applyVariables(payloadMap, resolvedVars, mode, collisionPolicy);
                         payload = payloadMap;
+                        return message.withPayload(payload);
                       }
-
-                      return com.infenia.yukta.plugin.DefaultMessage.from(message, payload);
                     }));
   }
 
@@ -156,5 +155,4 @@ public class ConstantProcessor implements ProcessorPlugin {
           MapUtils.setNestedValue(targetMap, path, value);
         });
   }
-
 }

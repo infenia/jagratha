@@ -58,8 +58,10 @@ class AggregatorProcessorTest {
             "window", Map.of("type", "COUNT", "size", 2),
             "aggregation", Map.of("type", "SUM", "field", "payload.amount"));
 
-    final Message<?> msg1 = DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
-    final Message<?> msg2 = DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 20.0));
+    final Message<?> msg1 =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
+    final Message<?> msg2 =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 20.0));
 
     when(aggregateStore.addValue(anyString(), any(), any(), any()))
         .thenReturn(
@@ -85,7 +87,8 @@ class AggregatorProcessorTest {
             "window", Map.of("type", "TIME", "durationMs", 1000),
             "aggregation", Map.of("type", "SUM", "field", "payload.amount"));
 
-    final Message<?> msg1 = DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
+    final Message<?> msg1 =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
 
     when(aggregateStore.addValue(anyString(), any(), any(), any()))
         .thenReturn(
@@ -121,7 +124,8 @@ class AggregatorProcessorTest {
             "maxPendingWindows",
             1);
 
-    final Message<?> msg1 = DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
+    final Message<?> msg1 =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
 
     when(aggregateStore.addValue(anyString(), any(), any(), any()))
         .thenReturn(
@@ -168,7 +172,8 @@ class AggregatorProcessorTest {
             "window", Map.of("type", "COUNT", "size", 10),
             "aggregation", Map.of("type", "SUM", "field", "payload.amount"));
 
-    final Message<?> msg1 = DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
+    final Message<?> msg1 =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
 
     when(aggregateStore.addValue(anyString(), any(), any(), any()))
         .thenReturn(

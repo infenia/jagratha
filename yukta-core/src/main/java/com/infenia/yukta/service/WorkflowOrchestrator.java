@@ -21,7 +21,6 @@ import com.infenia.yukta.model.PreparedWorkflow;
 import com.infenia.yukta.model.WorkflowDefinition;
 import com.infenia.yukta.model.WorkflowDefinition.Node;
 import com.infenia.yukta.model.WorkflowTemplate;
-import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import com.infenia.yukta.plugin.MessageStore;
 import com.infenia.yukta.plugin.PluginCategory;
@@ -44,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -59,7 +57,6 @@ import reactor.util.context.Context;
 @Slf4j
 @Service
 @Validated
-@RequiredArgsConstructor
 @SuppressWarnings({
   "PMD.ExcessiveImports",
   "PMD.CouplingBetweenObjects",
@@ -98,8 +95,32 @@ public class WorkflowOrchestrator {
   private final WorkflowValidator validator;
   private final AppConfigService configService;
   private final MessageStore messageStore;
-
   private final Scheduler virtualThreadScheduler;
+
+  /**
+   * Constructs a new WorkflowOrchestrator.
+   *
+   * @param registry the workflow registry
+   * @param tracker the task tracker service
+   * @param validator the workflow validator
+   * @param configService the app config service
+   * @param messageStore the message store for auditing
+   * @param virtualThreadScheduler the scheduler for virtual threads
+   */
+  public WorkflowOrchestrator(
+      final WorkflowRegistry registry,
+      final TaskTrackerService tracker,
+      final WorkflowValidator validator,
+      final AppConfigService configService,
+      final MessageStore messageStore,
+      final Scheduler virtualThreadScheduler) {
+    this.registry = registry;
+    this.tracker = tracker;
+    this.validator = validator;
+    this.configService = configService;
+    this.messageStore = messageStore;
+    this.virtualThreadScheduler = virtualThreadScheduler;
+  }
 
   /**
    * Prepares a workflow for execution.

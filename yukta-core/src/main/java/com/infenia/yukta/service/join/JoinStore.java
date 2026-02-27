@@ -32,7 +32,8 @@ public interface JoinStore {
    * @param config the join configuration
    * @return a Mono containing the join result
    */
-  Mono<JoinResult> addMessage(String key, String sourceNodeId, Message<?> message, JoinConfig config);
+  Mono<JoinResult> addMessage(
+      String key, String sourceNodeId, Message<?> message, JoinConfig config);
 
   /**
    * Mark a join as completed to handle late arrivals.

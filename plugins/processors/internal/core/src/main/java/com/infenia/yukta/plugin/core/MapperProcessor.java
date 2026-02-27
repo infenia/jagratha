@@ -15,10 +15,10 @@
  */
 package com.infenia.yukta.plugin.core;
 
-import com.infenia.yukta.plugin.DefaultMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
+import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import com.infenia.yukta.plugin.ProcessorPlugin;
 import com.infenia.yukta.util.MapUtils;
@@ -164,7 +164,8 @@ public class MapperProcessor implements ProcessorPlugin {
             return Flux.just(DefaultMessage.from(message, resultPayload));
           } catch (RuntimeException e) {
             if (log.isErrorEnabled()) {
-              log.error("Mapping failed for message {}: {}", message.getMessageId(), e.getMessage());
+              log.error(
+                  "Mapping failed for message {}: {}", message.getMessageId(), e.getMessage());
             }
             return Flux.error(
                 new RuntimeException(ERR_PREFIX + "Mapping failed: " + e.getMessage(), e));

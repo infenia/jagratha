@@ -103,12 +103,18 @@ public class InMemoryAggregateStore implements AggregateStore {
 
   @Override
   public Mono<AggregateResult> addValue(
-      final String key, final Object value, final Message<?> message, final AggregateConfig config) {
+      final String key,
+      final Object value,
+      final Message<?> message,
+      final AggregateConfig config) {
     return Mono.fromCallable(() -> processAdd(key, value, message, config));
   }
 
   private AggregateResult processAdd(
-      final String key, final Object value, final Message<?> message, final AggregateConfig config) {
+      final String key,
+      final Object value,
+      final Message<?> message,
+      final AggregateConfig config) {
 
     AggregateResult evictionResult = null;
     lock.lock();

@@ -400,9 +400,7 @@ class WorkflowOrchestratorTest {
     final Node terminalNode = new Node("term1", "terminal", Map.of());
     final WorkflowDefinition def =
         new WorkflowDefinition(
-            "Tap Test",
-            List.of(triggerNode, terminalNode),
-            List.of(new Edge("t1", "term1")));
+            "Tap Test", List.of(triggerNode, terminalNode), List.of(new Edge("t1", "term1")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
