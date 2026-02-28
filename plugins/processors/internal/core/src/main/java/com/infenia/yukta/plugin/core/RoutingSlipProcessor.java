@@ -40,8 +40,7 @@ import reactor.core.publisher.Mono;
 @Component
 @SuppressWarnings({
   "PMD.OnlyOneReturn",
-  "PMD.AvoidCatchingGenericException",
-  "PMD.CognitiveComplexity"
+  "PMD.AvoidCatchingGenericException"
 })
 public class RoutingSlipProcessor implements ProcessorPlugin {
 
@@ -49,7 +48,7 @@ public class RoutingSlipProcessor implements ProcessorPlugin {
 
   private static final String CONFIG_MODE = "mode";
   private static final String CONFIG_SLIP_PATH = "slipPath";
-  private static final String CONFIG_ROUTING_TABLE = "routingTable";
+  private static final String CONFIG_TABLE = "routingTable";
   private static final String CONFIG_EXPRESSION = "expression";
   private static final String CONFIG_ERROR_PORT = "errorPort";
   private static final String CONFIG_STRICT = "strictMode";
@@ -107,7 +106,7 @@ public class RoutingSlipProcessor implements ProcessorPlugin {
   public List<String> getOutputPorts(final Map<String, Object> config) {
     final String mode = (String) config.getOrDefault(CONFIG_MODE, MODE_DYNAMIC);
     if (MODE_STATIC.equals(mode)) {
-      final List<String> routingTable = (List<String>) config.get(CONFIG_ROUTING_TABLE);
+      final List<String> routingTable = (List<String>) config.get(CONFIG_TABLE);
       final List<String> ports = new ArrayList<>();
       if (routingTable != null) {
         ports.addAll(routingTable);
@@ -125,7 +124,7 @@ public class RoutingSlipProcessor implements ProcessorPlugin {
   public Mono<Void> validateConfig(final Map<String, Object> config) {
     final String mode = (String) config.getOrDefault(CONFIG_MODE, MODE_DYNAMIC);
     if (MODE_STATIC.equals(mode)) {
-      if (config.get(CONFIG_ROUTING_TABLE) == null) {
+      if (config.get(CONFIG_TABLE) == null) {
         return Mono.error(
             new IllegalArgumentException("routingTable is mandatory for STATIC mode"));
       }
@@ -233,7 +232,7 @@ public class RoutingSlipProcessor implements ProcessorPlugin {
   private List<String> computeSlip(
       final Message<?> message, final String mode, final Map<String, Object> config) {
     return switch (mode) {
-      case MODE_STATIC -> coerceToList(config.get(CONFIG_ROUTING_TABLE));
+      case MODE_STATIC -> coerceToList(config.get(CONFIG_TABLE));
       case MODE_DYNAMIC -> evaluateExpression(message, (String) config.get(CONFIG_EXPRESSION));
       default -> List.of();
     };
