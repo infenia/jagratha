@@ -24,6 +24,7 @@ import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,40 +62,46 @@ class SplitterProcessorTest {
   @Test
   void testHeaderMapping() {
     final List<String> items = Collections.singletonList("item1");
-    final Message<?> parent = DefaultMessage.create(UUID.randomUUID(), Map.of("items", items, "orderId", "ORD-123"));
-    final Map<String, Object> config = Map.of(
-        "itemsPath", "payload.items",
-        "headerMapping", Map.of("parentOrder", "payload.orderId")
-    );
+    final Message<?> parent =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("items", items, "orderId", "ORD-123"));
+    final Map<String, Object> config =
+        Map.of(
+            "itemsPath",
+            "payload.items",
+            "headerMapping",
+            Map.of("parentOrder", "payload.orderId"));
 
     StepVerifier.create(processor.process(Flux.just(parent), config))
-        .expectNextMatches(m -> {
-          assertEquals("ORD-123", m.getMetadata().get("parentOrder"));
-          return true;
-        })
+        .expectNextMatches(
+            m -> {
+              assertEquals("ORD-123", m.getMetadata().get("parentOrder"));
+              return true;
+            })
         .verifyComplete();
   }
 
   @Test
   void testTechnicalHeaderPropagation() {
     final List<String> items = Collections.singletonList("item1");
-    final Message<?> parent = DefaultMessage.create(UUID.randomUUID(), Map.of("items", items))
-        .withPriority(9)
-        .withExpiration(System.currentTimeMillis() + 10000)
-        .withFormatIndicator("v2")
-        .withMetadata(Map.of("custom-tech", "val"));
+    final Message<?> parent =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("items", items))
+            .withPriority(9)
+            .withExpiration(System.currentTimeMillis() + 10000)
+            .withFormatIndicator("v2")
+            .withMetadata(Map.of("custom-tech", "val"));
 
     final Map<String, Object> config = Map.of("itemsPath", "payload.items");
 
     StepVerifier.create(processor.process(Flux.just(parent), config))
-        .expectNextMatches(m -> {
-          assertEquals(parent.getTraceId(), m.getTraceId());
-          assertEquals(9, m.getPriority());
-          assertEquals(parent.getExpiration(), m.getExpiration());
-          assertEquals("v2", m.getFormatIndicator());
-          assertEquals("val", m.getMetadata().get("custom-tech"));
-          return true;
-        })
+        .expectNextMatches(
+            m -> {
+              assertEquals(parent.getTraceId(), m.getTraceId());
+              assertEquals(9, m.getPriority());
+              assertEquals(parent.getExpiration(), m.getExpiration());
+              assertEquals("v2", m.getFormatIndicator());
+              assertEquals("val", m.getMetadata().get("custom-tech"));
+              return true;
+            })
         .verifyComplete();
   }
 
@@ -128,34 +135,32 @@ class SplitterProcessorTest {
   @Test
   void testErrorPort() {
     final Message<?> parent = DefaultMessage.create(UUID.randomUUID(), "not-a-map");
-    final Map<String, Object> config = Map.of(
-        "itemsPath", "payload.items",
-        "errorPort", "error-out"
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "itemsPath", "payload.items",
+            "errorPort", "error-out");
 
     StepVerifier.create(
             processor
                 .process(Flux.just(parent), config)
                 .contextWrite(ctx -> ctx.put("nodeId", "split-node")))
-        .expectNextMatches(m -> {
-          assertEquals("error-out", m.getSourcePort());
-          assertNotNull(m.getFailureReason());
-          assertTrue(m.getMessageHistory().contains("split-node"));
-          return true;
-        })
+        .expectNextMatches(
+            m -> {
+              assertEquals("error-out", m.getSourcePort());
+              assertNotNull(m.getFailureReason());
+              assertTrue(m.getMessageHistory().contains("split-node"));
+              return true;
+            })
         .verifyComplete();
   }
 
   @Test
   void testStrictMode() {
     final Message<?> parent = DefaultMessage.create(UUID.randomUUID(), "not-a-map");
-    final Map<String, Object> config = Map.of(
-        "itemsPath", "payload.items",
-        "strictMode", true
-    );
+    final Map<String, Object> config = Map.of("itemsPath", "payload.items", "strictMode", true);
 
     StepVerifier.create(processor.process(Flux.just(parent), config))
-        .expectErrorMatches(e -> e.getMessage().contains("WorkflowExecutionException"))
+        .expectErrorMatches(e -> e.getMessage().contains("Splitter failed"))
         .verify();
   }
 
@@ -163,10 +168,7 @@ class SplitterProcessorTest {
   void testSequentialProcessing() {
     final List<Integer> items = Arrays.asList(1, 2, 3);
     final Message<?> parent = DefaultMessage.create(UUID.randomUUID(), Map.of("items", items));
-    final Map<String, Object> config = Map.of(
-        "itemsPath", "payload.items",
-        "parallel", false
-    );
+    final Map<String, Object> config = Map.of("itemsPath", "payload.items", "parallel", false);
 
     StepVerifier.create(processor.process(Flux.just(parent), config))
         .expectNextCount(3)
@@ -190,7 +192,13 @@ class SplitterProcessorTest {
     assertEquals("default", child.getSourcePort());
     assertTrue(child.getMessageHistory().contains(nodeId));
     assertFalse(child.getMessageId().equals(parent.getMessageId()));
-    assertEquals(parent.getTimestamp(), child.getTimestamp(), "Timestamp must be propagated from parent: " + parent.getTimestamp() + " vs " + child.getTimestamp());
+    assertEquals(
+        parent.getTimestamp(),
+        child.getTimestamp(),
+        "Timestamp must be propagated from parent: "
+            + parent.getTimestamp()
+            + " vs "
+            + child.getTimestamp());
     return true;
   }
 
@@ -209,5 +217,142 @@ class SplitterProcessorTest {
   void testOutputPorts() {
     assertEquals(List.of("default"), processor.getOutputPorts(Map.of()));
     assertEquals(List.of("default", "fail"), processor.getOutputPorts(Map.of("errorPort", "fail")));
+  }
+
+  @Test
+  void testIteratorSplit() {
+    final Iterator<Integer> items = Arrays.asList(1, 2).iterator();
+    final Message<?> parent = DefaultMessage.create(UUID.randomUUID(), Map.of("it", items));
+    final Map<String, Object> config = Map.of("itemsPath", "payload.it");
+
+    StepVerifier.create(processor.process(Flux.just(parent), config))
+        .expectNextMatches(m -> m.getPayload().equals(1))
+        .expectNextMatches(m -> m.getPayload().equals(2))
+        .verifyComplete();
+  }
+
+  @Test
+  void testArraySplit() {
+    final String[] items = {"a", "b"};
+    final Message<?> parent = DefaultMessage.create(UUID.randomUUID(), Map.of("arr", items));
+    final Map<String, Object> config = Map.of("itemsPath", "payload.arr");
+
+    StepVerifier.create(processor.process(Flux.just(parent), config))
+        .expectNextMatches(m -> m.getPayload().equals("a"))
+        .expectNextMatches(m -> m.getPayload().equals("b"))
+        .verifyComplete();
+  }
+
+  @Test
+  void testSingleObjectSplit() {
+    final String item = "only-one";
+    final Message<?> parent = DefaultMessage.create(UUID.randomUUID(), Map.of("item", item));
+    final Map<String, Object> config = Map.of("itemsPath", "payload.item");
+
+    StepVerifier.create(processor.process(Flux.just(parent), config))
+        .expectNextMatches(
+            m -> {
+              assertEquals("only-one", m.getPayload());
+              assertEquals(1, m.getSequenceSize());
+              assertTrue(m.isLastInSequence());
+              return true;
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void testNullItemsNonStrict() {
+    final Message<?> parent = DefaultMessage.create(UUID.randomUUID(), Map.of());
+    final Map<String, Object> config = Map.of("itemsPath", "payload.missing", "strictMode", false);
+
+    StepVerifier.create(processor.process(Flux.just(parent), config)).verifyComplete();
+  }
+
+  @Test
+  void testNullMappingStrict() {
+    final Message<?> parent =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("items", Collections.singletonList(1)));
+    final Map<String, Object> config =
+        Map.of(
+            "itemsPath",
+            "payload.items",
+            "headerMapping",
+            Map.of("missing", "payload.none"),
+            "strictMode",
+            true);
+
+    StepVerifier.create(processor.process(Flux.just(parent), config))
+        .expectErrorMatches(e -> e.getMessage().contains("Mapping failed"))
+        .verify();
+  }
+
+  @Test
+  void testMappingErrorStrict() {
+    final Message<?> parent =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("items", Collections.singletonList(1)));
+    final Map<String, Object> config =
+        Map.of(
+            "itemsPath",
+            "payload.items",
+            "headerMapping",
+            Map.of("err", "1/0"), // Division by zero in SpEL
+            "strictMode",
+            true);
+
+    StepVerifier.create(processor.process(Flux.just(parent), config))
+        .expectErrorMatches(e -> e.getMessage().contains("Mapping failed"))
+        .verify();
+  }
+
+  @Test
+  void testMappingErrorNonStrict() {
+    final Message<?> parent =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("items", Collections.singletonList(1)));
+    final Map<String, Object> config =
+        Map.of(
+            "itemsPath",
+            "payload.items",
+            "headerMapping",
+            Map.of("err", "1/0"),
+            "strictMode",
+            false);
+
+    StepVerifier.create(processor.process(Flux.just(parent), config))
+        .expectNextMatches(m -> !m.getMetadata().containsKey("err"))
+        .verifyComplete();
+  }
+
+  @Test
+  void testSplitErrorNonStrict() {
+    final Message<?> parent = DefaultMessage.create(UUID.randomUUID(), "not-a-map");
+    final Map<String, Object> config = Map.of("itemsPath", "payload.items", "strictMode", false);
+
+    StepVerifier.create(processor.process(Flux.just(parent), config)).verifyComplete();
+  }
+
+  @Test
+  void testValidateConfig() {
+    StepVerifier.create(processor.validateConfig(Map.of("itemsPath", "items"))).verifyComplete();
+
+    StepVerifier.create(processor.validateConfig(Map.of()))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testPrepare() {
+    Map<String, Object> config =
+        Map.of("itemsPath", "payload.items", "headerMapping", Map.of("h1", "payload.f1"));
+    StepVerifier.create(processor.prepare(config)).verifyComplete();
+  }
+
+  @Test
+  void testHandleNullItemsStrict() {
+    final Message<?> parent = DefaultMessage.create(UUID.randomUUID(), Map.of());
+    final Map<String, Object> config = Map.of("itemsPath", "payload.missing", "strictMode", true);
+
+    StepVerifier.create(processor.process(Flux.just(parent), config))
+        .expectErrorMatches(e -> e.getMessage().contains("Splitter failed"))
+        .verify();
   }
 }

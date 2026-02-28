@@ -125,11 +125,12 @@ class PluginInterfaceTest {
     assertEquals("error-port", rePayloaded.getOrigDest());
 
     java.time.Instant now = java.time.Instant.now();
-    Message<Integer> updated = rePayloaded
-        .withTraceId("new-trace")
-        .withTimestamp(now)
-        .withExpiration(123456789L)
-        .withFormatIndicator("json-v2");
+    Message<Integer> updated =
+        rePayloaded
+            .withTraceId("new-trace")
+            .withTimestamp(now)
+            .withExpiration(123456789L)
+            .withFormatIndicator("json-v2");
 
     assertEquals("new-trace", updated.getTraceId());
     assertEquals(now.toEpochMilli(), updated.getTimestamp());
