@@ -189,7 +189,8 @@ public class AggregatorProcessor implements ProcessorPlugin {
                         .flatMapMany(res -> handleResult(res, nodeId, errorPort));
                   });
 
-          final Flux<Message<?>> async = getAsyncMessages(keyPrefix, nodeId, errorPort, input.then());
+          final Flux<Message<?>> async =
+              getAsyncMessages(keyPrefix, nodeId, errorPort, input.then());
 
           final Flux<Message<?>> remaining =
               input.thenMany(

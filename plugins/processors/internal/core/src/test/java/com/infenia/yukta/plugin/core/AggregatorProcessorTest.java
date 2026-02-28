@@ -122,10 +122,14 @@ class AggregatorProcessorTest {
   void testExpiredDiscardedIfNoErrorPort() {
     final Map<String, Object> config =
         Map.of(
-            "groupBy", "payload.userId",
-            "window", Map.of("type", "TIME", "durationMs", 1000),
-            "aggregation", Map.of("type", "SUM", "field", "payload.amount"),
-            "emitOnTimeout", false);
+            "groupBy",
+            "payload.userId",
+            "window",
+            Map.of("type", "TIME", "durationMs", 1000),
+            "aggregation",
+            Map.of("type", "SUM", "field", "payload.amount"),
+            "emitOnTimeout",
+            false);
 
     final Message<?> msg1 =
         DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
@@ -192,11 +196,16 @@ class AggregatorProcessorTest {
   void testExpiredToErrorPort() {
     final Map<String, Object> config =
         Map.of(
-            "groupBy", "payload.userId",
-            "window", Map.of("type", "TIME", "durationMs", 1000),
-            "aggregation", Map.of("type", "SUM", "field", "payload.amount"),
-            "emitOnTimeout", false,
-            "errorPort", "timeout-error");
+            "groupBy",
+            "payload.userId",
+            "window",
+            Map.of("type", "TIME", "durationMs", 1000),
+            "aggregation",
+            Map.of("type", "SUM", "field", "payload.amount"),
+            "emitOnTimeout",
+            false,
+            "errorPort",
+            "timeout-error");
 
     final Message<?> msg1 =
         DefaultMessage.create(UUID.randomUUID(), Map.of("userId", "u1", "amount", 10.0));
