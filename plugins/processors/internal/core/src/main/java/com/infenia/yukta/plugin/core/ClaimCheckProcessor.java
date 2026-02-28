@@ -219,8 +219,7 @@ public class ClaimCheckProcessor implements ProcessorPlugin {
                 return store
                     .remove(key)
                     .then(
-                        Mono.just(
-                            modified.withSourcePort(DEFAULT_PORT).withAddedHistory(nodeId)));
+                        Mono.just(modified.withSourcePort(DEFAULT_PORT).withAddedHistory(nodeId)));
               }
               return Mono.just(modified.withSourcePort(DEFAULT_PORT).withAddedHistory(nodeId));
             })
@@ -232,8 +231,7 @@ public class ClaimCheckProcessor implements ProcessorPlugin {
                         new WorkflowExecutionException(
                             "Claim check data not found for key: " + key));
                   }
-                  return Mono.just(
-                      message.withSourcePort(DEFAULT_PORT).withAddedHistory(nodeId));
+                  return Mono.just(message.withSourcePort(DEFAULT_PORT).withAddedHistory(nodeId));
                 }));
   }
 
@@ -280,7 +278,8 @@ public class ClaimCheckProcessor implements ProcessorPlugin {
     return message.withPayload(payloadMap);
   }
 
-  private Message<?> restoreData(final Message<?> message, final String dataPath, final Object data) {
+  private Message<?> restoreData(
+      final Message<?> message, final String dataPath, final Object data) {
     if (DEFAULT_DATA_PATH.equalsIgnoreCase(dataPath)) {
       return message.withPayload(data);
     }
