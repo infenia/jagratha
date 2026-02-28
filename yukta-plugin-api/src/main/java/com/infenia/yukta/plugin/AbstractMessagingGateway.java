@@ -40,13 +40,12 @@ import reactor.core.publisher.Sinks;
 @Slf4j
 @SuppressWarnings({
   "PMD.TypeParameterNamingConventions",
-  "PMD.DoNotUseThreads",
-  "PMD.OnlyOneReturn"
+  "PMD.DoNotUseThreads"
 })
 public abstract class AbstractMessagingGateway<T, R, D, S> implements MessagingGateway {
 
   private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(60);
-  private static final long CLEANUP_INTERVAL_MS = 5000;
+  private static final long CLEANUP_MS = 5000;
 
   private final MessageMapper<T, D> requestMapper;
   private final MessageMapper<R, S> responseMapper;
@@ -74,7 +73,7 @@ public abstract class AbstractMessagingGateway<T, R, D, S> implements MessagingG
     this.requestMapper = requestMapper;
     this.responseMapper = responseMapper;
     this.scheduler.scheduleAtFixedRate(
-        this::purgeExpiredReplies, CLEANUP_INTERVAL_MS, CLEANUP_INTERVAL_MS, TimeUnit.MILLISECONDS);
+        this::purgeExpiredReplies, CLEANUP_MS, CLEANUP_MS, TimeUnit.MILLISECONDS);
   }
 
   /**

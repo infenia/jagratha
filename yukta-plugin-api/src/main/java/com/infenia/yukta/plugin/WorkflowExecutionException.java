@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.plugin;
 
+import java.io.Serial;
+
 /**
  * Standardized exception for errors occurring during workflow execution or plugin processing.
  *
@@ -22,6 +24,8 @@ package com.infenia.yukta.plugin;
  * error contract.
  */
 public class WorkflowExecutionException extends RuntimeException {
+
+  @Serial private static final long serialVersionUID = 1L;
 
   /**
    * Constructs a new WorkflowExecutionException with the specified detail message.
