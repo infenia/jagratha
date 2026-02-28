@@ -186,23 +186,23 @@ public class BranchProcessor implements ProcessorPlugin {
                         .map(port -> message.withSourcePort(port).withAddedHistory(nodeId));
 
                   } catch (final Exception exception) {
-                    if (log.isErrorEnabled()) {
-                      log.error(
-                          "Branch evaluation failed for message {}: {}",
-                          message.getMessageId(),
-                          exception.getMessage());
-                    }
-                    return handleError(message, nodeId, errorPort, strictMode, exception);
+                    return handleException(message, nodeId, errorPort, strictMode, exception);
                   }
                 }));
   }
 
-  private Flux<Message<?>> handleError(
+  private Flux<Message<?>> handleException(
       final Message<?> message,
       final String nodeId,
       final String errorPort,
       final boolean strictMode,
       final Exception exception) {
+    if (log.isErrorEnabled()) {
+      log.error(
+          "Branch evaluation failed for message {}: {}",
+          message.getMessageId(),
+          exception.getMessage());
+    }
     if (errorPort != null) {
       return Flux.just(
           message
