@@ -192,6 +192,58 @@ public record DefaultMessage<T>(
   }
 
   @Override
+  public Message<T> withTraceId(final String newTraceId) {
+    return new DefaultMessage<>(
+        id,
+        newTraceId,
+        correlationId,
+        replyTo,
+        expiration,
+        formatIndicator,
+        metadata,
+        messageHistory,
+        sequenceId,
+        sequenceNumber,
+        sequenceSize,
+        priority,
+        controlMessage,
+        origDest,
+        failureReason,
+        exceptionDetail,
+        retryCount,
+        payload,
+        timestamp,
+        sourcePort,
+        sourceNodeId);
+  }
+
+  @Override
+  public Message<T> withTimestamp(final Instant newTimestamp) {
+    return new DefaultMessage<>(
+        id,
+        traceId,
+        correlationId,
+        replyTo,
+        expiration,
+        formatIndicator,
+        metadata,
+        messageHistory,
+        sequenceId,
+        sequenceNumber,
+        sequenceSize,
+        priority,
+        controlMessage,
+        origDest,
+        failureReason,
+        exceptionDetail,
+        retryCount,
+        payload,
+        newTimestamp,
+        sourcePort,
+        sourceNodeId);
+  }
+
+  @Override
   public Message<T> withCorrelationId(final String newCorrelationId) {
     return new DefaultMessage<>(
         id,
@@ -293,6 +345,58 @@ public record DefaultMessage<T>(
         timestamp,
         sourcePort,
         newSourceNodeId);
+  }
+
+  @Override
+  public Message<T> withExpiration(final long newExpiration) {
+    return new DefaultMessage<>(
+        id,
+        traceId,
+        correlationId,
+        replyTo,
+        newExpiration,
+        formatIndicator,
+        metadata,
+        messageHistory,
+        sequenceId,
+        sequenceNumber,
+        sequenceSize,
+        priority,
+        controlMessage,
+        origDest,
+        failureReason,
+        exceptionDetail,
+        retryCount,
+        payload,
+        timestamp,
+        sourcePort,
+        sourceNodeId);
+  }
+
+  @Override
+  public Message<T> withFormatIndicator(final String newFormatIndicator) {
+    return new DefaultMessage<>(
+        id,
+        traceId,
+        correlationId,
+        replyTo,
+        expiration,
+        newFormatIndicator,
+        metadata,
+        messageHistory,
+        sequenceId,
+        sequenceNumber,
+        sequenceSize,
+        priority,
+        controlMessage,
+        origDest,
+        failureReason,
+        exceptionDetail,
+        retryCount,
+        payload,
+        timestamp,
+        sourcePort,
+        sourceNodeId);
   }
 
   @Override
