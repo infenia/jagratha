@@ -39,7 +39,6 @@ import reactor.core.publisher.Mono;
 @SuppressWarnings({
   "PMD.OnlyOneReturn",
   "PMD.AvoidCatchingGenericException",
-  "PMD.ExceptionAsFlowControl",
   "PMD.CognitiveComplexity"
 })
 public class RecipientListProcessor implements ProcessorPlugin {
@@ -49,7 +48,7 @@ public class RecipientListProcessor implements ProcessorPlugin {
   private static final String CONFIG_MODE = "mode";
   private static final String CONFIG_RECIPIENTS = "recipients";
   private static final String CONFIG_EXPRESSION = "expression";
-  private static final String CONFIG_SOURCE_FIELD = "sourceField";
+  private static final String CONFIG_SRC_FIELD = "sourceField";
   private static final String CONFIG_PARALLEL = "parallel";
   private static final String CONFIG_STRICT = "strictMode";
   private static final String CONFIG_ERROR_PORT = "errorPort";
@@ -67,7 +66,8 @@ public class RecipientListProcessor implements ProcessorPlugin {
 
   @Override
   public String getDescription() {
-    return "Propagates a single inbound message to a set of dynamically specified recipients (ports).";
+    return "Propagates a single inbound message to a set of dynamically specified recipients"
+        + " (ports).";
   }
 
   @Override
@@ -132,11 +132,10 @@ public class RecipientListProcessor implements ProcessorPlugin {
       }
     } else if (MODE_DYNAMIC.equals(mode)) {
       if (config.get(CONFIG_EXPRESSION) == null) {
-        return Mono.error(
-            new IllegalArgumentException("expression is mandatory for DYNAMIC mode"));
+        return Mono.error(new IllegalArgumentException("expression is mandatory for DYNAMIC mode"));
       }
     } else if (MODE_EXTERNAL.equals(mode)) {
-      if (config.get(CONFIG_SOURCE_FIELD) == null) {
+      if (config.get(CONFIG_SRC_FIELD) == null) {
         return Mono.error(
             new IllegalArgumentException("sourceField is mandatory for EXTERNAL mode"));
       }
@@ -152,7 +151,7 @@ public class RecipientListProcessor implements ProcessorPlugin {
     if (MODE_DYNAMIC.equals(mode)) {
       SpelUtils.preParse((String) config.get(CONFIG_EXPRESSION));
     } else if (MODE_EXTERNAL.equals(mode)) {
-      SpelUtils.preParse((String) config.get(CONFIG_SOURCE_FIELD));
+      SpelUtils.preParse((String) config.get(CONFIG_SRC_FIELD));
     }
     return Mono.empty();
   }
@@ -215,7 +214,7 @@ public class RecipientListProcessor implements ProcessorPlugin {
     return switch (mode) {
       case MODE_STATIC -> (List<String>) config.get(CONFIG_RECIPIENTS);
       case MODE_DYNAMIC -> evaluateExpression(message, (String) config.get(CONFIG_EXPRESSION));
-      case MODE_EXTERNAL -> evaluateExpression(message, (String) config.get(CONFIG_SOURCE_FIELD));
+      case MODE_EXTERNAL -> evaluateExpression(message, (String) config.get(CONFIG_SRC_FIELD));
       default -> List.of();
     };
   }

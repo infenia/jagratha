@@ -16,7 +16,6 @@
 package com.infenia.yukta.plugin.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.infenia.yukta.plugin.DefaultMessage;
@@ -44,9 +43,7 @@ class RecipientListProcessorTest {
   @Test
   void testStaticMode() {
     final Map<String, Object> config =
-        Map.of(
-            "mode", "STATIC",
-            "recipients", List.of("port1", "port2"));
+        Map.of("mode", "STATIC", "recipients", List.of("port1", "port2"));
 
     final Message msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -124,10 +121,7 @@ class RecipientListProcessorTest {
 
   @Test
   void testZeroMatchesStatic() {
-    final Map<String, Object> config =
-        Map.of(
-            "mode", "STATIC",
-            "recipients", List.of());
+    final Map<String, Object> config = Map.of("mode", "STATIC", "recipients", List.of());
 
     final Message msg = DefaultMessage.create(UUID.randomUUID(), "data");
 
@@ -149,10 +143,7 @@ class RecipientListProcessorTest {
   @Test
   void testSequentialDispatch() {
     final Map<String, Object> config =
-        Map.of(
-            "mode", "STATIC",
-            "recipients", List.of("p1", "p2"),
-            "parallel", false);
+        Map.of("mode", "STATIC", "recipients", List.of("p1", "p2"), "parallel", false);
 
     final Message msg = DefaultMessage.create(UUID.randomUUID(), "data");
 
