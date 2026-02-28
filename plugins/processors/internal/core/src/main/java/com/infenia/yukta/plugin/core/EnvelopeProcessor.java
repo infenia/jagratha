@@ -21,31 +21,23 @@ import com.infenia.yukta.plugin.UiDesign;
 import com.infenia.yukta.plugin.WorkflowExecutionException;
 import com.infenia.yukta.util.MapUtils;
 import com.infenia.yukta.util.SpelUtils;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Implementation of the Envelope Wrapper / Unwrapper pattern.
- * Wraps or unwraps message payloads with technical headers and ensures compliance.
+ * Implementation of the Envelope Wrapper / Unwrapper pattern. Wraps or unwraps message payloads
+ * with technical headers and ensures compliance.
  */
 @Slf4j
 @Component
-@SuppressWarnings({
-  "PMD.OnlyOneReturn",
-  "PMD.AvoidCatchingGenericException",
-  "PMD.LawOfDemeter",
-  "PMD.TooManyMethods",
-  "PMD.CyclomaticComplexity"
-})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.LawOfDemeter", "PMD.GodClass", "PMD.TooManyMethods"})
 public class EnvelopeProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "ENVELOPE";
@@ -64,6 +56,13 @@ public class EnvelopeProcessor implements ProcessorPlugin {
 
   private static final String TRACE_ID_HEADER = "traceId";
   private static final String HISTORY_HEADER = "messageHistory";
+
+  private static final String UNCHECKED = "unchecked";
+
+  /** Default constructor. */
+  public EnvelopeProcessor() {
+    super();
+  }
 
   @Override
   public String getType() {
@@ -95,7 +94,8 @@ public class EnvelopeProcessor implements ProcessorPlugin {
               <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" \
               viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" \
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 \
+            00-2 2v10a2 2 0 002 2z" />
               </svg>
               <span class="ml-2 font-heading text-xs font-bold text-slate-700 \
               uppercase">Envelope</span>
@@ -112,7 +112,7 @@ public class EnvelopeProcessor implements ProcessorPlugin {
 
   @Override
   public Mono<Void> initialize(final Map<String, Object> config) {
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(UNCHECKED)
     final Map<String, String> headers = (Map<String, String>) config.get(CONF_HEADERS);
     if (headers != null) {
       headers.values().forEach(SpelUtils::preParse);
@@ -131,9 +131,12 @@ public class EnvelopeProcessor implements ProcessorPlugin {
                 ctx -> {
                   final String nodeId = ctx.getOrDefault("nodeId", "unknown");
                   return executeMode(message, mode, config, strictMode)
-                      .map(m -> (Message<?>) m.withSourcePort(DEFAULT_PORT).withAddedHistory(nodeId))
+                      .map(
+                          m -> (Message<?>) m.withSourcePort(DEFAULT_PORT).withAddedHistory(nodeId))
                       .onErrorResume(
-                          e -> handleProcessingError(message, nodeId, e.getMessage()).cast(Message.class));
+                          e ->
+                              handleProcessingError(message, nodeId, e.getMessage())
+                                  .cast(Message.class));
                 }));
   }
 
@@ -147,7 +150,7 @@ public class EnvelopeProcessor implements ProcessorPlugin {
             .withHeader("failureReason", errorMessage));
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings(UNCHECKED)
   private Mono<? extends Message<?>> executeMode(
       final Message<?> message,
       final String mode,
@@ -160,136 +163,135 @@ public class EnvelopeProcessor implements ProcessorPlugin {
     };
   }
 
+  @SuppressWarnings(UNCHECKED)
   private <T> Mono<Message<T>> wrap(
       final Message<T> message, final Map<String, Object> config, final boolean strictMode) {
     return Mono.fromCallable(
         () -> {
-          @SuppressWarnings("unchecked")
-          final Map<String, String> headersConfig = (Map<String, String>) config.get(CONF_HEADERS);
-          @SuppressWarnings("unchecked")
-          final Map<String, String> promoteConfig = (Map<String, String>) config.get(CONF_PROMOTE);
+          final Map<String, String> headConf = (Map<String, String>) config.get(CONF_HEADERS);
+          final Map<String, String> promConf = (Map<String, String>) config.get(CONF_PROMOTE);
 
-          Message<T> wrapped = message;
-
-          // 1. Add headers
-          if (headersConfig != null) {
-            final Map<String, Object> variables =
-                Map.of(
-                    "payload", message.getPayload() != null ? message.getPayload() : Map.of(),
-                    "metadata", message.getMetadata());
-
-            for (final Map.Entry<String, String> entry : headersConfig.entrySet()) {
-              final Object value = SpelUtils.evaluateSync(entry.getValue(), message, variables);
-              if (value == null && strictMode) {
-                throw new WorkflowExecutionException(
-                    "Header evaluation failed for key: " + entry.getKey());
-              }
-              if (value != null) {
-                wrapped = wrapped.withHeader(entry.getKey(), value);
-              }
-            }
-          }
-
-          // 2. Promote fields (Body Path -> Metadata Key)
-          if (promoteConfig != null) {
-            final Map<String, Object> bodyMap = MapUtils.asMutableMap(message.getPayload());
-            for (final Map.Entry<String, String> entry : promoteConfig.entrySet()) {
-              final String targetHeaderName = entry.getKey();
-              final String sourceBodyPath = entry.getValue();
-
-              final Object value = MapUtils.getNestedValue(bodyMap, sourceBodyPath);
-              if (value == null && strictMode) {
-                throw new WorkflowExecutionException(
-                    "Promotion failed: field not found at path " + sourceBodyPath);
-              }
-              if (value != null) {
-                wrapped = wrapped.withHeader(targetHeaderName, value);
-              }
-            }
-          }
-
-          return wrapped;
+          final Message<T> wrapped = applyHeaders(message, headConf, strictMode);
+          return applyPromotion(wrapped, promConf, strictMode);
         });
   }
 
+  private <T> Message<T> applyHeaders(
+      final Message<T> message, final Map<String, String> headersConfig, final boolean strict) {
+    if (headersConfig == null) {
+      return message;
+    }
+    final Map<String, Object> vars =
+        Map.of(
+            "payload",
+            message.getPayload() != null ? message.getPayload() : Map.of(),
+            "metadata",
+            message.getMetadata());
+    Message<T> wrappedMsg = message;
+    for (final Map.Entry<String, String> entry : headersConfig.entrySet()) {
+      final Object val = SpelUtils.evaluateSync(entry.getValue(), message, vars);
+      if (val == null && strict) {
+        throw new WorkflowExecutionException("Header evaluation failed for key: " + entry.getKey());
+      }
+      if (val != null) {
+        wrappedMsg = wrappedMsg.withHeader(entry.getKey(), val);
+      }
+    }
+    return wrappedMsg;
+  }
+
+  private <T> Message<T> applyPromotion(
+      final Message<T> message, final Map<String, String> promoteConfig, final boolean strict) {
+    if (promoteConfig == null) {
+      return message;
+    }
+    final Map<String, Object> bodyMap = MapUtils.asMutableMap(message.getPayload());
+    Message<T> wrappedMsg = message;
+    for (final Map.Entry<String, String> entry : promoteConfig.entrySet()) {
+      final Object value = MapUtils.getNestedValue(bodyMap, entry.getValue());
+      if (value == null && strict) {
+        throw new WorkflowExecutionException(
+            "Promotion failed: field not found at path " + entry.getValue());
+      }
+      if (value != null) {
+        wrappedMsg = wrappedMsg.withHeader(entry.getKey(), value);
+      }
+    }
+    return wrappedMsg;
+  }
+
+  @SuppressWarnings(UNCHECKED)
   private Mono<Message<?>> unwrap(
       final Message<?> message, final Map<String, Object> config, final boolean strictMode) {
     return Mono.fromCallable(
         () -> {
-          final String envelopeKey = (String) config.get(CONF_ENVELOPE_KEY);
-          @SuppressWarnings("unchecked")
-          final Map<String, String> headersConfig = (Map<String, String>) config.get(CONF_HEADERS);
-          @SuppressWarnings("unchecked")
-          final Map<String, String> promoteConfig = (Map<String, String>) config.get(CONF_PROMOTE);
+          final String key = (String) config.get(CONF_ENVELOPE_KEY);
+          final Map<String, String> headConf = (Map<String, String>) config.get(CONF_HEADERS);
+          final Map<String, String> promConf = (Map<String, String>) config.get(CONF_PROMOTE);
 
-          // 1. Extract business payload
-          Object businessPayload = message.getPayload();
-          if (envelopeKey != null && !envelopeKey.isBlank()) {
-            final Map<String, Object> payloadMap = MapUtils.asMutableMap(message.getPayload());
-            businessPayload = MapUtils.getNestedValue(payloadMap, envelopeKey);
-            if (businessPayload == null && strictMode) {
+          Object payload = message.getPayload();
+          if (key != null && !key.isBlank()) {
+            final Map<String, Object> map = MapUtils.asMutableMap(payload);
+            payload = MapUtils.getNestedValue(map, key);
+            if (payload == null && strictMode) {
               throw new WorkflowExecutionException(
-                  "Unwrap failed: business payload not found at key " + envelopeKey);
+                  "Unwrap failed: payload not found at key " + key);
             }
           }
-
-          // 2. Restore fields (Metadata Key -> Body Path)
-          if (promoteConfig != null && businessPayload != null) {
-            final Map<String, Object> mutablePayload = MapUtils.asMutableMap(businessPayload);
-            for (final Map.Entry<String, String> entry : promoteConfig.entrySet()) {
-              final String sourceHeaderName = entry.getKey();
-              final String targetBodyPath = entry.getValue();
-
-              final Object value = message.getMetadata().get(sourceHeaderName);
-              if (value == null && strictMode) {
-                throw new WorkflowExecutionException(
-                    "Un-promotion failed: metadata key not found: " + sourceHeaderName);
-              }
-              if (value != null) {
-                MapUtils.setNestedValue(mutablePayload, targetBodyPath, value);
-              }
-            }
-            businessPayload = mutablePayload;
+          if (promConf != null && payload != null) {
+            payload = restoreFields(message, payload, promConf, strictMode);
           }
-
-          // 3. Purge metadata (Preserve Safe-List)
-          final Map<String, Object> newMetadata = new HashMap<>();
-          final Map<String, Object> oldMetadata = message.getMetadata();
-
-          // Always preserve safe-list
-          if (oldMetadata.containsKey(TRACE_ID_HEADER)) {
-            newMetadata.put(TRACE_ID_HEADER, oldMetadata.get(TRACE_ID_HEADER));
-          }
-          if (oldMetadata.containsKey(HISTORY_HEADER)) {
-            newMetadata.put(HISTORY_HEADER, oldMetadata.get(HISTORY_HEADER));
-          }
-
-          // If headersConfig is present, remove those specific keys (by not adding them to newMetadata)
-          // Actually, if headersConfig is NOT present, we clear everything except safe-list.
-          // If headersConfig IS present, we remove those keys AND keep others?
-          // Re-reading instructions:
-          // "Remove specific keys: Remove all metadata keys explicitly defined in the headers configuration map."
-          // "If headers is not configured, the processor should clear the metadata map entirely (except for the safe-list)"
-
-          if (headersConfig != null) {
-            // Keep all current metadata EXCEPT those in headersConfig and following the safe-list rules
-            for (final Map.Entry<String, Object> entry : oldMetadata.entrySet()) {
-              final String key = entry.getKey();
-              if (!headersConfig.containsKey(key)) {
-                newMetadata.put(key, entry.getValue());
-              }
-            }
-            // Ensure safe-list is always there even if they were in headersConfig (though unlikely)
-            if (oldMetadata.containsKey(TRACE_ID_HEADER)) {
-              newMetadata.put(TRACE_ID_HEADER, oldMetadata.get(TRACE_ID_HEADER));
-            }
-            if (oldMetadata.containsKey(HISTORY_HEADER)) {
-              newMetadata.put(HISTORY_HEADER, oldMetadata.get(HISTORY_HEADER));
-            }
-          }
-
-          return message.withPayload(businessPayload).withMetadata(newMetadata);
+          final Map<String, Object> metadata = purgeMetadata(message, headConf);
+          return message.withPayload(payload).withMetadata(metadata);
         });
+  }
+
+  private Object restoreFields(
+      final Message<?> msg,
+      final Object payload,
+      final Map<String, String> prom,
+      final boolean strict) {
+    final Map<String, Object> mutablePayload = MapUtils.asMutableMap(payload);
+    for (final Map.Entry<String, String> entry : prom.entrySet()) {
+      final Object value = msg.getMetadata().get(entry.getKey());
+      if (value == null && strict) {
+        throw new WorkflowExecutionException(
+            "Un-promotion failed: metadata key not found: " + entry.getKey());
+      }
+      if (value != null) {
+        MapUtils.setNestedValue(mutablePayload, entry.getValue(), value);
+      }
+    }
+    return mutablePayload;
+  }
+
+  private Map<String, Object> purgeMetadata(
+      final Message<?> message, final Map<String, String> headersConfig) {
+    final Map<String, Object> newMetadata = new ConcurrentHashMap<>();
+    final Map<String, Object> oldMetadata = message.getMetadata();
+
+    if (oldMetadata.containsKey(TRACE_ID_HEADER)) {
+      newMetadata.put(TRACE_ID_HEADER, oldMetadata.get(TRACE_ID_HEADER));
+    }
+    if (oldMetadata.containsKey(HISTORY_HEADER)) {
+      newMetadata.put(HISTORY_HEADER, oldMetadata.get(HISTORY_HEADER));
+    }
+
+    if (headersConfig != null) {
+      for (final Map.Entry<String, Object> entry : oldMetadata.entrySet()) {
+        if (!headersConfig.containsKey(entry.getKey())) {
+          newMetadata.put(entry.getKey(), entry.getValue());
+        }
+      }
+      // Re-ensure safe-list
+      if (oldMetadata.containsKey(TRACE_ID_HEADER)) {
+        newMetadata.put(TRACE_ID_HEADER, oldMetadata.get(TRACE_ID_HEADER));
+      }
+      if (oldMetadata.containsKey(HISTORY_HEADER)) {
+        newMetadata.put(HISTORY_HEADER, oldMetadata.get(HISTORY_HEADER));
+      }
+    }
+    return newMetadata;
   }
 
   @Override

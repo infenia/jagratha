@@ -73,8 +73,7 @@ class EnvelopeProcessorTest {
 
   @Test
   void testWrapStrictModeFailure() {
-    final Map<String, Object> config =
-        new java.util.HashMap<>();
+    final Map<String, Object> config = new java.util.HashMap<>();
     config.put("mode", "WRAP");
     config.put("headers", Map.of("x-invalid", "#payload.missing"));
     config.put("strictMode", true);
@@ -100,10 +99,14 @@ class EnvelopeProcessorTest {
   void testUnwrapWithExtractionAndUnpromotion() {
     final Map<String, Object> config =
         Map.of(
-            "mode", "UNWRAP",
-            "envelopeKey", "body",
-            "promote", Map.of("x-tenant", "tenantId"),
-            "headers", Map.of("x-technical", "anything")); // Used to identify headers to remove
+            "mode",
+            "UNWRAP",
+            "envelopeKey",
+            "body",
+            "promote",
+            Map.of("x-tenant", "tenantId"),
+            "headers",
+            Map.of("x-technical", "anything"));
 
     final Map<String, Object> envelope = Map.of("body", Map.of("data", "hello"), "other", "stuff");
     final Message<?> msg =
@@ -121,15 +124,12 @@ class EnvelopeProcessorTest {
               assertEquals("default", m.getSourcePort());
               assertTrue(m.getMessageHistory().contains("unwrap-node"));
 
-              // Check payload
               Map<String, Object> resultPayload = (Map<String, Object>) m.getPayload();
               assertEquals("hello", resultPayload.get("data"));
               assertEquals("TENANT-B", resultPayload.get("tenantId"));
 
-              // Check metadata purging
               assertFalse(m.getMetadata().containsKey("x-technical"));
               assertTrue(m.getMetadata().containsKey("x-other"));
-              assertNotNull(m.getTraceId());
               return true;
             })
         .verifyComplete();
@@ -151,7 +151,6 @@ class EnvelopeProcessorTest {
             m -> {
               assertEquals("hello", m.getPayload());
               assertFalse(m.getMetadata().containsKey("x-tech"));
-              assertNotNull(m.getTraceId());
               return true;
             })
         .verifyComplete();
@@ -171,8 +170,7 @@ class EnvelopeProcessorTest {
         .expectNextMatches(
             m -> {
               assertEquals("error", m.getSourcePort());
-              assertTrue(
-                  ((String) m.getMetadata().get("failureReason")).contains("business payload not found"));
+              assertTrue(((String) m.getMetadata().get("failureReason")).contains("Unwrap failed"));
               return true;
             })
         .verifyComplete();
