@@ -80,10 +80,8 @@ class MapUtilsTest {
 
   @Test
   void testFlatten() {
-    Map<String, Object> source = Map.of(
-        "user", Map.of("name", "John", "address", Map.of("city", "NY")),
-        "id", 123
-    );
+    Map<String, Object> source =
+        Map.of("user", Map.of("name", "John", "address", Map.of("city", "NY")), "id", 123);
 
     Map<String, Object> result = MapUtils.flatten(source);
 
