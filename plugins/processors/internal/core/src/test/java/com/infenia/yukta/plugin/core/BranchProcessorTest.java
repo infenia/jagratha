@@ -17,6 +17,7 @@ package com.infenia.yukta.plugin.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import com.infenia.yukta.plugin.NoMatchingBranchException;
 import java.util.LinkedHashMap;
@@ -47,15 +48,15 @@ class BranchProcessorTest {
                     "PREMIUM", "premium_port",
                     "GUEST", "guest_port"));
 
-    final Message msg1 = Message.create(UUID.randomUUID(), Map.of("userType", "PREMIUM"));
-    final Message msg2 = Message.create(UUID.randomUUID(), Map.of("userType", "GUEST"));
+    final Message msg1 = DefaultMessage.create(UUID.randomUUID(), Map.of("userType", "PREMIUM"));
+    final Message msg2 = DefaultMessage.create(UUID.randomUUID(), Map.of("userType", "GUEST"));
 
     StepVerifier.create(processor.process(Flux.just(msg1), config))
-        .expectNextMatches(m -> "premium_port".equals(m.sourcePort()))
+        .expectNextMatches(m -> "premium_port".equals(m.getSourcePort()))
         .verifyComplete();
 
     StepVerifier.create(processor.process(Flux.just(msg2), config))
-        .expectNextMatches(m -> "guest_port".equals(m.sourcePort()))
+        .expectNextMatches(m -> "guest_port".equals(m.getSourcePort()))
         .verifyComplete();
   }
 
@@ -70,10 +71,10 @@ class BranchProcessorTest {
                     "1", "port_1",
                     "2", "port_2"));
 
-    final Message msg = Message.create(UUID.randomUUID(), Map.of("code", 1));
+    final Message msg = DefaultMessage.create(UUID.randomUUID(), Map.of("code", 1));
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectNextMatches(m -> "port_1".equals(m.sourcePort()))
+        .expectNextMatches(m -> "port_1".equals(m.getSourcePort()))
         .verifyComplete();
   }
 
@@ -85,10 +86,10 @@ class BranchProcessorTest {
 
     final Map<String, Object> config = Map.of("mode", "EXPRESSION", "cases", cases);
 
-    final Message msg = Message.create(UUID.randomUUID(), Map.of("score", 95));
+    final Message msg = DefaultMessage.create(UUID.randomUUID(), Map.of("score", 95));
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectNextMatches(m -> "high_score".equals(m.sourcePort()))
+        .expectNextMatches(m -> "high_score".equals(m.getSourcePort()))
         .verifyComplete();
   }
 
@@ -101,11 +102,11 @@ class BranchProcessorTest {
     final Map<String, Object> config =
         Map.of("mode", "EXPRESSION", "allowMultipleMatches", true, "cases", cases);
 
-    final Message msg = Message.create(UUID.randomUUID(), Map.of("score", 95));
+    final Message msg = DefaultMessage.create(UUID.randomUUID(), Map.of("score", 95));
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectNextMatches(m -> "pass".equals(m.sourcePort()))
-        .expectNextMatches(m -> "excellent".equals(m.sourcePort()))
+        .expectNextMatches(m -> "pass".equals(m.getSourcePort()))
+        .expectNextMatches(m -> "excellent".equals(m.getSourcePort()))
         .verifyComplete();
   }
 
@@ -118,10 +119,10 @@ class BranchProcessorTest {
             "cases", Map.of("ADMIN", "admin_port"),
             "defaultPort", "default_port");
 
-    final Message msg = Message.create(UUID.randomUUID(), Map.of("userType", "UNKNOWN"));
+    final Message msg = DefaultMessage.create(UUID.randomUUID(), Map.of("userType", "UNKNOWN"));
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectNextMatches(m -> "default_port".equals(m.sourcePort()))
+        .expectNextMatches(m -> "default_port".equals(m.getSourcePort()))
         .verifyComplete();
   }
 
@@ -138,7 +139,7 @@ class BranchProcessorTest {
             "strictMode",
             true);
 
-    final Message msg = Message.create(UUID.randomUUID(), Map.of("userType", "UNKNOWN"));
+    final Message msg = DefaultMessage.create(UUID.randomUUID(), Map.of("userType", "UNKNOWN"));
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
         .expectError(NoMatchingBranchException.class)
@@ -158,7 +159,7 @@ class BranchProcessorTest {
             "strictMode",
             false);
 
-    final Message msg = Message.create(UUID.randomUUID(), Map.of("userType", "UNKNOWN"));
+    final Message msg = DefaultMessage.create(UUID.randomUUID(), Map.of("userType", "UNKNOWN"));
 
     StepVerifier.create(processor.process(Flux.just(msg), config)).verifyComplete();
   }

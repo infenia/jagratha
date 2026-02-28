@@ -49,7 +49,7 @@ class ConstantProcessorTest {
   @Test
   @SuppressWarnings("unchecked")
   void testEnrichPayload() {
-    when(resolver.isStatic(any())).thenReturn(true);
+    when(resolver.isStatic(any())).thenReturn(false);
     when(resolver.resolve("v1")).thenReturn(Mono.just("v1"));
     when(resolver.resolve("v2")).thenReturn(Mono.just("v2"));
 
@@ -61,7 +61,7 @@ class ConstantProcessorTest {
 
     final Message<?> message = DefaultMessage.create(traceId, Map.of("a", Map.of("x", 1)));
 
-    processor.initialize(config).block();
+    processor.prepare(config).block();
 
     StepVerifier.create(processor.process(Flux.just(message), config))
         .assertNext(
@@ -77,7 +77,7 @@ class ConstantProcessorTest {
   @Test
   @SuppressWarnings("unchecked")
   void testReplacePayload() {
-    when(resolver.isStatic(any())).thenReturn(true);
+    when(resolver.isStatic(any())).thenReturn(false);
     when(resolver.resolve("v1")).thenReturn(Mono.just("v1"));
 
     final Map<String, Object> config =
@@ -88,7 +88,7 @@ class ConstantProcessorTest {
 
     final Message<?> message = DefaultMessage.create(traceId, Map.of("existing", "data"));
 
-    processor.initialize(config).block();
+    processor.prepare(config).block();
 
     StepVerifier.create(processor.process(Flux.just(message), config))
         .assertNext(
@@ -114,7 +114,7 @@ class ConstantProcessorTest {
 
     final Message<?> message = DefaultMessage.create(traceId, "data");
 
-    processor.initialize(config).block();
+    processor.prepare(config).block();
 
     StepVerifier.create(processor.process(Flux.just(message), config))
         .assertNext(
@@ -138,7 +138,7 @@ class ConstantProcessorTest {
 
     final Message<?> message = DefaultMessage.create(traceId, Map.of("a", "existing"));
 
-    processor.initialize(config).block();
+    processor.prepare(config).block();
 
     StepVerifier.create(processor.process(Flux.just(message), config))
         .expectError(IllegalStateException.class)
@@ -159,7 +159,7 @@ class ConstantProcessorTest {
 
     final Message<?> message = DefaultMessage.create(traceId, Map.of("a", "existing"));
 
-    processor.initialize(config).block();
+    processor.prepare(config).block();
 
     StepVerifier.create(processor.process(Flux.just(message), config))
         .assertNext(

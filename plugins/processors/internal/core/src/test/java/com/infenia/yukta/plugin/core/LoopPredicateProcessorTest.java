@@ -22,6 +22,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import com.infenia.yukta.plugin.ProcessorPlugin;
 import com.infenia.yukta.service.TaskTrackerService;
@@ -70,8 +71,8 @@ class LoopPredicateProcessorTest {
               Flux<Message> input = invocation.getArgument(0);
               return input.map(
                   msg -> {
-                    int val = (int) msg.payload();
-                    return Message.create(msg.traceId(), val + 1);
+                    int val = (int) msg.getPayload();
+                    return DefaultMessage.create(UUID.fromString(msg.getTraceId()), val + 1);
                   });
             });
 
@@ -86,13 +87,13 @@ class LoopPredicateProcessorTest {
             "exitCondition",
             "#root.payload == 3");
 
-    final Message inputMsg = Message.create(UUID.randomUUID(), 0);
+    final Message inputMsg = DefaultMessage.create(UUID.randomUUID(), 0);
 
     StepVerifier.create(
             processor
                 .process(Flux.just(inputMsg), config)
                 .contextWrite(Context.of("executionId", "e1", "nodeId", "n1")))
-        .expectNextMatches(msg -> (int) msg.payload() == 3)
+        .expectNextMatches(msg -> (int) msg.getPayload() == 3)
         .verifyComplete();
 
     verify(tracker, atLeastOnce()).appendLog(eq("e1"), anyString());
@@ -110,8 +111,8 @@ class LoopPredicateProcessorTest {
               Flux<Message> input = invocation.getArgument(0);
               return input.map(
                   msg -> {
-                    int val = (int) msg.payload();
-                    return Message.create(msg.traceId(), val + 1);
+                    int val = (int) msg.getPayload();
+                    return DefaultMessage.create(UUID.fromString(msg.getTraceId()), val + 1);
                   });
             });
 
@@ -125,13 +126,13 @@ class LoopPredicateProcessorTest {
             "#root.payload == 10" // won't reach
             );
 
-    final Message inputMsg = Message.create(UUID.randomUUID(), 0);
+    final Message inputMsg = DefaultMessage.create(UUID.randomUUID(), 0);
 
     StepVerifier.create(
             processor
                 .process(Flux.just(inputMsg), config)
                 .contextWrite(Context.of("executionId", "e1", "nodeId", "n1")))
-        .expectNextMatches(msg -> (int) msg.payload() == 2)
+        .expectNextMatches(msg -> (int) msg.getPayload() == 2)
         .verifyComplete();
 
     verify(tracker).appendLog(eq("e1"), eq("[Loop] Node: n1 - Max iterations (2)"));
@@ -149,7 +150,7 @@ class LoopPredicateProcessorTest {
     final Map<String, Object> config =
         Map.of("targetPluginId", targetId, "failureStrategy", "ESCALATE");
 
-    final Message inputMsg = Message.create(UUID.randomUUID(), 0);
+    final Message inputMsg = DefaultMessage.create(UUID.randomUUID(), 0);
 
     StepVerifier.create(
             processor

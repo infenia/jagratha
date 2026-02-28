@@ -22,7 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** High-speed, non-reflective evaluator for simple expressions. Supports: ==, exists, matches. */
-@SuppressWarnings("PMD.OnlyOneReturn")
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.LawOfDemeter"})
 public final class SimpleExpressionEvaluator {
   private static final String PAYLOAD_PREFIX = "payload.";
   private static final String METADATA_PREFIX = "metadata.";

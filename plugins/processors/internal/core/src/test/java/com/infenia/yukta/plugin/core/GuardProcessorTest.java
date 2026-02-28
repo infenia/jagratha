@@ -17,6 +17,7 @@ package com.infenia.yukta.plugin.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import java.util.Map;
 import java.util.UUID;
@@ -37,20 +38,20 @@ class GuardProcessorTest {
   @Test
   void testSuccessfulTrueRouting() {
     final Map<String, Object> config = Map.of("condition", "payload > 100");
-    final Message msg = Message.create(UUID.randomUUID(), 150);
+    final Message msg = DefaultMessage.create(UUID.randomUUID(), 150);
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectNextMatches(m -> "true".equals(m.sourcePort()) && m.payload().equals(150))
+        .expectNextMatches(m -> "true".equals(m.getSourcePort()) && m.getPayload().equals(150))
         .verifyComplete();
   }
 
   @Test
   void testSuccessfulFalseRouting() {
     final Map<String, Object> config = Map.of("condition", "payload > 100");
-    final Message msg = Message.create(UUID.randomUUID(), 50);
+    final Message msg = DefaultMessage.create(UUID.randomUUID(), 50);
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectNextMatches(m -> "false".equals(m.sourcePort()) && m.payload().equals(50))
+        .expectNextMatches(m -> "false".equals(m.getSourcePort()) && m.getPayload().equals(50))
         .verifyComplete();
   }
 
@@ -58,17 +59,10 @@ class GuardProcessorTest {
   void testMetadataAccess() {
     final Map<String, Object> config = Map.of("condition", "metadata.priority == 'HIGH'");
     final Message msg =
-        new Message(
-            UUID.randomUUID(),
-            UUID.randomUUID(),
-            Map.of("priority", "HIGH"),
-            "data",
-            java.time.Instant.now(),
-            null,
-            null);
+        DefaultMessage.create(UUID.randomUUID(), "data").withMetadata(Map.of("priority", "HIGH"));
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectNextMatches(m -> "true".equals(m.sourcePort()))
+        .expectNextMatches(m -> "true".equals(m.getSourcePort()))
         .verifyComplete();
   }
 
@@ -76,7 +70,7 @@ class GuardProcessorTest {
   void testStrictModeFailure() {
     final Map<String, Object> config =
         Map.of("condition", "payload.invalidField > 100", "strictMode", true);
-    final Message msg = Message.create(UUID.randomUUID(), 150);
+    final Message msg = DefaultMessage.create(UUID.randomUUID(), 150);
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
         .expectErrorMatches(e -> e.getMessage().contains("WorkflowExecutionException"))
@@ -87,10 +81,10 @@ class GuardProcessorTest {
   void testNonStrictModeFailure() {
     final Map<String, Object> config =
         Map.of("condition", "payload.invalidField > 100", "strictMode", false);
-    final Message msg = Message.create(UUID.randomUUID(), 150);
+    final Message msg = DefaultMessage.create(UUID.randomUUID(), 150);
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectNextMatches(m -> "false".equals(m.sourcePort()))
+        .expectNextMatches(m -> "false".equals(m.getSourcePort()))
         .verifyComplete();
   }
 
@@ -98,10 +92,10 @@ class GuardProcessorTest {
   void testErrorPortRouting() {
     final Map<String, Object> config =
         Map.of("condition", "payload.invalidField > 100", "errorPort", "custom-error");
-    final Message msg = Message.create(UUID.randomUUID(), 150);
+    final Message msg = DefaultMessage.create(UUID.randomUUID(), 150);
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectNextMatches(m -> "custom-error".equals(m.sourcePort()))
+        .expectNextMatches(m -> "custom-error".equals(m.getSourcePort()))
         .verifyComplete();
   }
 

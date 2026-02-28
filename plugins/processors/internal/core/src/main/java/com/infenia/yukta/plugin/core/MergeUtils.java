@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Utility for merging messages and payloads. */
+@SuppressWarnings("PMD.LawOfDemeter")
 public final class MergeUtils {
 
   private MergeUtils() {
@@ -36,17 +37,17 @@ public final class MergeUtils {
    * @return the merged object
    */
   public static Object mergeObjects(
-      final List<String> ancestors, final Map<String, Message> messages) {
+      final List<String> ancestors, final Map<String, Message<?>> messages) {
     final Map<String, Object> result = new ConcurrentHashMap<>();
     final List<String> order =
         (ancestors != null && !ancestors.isEmpty())
             ? ancestors
             : new ArrayList<>(messages.keySet());
     for (final String sourceId : order) {
-      final Message msg = messages.get(sourceId);
-      if (msg != null && msg.payload() instanceof Map) {
+      final Message<?> msg = messages.get(sourceId);
+      if (msg != null && msg.getPayload() instanceof Map) {
         @SuppressWarnings("unchecked")
-        final Map<String, Object> payloadMap = (Map<String, Object>) msg.payload();
+        final Map<String, Object> payloadMap = (Map<String, Object>) msg.getPayload();
         deepMerge(result, payloadMap);
       }
     }

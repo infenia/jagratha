@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -47,7 +48,7 @@ class FileUpdateRecordPluginTest {
   void testConsumeAndRecordStatus() throws IOException {
     Map<String, Object> config = Map.of("outputDir", tempDir.toString());
     Map<String, String> payload = Map.of("path", "src/App.java", "status", "SUCCESS");
-    Message msg = Message.create(UUID.randomUUID(), payload);
+    Message msg = DefaultMessage.create(UUID.randomUUID(), payload);
 
     StepVerifier.create(plugin.consume(Flux.just(msg), config)).verifyComplete();
 
@@ -64,12 +65,12 @@ class FileUpdateRecordPluginTest {
 
     // First record
     Message msg1 =
-        Message.create(UUID.randomUUID(), Map.of("path", "file.txt", "status", "PENDING"));
+        DefaultMessage.create(UUID.randomUUID(), Map.of("path", "file.txt", "status", "PENDING"));
     plugin.consume(Flux.just(msg1), config).block();
 
     // Second record (update)
     Message msg2 =
-        Message.create(UUID.randomUUID(), Map.of("path", "file.txt", "status", "SUCCESS"));
+        DefaultMessage.create(UUID.randomUUID(), Map.of("path", "file.txt", "status", "SUCCESS"));
     plugin.consume(Flux.just(msg2), config).block();
 
     Path recordFile = tempDir.resolve("file-status.json");

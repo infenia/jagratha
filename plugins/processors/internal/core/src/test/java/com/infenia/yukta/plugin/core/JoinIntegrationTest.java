@@ -24,6 +24,7 @@ import com.infenia.yukta.config.AppConfigService;
 import com.infenia.yukta.model.WorkflowDefinition;
 import com.infenia.yukta.model.WorkflowDefinition.Edge;
 import com.infenia.yukta.model.WorkflowDefinition.Node;
+import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import com.infenia.yukta.plugin.PluginCategory;
 import com.infenia.yukta.plugin.TerminalPlugin;
@@ -68,7 +69,7 @@ class JoinIntegrationTest {
     when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(3600L));
     orchestrator =
         new WorkflowOrchestrator(
-            registry, tracker, validator, configService, Schedulers.immediate());
+            registry, tracker, validator, configService, null, Schedulers.immediate());
 
     joinStore = new InMemoryJoinStore();
     joinStore.init();
@@ -109,7 +110,8 @@ class JoinIntegrationTest {
         .thenAnswer(
             inv -> {
               Map<String, Object> config = inv.getArgument(0);
-              return Flux.just(Message.create(commonTraceId, "data-from-" + config.get("id")));
+              return Flux.just(
+                  DefaultMessage.create(commonTraceId, "data-from-" + config.get("id")));
             });
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
@@ -124,7 +126,7 @@ class JoinIntegrationTest {
         .thenAnswer(
             inv -> {
               Flux<Message> input = inv.getArgument(0);
-              return input.doOnNext(m -> resultPayload.set((List<?>) m.payload())).then();
+              return input.doOnNext(m -> resultPayload.set((List<?>) m.getPayload())).then();
             });
 
     when(registry.get("trigger")).thenReturn(trigger);

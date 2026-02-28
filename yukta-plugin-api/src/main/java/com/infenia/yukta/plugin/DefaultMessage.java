@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Default implementation of the {@link Message} interface using a Java record.
@@ -37,7 +38,7 @@ import java.util.UUID;
  * @param sequenceSize total number of messages in the sequence
  * @param priority message priority
  * @param controlMessage indicates if this is a control message
- * @param originalDestination destination before failure
+ * @param origDest destination before failure
  * @param failureReason reason for failure
  * @param exceptionDetail detailed exception info
  * @param retryCount number of retries
@@ -61,7 +62,7 @@ public record DefaultMessage<T>(
     int sequenceSize,
     int priority,
     boolean controlMessage,
-    String originalDestination,
+    String origDest,
     String failureReason,
     String exceptionDetail,
     int retryCount,
@@ -166,8 +167,8 @@ public record DefaultMessage<T>(
   }
 
   @Override
-  public String getOriginalDestination() {
-    return originalDestination;
+  public String getOrigDest() {
+    return origDest;
   }
 
   @Override
@@ -206,7 +207,7 @@ public record DefaultMessage<T>(
         sequenceSize,
         priority,
         controlMessage,
-        originalDestination,
+        origDest,
         failureReason,
         exceptionDetail,
         retryCount,
@@ -232,7 +233,7 @@ public record DefaultMessage<T>(
         sequenceSize,
         priority,
         controlMessage,
-        originalDestination,
+        origDest,
         failureReason,
         exceptionDetail,
         retryCount,
@@ -258,7 +259,7 @@ public record DefaultMessage<T>(
         sequenceSize,
         priority,
         controlMessage,
-        originalDestination,
+        origDest,
         failureReason,
         exceptionDetail,
         retryCount,
@@ -284,7 +285,7 @@ public record DefaultMessage<T>(
         sequenceSize,
         priority,
         controlMessage,
-        originalDestination,
+        origDest,
         failureReason,
         exceptionDetail,
         retryCount,
@@ -312,7 +313,7 @@ public record DefaultMessage<T>(
         sequenceSize,
         priority,
         controlMessage,
-        originalDestination,
+        origDest,
         failureReason,
         exceptionDetail,
         retryCount,
@@ -338,7 +339,7 @@ public record DefaultMessage<T>(
         total,
         priority,
         controlMessage,
-        originalDestination,
+        origDest,
         failureReason,
         exceptionDetail,
         retryCount,
@@ -364,7 +365,7 @@ public record DefaultMessage<T>(
         sequenceSize,
         newPriority,
         controlMessage,
-        originalDestination,
+        origDest,
         failureReason,
         exceptionDetail,
         retryCount,
@@ -390,7 +391,7 @@ public record DefaultMessage<T>(
         sequenceSize,
         priority,
         control,
-        originalDestination,
+        origDest,
         failureReason,
         exceptionDetail,
         retryCount,
@@ -401,7 +402,7 @@ public record DefaultMessage<T>(
   }
 
   @Override
-  public Message<T> withFailure(final String dest, final String reason, final String detail) {
+  public Message<T> withFailure(final String origDest, final String reason, final String detail) {
     return new DefaultMessage<>(
         id,
         traceId,
@@ -416,7 +417,7 @@ public record DefaultMessage<T>(
         sequenceSize,
         priority,
         controlMessage,
-        dest,
+        origDest,
         reason,
         detail,
         retryCount,
@@ -442,7 +443,7 @@ public record DefaultMessage<T>(
         sequenceSize,
         priority,
         controlMessage,
-        originalDestination,
+        origDest,
         failureReason,
         exceptionDetail,
         count,
@@ -473,7 +474,7 @@ public record DefaultMessage<T>(
         sequenceSize,
         priority,
         controlMessage,
-        originalDestination,
+        origDest,
         failureReason,
         exceptionDetail,
         retryCount,
@@ -499,7 +500,7 @@ public record DefaultMessage<T>(
         sequenceSize,
         priority,
         controlMessage,
-        originalDestination,
+        origDest,
         failureReason,
         exceptionDetail,
         retryCount,
@@ -511,7 +512,7 @@ public record DefaultMessage<T>(
 
   @Override
   public Message<T> withHeader(final String key, final Object value) {
-    final java.util.Map<String, Object> newMetadata = new java.util.HashMap<>(metadata);
+    final Map<String, Object> newMetadata = new ConcurrentHashMap<>(metadata);
     newMetadata.put(key, value);
     return withMetadata(newMetadata);
   }
@@ -539,7 +540,7 @@ public record DefaultMessage<T>(
         original.getSequenceSize(),
         original.getPriority(),
         original.isControlMessage(),
-        original.getOriginalDestination(),
+        original.getOrigDest(),
         original.getFailureReason(),
         original.getExceptionDetail(),
         original.getRetryCount(),

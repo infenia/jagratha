@@ -26,6 +26,7 @@ public interface IdempotencyStore {
    * @param messageId the unique message identifier
    * @return a Mono emitting true if the message is a duplicate
    */
+  @SuppressWarnings("PMD.LinguisticNaming")
   Mono<Boolean> isDuplicate(String messageId);
 
   /**

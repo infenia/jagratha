@@ -44,7 +44,7 @@ class ConstantSourceTest {
   @Test
   @SuppressWarnings("unchecked")
   void testStartWithPayloadTarget() {
-    when(resolver.isStatic(any())).thenReturn(true);
+    when(resolver.isStatic(any())).thenReturn(false);
     when(resolver.resolve("val")).thenReturn(Mono.just("resolved-val"));
 
     final Map<String, Object> config =
@@ -55,10 +55,10 @@ class ConstantSourceTest {
     StepVerifier.create(source.start(config).contextWrite(ctx -> ctx.put("payload", Map.of())))
         .assertNext(
             message -> {
-              assertTrue(message.payload() instanceof Map);
-              Map<String, Object> payload = (Map<String, Object>) message.payload();
+              assertTrue(message.getPayload() instanceof Map);
+              Map<String, Object> payload = (Map<String, Object>) message.getPayload();
               assertEquals("resolved-val", payload.get("key"));
-              assertTrue(message.metadata().isEmpty());
+              assertTrue(message.getMetadata().isEmpty());
             })
         .verifyComplete();
   }
@@ -66,7 +66,7 @@ class ConstantSourceTest {
   @Test
   @SuppressWarnings("unchecked")
   void testStartWithMetadataTarget() {
-    when(resolver.isStatic(any())).thenReturn(true);
+    when(resolver.isStatic(any())).thenReturn(false);
     when(resolver.resolve("val")).thenReturn(Mono.just("resolved-val"));
 
     final Map<String, Object> config =
@@ -77,8 +77,8 @@ class ConstantSourceTest {
     StepVerifier.create(source.start(config).contextWrite(ctx -> ctx.put("payload", Map.of())))
         .assertNext(
             message -> {
-              assertEquals("resolved-val", message.metadata().get("key"));
-              assertTrue(((Map) message.payload()).isEmpty());
+              assertEquals("resolved-val", message.getMetadata().get("key"));
+              assertTrue(((Map) message.getPayload()).isEmpty());
             })
         .verifyComplete();
   }

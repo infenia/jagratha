@@ -51,7 +51,8 @@ import reactor.core.publisher.Mono;
   "PMD.ExceptionAsFlowControl",
   "PMD.CyclomaticComplexity",
   "PMD.UseConcurrentHashMap",
-  "PMD.GodClass"
+  "PMD.GodClass",
+  "PMD.LawOfDemeter"
 })
 public class MapperProcessor implements ProcessorPlugin {
 

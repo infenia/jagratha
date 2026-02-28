@@ -26,6 +26,7 @@ import java.util.Map;
  *
  * @param <T> the type of the payload
  */
+@SuppressWarnings("PMD.TooManyMethods")
 public interface Message<T> {
 
   // --- Header / Metadata Accessors ---
@@ -162,7 +163,7 @@ public interface Message<T> {
    *
    * @return the original destination
    */
-  String getOriginalDestination();
+  String getOrigDest();
 
   /**
    * Describes the reason for failure.
@@ -265,12 +266,12 @@ public interface Message<T> {
   /**
    * Create a copy of this message augmented with failure metadata.
    *
-   * @param destination the original destination
+   * @param origDest the original destination
    * @param reason the failure reason
    * @param detail the exception detail
    * @return a new message instance
    */
-  Message<T> withFailure(String destination, String reason, String detail);
+  Message<T> withFailure(String origDest, String reason, String detail);
 
   /**
    * Create a copy of this message with a specific retry count.

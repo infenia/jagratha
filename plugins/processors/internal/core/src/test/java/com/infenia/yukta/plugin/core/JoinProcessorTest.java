@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import com.infenia.yukta.service.join.JoinStore;
 import com.infenia.yukta.service.join.JoinStore.JoinResult;
@@ -54,24 +55,8 @@ class JoinProcessorTest {
             "expectedAncestors", List.of("NodeA", "NodeB"),
             "mergeStrategy", "ARRAY");
     final UUID traceId = UUID.randomUUID();
-    final Message msgA =
-        new Message(
-            UUID.randomUUID(),
-            traceId,
-            Map.of(),
-            "payloadA",
-            java.time.Instant.now(),
-            null,
-            "NodeA");
-    final Message msgB =
-        new Message(
-            UUID.randomUUID(),
-            traceId,
-            Map.of(),
-            "payloadB",
-            java.time.Instant.now(),
-            null,
-            "NodeB");
+    final Message msgA = DefaultMessage.create(traceId, "payloadA").withSourceNodeId("NodeA");
+    final Message msgB = DefaultMessage.create(traceId, "payloadB").withSourceNodeId("NodeB");
 
     when(joinStore.addMessage(anyString(), eq("NodeA"), eq(msgA), any()))
         .thenReturn(Mono.just(new JoinResult(JoinResult.Status.WAITING, null)));
@@ -87,7 +72,7 @@ class JoinProcessorTest {
                 .contextWrite(ctx -> ctx.put("nodeId", "joinNode").put("sessionId", "sess1")))
         .expectNextMatches(
             m -> {
-              List<?> payload = (List<?>) m.payload();
+              List<?> payload = (List<?>) m.getPayload();
               return payload.size() == 2
                   && payload.contains("payloadA")
                   && payload.contains("payloadB");
@@ -102,12 +87,8 @@ class JoinProcessorTest {
             "mode", "ANY",
             "latePort", "late");
     final UUID traceId = UUID.randomUUID();
-    final Message msg1 =
-        new Message(
-            UUID.randomUUID(), traceId, Map.of(), "p1", java.time.Instant.now(), null, "Node1");
-    final Message msg2 =
-        new Message(
-            UUID.randomUUID(), traceId, Map.of(), "p2", java.time.Instant.now(), null, "Node2");
+    final Message msg1 = DefaultMessage.create(traceId, "p1").withSourceNodeId("Node1");
+    final Message msg2 = DefaultMessage.create(traceId, "p2").withSourceNodeId("Node2");
 
     when(joinStore.addMessage(anyString(), any(), eq(msg1), any()))
         .thenReturn(Mono.just(new JoinResult(JoinResult.Status.COMPLETED, Map.of("Node1", msg1))));
@@ -119,8 +100,8 @@ class JoinProcessorTest {
             processor
                 .process(Flux.just(msg1, msg2), config)
                 .contextWrite(ctx -> ctx.put("nodeId", "joinNode").put("sessionId", "sess1")))
-        .expectNextMatches(m -> m.sourcePort() == null && List.of("p1").equals(m.payload()))
-        .expectNextMatches(m -> "late".equals(m.sourcePort()) && "p2".equals(m.payload()))
+        .expectNextMatches(m -> m.getSourcePort() == null && List.of("p1").equals(m.getPayload()))
+        .expectNextMatches(m -> "late".equals(m.getSourcePort()) && "p2".equals(m.getPayload()))
         .verifyComplete();
   }
 
@@ -133,23 +114,9 @@ class JoinProcessorTest {
             "mergeStrategy", "OBJECT_MERGE");
     final UUID traceId = UUID.randomUUID();
     final Message msgA =
-        new Message(
-            UUID.randomUUID(),
-            traceId,
-            Map.of(),
-            Map.of("a", 1, "common", "fromA"),
-            java.time.Instant.now(),
-            null,
-            "NodeA");
+        DefaultMessage.create(traceId, Map.of("a", 1, "common", "fromA")).withSourceNodeId("NodeA");
     final Message msgB =
-        new Message(
-            UUID.randomUUID(),
-            traceId,
-            Map.of(),
-            Map.of("b", 2, "common", "fromB"),
-            java.time.Instant.now(),
-            null,
-            "NodeB");
+        DefaultMessage.create(traceId, Map.of("b", 2, "common", "fromB")).withSourceNodeId("NodeB");
 
     when(joinStore.addMessage(anyString(), any(), any(), any()))
         .thenReturn(
@@ -162,7 +129,7 @@ class JoinProcessorTest {
                 .contextWrite(ctx -> ctx.put("nodeId", "joinNode").put("sessionId", "sess1")))
         .expectNextMatches(
             m -> {
-              Map<?, ?> payload = (Map<?, ?>) m.payload();
+              Map<?, ?> payload = (Map<?, ?>) m.getPayload();
               return payload.get("a").equals(1)
                   && payload.get("b").equals(2)
                   && payload.get("common").equals("fromB");
@@ -178,9 +145,7 @@ class JoinProcessorTest {
             "count", 1,
             "mergeStrategy", "LATEST");
     final UUID traceId = UUID.randomUUID();
-    final Message msg1 =
-        new Message(
-            UUID.randomUUID(), traceId, Map.of(), "p1", java.time.Instant.now(), null, "Node1");
+    final Message msg1 = DefaultMessage.create(traceId, "p1").withSourceNodeId("Node1");
 
     when(joinStore.addMessage(anyString(), any(), any(), any()))
         .thenReturn(Mono.just(new JoinResult(JoinResult.Status.COMPLETED, Map.of("Node1", msg1))));
@@ -189,7 +154,7 @@ class JoinProcessorTest {
             processor
                 .process(Flux.just(msg1), config)
                 .contextWrite(ctx -> ctx.put("nodeId", "joinNode").put("sessionId", "sess1")))
-        .expectNextMatches(m -> "p1".equals(m.payload()))
+        .expectNextMatches(m -> "p1".equals(m.getPayload()))
         .verifyComplete();
   }
 

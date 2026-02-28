@@ -20,6 +20,7 @@ import com.infenia.yukta.plugin.MessageMapper;
 import java.util.Map;
 
 /** Example MessageMapper that maps between a generic Message and a Map domain object. */
+@SuppressWarnings({"PMD.AtLeastOneConstructor", "PMD.OnlyOneReturn", "PMD.LawOfDemeter"})
 public class MapMessageMapper implements MessageMapper<Object, Map<String, Object>> {
 
   @Override

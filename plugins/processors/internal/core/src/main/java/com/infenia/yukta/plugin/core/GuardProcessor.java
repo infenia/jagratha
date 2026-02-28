@@ -98,7 +98,9 @@ public class GuardProcessor implements ProcessorPlugin {
                   "Guard evaluation failed for condition [{}]: {}", condition, e.getMessage());
             }
             if (errorPort != null) {
-              return message.withFailure(errorPort, "Guard evaluation failed", e.getMessage());
+              return message
+                  .withSourcePort(errorPort)
+                  .withFailure(null, "Guard evaluation failed", e.getMessage());
             }
             if (!strictMode) {
               return message.withSourcePort(PORT_FALSE);

@@ -31,6 +31,7 @@ import com.infenia.yukta.plugin.TriggerPlugin;
 import com.infenia.yukta.plugin.WorkflowPlugin;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
+import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -44,6 +45,8 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.Disposable;
@@ -107,13 +110,15 @@ public class WorkflowOrchestrator {
    * @param messageStore the message store for auditing
    * @param virtualThreadScheduler the scheduler for virtual threads
    */
+  @Autowired
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("EI_EXPOSE_REP2")
   public WorkflowOrchestrator(
       final WorkflowRegistry registry,
       final TaskTrackerService tracker,
       final WorkflowValidator validator,
       final AppConfigService configService,
-      final MessageStore messageStore,
-      final Scheduler virtualThreadScheduler) {
+      @Nullable final MessageStore messageStore,
+      @Qualifier("virtualThreadScheduler") final Scheduler virtualThreadScheduler) {
     this.registry = registry;
     this.tracker = tracker;
     this.validator = validator;
@@ -397,9 +402,9 @@ public class WorkflowOrchestrator {
       }
       stream =
           stream
-              .flatMap(
+              .<Message<?>>flatMap(
                   msg ->
-                      Mono.just(msg)
+                      Mono.<Message<?>>just(msg)
                           .timeout(timeout, virtualThreadScheduler)
                           .onErrorMap(TimeoutException.class, e -> e),
                   bufferSize)
@@ -457,9 +462,9 @@ public class WorkflowOrchestrator {
 
       stream =
           stream
-              .flatMap(
+              .<Message<?>>flatMap(
                   msg ->
-                      Mono.just(msg)
+                      Mono.<Message<?>>just(msg)
                           .timeout(timeout, virtualThreadScheduler)
                           .onErrorMap(TimeoutException.class, e -> e),
                   bufferSize)
@@ -510,9 +515,9 @@ public class WorkflowOrchestrator {
       final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
       final Flux<Message<?>> inputToTerminal =
           mergedInput
-              .flatMap(
+              .<Message<?>>flatMap(
                   msg ->
-                      Mono.just(msg)
+                      Mono.<Message<?>>just(msg)
                           .timeout(timeout, virtualThreadScheduler)
                           .onErrorMap(TimeoutException.class, e -> e),
                   BUFFER_SIZE)

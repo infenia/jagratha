@@ -79,7 +79,7 @@ public class ConstantSource implements TriggerPlugin {
     final String target = (String) config.getOrDefault("target", TARGET_PAYLOAD);
 
     return resolveVariables(variables)
-        .map(
+        .<Message<?>>map(
             resolvedVars -> {
               final Map<String, Object> metadata = new HashMap<>();
               Object resultPayload = new HashMap<>();
@@ -92,7 +92,7 @@ public class ConstantSource implements TriggerPlugin {
                 resultPayload = payloadMap;
               }
 
-              return DefaultMessage.create(UUID.randomUUID(), resultPayload);
+              return DefaultMessage.create(UUID.randomUUID(), resultPayload).withMetadata(metadata);
             })
         .flux();
   }

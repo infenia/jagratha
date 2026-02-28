@@ -96,14 +96,14 @@ public abstract class AbstractBuildToolPlugin implements TriggerPlugin, Processo
   }
 
   @Override
-  public Flux<Message<?>> process(
-      final Flux<Message<?>> input, final Map<String, Object> config) {
+  public Flux<Message<?>> process(final Flux<Message<?>> input, final Map<String, Object> config) {
     return input
         .onBackpressureDrop()
         .flatMap(
             message -> {
               final String traceIdStr = message.getTraceId();
-              final UUID traceId = traceIdStr != null ? UUID.fromString(traceIdStr) : UUID.randomUUID();
+              final UUID traceId =
+                  traceIdStr != null ? UUID.fromString(traceIdStr) : UUID.randomUUID();
               return execute(config, traceId);
             },
             1);
@@ -119,7 +119,7 @@ public abstract class AbstractBuildToolPlugin implements TriggerPlugin, Processo
         .concatMap(task -> executeTask(projectDir, getCommand(config, task), task, timeout))
         .collectList()
         .map(logsList -> String.join("\n--- Task Divider ---\n", logsList))
-        .map(allLogs -> DefaultMessage.create(traceId, allLogs))
+        .<Message<?>>map(allLogs -> DefaultMessage.create(traceId, allLogs))
         .flux();
   }
 

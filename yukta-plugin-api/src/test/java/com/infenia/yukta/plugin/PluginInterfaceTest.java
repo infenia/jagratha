@@ -110,7 +110,7 @@ class PluginInterfaceTest {
     assertTrue(controlled.isControlMessage());
 
     Message<String> failed = controlled.withFailure("error-port", "Bad Data", "Invalid format");
-    assertEquals("error-port", failed.getOriginalDestination());
+    assertEquals("error-port", failed.getOrigDest());
     assertEquals("Bad Data", failed.getFailureReason());
     assertEquals("Invalid format", failed.getExceptionDetail());
 
@@ -122,7 +122,7 @@ class PluginInterfaceTest {
 
     Message<Integer> rePayloaded = incremented.withPayload(123);
     assertEquals(123, rePayloaded.getPayload());
-    assertEquals("error-port", rePayloaded.getOriginalDestination());
+    assertEquals("error-port", rePayloaded.getOrigDest());
   }
 
   @Test

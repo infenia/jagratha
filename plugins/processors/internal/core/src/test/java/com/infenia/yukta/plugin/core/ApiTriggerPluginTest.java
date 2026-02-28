@@ -31,7 +31,7 @@ class ApiTriggerPluginTest {
     StepVerifier.create(plugin.start(Map.of()).contextWrite(ctx -> ctx.put("payload", payload)))
         .assertNext(
             message -> {
-              assertEquals(payload, message.payload());
+              assertEquals(payload, (Map<String, Object>) message.getPayload());
             })
         .verifyComplete();
   }

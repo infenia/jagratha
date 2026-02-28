@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.config.AppConfigService;
 import com.infenia.yukta.model.PreparedWorkflow;
 import com.infenia.yukta.model.WorkflowDefinition;
+import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import com.infenia.yukta.plugin.ResultCollector;
 import com.infenia.yukta.service.WorkflowOrchestrator;
@@ -68,7 +69,7 @@ class SubWorkflowProcessorTest {
 
     final WorkflowDefinition subDef = mock(WorkflowDefinition.class);
     final PreparedWorkflow prepared = mock(PreparedWorkflow.class);
-    final Message subResult = Message.create(UUID.randomUUID(), "success-result");
+    final Message subResult = DefaultMessage.create(UUID.randomUUID(), "success-result");
 
     when(configService.getWorkflow(eq(parentSessionId), eq(subWorkflowId)))
         .thenReturn(Mono.just(subDef));
@@ -101,13 +102,13 @@ class SubWorkflowProcessorTest {
             "inputMapper", "#root.payload",
             "outputMapper", "#root[0].payload");
 
-    final Message inputMsg = Message.create(UUID.randomUUID(), Map.of("key", "val"));
+    final Message inputMsg = DefaultMessage.create(UUID.randomUUID(), Map.of("key", "val"));
 
     StepVerifier.create(
             processor
                 .process(Flux.just(inputMsg), config)
                 .contextWrite(Context.of("sessionId", parentSessionId, "nodeId", nodeId)))
-        .expectNextMatches(msg -> "success-result".equals(msg.payload()))
+        .expectNextMatches(msg -> "success-result".equals(msg.getPayload()))
         .verifyComplete();
   }
 }

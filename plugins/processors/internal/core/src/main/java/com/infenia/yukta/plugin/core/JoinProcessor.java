@@ -36,7 +36,7 @@ import reactor.core.publisher.Mono;
 /** Synchronizes multiple incoming execution paths by waiting for criteria to be met. */
 @Slf4j
 @Component
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.TooManyMethods"})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.TooManyMethods", "PMD.GodClass", "PMD.LawOfDemeter"})
 public class JoinProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "JOIN";
@@ -267,24 +267,25 @@ public class JoinProcessor implements ProcessorPlugin {
   private List<Object> mergeAsArray(
       final List<String> ancestors, final Map<String, Message<?>> messages) {
     if (ancestors == null || ancestors.isEmpty()) {
-      return messages.values().stream().map(Message::getPayload).toList();
+      return messages.values().stream().map(msg -> (Object) msg.getPayload()).toList();
     }
     return ancestors.stream()
         .map(messages::get)
         .filter(java.util.Objects::nonNull)
-        .map(Message::getPayload)
+        .map(msg -> (Object) msg.getPayload())
         .toList();
   }
 
   private Message<?> createErrorMessage(
       final Message<?> original, final String error, final String port) {
-    return original.withFailure(port, error, null);
+    return original.withSourcePort(port).withFailure(null, error, null);
   }
 
   private Message<?> createTimeoutErrorMessage(final Object corrId, final String port) {
     final UUID traceId = (corrId instanceof UUID) ? (UUID) corrId : UUID.randomUUID();
     return DefaultMessage.create(traceId, "Timeout")
-        .withFailure(port, "Join timed out", null)
+        .withSourcePort(port)
+        .withFailure(null, "Join timed out", null)
         .withControl(true);
   }
 }

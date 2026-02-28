@@ -18,6 +18,7 @@ package com.infenia.yukta.plugin.gradle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.infenia.yukta.plugin.DefaultMessage;
 import com.infenia.yukta.plugin.Message;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -95,9 +96,9 @@ class GradlePluginTest {
     StepVerifier.create(plugin.start(config))
         .assertNext(
             message -> {
-              assertNotNull(message.id());
-              assertNotNull(message.traceId());
-              assertEquals("Task output for testTask", ((String) message.payload()).trim());
+              assertNotNull(message.getMessageId());
+              assertNotNull(message.getTraceId());
+              assertEquals("Task output for testTask", ((String) message.getPayload()).trim());
             })
         .verifyComplete();
   }
@@ -128,13 +129,12 @@ class GradlePluginTest {
             "gradlePath", "./gradlew");
 
     UUID traceId = UUID.randomUUID();
-    Message inputMessage = Message.create(traceId, Map.of("some", "payload"));
-
+    Message inputMessage = DefaultMessage.create(traceId, Map.of("some", "payload"));
     StepVerifier.create(plugin.process(Flux.just(inputMessage), config))
         .assertNext(
             message -> {
-              assertEquals(traceId, message.traceId());
-              assertEquals("Task output for processTask", ((String) message.payload()).trim());
+              assertEquals(traceId.toString(), message.getTraceId());
+              assertEquals("Task output for processTask", ((String) message.getPayload()).trim());
             })
         .verifyComplete();
   }
@@ -158,13 +158,13 @@ class GradlePluginTest {
             "timeout",
             5L);
 
-    Message msg1 = Message.create(UUID.randomUUID(), "payload1");
-    Message msg2 = Message.create(UUID.randomUUID(), "payload2");
+    Message msg1 = DefaultMessage.create(UUID.randomUUID(), "payload1");
+    Message msg2 = DefaultMessage.create(UUID.randomUUID(), "payload2");
 
     // Send two messages almost simultaneously.
     // The second one should be ignored because the first one is running (exhaustMap behavior).
     StepVerifier.create(plugin.process(Flux.just(msg1, msg2), config))
-        .assertNext(m -> assertEquals("Finished task", ((String) m.payload()).trim()))
+        .assertNext(m -> assertEquals("Finished task", ((String) m.getPayload()).trim()))
         .verifyComplete();
   }
 }
