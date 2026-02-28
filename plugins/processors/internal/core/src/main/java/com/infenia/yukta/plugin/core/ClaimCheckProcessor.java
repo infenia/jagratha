@@ -39,7 +39,7 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 @Component
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.TooManyMethods", "PMD.LongVariable"})
 public class ClaimCheckProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "claim-check";
@@ -67,6 +67,11 @@ public class ClaimCheckProcessor implements ProcessorPlugin {
 
   private final ApplicationContext appContext;
 
+  /**
+   * Constructs a new ClaimCheckProcessor.
+   *
+   * @param appContext the application context for resolving stores
+   */
   public ClaimCheckProcessor(final ApplicationContext appContext) {
     this.appContext = appContext;
   }
