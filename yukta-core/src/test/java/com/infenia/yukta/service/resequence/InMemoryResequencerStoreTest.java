@@ -142,7 +142,7 @@ class InMemoryResequencerStoreTest {
     store.addMessage(key, 2, m2, config).block();
 
     StepVerifier.create(store.addMessage(key, 2, m2, config))
-        .expectNextMatches(res -> res.status() == ResequenceResult.Status.DUPLICATE_SEQUENCE_NUMBER)
+        .expectNextMatches(res -> res.status() == ResequenceResult.Status.DUPLICATE)
         .verifyComplete();
   }
 }

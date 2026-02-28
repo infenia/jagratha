@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -118,10 +119,7 @@ public class InMemoryResequencerStore implements ResequencerStore {
 
       if (state.buffer.containsKey(sequenceNumber)) {
         return new ResequenceResult(
-            ResequenceResult.Status.DUPLICATE_SEQUENCE_NUMBER,
-            List.of(message),
-            key,
-            "DUPLICATE_SEQUENCE_NUMBER");
+            ResequenceResult.Status.DUPLICATE, List.of(message), key, "DUPLICATE_SEQUENCE_NUMBER");
       }
 
       state.buffer.put(sequenceNumber, message);
@@ -146,64 +144,75 @@ public class InMemoryResequencerStore implements ResequencerStore {
 
   @Override
   public Flux<ResequenceResult> flushAll(final String keyPrefix) {
-    final List<ResequenceResult> results = new ArrayList<>();
     lock.lock();
     try {
+      final List<ResequenceResult> results = new ArrayList<>();
       final Iterator<Map.Entry<String, SequenceState>> iterator = store.entrySet().iterator();
       while (iterator.hasNext()) {
         final Map.Entry<String, SequenceState> entry = iterator.next();
         if (entry.getKey().startsWith(keyPrefix)) {
           final SequenceState state = entry.getValue();
-          final List<Message<?>> released = new ArrayList<>(state.buffer.values());
-          if (!released.isEmpty()) {
+          if (!state.buffer.isEmpty()) {
             results.add(
                 new ResequenceResult(
-                    ResequenceResult.Status.COMPLETED, released, entry.getKey(), null));
+                    ResequenceResult.Status.COMPLETED,
+                    List.copyOf(state.buffer.values()),
+                    entry.getKey(),
+                    null));
           }
           iterator.remove();
         }
       }
+      return Flux.fromIterable(results);
     } finally {
       lock.unlock();
     }
-    return Flux.fromIterable(results);
   }
 
   private void cleanup() {
-    final List<ResequenceResult> timeoutResults = new ArrayList<>();
     lock.lock();
     try {
+      final List<ResequenceResult> timeoutResults = new ArrayList<>();
       final long now = System.currentTimeMillis();
       final Iterator<Map.Entry<String, SequenceState>> iterator = store.entrySet().iterator();
       while (iterator.hasNext()) {
         final Map.Entry<String, SequenceState> entry = iterator.next();
         final SequenceState state = entry.getValue();
         if (state.isExpired(now)) {
-          if (!state.buffer.isEmpty()) {
-            // Gap timeout occurred: Jump to the first available message
-            state.nextExpected = state.buffer.firstKey();
-            final List<Message<?>> released = state.releaseConsecutive();
-            timeoutResults.add(
-                new ResequenceResult(
-                    ResequenceResult.Status.TIMEOUT_JUMP,
-                    released,
-                    entry.getKey(),
-                    "SEQUENCE_GAP_TIMEOUT"));
-          } else {
-            // Idle for too long with an empty buffer, purge the state
-            iterator.remove();
-          }
+          handleExpiredState(iterator, entry, state, timeoutResults);
         }
       }
+      timeoutResults.forEach(this::emitResult);
     } finally {
       lock.unlock();
     }
-    timeoutResults.forEach(this::emitResult);
+  }
+
+  private void handleExpiredState(
+      final Iterator<Map.Entry<String, SequenceState>> iterator,
+      final Map.Entry<String, SequenceState> entry,
+      final SequenceState state,
+      final List<ResequenceResult> timeoutResults) {
+    if (state.buffer.isEmpty()) {
+      // Idle for too long with an empty buffer, purge the state
+      iterator.remove();
+    } else {
+      // Gap timeout occurred: Jump to the first available message
+      state.nextExpected = state.buffer.firstKey();
+      final List<Message<?>> released = state.releaseConsecutive();
+      timeoutResults.add(
+          new ResequenceResult(
+              ResequenceResult.Status.TIMEOUT_JUMP,
+              released,
+              entry.getKey(),
+              "SEQUENCE_GAP_TIMEOUT"));
+    }
   }
 
   private void emitResult(final ResequenceResult result) {
-    while (asyncResults.tryEmitNext(result) == Sinks.EmitResult.FAIL_NON_SERIALIZED) {
-      // Busy loop for concurrent emission
+    Sinks.EmitResult emitRes = asyncResults.tryEmitNext(result);
+    while (emitRes == Sinks.EmitResult.FAIL_NON_SERIALIZED) {
+      emitRes = asyncResults.tryEmitNext(result);
     }
   }
 
@@ -211,7 +220,7 @@ public class InMemoryResequencerStore implements ResequencerStore {
     private long nextExpected;
     private long lastAccessTime;
     private final ResequenceConfig config;
-    private final TreeMap<Long, Message<?>> buffer = new TreeMap<>();
+    private final NavigableMap<Long, Message<?>> buffer = new TreeMap<>();
 
     /* default */ SequenceState(final ResequenceConfig config) {
       this.nextExpected = config.startIndex();

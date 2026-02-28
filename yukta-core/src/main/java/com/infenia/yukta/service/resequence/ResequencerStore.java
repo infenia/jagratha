@@ -67,7 +67,7 @@ public interface ResequencerStore {
       WAITING,
       TIMEOUT_JUMP,
       LATE_ARRIVAL,
-      DUPLICATE_SEQUENCE_NUMBER,
+      DUPLICATE,
       OVERFLOW
     }
   }

@@ -44,19 +44,20 @@ public class ResequencerProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "RESEQUENCER";
 
-  private static final String CFG_SEQUENCE_PATH = "sequencePath";
-  private static final String CFG_SEQUENCE_ID_PATH = "sequenceIdPath";
+  private static final String CFG_SEQ_PATH = "sequencePath";
+  private static final String CFG_SEQ_ID_PATH = "sequenceIdPath";
   private static final String CFG_START_INDEX = "startIndex";
   private static final String CFG_TIMEOUT_MS = "timeoutMs";
   private static final String CFG_MAX_PENDING = "maxPending";
   private static final String CFG_ERROR_PORT = "errorPort";
 
-  private static final String DEF_SEQUENCE_PATH = "#metadata.sequenceNumber";
-  private static final String DEF_SEQUENCE_ID_PATH = "#metadata.sequenceId";
+  private static final String DEF_SEQ_PATH = "#metadata.sequenceNumber";
+  private static final String DEF_SEQ_ID_PATH = "#metadata.sequenceId";
   private static final int DEF_START_INDEX = 1;
   private static final long DEF_TIMEOUT_MS = 60_000L;
   private static final int DEF_MAX_PENDING = 1000;
 
+  private static final String PORT_DEFAULT = "default";
   private static final String HDR_BROKEN_SEQ = "yukta.resequencer.sequence_broken";
 
   @Autowired private ResequencerStore resequencerStore;
@@ -111,7 +112,7 @@ public class ResequencerProcessor implements ProcessorPlugin {
   @Override
   public List<String> getOutputPorts(final Map<String, Object> config) {
     final List<String> ports = new ArrayList<>();
-    ports.add("default");
+    ports.add(PORT_DEFAULT);
     final String errorPort = (String) config.get(CFG_ERROR_PORT);
     if (errorPort != null && !errorPort.isBlank()) {
       ports.add(errorPort);
@@ -126,16 +127,15 @@ public class ResequencerProcessor implements ProcessorPlugin {
 
   @Override
   public Mono<Void> prepare(final Map<String, Object> config) {
-    SpelUtils.preParse((String) config.getOrDefault(CFG_SEQUENCE_PATH, DEF_SEQUENCE_PATH));
-    SpelUtils.preParse((String) config.getOrDefault(CFG_SEQUENCE_ID_PATH, DEF_SEQUENCE_ID_PATH));
+    SpelUtils.preParse((String) config.getOrDefault(CFG_SEQ_PATH, DEF_SEQ_PATH));
+    SpelUtils.preParse((String) config.getOrDefault(CFG_SEQ_ID_PATH, DEF_SEQ_ID_PATH));
     return Mono.empty();
   }
 
   @Override
   public Flux<Message<?>> process(final Flux<Message<?>> input, final Map<String, Object> config) {
-    final String seqPath = (String) config.getOrDefault(CFG_SEQUENCE_PATH, DEF_SEQUENCE_PATH);
-    final String seqIdPath =
-        (String) config.getOrDefault(CFG_SEQUENCE_ID_PATH, DEF_SEQUENCE_ID_PATH);
+    final String seqPath = (String) config.getOrDefault(CFG_SEQ_PATH, DEF_SEQ_PATH);
+    final String seqIdPath = (String) config.getOrDefault(CFG_SEQ_ID_PATH, DEF_SEQ_ID_PATH);
     final ResequenceConfig resConfig = createResequenceConfig(config);
 
     return Flux.deferContextual(
@@ -153,7 +153,7 @@ public class ResequencerProcessor implements ProcessorPlugin {
                     final Number seqNum = SpelUtils.evaluateSync(seqPath, msg, vars);
                     final Object seqId = SpelUtils.evaluateSync(seqIdPath, msg, vars);
                     final String key =
-                        sessionId + ":" + nodeId + ":" + (seqId != null ? seqId : "default");
+                        sessionId + ":" + nodeId + ":" + (seqId != null ? seqId : PORT_DEFAULT);
 
                     if (seqNum == null) {
                       return handleInvalid(
@@ -197,7 +197,8 @@ public class ResequencerProcessor implements ProcessorPlugin {
       final ResequenceResult res, final String nodeId, final String errorPort) {
     return switch (res.status()) {
       case COMPLETED ->
-          Flux.fromIterable(res.messages()).map(m -> prepareMessage(m, nodeId, false, "default"));
+          Flux.fromIterable(res.messages())
+              .map(m -> prepareMessage(m, nodeId, false, PORT_DEFAULT));
       case TIMEOUT_JUMP ->
           Flux.fromIterable(res.messages())
               .map(
@@ -206,8 +207,8 @@ public class ResequencerProcessor implements ProcessorPlugin {
                           m,
                           nodeId,
                           true,
-                          (errorPort != null && !errorPort.isBlank()) ? errorPort : "default"));
-      case LATE_ARRIVAL, DUPLICATE_SEQUENCE_NUMBER, OVERFLOW ->
+                          (errorPort != null && !errorPort.isBlank()) ? errorPort : PORT_DEFAULT));
+      case LATE_ARRIVAL, DUPLICATE, OVERFLOW ->
           handleInvalid(res.messages().get(0), res.failureReason(), errorPort, nodeId);
       case WAITING -> Flux.empty();
     };
