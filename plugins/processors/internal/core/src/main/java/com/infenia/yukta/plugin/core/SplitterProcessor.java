@@ -44,20 +44,19 @@ import reactor.core.publisher.Mono;
   "PMD.AvoidCatchingGenericException",
   "PMD.TooManyMethods",
   "PMD.ExceptionAsFlowControl",
-  "PMD.AvoidInstanceofChecksInCatchClause",
   "PMD.CyclomaticComplexity"
 })
 public class SplitterProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "SPLITTER";
   private static final String CFG_ITEMS = "itemsPath";
-  private static final String CFG_MAP = "headerMapping";
-  private static final String CFG_PAR = "parallel";
-  private static final String CFG_CONC = "concurrency";
+  private static final String CFG_MAPPING = "headerMapping";
+  private static final String CFG_PARALLEL = "parallel";
+  private static final String CFG_CONCURRENCY = "concurrency";
   private static final String CFG_STRICT = "strictMode";
-  private static final String CFG_ERR = "errorPort";
+  private static final String CFG_ERROR_PORT = "errorPort";
 
-  private static final int DEF_CONC = 1024;
+  private static final int DEF_CONCURRENCY = 1024;
   private static final String ERR_FAIL = "Splitter failed";
 
   /** Default constructor. */
@@ -99,26 +98,26 @@ public class SplitterProcessor implements ProcessorPlugin {
   @Override
   public List<String> getOutputPorts(final Map<String, Object> config) {
     final List<String> ports = new ArrayList<>(List.of("default"));
-    final String err = (String) config.get(CFG_ERR);
-    if (err != null && !err.isBlank()) {
-      ports.add(err);
+    final String errorPort = (String) config.get(CFG_ERROR_PORT);
+    if (errorPort != null && !errorPort.isBlank()) {
+      ports.add(errorPort);
     }
     return ports;
   }
 
   @Override
-  public Mono<Void> validateConfig(final Map<String, Object> cfg) {
-    if (cfg.get(CFG_ITEMS) == null) {
+  public Mono<Void> validateConfig(final Map<String, Object> config) {
+    if (config.get(CFG_ITEMS) == null) {
       return Mono.error(new IllegalArgumentException("itemsPath mandatory"));
     }
     return Mono.empty();
   }
 
   @Override
-  public Mono<Void> prepare(final Map<String, Object> cfg) {
-    SpelUtils.preParse((String) cfg.get(CFG_ITEMS));
-    final Object m = cfg.get(CFG_MAP);
-    if (m instanceof Map<?, ?> map) {
+  public Mono<Void> prepare(final Map<String, Object> config) {
+    SpelUtils.preParse((String) config.get(CFG_ITEMS));
+    final Object mapping = config.get(CFG_MAPPING);
+    if (mapping instanceof Map<?, ?> map) {
       map.values().stream()
           .filter(String.class::isInstance)
           .map(String.class::cast)
@@ -128,52 +127,64 @@ public class SplitterProcessor implements ProcessorPlugin {
   }
 
   @Override
-  public Flux<Message<?>> process(final Flux<Message<?>> in, final Map<String, Object> cfg) {
-    final String p = (String) cfg.get(CFG_ITEMS);
-    final boolean par = (Boolean) cfg.getOrDefault(CFG_PAR, true);
-    final int c = ((Number) cfg.getOrDefault(CFG_CONC, DEF_CONC)).intValue();
-    return par ? in.flatMap(msg -> split(msg, p, cfg), c) : in.concatMap(msg -> split(msg, p, cfg));
+  public Flux<Message<?>> process(final Flux<Message<?>> input, final Map<String, Object> config) {
+    final String path = (String) config.get(CFG_ITEMS);
+    final boolean parallel = (Boolean) config.getOrDefault(CFG_PARALLEL, true);
+    final int concurrency =
+        ((Number) config.getOrDefault(CFG_CONCURRENCY, DEF_CONCURRENCY)).intValue();
+    if (parallel) {
+      return input.flatMap(msg -> split(msg, path, config), concurrency);
+    }
+    return input.concatMap(msg -> split(msg, path, config));
   }
 
   private Flux<Message<?>> split(
-      final Message<?> parent, final String path, final Map<String, Object> cfg) {
+      final Message<?> parent, final String path, final Map<String, Object> config) {
     return Flux.deferContextual(
         ctx -> {
           final String nodeId = ctx.getOrDefault("nodeId", "unknown");
-          final boolean strict = (Boolean) cfg.getOrDefault(CFG_STRICT, true);
-          final String errPort = (String) cfg.get(CFG_ERR);
+          final boolean strict = (Boolean) config.getOrDefault(CFG_STRICT, true);
+          final String errorPort = (String) config.get(CFG_ERROR_PORT);
           try {
-            final Map<String, Object> vars =
+            final Map<String, Object> variables =
                 Map.of("payload", parent.getPayload(), "metadata", parent.getMetadata());
-            final Object items = SpelUtils.evaluateSync(path, parent, vars);
+            final Object items = SpelUtils.evaluateSync(path, parent, variables);
             if (items == null) {
-              return handleNull(parent, nodeId, errPort, strict);
+              return handleNull(parent, nodeId, errorPort, strict);
             }
-            final List<Message<?>> res = new ArrayList<>();
-            final Iterator<?> it = coerce(items);
-            final int size = (items instanceof Collection) ? ((Collection<?>) items).size() : 0;
-            int i = 1;
-            while (it.hasNext()) {
-              final Object item = it.next();
-              res.add(create(parent, item, i, it.hasNext() ? size : i, cfg, nodeId, vars));
-              i++;
-            }
-            return Flux.fromIterable(res);
+
+            final Iterator<?> iterator = coerceToIterator(items);
+            final int totalSize =
+                (items instanceof Collection) ? ((Collection<?>) items).size() : 0;
+
+            return Flux.fromIterable(() -> iterator)
+                .buffer(2, 1)
+                .index()
+                .map(
+                    tuple -> {
+                      final long idx = tuple.getT1() + 1;
+                      final List<?> window = tuple.getT2();
+                      final Object item = window.get(0);
+                      final boolean isLast = window.size() < 2;
+                      final int total = isLast ? (int) idx : totalSize;
+                      return createChild(parent, item, (int) idx, total, config, nodeId, variables);
+                    });
           } catch (final Exception e) {
-            return handleErr(parent, nodeId, errPort, strict, e);
+            return handleError(parent, nodeId, errorPort, strict, e);
           }
         });
   }
 
   private Flux<Message<?>> handleNull(
-      final Message<?> p, final String n, final String ep, final boolean s) {
-    if (s) {
-      return handleErr(p, n, ep, true, new WorkflowExecutionException("itemsPath null"));
+      final Message<?> parent, final String nodeId, final String errorPort, final boolean strict) {
+    if (strict) {
+      return handleError(
+          parent, nodeId, errorPort, true, new WorkflowExecutionException("itemsPath null"));
     }
     return Flux.empty();
   }
 
-  private Iterator<?> coerce(final Object items) {
+  private Iterator<?> coerceToIterator(final Object items) {
     if (items instanceof Iterable) {
       return ((Iterable<?>) items).iterator();
     }
@@ -189,80 +200,99 @@ public class SplitterProcessor implements ProcessorPlugin {
     return Collections.singletonList(items).iterator();
   }
 
-  private Message<?> create(
-      final Message<?> p,
+  private Message<?> createChild(
+      final Message<?> parent,
       final Object item,
-      final int idx,
+      final int index,
       final int total,
-      final Map<String, Object> cfg,
+      final Map<String, Object> config,
       final String nodeId,
-      final Map<String, Object> vars) {
-    Message<?> c =
+      final Map<String, Object> variables) {
+    Message<?> child =
         DefaultMessage.create(null, item)
-            .withTraceId(p.getTraceId())
-            .withPriority(p.getPriority())
-            .withCorrelationId(p.getMessageId())
-            .withSequence(p.getMessageId(), idx, total)
-            .withMetadata(p.getMetadata())
-            .withReplyTo(p.getReplyTo())
-            .withTimestamp(Instant.ofEpochMilli(p.getTimestamp()));
-    if (p.getExpiration() > 0) {
-      c = c.withExpiration(p.getExpiration());
+            .withTraceId(parent.getTraceId())
+            .withPriority(parent.getPriority())
+            .withCorrelationId(parent.getMessageId())
+            .withSequence(parent.getMessageId(), index, total)
+            .withMetadata(parent.getMetadata())
+            .withReplyTo(parent.getReplyTo())
+            .withTimestamp(Instant.ofEpochMilli(parent.getTimestamp()));
+    if (parent.getExpiration() > 0) {
+      child = child.withExpiration(parent.getExpiration());
     }
-    if (p.getFormatIndicator() != null) {
-      c = c.withFormatIndicator(p.getFormatIndicator());
+    if (parent.getFormatIndicator() != null) {
+      child = child.withFormatIndicator(parent.getFormatIndicator());
     }
     @SuppressWarnings("unchecked")
-    final Map<String, String> mapping = (Map<String, String>) cfg.get(CFG_MAP);
+    final Map<String, String> mapping = (Map<String, String>) config.get(CFG_MAPPING);
     if (mapping != null) {
-      c = applyMappings(p, c, mapping, cfg, vars);
+      child = applyMappings(parent, child, mapping, config, variables);
     }
-    return c.withAddedHistory(nodeId).withSourcePort("default");
+    return child.withAddedHistory(nodeId).withSourcePort("default");
   }
 
   private Message<?> applyMappings(
-      final Message<?> p,
-      final Message<?> c,
+      final Message<?> parent,
+      final Message<?> child,
       final Map<String, String> mapping,
-      final Map<String, Object> cfg,
-      final Map<String, Object> vars) {
-    Message<?> res = c;
-    final boolean strict = (Boolean) cfg.getOrDefault(CFG_STRICT, true);
+      final Map<String, Object> config,
+      final Map<String, Object> variables) {
+    Message<?> current = child;
+    final boolean strict = (Boolean) config.getOrDefault(CFG_STRICT, true);
     for (final Map.Entry<String, String> entry : mapping.entrySet()) {
-      try {
-        final Object val = SpelUtils.evaluateSync(entry.getValue(), p, vars);
-        if (val == null && strict) {
-          throw new WorkflowExecutionException("Mapping null");
-        }
-        if (val != null) {
-          res = res.withHeader(entry.getKey(), val);
-        }
-      } catch (final Exception e) {
-        if (strict) {
-          throw (e instanceof WorkflowExecutionException)
-              ? (WorkflowExecutionException) e
-              : new WorkflowExecutionException("Mapping failed", e);
-        }
-      }
+      current = doApplyMapping(parent, current, entry, variables, strict);
     }
-    return res;
+    return current;
   }
 
-  private Flux<Message<?>> handleErr(
-      final Message<?> p, final String n, final String ep, final boolean s, final Throwable e) {
+  private Message<?> doApplyMapping(
+      final Message<?> parentMessage,
+      final Message<?> childMessage,
+      final Map.Entry<String, String> entry,
+      final Map<String, Object> vars,
+      final boolean strict) {
+    try {
+      final Object value = SpelUtils.evaluateSync(entry.getValue(), parentMessage, vars);
+      if (value == null && strict) {
+        throw new WorkflowExecutionException("Mapping null");
+      }
+      if (value != null) {
+        return childMessage.withHeader(entry.getKey(), value);
+      }
+    } catch (final WorkflowExecutionException e) {
+      if (strict) {
+        throw e;
+      }
+    } catch (final Exception e) {
+      if (strict) {
+        throw new WorkflowExecutionException("Mapping failed", e);
+      }
+    }
+    return childMessage;
+  }
+
+  private Flux<Message<?>> handleError(
+      final Message<?> parent,
+      final String nodeId,
+      final String errorPort,
+      final boolean strict,
+      final Throwable error) {
     if (log.isErrorEnabled()) {
-      log.error("Splitter failed: {}", e.getMessage());
+      log.error("Splitter failed: {}", error.getMessage());
     }
-    if (ep != null && !ep.isBlank()) {
+    if (errorPort != null && !errorPort.isBlank()) {
       return Flux.just(
-          p.withSourcePort(ep).withAddedHistory(n).withFailure(null, ERR_FAIL, e.getMessage()));
+          parent
+              .withSourcePort(errorPort)
+              .withAddedHistory(nodeId)
+              .withFailure(null, ERR_FAIL, error.getMessage()));
     }
-    if (!s) {
+    if (!strict) {
       return Flux.empty();
     }
-    return Flux.error(
-        (e instanceof WorkflowExecutionException)
-            ? e
-            : new WorkflowExecutionException(ERR_FAIL, e));
+    if (error instanceof WorkflowExecutionException) {
+      return Flux.error(error);
+    }
+    return Flux.error(new WorkflowExecutionException(ERR_FAIL, error));
   }
 }
