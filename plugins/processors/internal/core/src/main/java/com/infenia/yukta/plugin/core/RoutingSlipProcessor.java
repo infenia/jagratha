@@ -38,10 +38,7 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 @Component
-@SuppressWarnings({
-  "PMD.OnlyOneReturn",
-  "PMD.AvoidCatchingGenericException"
-})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.AvoidCatchingGenericException"})
 public class RoutingSlipProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "routing-slip";
