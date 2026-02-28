@@ -372,7 +372,7 @@ public class UiController {
           if (json.length() > openBraceLen) {
             json.append(',');
           }
-          json.append('"')
+          json.append('\"')
               .append(escapeJson(key))
               .append("\":{\"type\":\"")
               .append(escapeJson(plugin.type()))
