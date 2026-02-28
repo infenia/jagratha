@@ -38,10 +38,7 @@ import reactor.core.publisher.Sinks;
  * @param <S> domain response type
  */
 @Slf4j
-@SuppressWarnings({
-  "PMD.TypeParameterNamingConventions",
-  "PMD.DoNotUseThreads"
-})
+@SuppressWarnings({"PMD.TypeParameterNamingConventions", "PMD.DoNotUseThreads"})
 public abstract class AbstractMessagingGateway<T, R, D, S> implements MessagingGateway {
 
   private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(60);
