@@ -57,11 +57,11 @@ class EnricherProcessorTest {
   void testEnvironmentEnrichment() {
     System.setProperty("test.prop", "test-value");
     try {
-      final Map<String, Object> config = Map.of(
-          "sourceType", "ENVIRONMENT",
-          "lookupKey", "'sys.test.prop'",
-          "targetPath", "payload.enriched"
-      );
+      final Map<String, Object> config =
+          Map.of(
+              "sourceType", "ENVIRONMENT",
+              "lookupKey", "'sys.test.prop'",
+              "targetPath", "payload.enriched");
       final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), Map.of("id", "123"));
 
       StepVerifier.create(
@@ -83,12 +83,13 @@ class EnricherProcessorTest {
 
   @Test
   void testComputationEnrichment() {
-    final Map<String, Object> config = Map.of(
-        "sourceType", "COMPUTATION",
-        "lookupKey", "payload.price * payload.quantity",
-        "targetPath", "payload.total"
-    );
-    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), Map.of("price", 10, "quantity", 5));
+    final Map<String, Object> config =
+        Map.of(
+            "sourceType", "COMPUTATION",
+            "lookupKey", "payload.price * payload.quantity",
+            "targetPath", "payload.total");
+    final Message<?> msg =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("price", 10, "quantity", 5));
 
     StepVerifier.create(
             processor
@@ -106,15 +107,17 @@ class EnricherProcessorTest {
   @Test
   void testExternalEnrichment() {
     final MessagingGateway gateway = mock(MessagingGateway.class);
-    when(applicationContext.getBean(eq("myGateway"), eq(MessagingGateway.class))).thenReturn(gateway);
-    when(gateway.sendAndReceive(any())).thenReturn(Mono.just(DefaultMessage.create(UUID.randomUUID(), "external-data")));
+    when(applicationContext.getBean(eq("myGateway"), eq(MessagingGateway.class)))
+        .thenReturn(gateway);
+    when(gateway.sendAndReceive(any()))
+        .thenReturn(Mono.just(DefaultMessage.create(UUID.randomUUID(), "external-data")));
 
-    final Map<String, Object> config = Map.of(
-        "sourceType", "EXTERNAL",
-        "resourceRef", "myGateway",
-        "lookupKey", "payload.id",
-        "targetPath", "payload.ext"
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "sourceType", "EXTERNAL",
+            "resourceRef", "myGateway",
+            "lookupKey", "payload.id",
+            "targetPath", "payload.ext");
     final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), Map.of("id", "123"));
 
     StepVerifier.create(
@@ -132,14 +135,15 @@ class EnricherProcessorTest {
 
   @Test
   void testEnrichmentWithMapping() {
-    final Map<String, Object> config = Map.of(
-        "sourceType", "COMPUTATION",
-        "lookupKey", "payload.raw",
-        "targetPath", "payload.data",
-        "mapping", Map.of("val", "#result.value", "meta", "#metadata.m1")
-    );
-    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), Map.of("raw", Map.of("value", "v1")))
-        .withMetadata(Map.of("m1", "mv1"));
+    final Map<String, Object> config =
+        Map.of(
+            "sourceType", "COMPUTATION",
+            "lookupKey", "payload.raw",
+            "targetPath", "payload.data",
+            "mapping", Map.of("val", "#result.value", "meta", "#metadata.m1"));
+    final Message<?> msg =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("raw", Map.of("value", "v1")))
+            .withMetadata(Map.of("m1", "mv1"));
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
         .expectNextMatches(
@@ -155,12 +159,12 @@ class EnricherProcessorTest {
 
   @Test
   void testErrorPolicyRoute() {
-    final Map<String, Object> config = Map.of(
-        "sourceType", "EXTERNAL",
-        "resourceRef", "missingGateway",
-        "errorPolicy", "ROUTE",
-        "errorPort", "fail-port"
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "sourceType", "EXTERNAL",
+            "resourceRef", "missingGateway",
+            "errorPolicy", "ROUTE",
+            "errorPort", "fail-port");
     when(applicationContext.getBean(eq("missingGateway"), eq(MessagingGateway.class)))
         .thenThrow(new RuntimeException("Gateway not found"));
 
@@ -204,10 +208,10 @@ class EnricherProcessorTest {
   @Test
   void testDefaultLookupKey() {
     // For String payload, default lookupKey should be the payload itself
-    final Map<String, Object> config = Map.of(
-        "sourceType", "COMPUTATION",
-        "targetPath", "payload"
-    );
+    final Map<String, Object> config =
+        Map.of(
+            "sourceType", "COMPUTATION",
+            "targetPath", "payload");
     final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "hello");
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
@@ -215,7 +219,8 @@ class EnricherProcessorTest {
         .verifyComplete();
 
     // For Object payload, default lookupKey should be payload.id
-    final Message<?> msgObj = DefaultMessage.create(UUID.randomUUID(), Map.of("id", "456", "other", "val"));
+    final Message<?> msgObj =
+        DefaultMessage.create(UUID.randomUUID(), Map.of("id", "456", "other", "val"));
     StepVerifier.create(processor.process(Flux.just(msgObj), config))
         .expectNextMatches(m -> m.getPayload().equals("456"))
         .verifyComplete();
