@@ -13,23 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-plugins {
-    `java-library`
-    `java-test-fixtures`
-    id("com.infenia.yukta.java-conventions")
-    id("com.infenia.yukta.quality-conventions")
-    id("com.infenia.yukta.jacoco-conventions")
-    alias(libs.plugins.spring.dependency.management)
-}
+package com.infenia.yukta.plugin;
 
-dependencyManagement {
-    imports {
-        mavenBom("org.springframework.boot:spring-boot-dependencies:${libs.versions.springBoot.get()}")
-    }
-}
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-dependencies {
-    api(libs.spring.boot.starter.webflux)
+/**
+ * No-Op implementation of {@link MessagingGateway} for testing or default behavior.
+ */
+public class NoOpMessagingGateway implements MessagingGateway {
 
-    testImplementation(libs.reactor.test)
+  @Override
+  public <T, R> Mono<Message<R>> sendAndReceive(final Message<T> request) {
+    return Mono.empty();
+  }
+
+  @Override
+  public <T> Mono<Void> send(final Message<T> request) {
+    return Mono.empty();
+  }
+
+  @Override
+  public <R> Flux<Message<R>> receive() {
+    return Flux.empty();
+  }
 }
