@@ -18,10 +18,13 @@ package com.infenia.yukta.plugin;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * No-Op implementation of {@link MessagingGateway} for testing or default behavior.
- */
+/** No-Op implementation of {@link MessagingGateway} for testing or default behavior. */
 public class NoOpMessagingGateway implements MessagingGateway {
+
+  /** Default constructor. */
+  public NoOpMessagingGateway() {
+    super();
+  }
 
   @Override
   public <T, R> Mono<Message<R>> sendAndReceive(final Message<T> request) {

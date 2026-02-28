@@ -21,8 +21,8 @@ import reactor.core.publisher.Mono;
 /**
  * A Messaging Gateway acts as a semantic bridge between business logic and external systems.
  *
- * <p>It hides the complexity of reactive infrastructure (WebClient, Kafka, etc.) behind
- * type-safe domain-specific methods.
+ * <p>It hides the complexity of reactive infrastructure (WebClient, Kafka, etc.) behind type-safe
+ * domain-specific methods.
  */
 public interface MessagingGateway {
 

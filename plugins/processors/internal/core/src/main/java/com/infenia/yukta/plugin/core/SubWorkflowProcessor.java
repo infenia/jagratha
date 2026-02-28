@@ -124,8 +124,7 @@ public class SubWorkflowProcessor implements ProcessorPlugin {
       final String childSessionId,
       final String workflowId,
       final Map<String, Object> payload) {
-    return workflowGateway.executeSubWorkflow(
-        parentSessionId, childSessionId, workflowId, payload);
+    return workflowGateway.executeSubWorkflow(parentSessionId, childSessionId, workflowId, payload);
   }
 
   private Mono<Message<?>> mapOutput(

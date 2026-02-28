@@ -24,8 +24,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 /**
- * Base implementation of a Messaging Gateway providing common logic for mapping domain objects
- * and managing asynchronous correlation.
+ * Base implementation of a Messaging Gateway providing common logic for mapping domain objects and
+ * managing asynchronous correlation.
  *
  * @param <T> request type
  * @param <R> response type
@@ -33,7 +33,7 @@ import reactor.core.publisher.Sinks;
  * @param <S> domain response type
  */
 @Slf4j
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.LawOfDemeter"})
+@SuppressWarnings("PMD.TypeParameterNamingConventions")
 public abstract class AbstractMessagingGateway<T, R, D, S> implements MessagingGateway {
 
   private final MessageMapper<T, D> requestMapper;
@@ -98,7 +98,8 @@ public abstract class AbstractMessagingGateway<T, R, D, S> implements MessagingG
     final String correlationId = response.getCorrelationId();
     if (correlationId == null) {
       if (log.isWarnEnabled()) {
-        log.warn("Received response without correlationId, dropping message: {}",
+        log.warn(
+            "Received response without correlationId, dropping message: {}",
             response.getMessageId());
       }
       return;
@@ -108,8 +109,7 @@ public abstract class AbstractMessagingGateway<T, R, D, S> implements MessagingG
     if (sink != null) {
       sink.tryEmitValue(response);
     } else if (log.isWarnEnabled()) {
-      log.warn("No pending request found for correlationId: {}, dropping response",
-          correlationId);
+      log.warn("No pending request found for correlationId: {}, dropping response", correlationId);
     }
   }
 

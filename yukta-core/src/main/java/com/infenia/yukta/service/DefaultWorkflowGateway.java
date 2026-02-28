@@ -29,8 +29,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Default implementation of the {@link WorkflowGateway} that interacts with internal
- * services and the orchestrator to execute workflows.
+ * Default implementation of the {@link WorkflowGateway} that interacts with internal services and
+ * the orchestrator to execute workflows.
  */
 @Slf4j
 @Service
@@ -109,7 +109,8 @@ public class DefaultWorkflowGateway implements WorkflowGateway {
     // Basic implementation that executes a sub-workflow if workflowId is in headers
     final String workflowId = (String) request.getMetadata().get("workflowId");
     if (workflowId == null) {
-      return Mono.error(new IllegalArgumentException("workflowId is required for gateway sendAndReceive"));
+      return Mono.error(
+          new IllegalArgumentException("workflowId is required for gateway sendAndReceive"));
     }
 
     final String childSessionId = UUID.randomUUID().toString();

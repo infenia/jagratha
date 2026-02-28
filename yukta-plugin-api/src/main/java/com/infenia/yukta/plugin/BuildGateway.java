@@ -19,9 +19,7 @@ import java.io.File;
 import java.util.List;
 import reactor.core.publisher.Mono;
 
-/**
- * Gateway for executing external build tool commands.
- */
+/** Gateway for executing external build tool commands. */
 public interface BuildGateway extends MessagingGateway {
 
   /**
@@ -33,9 +31,5 @@ public interface BuildGateway extends MessagingGateway {
    * @param timeout the maximum time to allow for execution (seconds)
    * @return a Mono containing the process output logs
    */
-  Mono<String> executeTask(
-      File projectDir,
-      List<String> command,
-      String taskName,
-      long timeout);
+  Mono<String> executeTask(File projectDir, List<String> command, String taskName, long timeout);
 }

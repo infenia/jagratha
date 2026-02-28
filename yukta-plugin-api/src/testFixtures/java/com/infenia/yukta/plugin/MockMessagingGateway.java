@@ -28,6 +28,11 @@ public class MockMessagingGateway implements MessagingGateway {
   private final Queue<Message<?>> responses = new ConcurrentLinkedQueue<>();
   private final Queue<Message<?>> receivedMessages = new ConcurrentLinkedQueue<>();
 
+  /** Default constructor. */
+  public MockMessagingGateway() {
+    super();
+  }
+
   /**
    * Queue a response to be returned by {@link #sendAndReceive(Message)}.
    *

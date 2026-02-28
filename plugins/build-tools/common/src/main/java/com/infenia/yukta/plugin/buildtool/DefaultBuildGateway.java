@@ -32,13 +32,16 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-/**
- * Default implementation of the {@link BuildGateway} that executes external build tasks.
- */
+/** Default implementation of the {@link BuildGateway} that executes external build tasks. */
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.LawOfDemeter"})
+@SuppressWarnings("PMD.OnlyOneReturn")
 public class DefaultBuildGateway implements BuildGateway {
+
+  /** Default constructor. */
+  public DefaultBuildGateway() {
+    super();
+  }
 
   @Override
   public Mono<String> executeTask(
@@ -84,7 +87,8 @@ public class DefaultBuildGateway implements BuildGateway {
                       TimeoutException.class,
                       e -> {
                         process.destroyForcibly();
-                        return Mono.error(new TimeoutException("Timeout running task: " + taskName));
+                        return Mono.error(
+                            new TimeoutException("Timeout running task: " + taskName));
                       });
             })
         .onErrorResume(
@@ -100,7 +104,8 @@ public class DefaultBuildGateway implements BuildGateway {
     // Basic implementation that executes a build if command is in headers
     final List<String> command = (List<String>) request.getMetadata().get("command");
     if (command == null) {
-      return Mono.error(new IllegalArgumentException("command is required for gateway sendAndReceive"));
+      return Mono.error(
+          new IllegalArgumentException("command is required for gateway sendAndReceive"));
     }
 
     final File projectDir = new File(".");
