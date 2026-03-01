@@ -28,7 +28,7 @@ import reactor.core.scheduler.Schedulers;
 @Configuration
 public class AppConfiguration {
 
-  private static final int VIRTUAL_THREAD_POOL_SIZE = Runtime.getRuntime().availableProcessors();
+  private static final int POOL_SIZE = Runtime.getRuntime().availableProcessors();
 
   /** Public constructor for PMD. */
   public AppConfiguration() {
@@ -55,7 +55,7 @@ public class AppConfiguration {
   @SuppressWarnings("PMD.DoNotUseThreads")
   public Scheduler virtualThreadScheduler() {
     final ScheduledExecutorService executor =
-        Executors.newScheduledThreadPool(VIRTUAL_THREAD_POOL_SIZE, Thread.ofVirtual().factory());
+        Executors.newScheduledThreadPool(POOL_SIZE, Thread.ofVirtual().factory());
     return Schedulers.fromExecutorService(executor);
   }
 }
