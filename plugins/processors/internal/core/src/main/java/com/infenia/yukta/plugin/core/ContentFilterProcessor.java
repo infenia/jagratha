@@ -24,11 +24,11 @@ import com.infenia.yukta.util.SpelUtils;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -45,7 +45,8 @@ import reactor.core.publisher.Mono;
   "PMD.AvoidCatchingGenericException",
   "PMD.TooManyMethods",
   "PMD.CyclomaticComplexity",
-  "PMD.LawOfDemeter"
+  "PMD.LawOfDemeter",
+  "PMD.GodClass"
 })
 public class ContentFilterProcessor implements ProcessorPlugin {
 
@@ -60,10 +61,19 @@ public class ContentFilterProcessor implements ProcessorPlugin {
   private static final String CONFIG_STRICT = "strictMode";
   private static final String CONFIG_ERROR_PORT = "errorPort";
 
-  private static final String METADATA_PREFIX = "metadata.";
-  private static final String HEADERS_PREFIX = "headers.";
-  private static final String SPEL_METADATA_PREFIX = "#metadata.";
-  private static final String SPEL_HEADERS_PREFIX = "#headers.";
+  private static final String META_PFX = "metadata.";
+  private static final String HEADERS_PFX = "headers.";
+  private static final String SPEL_META_PFX = "#metadata.";
+  private static final String SPEL_HEADERS_PFX = "#headers.";
+
+  private static final String UNCHECKED = "unchecked";
+  private static final String PAYLOAD_SPEL = "#payload.";
+  private static final String ERR_FAIL = "Content Filter failed";
+
+  /** Default constructor. */
+  public ContentFilterProcessor() {
+    super();
+  }
 
   @Override
   public String getDescription() {
@@ -128,10 +138,10 @@ public class ContentFilterProcessor implements ProcessorPlugin {
   }
 
   @Override
+  @SuppressWarnings(UNCHECKED)
   public Mono<Void> prepare(final Map<String, Object> config) {
     final String mode = (String) config.getOrDefault(CONFIG_MODE, MODE_INCLUDE);
     if (MODE_INCLUDE.equalsIgnoreCase(mode)) {
-      @SuppressWarnings("unchecked")
       final List<String> paths = (List<String>) config.get(CONFIG_PATHS);
       paths.forEach(SpelUtils::preParse);
     }
@@ -152,9 +162,8 @@ public class ContentFilterProcessor implements ProcessorPlugin {
   private Flux<Message<?>> executeFilter(
       final Message<?> message, final String nodeId, final Map<String, Object> config) {
     final Object payload = message.getPayload();
-    if (payload instanceof Flux) {
-      return ((Flux<?>) payload)
-          .flatMap(item -> applyFilterToItem(message.withPayload(item), nodeId, config));
+    if (payload instanceof Flux<?> flux) {
+      return flux.flatMap(item -> applyFilterToItem(message.withPayload(item), nodeId, config));
     }
     if (isIterable(payload)) {
       final Iterator<?> iterator = coerceToIterator(payload);
@@ -182,8 +191,8 @@ public class ContentFilterProcessor implements ProcessorPlugin {
       return (Iterator<?>) items;
     }
     if (items != null && items.getClass().isArray()) {
-      return new Iterator<Object>() {
-        private int index = 0;
+      return new Iterator<>() {
+        private int index;
         private final int length = Array.getLength(items);
 
         @Override
@@ -193,7 +202,9 @@ public class ContentFilterProcessor implements ProcessorPlugin {
 
         @Override
         public Object next() {
-          return Array.get(items, index++);
+          final Object item = Array.get(items, index);
+          index++;
+          return item;
         }
       };
     }
@@ -204,58 +215,118 @@ public class ContentFilterProcessor implements ProcessorPlugin {
       final Message<?> message, final String nodeId, final Map<String, Object> config) {
     try {
       final String mode = (String) config.getOrDefault(CONFIG_MODE, MODE_INCLUDE);
-      @SuppressWarnings("unchecked")
+      @SuppressWarnings(UNCHECKED)
       final List<String> paths = (List<String>) config.get(CONFIG_PATHS);
       final boolean flatten = (Boolean) config.getOrDefault(CONFIG_FLATTEN, false);
-      final boolean strictMode = (Boolean) config.getOrDefault(CONFIG_STRICT, true);
+      final boolean strict = (Boolean) config.getOrDefault(CONFIG_STRICT, true);
 
       final Message<?> result;
       if (MODE_INCLUDE.equalsIgnoreCase(mode)) {
-        result = includePaths(message, paths, strictMode);
+        result = includePaths(message, paths, strict);
       } else {
         result = excludePaths(message, paths);
       }
 
       Message<?> finalResult = result;
       if (flatten && finalResult.getPayload() instanceof Map) {
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings(UNCHECKED)
         final Map<String, Object> payloadMap = (Map<String, Object>) finalResult.getPayload();
         finalResult = finalResult.withPayload(MapUtils.flatten(payloadMap));
       }
 
       return Mono.just(finalResult.withAddedHistory(nodeId).withSourcePort("default"));
+    } catch (final WorkflowExecutionException e) {
+      return handleFailure(message, nodeId, config, e);
     } catch (final Exception e) {
-      final String errorPort = (String) config.get(CONFIG_ERROR_PORT);
-      final boolean strictMode = (Boolean) config.getOrDefault(CONFIG_STRICT, true);
-      if (errorPort != null && !errorPort.isBlank()) {
-        return Mono.just(
-            message
-                .withSourcePort(errorPort)
-                .withAddedHistory(nodeId)
-                .withFailure(null, "Content Filter failed", e.getMessage()));
-      }
-      if (!strictMode && !(e instanceof WorkflowExecutionException)) {
-        return Mono.just(message.withAddedHistory(nodeId).withSourcePort("default"));
-      }
-      if (e instanceof WorkflowExecutionException) {
-        return Mono.error(e);
-      }
-      return Mono.error(new WorkflowExecutionException("Content Filter failed", e));
+      return handleFailure(message, nodeId, config, new WorkflowExecutionException(ERR_FAIL, e));
     }
+  }
+
+  private Mono<Message<?>> handleFailure(
+      final Message<?> msg,
+      final String nodeId,
+      final Map<String, Object> config,
+      final WorkflowExecutionException err) {
+    final String errorPort = (String) config.get(CONFIG_ERROR_PORT);
+    final boolean strictMode = (Boolean) config.getOrDefault(CONFIG_STRICT, true);
+    if (errorPort != null && !errorPort.isBlank()) {
+      return Mono.just(
+          msg.withSourcePort(errorPort)
+              .withAddedHistory(nodeId)
+              .withFailure(null, ERR_FAIL, err.getMessage()));
+    }
+    if (!strictMode) {
+      return Mono.just(msg.withAddedHistory(nodeId).withSourcePort("default"));
+    }
+    return Mono.error(err);
   }
 
   private Message<?> includePaths(
       final Message<?> message, final List<String> paths, final boolean strictMode) {
-    boolean metadataTargeted = false;
-    for (final String path : paths) {
-      if (isMetadataTargeted(path)) {
-        metadataTargeted = true;
-        break;
-      }
+    final boolean metadataTargeted = paths.stream().anyMatch(this::isMetadataTargeted);
+    final Map<String, Object> whiteMeta = new ConcurrentHashMap<>();
+    if (metadataTargeted) {
+      copyCoreHeaders(message, whiteMeta);
     }
 
-    final Map<String, Object> whitelistedMetadata = new HashMap<>();
-    final List<String> coreTechnicalHeaders =
+    final Map<String, Object> variables =
+        Map.of("payload", message.getPayload() != null ? message.getPayload() : Map.of(),
+               "metadata", message.getMetadata());
+
+    final Object payload = message.getPayload();
+    final Object resultPayload;
+
+    if (payload instanceof Map || payload == null) {
+      resultPayload = includeMapPayload(message, paths, strictMode, whiteMeta, variables);
+    } else {
+      resultPayload = includeNonMapPayload(message, paths, variables);
+    }
+
+    Message<?> result = message.withPayload(resultPayload);
+    if (metadataTargeted) {
+      result = result.withMetadata(whiteMeta);
+    }
+    return result;
+  }
+
+  private Object includeMapPayload(
+      final Message<?> message,
+      final List<String> paths,
+      final boolean strictMode,
+      final Map<String, Object> whiteMeta,
+      final Map<String, Object> variables) {
+    final Map<String, Object> filteredPayload = new ConcurrentHashMap<>();
+    for (final String path : paths) {
+      if (strictMode && !pathExists(message, path)) {
+        throw new WorkflowExecutionException("Mandatory path missing: " + path);
+      }
+
+      final boolean isMetadata = isMetadataTargeted(path);
+      final String effectiveSpel = getEffectiveSpel(path);
+      final Object value = SpelUtils.evaluateSync(effectiveSpel, message, variables);
+
+      if (isMetadata) {
+        MapUtils.setNestedValue(whiteMeta, getCleanPath(path), value);
+      } else {
+        MapUtils.setNestedValue(filteredPayload, getCleanPayloadPath(path), value);
+      }
+    }
+    return filteredPayload;
+  }
+
+  private Object includeNonMapPayload(
+      final Message<?> message, final List<String> paths, final Map<String, Object> variables) {
+    Object val = message.getPayload();
+    for (final String path : paths) {
+      if (!isMetadataTargeted(path)) {
+        val = SpelUtils.evaluateSync(path.startsWith("#") ? path : "#payload", message, variables);
+      }
+    }
+    return val;
+  }
+
+  private void copyCoreHeaders(final Message<?> message, final Map<String, Object> whiteMeta) {
+    final List<String> coreHeaders =
         List.of(
             "traceId",
             "correlationId",
@@ -265,117 +336,77 @@ public class ContentFilterProcessor implements ProcessorPlugin {
             "sequenceNumber",
             "sequenceSize",
             "replyTo");
-    if (metadataTargeted) {
-      coreTechnicalHeaders.forEach(
-          h -> {
-            // We need to use DefaultMessage accessors for these core fields
-            final Object val = getCoreHeader(message, h);
-            if (val != null) {
-              whitelistedMetadata.put(h, val);
-            }
-          });
-    }
-
-    final Map<String, Object> variables = new HashMap<>();
-    variables.put("payload", message.getPayload());
-    variables.put("metadata", message.getMetadata());
-
-    final Object payload = message.getPayload();
-    Object resultPayload;
-
-    if (payload instanceof Map || payload == null) {
-      final Map<String, Object> filteredPayload = new HashMap<>();
-      for (final String path : paths) {
-        final String cleanPath;
-        final boolean isMetadata;
-        final String effectiveSpel;
-        if (path.startsWith(METADATA_PREFIX)) {
-          cleanPath = path.substring(METADATA_PREFIX.length());
-          isMetadata = true;
-          effectiveSpel = "#metadata." + cleanPath;
-        } else if (path.startsWith(HEADERS_PREFIX)) {
-          cleanPath = path.substring(HEADERS_PREFIX.length());
-          isMetadata = true;
-          effectiveSpel = "#metadata." + cleanPath;
-        } else if (path.startsWith(SPEL_METADATA_PREFIX)) {
-          cleanPath = path.substring(SPEL_METADATA_PREFIX.length());
-          isMetadata = true;
-          effectiveSpel = path;
-        } else if (path.startsWith(SPEL_HEADERS_PREFIX)) {
-          cleanPath = path.substring(SPEL_HEADERS_PREFIX.length());
-          isMetadata = true;
-          effectiveSpel = path;
-        } else {
-          cleanPath = path;
-          isMetadata = false;
-          effectiveSpel = path.startsWith("#") ? path : "#payload." + cleanPath;
-        }
-
-        if (strictMode && !pathExists(message, path)) {
-          throw new WorkflowExecutionException("Mandatory path missing: " + path);
-        }
-
-        final Object value = SpelUtils.evaluateSync(effectiveSpel, message, variables);
-        if (isMetadata) {
-          MapUtils.setNestedValue(whitelistedMetadata, cleanPath, value);
-        } else {
-          String targetPath = cleanPath;
-          if (targetPath.startsWith("#payload.")) {
-            targetPath = targetPath.substring("#payload.".length());
+    coreHeaders.forEach(
+        h -> {
+          final Object val = getCoreHeader(message, h);
+          if (val != null) {
+            whiteMeta.put(h, val);
           }
-          MapUtils.setNestedValue(filteredPayload, targetPath, value);
-        }
-      }
-      resultPayload = filteredPayload;
-    } else {
-      // For non-map payloads (like primitives in a stream), projection might just return the result
-      // of the SpEL
-      // If multiple paths are specified for a single primitive, it doesn't make much sense unless
-      // we wrap it.
-      // But usually, INCLUDE mode for non-map means "keep the whole thing" or "transform it".
-      // Let's stick to: if it's not a map, we just evaluate the SpEL and return that value.
-      // If multiple paths, last one wins for the payload.
-      Object val = payload;
-      for (final String path : paths) {
-        if (!isMetadataTargeted(path)) {
-          val =
-              SpelUtils.evaluateSync(path.startsWith("#") ? path : "#payload", message, variables);
-        }
-      }
-      resultPayload = val;
-    }
+        });
+  }
 
-    Message<?> result = message.withPayload(resultPayload);
-    if (metadataTargeted) {
-      result = result.withMetadata(whitelistedMetadata);
+  private String getEffectiveSpel(final String path) {
+    if (path.startsWith(META_PFX)) {
+      return SPEL_META_PFX + path.substring(META_PFX.length());
     }
-    return result;
+    if (path.startsWith(HEADERS_PFX)) {
+      return SPEL_META_PFX + path.substring(HEADERS_PFX.length());
+    }
+    if (path.startsWith(SPEL_META_PFX) || path.startsWith(SPEL_HEADERS_PFX)) {
+      return path;
+    }
+    return path.startsWith("#") ? path : PAYLOAD_SPEL + path;
+  }
+
+  private String getCleanPath(final String path) {
+    if (path.startsWith(META_PFX)) {
+      return path.substring(META_PFX.length());
+    }
+    if (path.startsWith(HEADERS_PFX)) {
+      return path.substring(HEADERS_PFX.length());
+    }
+    if (path.startsWith(SPEL_META_PFX)) {
+      return path.substring(SPEL_META_PFX.length());
+    }
+    if (path.startsWith(SPEL_HEADERS_PFX)) {
+      return path.substring(SPEL_HEADERS_PFX.length());
+    }
+    return path;
+  }
+
+  private String getCleanPayloadPath(final String path) {
+    String clean = getCleanPath(path);
+    if (clean.startsWith(PAYLOAD_SPEL)) {
+      clean = clean.substring(PAYLOAD_SPEL.length());
+    }
+    return clean;
   }
 
   private boolean isMetadataTargeted(final String path) {
-    return path.startsWith(METADATA_PREFIX)
-        || path.startsWith(HEADERS_PREFIX)
-        || path.startsWith(SPEL_METADATA_PREFIX)
-        || path.startsWith(SPEL_HEADERS_PREFIX);
+    return path.startsWith(META_PFX)
+        || path.startsWith(HEADERS_PFX)
+        || path.startsWith(SPEL_META_PFX)
+        || path.startsWith(SPEL_HEADERS_PFX);
   }
 
   private Message<?> excludePaths(final Message<?> message, final List<String> paths) {
-    final Map<String, Object> payloadMap = MapUtils.asMutableMap(message.getPayload());
-    final Map<String, Object> metadataMap = new HashMap<>(message.getMetadata());
+    final Map<String, Object> payloadMap =
+        new ConcurrentHashMap<>(MapUtils.asMutableMap(message.getPayload()));
+    final Map<String, Object> metadataMap = new ConcurrentHashMap<>(message.getMetadata());
 
     for (final String path : paths) {
-      if (path.startsWith(METADATA_PREFIX)) {
-        MapUtils.removeNestedValue(metadataMap, path.substring(METADATA_PREFIX.length()));
-      } else if (path.startsWith(HEADERS_PREFIX)) {
-        MapUtils.removeNestedValue(metadataMap, path.substring(HEADERS_PREFIX.length()));
-      } else if (path.startsWith(SPEL_METADATA_PREFIX)) {
-        MapUtils.removeNestedValue(metadataMap, path.substring(SPEL_METADATA_PREFIX.length()));
-      } else if (path.startsWith(SPEL_HEADERS_PREFIX)) {
-        MapUtils.removeNestedValue(metadataMap, path.substring(SPEL_HEADERS_PREFIX.length()));
+      if (path.startsWith(META_PFX)) {
+        MapUtils.removeNestedValue(metadataMap, path.substring(META_PFX.length()));
+      } else if (path.startsWith(HEADERS_PFX)) {
+        MapUtils.removeNestedValue(metadataMap, path.substring(HEADERS_PFX.length()));
+      } else if (path.startsWith(SPEL_META_PFX)) {
+        MapUtils.removeNestedValue(metadataMap, path.substring(SPEL_META_PFX.length()));
+      } else if (path.startsWith(SPEL_HEADERS_PFX)) {
+        MapUtils.removeNestedValue(metadataMap, path.substring(SPEL_HEADERS_PFX.length()));
       } else {
         String cleanPath = path;
-        if (cleanPath.startsWith("#payload.")) {
-          cleanPath = cleanPath.substring("#payload.".length());
+        if (cleanPath.startsWith(PAYLOAD_SPEL)) {
+          cleanPath = cleanPath.substring(PAYLOAD_SPEL.length());
         }
         MapUtils.removeNestedValue(payloadMap, cleanPath);
       }
@@ -385,55 +416,60 @@ public class ContentFilterProcessor implements ProcessorPlugin {
   }
 
   private boolean pathExists(final Message<?> message, final String path) {
-    if (!path.startsWith("#")
-        && !path.startsWith(METADATA_PREFIX)
-        && !path.startsWith(HEADERS_PREFIX)) {
+    if (!path.startsWith("#") && !path.startsWith(META_PFX) && !path.startsWith(HEADERS_PFX)) {
       final Object payload = message.getPayload();
       if (payload instanceof Map) {
-        return hasKey((Map<String, Object>) payload, path);
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, Object> map = (Map<String, Object>) payload;
+        return hasKey(map, path);
       }
       return payload != null;
     }
 
-    if (path.startsWith(METADATA_PREFIX) || path.startsWith(HEADERS_PREFIX)) {
-      String cleanPath =
-          path.startsWith(METADATA_PREFIX)
-              ? path.substring(METADATA_PREFIX.length())
-              : path.substring(HEADERS_PREFIX.length());
+    if (path.startsWith(META_PFX) || path.startsWith(HEADERS_PFX)) {
+      final String cleanPath =
+          path.startsWith(META_PFX)
+              ? path.substring(META_PFX.length())
+              : path.substring(HEADERS_PFX.length());
       return hasKey(message.getMetadata(), cleanPath);
     }
 
     String payloadPath = path;
-    if (payloadPath.startsWith("#payload.")) {
-      payloadPath = payloadPath.substring("#payload.".length());
+    if (payloadPath.startsWith(PAYLOAD_SPEL)) {
+      payloadPath = payloadPath.substring(PAYLOAD_SPEL.length());
     }
     if (!payloadPath.startsWith("#")) {
       final Object payload = message.getPayload();
       if (payload instanceof Map) {
-        return hasKey((Map<String, Object>) payload, payloadPath);
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, Object> map = (Map<String, Object>) payload;
+        return hasKey(map, payloadPath);
       }
       return payload != null;
     }
 
+    return evaluateExists(message, path);
+  }
+
+  private boolean evaluateExists(final Message<?> message, final String path) {
     try {
-      final Map<String, Object> variables = new HashMap<>();
-      variables.put("payload", message.getPayload());
-      variables.put("metadata", message.getMetadata());
-      final String effectiveSpel = path.startsWith("#") ? path : "#payload." + path;
-      Object val = SpelUtils.evaluateSync(effectiveSpel, message, variables);
-      return val != null;
+      final Map<String, Object> variables =
+          Map.of("payload", message.getPayload() != null ? message.getPayload() : Map.of(),
+                 "metadata", message.getMetadata());
+      final String effectiveSpel = path.startsWith("#") ? path : PAYLOAD_SPEL + path;
+      return SpelUtils.evaluateSync(effectiveSpel, message, variables) != null;
     } catch (Exception e) {
       return false;
     }
   }
 
-  private boolean hasKey(Map<String, Object> map, String path) {
-    String[] parts = path.split("\\.");
+  private boolean hasKey(final Map<String, Object> map, final String path) {
+    final String[] parts = path.split("\\.");
     Map<String, Object> current = map;
     for (int i = 0; i < parts.length - 1; i++) {
-      Object next = current.get(parts[i]);
+      final Object next = current.get(parts[i]);
       if (next instanceof Map) {
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings(UNCHECKED)
         final Map<String, Object> nextMap = (Map<String, Object>) next;
         current = nextMap;
       } else {
