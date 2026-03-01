@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
@@ -191,24 +192,35 @@ public class ContentFilterProcessor implements ProcessorPlugin {
       return (Iterator<?>) items;
     }
     if (items != null && items.getClass().isArray()) {
-      return new Iterator<>() {
-        private int index;
-        private final int length = Array.getLength(items);
-
-        @Override
-        public boolean hasNext() {
-          return index < length;
-        }
-
-        @Override
-        public Object next() {
-          final Object item = Array.get(items, index);
-          index++;
-          return item;
-        }
-      };
+      return new ArrayIterator(items, Array.getLength(items));
     }
     return Collections.singletonList(items).iterator();
+  }
+
+  private static final class ArrayIterator implements Iterator<Object> {
+    private final Object array;
+    private final int length;
+    private int index;
+
+    /* default */ ArrayIterator(final Object array, final int length) {
+      this.array = array;
+      this.length = length;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return index < length;
+    }
+
+    @Override
+    public Object next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      final Object item = Array.get(array, index);
+      index++;
+      return item;
+    }
   }
 
   private Mono<Message<?>> applyFilterToItem(
@@ -270,8 +282,11 @@ public class ContentFilterProcessor implements ProcessorPlugin {
     }
 
     final Map<String, Object> variables =
-        Map.of("payload", message.getPayload() != null ? message.getPayload() : Map.of(),
-               "metadata", message.getMetadata());
+        Map.of(
+            "payload",
+            message.getPayload() != null ? message.getPayload() : Map.of(),
+            "metadata",
+            message.getMetadata());
 
     final Object payload = message.getPayload();
     final Object resultPayload;
@@ -454,8 +469,11 @@ public class ContentFilterProcessor implements ProcessorPlugin {
   private boolean evaluateExists(final Message<?> message, final String path) {
     try {
       final Map<String, Object> variables =
-          Map.of("payload", message.getPayload() != null ? message.getPayload() : Map.of(),
-                 "metadata", message.getMetadata());
+          Map.of(
+              "payload",
+              message.getPayload() != null ? message.getPayload() : Map.of(),
+              "metadata",
+              message.getMetadata());
       final String effectiveSpel = path.startsWith("#") ? path : PAYLOAD_SPEL + path;
       return SpelUtils.evaluateSync(effectiveSpel, message, variables) != null;
     } catch (Exception e) {
