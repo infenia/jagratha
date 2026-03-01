@@ -17,6 +17,7 @@ package com.infenia.yukta.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,6 +27,8 @@ import reactor.core.scheduler.Schedulers;
 /** Configuration for the application. */
 @Configuration
 public class AppConfiguration {
+
+  private static final int VIRTUAL_THREAD_POOL_SIZE = Runtime.getRuntime().availableProcessors();
 
   /** Public constructor for PMD. */
   public AppConfiguration() {
@@ -44,13 +47,15 @@ public class AppConfiguration {
   }
 
   /**
-   * Provide a Scheduler that uses virtual threads.
+   * Provide a Scheduler that uses virtual threads and supports scheduled tasks.
    *
    * @return the virtual thread scheduler
    */
   @Bean
   @SuppressWarnings("PMD.DoNotUseThreads")
   public Scheduler virtualThreadScheduler() {
-    return Schedulers.fromExecutor(Executors.newVirtualThreadPerTaskExecutor());
+    final ScheduledExecutorService executor =
+        Executors.newScheduledThreadPool(VIRTUAL_THREAD_POOL_SIZE, Thread.ofVirtual().factory());
+    return Schedulers.fromExecutorService(executor);
   }
 }
