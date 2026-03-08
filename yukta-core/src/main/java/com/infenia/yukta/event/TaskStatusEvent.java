@@ -48,7 +48,7 @@ public record TaskStatusEvent(
 
   @Override
   public Map<String, Object> metadata() {
-    return (metadata != null) ? Collections.unmodifiableMap(new HashMap<>(metadata)) : null;
+    return Collections.unmodifiableMap(new HashMap<>(metadata));
   }
 
   /**

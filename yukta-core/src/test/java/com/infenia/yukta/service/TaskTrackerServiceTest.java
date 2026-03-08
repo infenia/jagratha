@@ -17,11 +17,15 @@ package com.infenia.yukta.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.infenia.yukta.model.WorkflowProgress;
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class TaskTrackerServiceTest {
@@ -35,7 +39,7 @@ class TaskTrackerServiceTest {
   }
 
   @Test
-  void testWorkflowTracking() throws InterruptedException {
+  void testWorkflowTracking() {
     String sessionId = "sess-1";
     String workflowId = "wf-1";
     String executionId = "exec-1";
@@ -51,21 +55,32 @@ class TaskTrackerServiceTest {
     assertEquals("node1", progress.tasks().get(0).nodeId());
     assertEquals("PENDING", progress.tasks().get(0).status());
 
-    tracker.emitTaskStatusEvent(executionId, "node1", "moduleA", "SUCCESS", java.util.Map.of());
-    // Wait for async processing
-    Thread.sleep(200);
+    tracker.emitTaskStatusEvent(executionId, "node1", "moduleA", "SUCCESS", Map.of());
+
+    // Loop to wait for state update
+    for (int i = 0; i < 20; i++) {
+        if ("SUCCESS".equals(tracker.getProgress(sessionId, executionId).tasks().get(0).status())) break;
+        try { Thread.sleep(50); } catch (InterruptedException e) {}
+    }
 
     progress = tracker.getProgress(sessionId, executionId);
     assertEquals("SUCCESS", progress.tasks().get(0).status());
     assertEquals("moduleA", progress.tasks().get(0).module());
 
     tracker.emitWorkflowStatusEvent(executionId, "COMPLETED");
-    // Wait for async processing
-    Thread.sleep(200);
+
+    // Loop to wait for state update
+    for (int i = 0; i < 20; i++) {
+        if ("COMPLETED".equals(tracker.getProgress(sessionId, executionId).status())) break;
+        try { Thread.sleep(50); } catch (InterruptedException e) {}
+    }
 
     progress = tracker.getProgress(sessionId, executionId);
     assertEquals("COMPLETED", progress.status());
     assertNotNull(progress.endTime());
+
+    // Test getHistory
+    assertEquals(1, tracker.getHistory(sessionId).size());
   }
 
   @Test
@@ -95,7 +110,7 @@ class TaskTrackerServiceTest {
         .then(
             () ->
                 tracker.emitTaskStatusEvent(
-                    executionId, "n1", "mod", "SUCCESS", java.util.Map.of()))
+                    executionId, "n1", "mod", "SUCCESS", Map.of()))
         .assertNext(progress -> assertEquals("wf-1", progress.workflowId()))
         .thenCancel()
         .verify();
@@ -111,5 +126,18 @@ class TaskTrackerServiceTest {
     assertEquals(1, tracker.getActiveSessions().size());
     tracker.removeSession(sessionId);
     assertEquals(0, tracker.getActiveSessions().size());
+  }
+
+  @Test
+  void testGetProgressNotFound() {
+    assertNull(tracker.getProgress("unknown", "unknown"));
+  }
+
+  @Test
+  void testEventsForUnknownExecution() {
+    tracker.emitTaskStatusEvent("unknown", "n", "m", "s", Map.of());
+    tracker.emitWorkflowStatusEvent("unknown", "s");
+    tracker.emitLogEvent("unknown", "log");
+    // Should not crash
   }
 }

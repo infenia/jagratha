@@ -64,11 +64,10 @@ public class PluginController {
   @Operation(summary = "Get plugin details", description = "Retrieves details of a specific plugin")
   public Mono<ResponseEntity<ApiResponse<PluginDetails>>> getPluginDetails(
       @PathVariable final String type) {
-    return Mono.fromCallable(() -> registry.get(type))
+    return Mono.justOrEmpty(registry.get(type))
         .map(
-            p -> {
-              if (p != null) {
-                return ResponseEntity.ok(
+            p ->
+                ResponseEntity.ok(
                     ApiResponse.success(
                         200,
                         "Plugin details retrieved",
@@ -78,9 +77,7 @@ public class PluginController {
                             p.getDescription(),
                             p.getUsagePattern(),
                             p.getUiDesign().orElse(null),
-                            p.getOutputPorts())));
-              }
-              return ResponseEntity.notFound().build();
-            });
+                            p.getOutputPorts()))))
+        .defaultIfEmpty(ResponseEntity.notFound().build());
   }
 }

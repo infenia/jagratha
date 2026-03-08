@@ -107,19 +107,14 @@ public class AppController {
   public Mono<ResponseEntity<ApiResponse<WorkflowProgress>>> getWorkflowStatus(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Execution ID") @PathVariable final String executionId) {
-    return Mono.fromCallable(() -> trackerService.getProgress(sessionId, executionId))
+    return Mono.justOrEmpty(trackerService.getProgress(sessionId, executionId))
         .map(
-            progress -> {
-              if (progress != null) {
-                return ResponseEntity.ok(
-                    ApiResponse.success(200, "Workflow status retrieved successfully", progress));
-              } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(
-                        ApiResponse.error(
-                            404, "Not Found", "Execution not found", null, List.of()));
-              }
-            });
+            progress ->
+                ResponseEntity.ok(
+                    ApiResponse.success(200, "Workflow status retrieved successfully", progress)))
+        .defaultIfEmpty(
+            ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(404, "Not Found", "Execution not found", null, List.of())));
   }
 
   /**

@@ -73,11 +73,7 @@ tasks.withType<JacocoCoverageVerification>().configureEach {
     violationRules {
         rule {
             limit {
-                minimum = if (project.hasProperty("jacocoMinimumCoverage")) {
-                    project.property("jacocoMinimumCoverage").toString().toBigDecimal()
-                } else {
-                    0.80.toBigDecimal()
-                }
+                minimum = 0.90.toBigDecimal()
             }
         }
     }

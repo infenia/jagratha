@@ -17,6 +17,7 @@ package com.infenia.yukta.controller;
 
 import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.model.WorkflowDefinition;
 import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.TaskTrackerService;
 import java.util.List;
@@ -52,5 +53,43 @@ class SessionControllerTest {
         .expectBody()
         .jsonPath("$.data[0].sessionId")
         .isEqualTo("session-1");
+  }
+
+  @Test
+  void testGetSessionDetails() {
+    Map<String, Object> config = Map.of("workflows", Map.of("wf1", Map.of()));
+    when(sessionService.getSessionConfig("s1")).thenReturn(Mono.just(config));
+
+    webTestClient.get().uri("/api/sessions/s1")
+        .exchange()
+        .expectStatus().isOk()
+        .expectBody()
+        .jsonPath("$.data.workflowIds[0]").isEqualTo("wf1");
+
+    when(sessionService.getSessionConfig("unknown")).thenReturn(Mono.empty());
+    webTestClient.get().uri("/api/sessions/unknown")
+        .exchange()
+        .expectStatus().isNotFound();
+  }
+
+  @Test
+  void testGetWorkflow() {
+    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
+    when(sessionService.getSessionWorkflow("s1", "wf1")).thenReturn(Mono.just(def));
+
+    webTestClient.get().uri("/api/sessions/s1/workflows/wf1")
+        .exchange()
+        .expectStatus().isOk()
+        .expectBody()
+        .jsonPath("$.data.description").isEqualTo("desc");
+
+    when(sessionService.getSessionWorkflow("s1", "unknown")).thenReturn(Mono.empty());
+    webTestClient.get().uri("/api/sessions/s1/workflows/unknown")
+        .exchange()
+        .expectStatus().isNotFound();
+  }
+
+  private WebTestClient webClient() {
+    return webTestClient;
   }
 }
