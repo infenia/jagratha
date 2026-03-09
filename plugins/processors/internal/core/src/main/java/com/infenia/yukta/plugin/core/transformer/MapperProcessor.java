@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.plugin.core.transformer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
 import com.infenia.yukta.plugin.core.UiDesign;

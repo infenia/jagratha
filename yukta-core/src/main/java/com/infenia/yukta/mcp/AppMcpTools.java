@@ -15,8 +15,8 @@
  */
 package com.infenia.yukta.mcp;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import com.infenia.yukta.model.PluginDetails;
 import com.infenia.yukta.model.PluginSummary;
 import com.infenia.yukta.model.SessionDetails;
@@ -141,7 +141,7 @@ public class AppMcpTools {
       final Map<String, Object> payload =
           objectMapper.readValue(payloadJson, new TypeReference<>() {});
       result = Mono.just(workflowService.runWorkflow(sessionId, workflowId, payload).executionId());
-    } catch (final com.fasterxml.jackson.core.JsonProcessingException e) {
+    } catch (final tools.jackson.core.JacksonException e) {
       result = Mono.error(new IllegalArgumentException("Invalid JSON payload: " + e.getMessage()));
     }
     return result;

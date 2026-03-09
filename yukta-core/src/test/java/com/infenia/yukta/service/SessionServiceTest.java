@@ -19,7 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.infenia.yukta.config.AppConfigService;
 import com.infenia.yukta.model.AppConfigData;
 import com.infenia.yukta.model.WorkflowDefinition;

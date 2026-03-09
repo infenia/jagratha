@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

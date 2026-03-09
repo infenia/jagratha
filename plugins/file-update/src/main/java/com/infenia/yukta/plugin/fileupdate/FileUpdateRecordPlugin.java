@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.plugin.fileupdate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import java.io.IOException;

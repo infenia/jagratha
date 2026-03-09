@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.infenia.yukta.config.AppConfigService;
 import com.infenia.yukta.model.AppConfigData;
 import com.infenia.yukta.model.WorkflowDefinition;
