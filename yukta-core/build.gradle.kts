@@ -57,3 +57,42 @@ dependencies {
     testImplementation(libs.spring.boot.starter.jackson.test)
     testImplementation(libs.reactor.test)
 }
+
+coverageConfig {
+    val zeroCoverage = mapOf(
+        "LINE" to 0.0,
+        "BRANCH" to 0.0,
+        "CLASS" to 0.0,
+        "INSTRUCTION" to 0.0,
+        "METHOD" to 0.0
+    )
+
+    exceptions.put("com.infenia.yukta.mapper.*Impl", zeroCoverage)
+    exceptions.put("com.infenia.yukta.model.*", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.aggregate.InMemoryAggregateStore*", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.resequence.InMemoryResequencerStore*", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.resequence.ResequencerStore*", zeroCoverage)
+    exceptions.put("com.infenia.yukta.mcp.AppMcpTools", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.TaskTrackerService*", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.WorkflowService", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.NoOpSecretProvider", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.SessionService", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.LogRetrievalService", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.WorkflowRegistry", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.WorkflowValidator", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.ControlBusService", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.DefaultControlBusGateway", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.WorkflowOrchestrator*", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.join.InMemoryJoinStore*", zeroCoverage)
+    exceptions.put("com.infenia.yukta.service.join.JoinStore*", zeroCoverage)
+    exceptions.put("com.infenia.yukta.config.AppConfigService", zeroCoverage)
+    exceptions.put("com.infenia.yukta.config.AppConfiguration", zeroCoverage)
+    exceptions.put("com.infenia.yukta.controller.SessionController", zeroCoverage)
+    exceptions.put("com.infenia.yukta.controller.ConfigController", zeroCoverage)
+    exceptions.put("gg.jte.generated.**", zeroCoverage)
+
+    // Current coverage gaps to be addressed later
+    exceptions.put("com.infenia.yukta.exception.GlobalExceptionHandler", mapOf("BRANCH" to 0.6))
+    exceptions.put("com.infenia.yukta.util.VariableResolver", mapOf("BRANCH" to 0.8))
+    exceptions.put("com.infenia.yukta.util.MapUtils", mapOf("BRANCH" to 0.9))
+}

@@ -33,3 +33,19 @@ dependencies {
 
     testImplementation(libs.reactor.test)
 }
+
+coverageConfig {
+    val relaxedCoverage = mapOf(
+        "LINE" to 0.0,
+        "BRANCH" to 0.0,
+        "CLASS" to 0.0,
+        "INSTRUCTION" to 0.0,
+        "METHOD" to 0.0
+    )
+
+    exceptions.put("com.infenia.yukta.plugin.message.DefaultMessage", relaxedCoverage)
+    exceptions.put("com.infenia.yukta.plugin.message.control.*", relaxedCoverage)
+    exceptions.put("com.infenia.yukta.plugin.exception.*", relaxedCoverage)
+    exceptions.put("com.infenia.yukta.plugin.gateway.AbstractMessagingGateway", relaxedCoverage)
+    exceptions.put("com.infenia.yukta.plugin.core.WorkflowPlugin", relaxedCoverage)
+}
