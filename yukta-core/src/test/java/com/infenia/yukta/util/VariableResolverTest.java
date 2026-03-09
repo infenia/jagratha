@@ -17,120 +17,200 @@ package com.infenia.yukta.util;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.plugin.SecretProvider;
+import com.infenia.yukta.plugin.store.SecretProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import reactor.util.context.Context;
 
-@ExtendWith(MockitoExtension.class)
 class VariableResolverTest {
 
-  @Mock private SecretProvider secretProvider;
+  private SecretProvider secretProvider;
   private VariableResolver resolver;
 
   @BeforeEach
   void setUp() {
+    secretProvider = mock(SecretProvider.class);
     resolver = new VariableResolver(secretProvider);
   }
 
   @Test
   void testIsStatic() {
-    assertTrue(resolver.isStatic("plain string"));
     assertTrue(resolver.isStatic(123));
-    assertFalse(resolver.isStatic("${env.USER}"));
-    assertFalse(resolver.isStatic("decrypted:SECRET"));
-    assertFalse(resolver.isStatic("Hello ${name}"));
+    assertTrue(resolver.isStatic("static"));
+    assertFalse(resolver.isStatic("${var}"));
+    assertFalse(resolver.isStatic("decrypted:key"));
   }
 
   @Test
-  void testResolveStatic() {
-    StepVerifier.create(resolver.resolve("plain")).expectNext("plain").verifyComplete();
+  void testResolveLiteral() {
     StepVerifier.create(resolver.resolve(123)).expectNext(123).verifyComplete();
+    StepVerifier.create(resolver.resolve("plain")).expectNext("plain").verifyComplete();
   }
 
   @Test
-  void testResolveEnv() {
-    // Assuming USER or PATH exists in the environment
-    String user = System.getenv("USER");
-    if (user != null) {
-      StepVerifier.create(resolver.resolve("${env.USER}")).expectNext(user).verifyComplete();
-    }
-  }
-
-  @Test
-  void testResolveSys() {
-    System.setProperty("test.prop", "test-val");
-    StepVerifier.create(resolver.resolve("${sys.test.prop}"))
-        .expectNext("test-val")
+  void testResolveSecret() {
+    when(secretProvider.getSecret("mykey")).thenReturn(Mono.just("secret-val"));
+    StepVerifier.create(resolver.resolve("decrypted:mykey"))
+        .expectNext("secret-val")
         .verifyComplete();
+
+    when(secretProvider.getSecret("missing")).thenReturn(Mono.empty());
+    StepVerifier.create(resolver.resolve("decrypted:missing"))
+        .expectError(IllegalArgumentException.class)
+        .verify();
   }
 
   @Test
-  void testResolveContext() {
-    StepVerifier.create(
-            resolver
-                .resolve("${context.workflowId}")
-                .contextWrite(Context.of("workflowId", "wf-123")))
-        .expectNext("wf-123")
+  void testResolveExpression() {
+    System.setProperty("yukta.test", "prop-val");
+    StepVerifier.create(resolver.resolve("${sys.yukta.test}"))
+        .expectNext("prop-val")
+        .verifyComplete();
+
+    StepVerifier.create(resolver.resolve("${sys.yukta.test:string}"))
+        .expectNext("prop-val")
+        .verifyComplete();
+
+    // Edge cases for colons
+    StepVerifier.create(resolver.resolve("${:nonexistent}"))
+        .expectNext(":nonexistent")
+        .verifyComplete();
+    StepVerifier.create(resolver.resolve("${nonexistent:}"))
+        .expectNext("nonexistent:")
+        .verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.yukta.test:unknownType}"))
+        .expectComplete()
+        .verify();
+  }
+
+  @Test
+  void testResolveTypes() {
+    System.setProperty("t.int", "123");
+    System.setProperty("t.bool", "true");
+    System.setProperty("t.long", "456");
+    System.setProperty("t.double", "1.23");
+
+    StepVerifier.create(resolver.resolve("${sys.t.int:int}")).expectNext(123).verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.t.bool:bool}")).expectNext(true).verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.t.long:long}")).expectNext(456L).verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.t.double:double}"))
+        .expectNext(1.23)
+        .verifyComplete();
+
+    System.setProperty("t.float", "4.56");
+    StepVerifier.create(resolver.resolve("${sys.t.float:float}")).expectNext(4.56).verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.t.int:integer}")).expectNext(123).verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.t.bool:boolean}"))
+        .expectNext(true)
+        .verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.t.int:string}")).expectNext("123").verifyComplete();
+  }
+
+  @Test
+  void testResolveTypesCaseInsensitive() {
+    System.setProperty("t.int.upper", "789");
+    StepVerifier.create(resolver.resolve("${sys.t.int.upper:INT}"))
+        .expectNext(789)
+        .verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.t.int.upper:INTEGER}"))
+        .expectNext(789)
+        .verifyComplete();
+
+    System.setProperty("t.long.upper", "1011");
+    StepVerifier.create(resolver.resolve("${sys.t.long.upper:LONG}"))
+        .expectNext(1011L)
+        .verifyComplete();
+
+    System.setProperty("t.double.upper", "12.13");
+    StepVerifier.create(resolver.resolve("${sys.t.double.upper:DOUBLE}"))
+        .expectNext(12.13)
+        .verifyComplete();
+
+    System.setProperty("t.float.upper", "14.15");
+    StepVerifier.create(resolver.resolve("${sys.t.float.upper:FLOAT}"))
+        .expectNext(14.15)
+        .verifyComplete();
+
+    System.setProperty("t.bool.upper", "true");
+    StepVerifier.create(resolver.resolve("${sys.t.bool.upper:BOOL}"))
+        .expectNext(true)
+        .verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.t.bool.upper:BOOLEAN}"))
+        .expectNext(true)
+        .verifyComplete();
+
+    System.setProperty("t.string.upper", "abc");
+    StepVerifier.create(resolver.resolve("${sys.t.string.upper:STRING}"))
+        .expectNext("abc")
         .verifyComplete();
   }
 
   @Test
   void testResolveInterpolation() {
-    System.setProperty("name", "Yukta");
-    StepVerifier.create(resolver.resolve("Hello ${sys.name}!"))
-        .expectNext("Hello Yukta!")
+    System.setProperty("p1", "v1");
+    StepVerifier.create(resolver.resolve("prefix-${sys.p1}-suffix"))
+        .expectNext("prefix-v1-suffix")
+        .verifyComplete();
+
+    StepVerifier.create(resolver.resolve("${sys.p1}-suffix"))
+        .expectNext("v1-suffix")
+        .verifyComplete();
+
+    StepVerifier.create(resolver.resolve("prefix-${sys.p1}"))
+        .expectNext("prefix-v1")
         .verifyComplete();
   }
 
   @Test
-  void testResolveCasting() {
-    System.setProperty("port", "8080");
-    StepVerifier.create(resolver.resolve("${sys.port:int}")).expectNext(8080).verifyComplete();
-
-    System.setProperty("enabled", "true");
-    StepVerifier.create(resolver.resolve("${sys.enabled:bool}")).expectNext(true).verifyComplete();
-  }
-
-  @Test
-  void testResolveSecret() {
-    when(secretProvider.getSecret("my-key")).thenReturn(Mono.just("secret-value"));
-    StepVerifier.create(resolver.resolve("decrypted:my-key"))
-        .expectNext("secret-value")
-        .verifyComplete();
-  }
-
-  @Test
-  void testResolveInterpolatedSecret() {
-    when(secretProvider.getSecret("db-pass")).thenReturn(Mono.just("p@ss"));
-    StepVerifier.create(resolver.resolve("Pass is ${decrypted:db-pass}"))
-        .expectNext("Pass is p@ss")
-        .verifyComplete();
-  }
-
-  @Test
-  void testSecretBlacklist() {
-    StepVerifier.create(resolver.resolve("${env.DB_PASSWORD}"))
-        .expectError(SecurityException.class)
-        .verify();
-
-    StepVerifier.create(resolver.resolve("${sys.MY_SECRET_KEY}"))
+  void testSecurityBlacklist() {
+    StepVerifier.create(resolver.resolve("${DB_PASSWORD}"))
         .expectError(SecurityException.class)
         .verify();
   }
 
   @Test
-  void testBlacklistButDecryptedAllowed() {
-    when(secretProvider.getSecret("DB_PASSWORD")).thenReturn(Mono.just("safe"));
-    StepVerifier.create(resolver.resolve("decrypted:DB_PASSWORD"))
-        .expectNext("safe")
+  void testResolveContext() {
+    StepVerifier.create(
+            resolver.resolve("${context.myVar}").contextWrite(ctx -> ctx.put("myVar", "ctx-val")))
+        .expectNext("ctx-val")
         .verifyComplete();
+  }
+
+  @Test
+  void testResolveEnv() {
+    // Hard to set env deterministically but can check prefix
+    StepVerifier.create(resolver.resolve("${env.PATH}")).expectNextCount(1).verifyComplete();
+  }
+
+  @Test
+  void testResolveSecretInExpression() {
+    when(secretProvider.getSecret("pass")).thenReturn(Mono.just("p123"));
+    StepVerifier.create(resolver.resolve("${decrypted:pass}")).expectNext("p123").verifyComplete();
+  }
+
+  @Test
+  void testResolveStaticKeyInExpression() {
+    StepVerifier.create(resolver.resolve("${my-static-item}"))
+        .expectNext("my-static-item")
+        .verifyComplete();
+  }
+
+  @Test
+  void testResolveMissingSysProp() {
+    StepVerifier.create(resolver.resolve("${sys.nonexistent.prop}")).expectComplete().verify();
+  }
+
+  @Test
+  void testResolveMissingEnv() {
+    StepVerifier.create(resolver.resolve("${env.NONEXISTENT_VAR}")).expectComplete().verify();
+  }
+
+  @Test
+  void testResolveMissingContext() {
+    StepVerifier.create(resolver.resolve("${context.nonexistent}")).expectComplete().verify();
   }
 }

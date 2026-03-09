@@ -27,14 +27,14 @@ import com.infenia.yukta.config.AppConfigService;
 import com.infenia.yukta.model.WorkflowDefinition;
 import com.infenia.yukta.model.WorkflowDefinition.Edge;
 import com.infenia.yukta.model.WorkflowDefinition.Node;
-import com.infenia.yukta.plugin.DefaultMessage;
-import com.infenia.yukta.plugin.Message;
-import com.infenia.yukta.plugin.MessageStore;
-import com.infenia.yukta.plugin.PluginCategory;
-import com.infenia.yukta.plugin.ProcessorPlugin;
-import com.infenia.yukta.plugin.TerminalPlugin;
-import com.infenia.yukta.plugin.TriggerPlugin;
-import com.infenia.yukta.plugin.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.PluginCategory;
+import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.message.DefaultMessage;
+import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.plugin.store.MessageStore;
+import com.infenia.yukta.plugin.type.ProcessorPlugin;
+import com.infenia.yukta.plugin.type.TerminalPlugin;
+import com.infenia.yukta.plugin.type.TriggerPlugin;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -52,6 +52,7 @@ class WorkflowOrchestratorTest {
   private TaskTrackerService tracker;
   private WorkflowValidator validator;
   private AppConfigService configService;
+  private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
   private WorkflowOrchestrator orchestrator;
 
   @BeforeEach
@@ -59,6 +60,13 @@ class WorkflowOrchestratorTest {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
     configService = mock(AppConfigService.class);
+    controlBusGateway = mock(com.infenia.yukta.service.DefaultControlBusGateway.class);
+    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
+    com.infenia.yukta.service.ControlBusService controlBusService =
+        mock(com.infenia.yukta.service.ControlBusService.class);
+    when(((com.infenia.yukta.service.DefaultControlBusGateway) controlBusGateway)
+            .getControlBusService())
+        .thenReturn(controlBusService);
     validator = new WorkflowValidator(registry);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), any()))
         .thenReturn(Mono.empty());
@@ -72,7 +80,14 @@ class WorkflowOrchestratorTest {
             });
     orchestrator =
         new WorkflowOrchestrator(
-            registry, tracker, validator, configService, null, Schedulers.parallel());
+            registry,
+            tracker,
+            validator,
+            configService,
+            null,
+            controlBusGateway,
+            java.time.Duration.ofSeconds(10),
+            Schedulers.parallel());
   }
 
   @Test
@@ -394,7 +409,14 @@ class WorkflowOrchestratorTest {
 
     final WorkflowOrchestrator tappedOrchestrator =
         new WorkflowOrchestrator(
-            registry, tracker, validator, configService, mockStore, Schedulers.immediate());
+            registry,
+            tracker,
+            validator,
+            configService,
+            mockStore,
+            controlBusGateway,
+            java.time.Duration.ofSeconds(10),
+            Schedulers.immediate());
 
     final Node triggerNode = new Node("t1", "trigger", Map.of());
     final Node terminalNode = new Node("term1", "terminal", Map.of());

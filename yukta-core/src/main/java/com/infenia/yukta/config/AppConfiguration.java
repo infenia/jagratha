@@ -16,6 +16,7 @@
 package com.infenia.yukta.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -57,5 +58,15 @@ public class AppConfiguration {
     final ScheduledExecutorService executor =
         Executors.newScheduledThreadPool(POOL_SIZE, Thread.ofVirtual().factory());
     return Schedulers.fromExecutorService(executor);
+  }
+
+  /**
+   * Global heartbeat interval for nodes in seconds.
+   *
+   * @return the heartbeat interval duration
+   */
+  @Bean
+  public Duration heartbeatInterval() {
+    return Duration.ofSeconds(10);
   }
 }
