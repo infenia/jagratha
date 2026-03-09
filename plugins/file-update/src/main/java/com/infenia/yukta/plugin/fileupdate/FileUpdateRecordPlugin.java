@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.plugin.fileupdate;
 
-import tools.jackson.databind.ObjectMapper;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import java.io.IOException;
@@ -29,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import tools.jackson.databind.ObjectMapper;
 
 /** Plugin to record and update file status on the filesystem. */
 @Slf4j

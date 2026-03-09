@@ -15,8 +15,6 @@
  */
 package com.infenia.yukta.mcp;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 import com.infenia.yukta.model.PluginDetails;
 import com.infenia.yukta.model.PluginSummary;
 import com.infenia.yukta.model.SessionDetails;
@@ -35,6 +33,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * MCP (Model Context Protocol) tools for Yukta. Provides tools for interacting with workflows,
