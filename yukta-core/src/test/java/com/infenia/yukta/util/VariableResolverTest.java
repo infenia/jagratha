@@ -54,10 +54,14 @@ class VariableResolverTest {
   @Test
   void testResolveSecret() {
     when(secretProvider.getSecret("mykey")).thenReturn(Mono.just("secret-val"));
-    StepVerifier.create(resolver.resolve("decrypted:mykey")).expectNext("secret-val").verifyComplete();
+    StepVerifier.create(resolver.resolve("decrypted:mykey"))
+        .expectNext("secret-val")
+        .verifyComplete();
 
     when(secretProvider.getSecret("missing")).thenReturn(Mono.empty());
-    StepVerifier.create(resolver.resolve("decrypted:missing")).expectError(IllegalArgumentException.class).verify();
+    StepVerifier.create(resolver.resolve("decrypted:missing"))
+        .expectError(IllegalArgumentException.class)
+        .verify();
   }
 
   @Test
@@ -82,7 +86,9 @@ class VariableResolverTest {
     StepVerifier.create(resolver.resolve("${sys.t.int:int}")).expectNext(123).verifyComplete();
     StepVerifier.create(resolver.resolve("${sys.t.bool:bool}")).expectNext(true).verifyComplete();
     StepVerifier.create(resolver.resolve("${sys.t.long:long}")).expectNext(456L).verifyComplete();
-    StepVerifier.create(resolver.resolve("${sys.t.double:double}")).expectNext(1.23).verifyComplete();
+    StepVerifier.create(resolver.resolve("${sys.t.double:double}"))
+        .expectNext(1.23)
+        .verifyComplete();
   }
 
   @Test
@@ -102,8 +108,8 @@ class VariableResolverTest {
 
   @Test
   void testResolveContext() {
-    StepVerifier.create(resolver.resolve("${context.myVar}")
-        .contextWrite(ctx -> ctx.put("myVar", "ctx-val")))
+    StepVerifier.create(
+            resolver.resolve("${context.myVar}").contextWrite(ctx -> ctx.put("myVar", "ctx-val")))
         .expectNext("ctx-val")
         .verifyComplete();
   }
@@ -122,7 +128,9 @@ class VariableResolverTest {
 
   @Test
   void testResolveStaticKeyInExpression() {
-    StepVerifier.create(resolver.resolve("${my-static-item}")).expectNext("my-static-item").verifyComplete();
+    StepVerifier.create(resolver.resolve("${my-static-item}"))
+        .expectNext("my-static-item")
+        .verifyComplete();
   }
 
   @Test

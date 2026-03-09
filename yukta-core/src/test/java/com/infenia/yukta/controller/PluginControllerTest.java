@@ -85,11 +85,6 @@ class PluginControllerTest {
   void testGetPluginDetailsNotFound() {
     when(registry.get("unknown")).thenReturn(null);
 
-    webTestClient
-        .get()
-        .uri("/api/plugins/unknown")
-        .exchange()
-        .expectStatus()
-        .isNotFound();
+    webTestClient.get().uri("/api/plugins/unknown").exchange().expectStatus().isNotFound();
   }
 }

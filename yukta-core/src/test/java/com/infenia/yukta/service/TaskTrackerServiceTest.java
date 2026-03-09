@@ -20,12 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.infenia.yukta.model.WorkflowProgress;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class TaskTrackerServiceTest {
@@ -59,8 +57,12 @@ class TaskTrackerServiceTest {
 
     // Loop to wait for state update
     for (int i = 0; i < 20; i++) {
-        if ("SUCCESS".equals(tracker.getProgress(sessionId, executionId).tasks().get(0).status())) break;
-        try { Thread.sleep(50); } catch (InterruptedException e) {}
+      if ("SUCCESS".equals(tracker.getProgress(sessionId, executionId).tasks().get(0).status()))
+        break;
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+      }
     }
 
     progress = tracker.getProgress(sessionId, executionId);
@@ -71,8 +73,11 @@ class TaskTrackerServiceTest {
 
     // Loop to wait for state update
     for (int i = 0; i < 20; i++) {
-        if ("COMPLETED".equals(tracker.getProgress(sessionId, executionId).status())) break;
-        try { Thread.sleep(50); } catch (InterruptedException e) {}
+      if ("COMPLETED".equals(tracker.getProgress(sessionId, executionId).status())) break;
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+      }
     }
 
     progress = tracker.getProgress(sessionId, executionId);
@@ -107,10 +112,7 @@ class TaskTrackerServiceTest {
         .verifyComplete();
 
     StepVerifier.create(tracker.getStatusStream(executionId))
-        .then(
-            () ->
-                tracker.emitTaskStatusEvent(
-                    executionId, "n1", "mod", "SUCCESS", Map.of()))
+        .then(() -> tracker.emitTaskStatusEvent(executionId, "n1", "mod", "SUCCESS", Map.of()))
         .assertNext(progress -> assertEquals("wf-1", progress.workflowId()))
         .thenCancel()
         .verify();

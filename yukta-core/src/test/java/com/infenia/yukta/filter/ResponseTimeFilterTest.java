@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -28,7 +29,6 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import java.util.function.Supplier;
 
 class ResponseTimeFilterTest {
 
@@ -46,11 +46,14 @@ class ResponseTimeFilterTest {
     when(chain.filter(exchange)).thenReturn(Mono.empty());
 
     // Use doAnswer for void method
-    doAnswer(inv -> {
-      Supplier<Mono<Void>> supplier = inv.getArgument(0);
-      supplier.get(); // Trigger the header addition
-      return null;
-    }).when(response).beforeCommit(any());
+    doAnswer(
+            inv -> {
+              Supplier<Mono<Void>> supplier = inv.getArgument(0);
+              supplier.get(); // Trigger the header addition
+              return null;
+            })
+        .when(response)
+        .beforeCommit(any());
 
     StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
 

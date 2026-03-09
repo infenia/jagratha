@@ -25,7 +25,8 @@ class EventTest {
 
   @Test
   void testTaskStatusEvent() {
-    TaskStatusEvent event = TaskStatusEvent.create("exec1", "node1", "module1", "SUCCESS", Map.of("k", "v"));
+    TaskStatusEvent event =
+        TaskStatusEvent.create("exec1", "node1", "module1", "SUCCESS", Map.of("k", "v"));
     assertEquals("exec1", event.executionId());
     assertEquals("node1", event.nodeId());
     assertEquals("SUCCESS", event.status());

@@ -43,10 +43,11 @@ class ReactiveLockTest {
 
     StepVerifier.create(second)
         .expectSubscription()
-        .then(() -> {
-          assert !secondAcquired.get();
-          lock.release();
-        })
+        .then(
+            () -> {
+              assert !secondAcquired.get();
+              lock.release();
+            })
         .verifyComplete();
 
     assert secondAcquired.get();
@@ -55,9 +56,7 @@ class ReactiveLockTest {
   @Test
   void testWithLock() {
     ReactiveLock lock = new ReactiveLock();
-    StepVerifier.create(lock.withLock(Mono.just("result")))
-        .expectNext("result")
-        .verifyComplete();
+    StepVerifier.create(lock.withLock(Mono.just("result"))).expectNext("result").verifyComplete();
 
     // Verify it was released
     StepVerifier.create(lock.acquire()).verifyComplete();

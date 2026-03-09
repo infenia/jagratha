@@ -47,12 +47,17 @@ class ControlBusControllerTest {
   @Test
   void testGetActiveNodes() {
     when(controlBusService.getActiveNodes()).thenReturn(List.of("node1", "node2"));
-    webClient.get().uri("/api/control/nodes")
+    webClient
+        .get()
+        .uri("/api/control/nodes")
         .exchange()
-        .expectStatus().isOk()
+        .expectStatus()
+        .isOk()
         .expectBody()
-        .jsonPath("$.data[0]").isEqualTo("node1")
-        .jsonPath("$.message").isEqualTo("Active nodes retrieved");
+        .jsonPath("$.data[0]")
+        .isEqualTo("node1")
+        .jsonPath("$.message")
+        .isEqualTo("Active nodes retrieved");
   }
 
   @Test
@@ -61,11 +66,15 @@ class ControlBusControllerTest {
     Message hb = DefaultMessage.create(null, "ok").withControl(true);
     when(controlBusService.getLastHeartbeat("n1")).thenReturn(hb);
 
-    webClient.get().uri("/api/control/nodes/n1/heartbeat")
+    webClient
+        .get()
+        .uri("/api/control/nodes/n1/heartbeat")
         .exchange()
-        .expectStatus().isOk()
+        .expectStatus()
+        .isOk()
         .expectBody()
-        .jsonPath("$.data.payload").isEqualTo("ok");
+        .jsonPath("$.data.payload")
+        .isEqualTo("ok");
   }
 
   @Test
@@ -74,13 +83,17 @@ class ControlBusControllerTest {
     Message resp = DefaultMessage.create(null, "done");
     when(controlBusService.sendCommand(eq("n1"), any())).thenReturn(Mono.just(resp));
 
-    webClient.post().uri("/api/control/nodes/n1/command")
+    webClient
+        .post()
+        .uri("/api/control/nodes/n1/command")
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(Map.of("cmd", "reset"))
         .exchange()
-        .expectStatus().isOk()
+        .expectStatus()
+        .isOk()
         .expectBody()
-        .jsonPath("$.message").isEqualTo("Command processed");
+        .jsonPath("$.message")
+        .isEqualTo("Command processed");
   }
 
   @Test
@@ -89,10 +102,14 @@ class ControlBusControllerTest {
     Message m1 = DefaultMessage.create(null, "s1");
     when(controlBusService.getControlStream()).thenReturn(Flux.just(m1));
 
-    webClient.get().uri("/api/control/stream")
+    webClient
+        .get()
+        .uri("/api/control/stream")
         .accept(MediaType.TEXT_EVENT_STREAM)
         .exchange()
-        .expectStatus().isOk()
-        .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM);
+        .expectStatus()
+        .isOk()
+        .expectHeader()
+        .contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM);
   }
 }

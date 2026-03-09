@@ -25,7 +25,6 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
 import com.infenia.yukta.plugin.message.control.ControlStatistics;
-import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -58,15 +57,19 @@ class ControlBusServiceTest {
     Message<ControlHeartbeat> hbMsg = DefaultMessage.create(null, hb).withSourceNodeId("node1");
 
     ControlStatistics stats = mock(ControlStatistics.class);
-    Message<ControlStatistics> statsMsg = DefaultMessage.create(null, stats).withSourceNodeId("node1");
+    Message<ControlStatistics> statsMsg =
+        DefaultMessage.create(null, stats).withSourceNodeId("node1");
 
     service.emit(hbMsg).block();
     service.emit(statsMsg).block();
 
     // Loop to wait for state update
     for (int i = 0; i < 20; i++) {
-        if (service.getLastHeartbeat("node1") != null) break;
-        try { Thread.sleep(50); } catch (InterruptedException e) {}
+      if (service.getLastHeartbeat("node1") != null) break;
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+      }
     }
 
     assertEquals(hbMsg, service.getLastHeartbeat("node1"));
@@ -82,9 +85,7 @@ class ControlBusServiceTest {
     service.registerPlugin("node1", plugin);
     when(plugin.onControlSignal(cmd)).thenReturn(Mono.just(resp));
 
-    StepVerifier.create(service.sendCommand("node1", cmd))
-        .expectNext(resp)
-        .verifyComplete();
+    StepVerifier.create(service.sendCommand("node1", cmd)).expectNext(resp).verifyComplete();
 
     service.unregisterPlugin("node1");
     StepVerifier.create(service.sendCommand("node1", cmd))

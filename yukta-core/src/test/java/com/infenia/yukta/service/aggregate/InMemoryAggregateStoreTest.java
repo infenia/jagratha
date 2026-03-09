@@ -15,8 +15,6 @@
  */
 package com.infenia.yukta.service.aggregate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.aggregate.AggregateStore.AggregateConfig;
@@ -27,7 +25,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class InMemoryAggregateStoreTest {
@@ -176,7 +173,8 @@ class InMemoryAggregateStoreTest {
 
     // Loop until COMPLETED
     StepVerifier.create(store.getAsyncResults())
-        .expectNextMatches(res -> res.status() == AggregateResult.Status.COMPLETED && res.key().equals(key))
+        .expectNextMatches(
+            res -> res.status() == AggregateResult.Status.COMPLETED && res.key().equals(key))
         .thenCancel()
         .verify(Duration.ofSeconds(1));
   }
@@ -248,9 +246,7 @@ class InMemoryAggregateStoreTest {
     store.addValue(key, 10.0, msg, config).block();
 
     // emitOnTimeout = false means it should NOT be in async results as COMPLETED
-    StepVerifier.create(store.getAsyncResults())
-        .expectTimeout(Duration.ofMillis(300))
-        .verify();
+    StepVerifier.create(store.getAsyncResults()).expectTimeout(Duration.ofMillis(300)).verify();
   }
 
   @Test

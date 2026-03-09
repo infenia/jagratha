@@ -75,7 +75,9 @@ class AppControllerTest {
 
   @Test
   void testGetWorkflowStatus() {
-    WorkflowProgress progress = new WorkflowProgress("exec-1", "sess-1", "wf-1", "RUNNING", List.of(), LocalDateTime.now(), null);
+    WorkflowProgress progress =
+        new WorkflowProgress(
+            "exec-1", "sess-1", "wf-1", "RUNNING", List.of(), LocalDateTime.now(), null);
     when(trackerService.getProgress("sess-1", "exec-1")).thenReturn(progress);
 
     webTestClient
@@ -103,7 +105,9 @@ class AppControllerTest {
 
   @Test
   void testStreamWorkflowStatus() {
-    WorkflowProgress progress = new WorkflowProgress("exec-1", "sess-1", "wf-1", "RUNNING", List.of(), LocalDateTime.now(), null);
+    WorkflowProgress progress =
+        new WorkflowProgress(
+            "exec-1", "sess-1", "wf-1", "RUNNING", List.of(), LocalDateTime.now(), null);
     when(trackerService.getStatusStream("exec-1")).thenReturn(Flux.just(progress));
 
     webTestClient
@@ -120,12 +124,7 @@ class AppControllerTest {
   void testGetWorkflowHistory() {
     when(trackerService.getHistory("sess-1")).thenReturn(List.of());
 
-    webTestClient
-        .get()
-        .uri("/api/workflow/sess-1/history")
-        .exchange()
-        .expectStatus()
-        .isOk();
+    webTestClient.get().uri("/api/workflow/sess-1/history").exchange().expectStatus().isOk();
   }
 
   @Test
@@ -160,14 +159,10 @@ class AppControllerTest {
 
   @Test
   void testGetLogContentNotFound() {
-    when(logRetrievalService.getLogContent("sess-1", "test.log")).thenReturn(Mono.error(new java.io.IOException()));
+    when(logRetrievalService.getLogContent("sess-1", "test.log"))
+        .thenReturn(Mono.error(new java.io.IOException()));
 
-    webTestClient
-        .get()
-        .uri("/api/logs/sess-1/test.log")
-        .exchange()
-        .expectStatus()
-        .isNotFound();
+    webTestClient.get().uri("/api/logs/sess-1/test.log").exchange().expectStatus().isNotFound();
   }
 
   @Test
@@ -186,13 +181,9 @@ class AppControllerTest {
 
   @Test
   void testGetRawLogContentNotFound() {
-    when(logRetrievalService.getLogContent("sess-1", "test.log")).thenReturn(Mono.error(new java.io.IOException()));
+    when(logRetrievalService.getLogContent("sess-1", "test.log"))
+        .thenReturn(Mono.error(new java.io.IOException()));
 
-    webTestClient
-        .get()
-        .uri("/api/logs/sess-1/test.log/raw")
-        .exchange()
-        .expectStatus()
-        .isNotFound();
+    webTestClient.get().uri("/api/logs/sess-1/test.log/raw").exchange().expectStatus().isNotFound();
   }
 }

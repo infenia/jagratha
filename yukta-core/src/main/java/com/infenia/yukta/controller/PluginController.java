@@ -47,7 +47,7 @@ public class PluginController {
   @GetMapping
   @Operation(summary = "List plugins", description = "Lists all registered workflow plugins")
   public Mono<ApiResponse<List<PluginSummary>>> listPlugins() {
-    return Mono.just(registry.listPlugins())
+    return Mono.fromCallable(registry::listPlugins)
         .map(
             plugins ->
                 plugins.stream().map(p -> new PluginSummary(p.getType(), p.getCategory())).toList())
@@ -64,7 +64,8 @@ public class PluginController {
   @Operation(summary = "Get plugin details", description = "Retrieves details of a specific plugin")
   public Mono<ResponseEntity<ApiResponse<PluginDetails>>> getPluginDetails(
       @PathVariable final String type) {
-    return Mono.justOrEmpty(registry.get(type))
+    return Mono.fromCallable(() -> registry.get(type))
+        .flatMap(p -> Mono.justOrEmpty(p))
         .map(
             p ->
                 ResponseEntity.ok(

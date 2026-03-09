@@ -70,16 +70,15 @@ class WorkflowValidatorTest {
     mockPlugin("P", PluginCategory.PROCESSOR);
     mockPlugin("TERM", PluginCategory.TERMINAL);
 
-    WorkflowDefinition def = new WorkflowDefinition("ok",
-        List.of(
-            new WorkflowDefinition.Node("n1", "T", Map.of()),
-            new WorkflowDefinition.Node("n2", "P", Map.of()),
-            new WorkflowDefinition.Node("n3", "TERM", Map.of())
-        ),
-        List.of(
-            new WorkflowDefinition.Edge("n1", "n2"),
-            new WorkflowDefinition.Edge("n2", "n3")
-        ));
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "ok",
+            List.of(
+                new WorkflowDefinition.Node("n1", "T", Map.of()),
+                new WorkflowDefinition.Node("n2", "P", Map.of()),
+                new WorkflowDefinition.Node("n3", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("n1", "n2"), new WorkflowDefinition.Edge("n2", "n3")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -92,47 +91,80 @@ class WorkflowValidatorTest {
 
     // Guard without outgoing (Line 176)
     WorkflowPlugin guardPlugin = mock(ProcessorPlugin.class);
-    when(guardPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL); // Mock as Terminal to bypass Processor validation
+    when(guardPlugin.getCategory())
+        .thenReturn(PluginCategory.TERMINAL); // Mock as Terminal to bypass Processor validation
     when(guardPlugin.getType()).thenReturn("GUARD");
     when(guardPlugin.validateConfig(any())).thenReturn(Mono.empty());
     when(registry.get("GUARD")).thenReturn(guardPlugin);
-    StepVerifier.create(validator.validate(new WorkflowDefinition("d",
-        List.of(new WorkflowDefinition.Node("t", "T", Map.of()), new WorkflowDefinition.Node("g", "GUARD", Map.of())),
-        List.of(new WorkflowDefinition.Edge("t", "g")))))
+    StepVerifier.create(
+            validator.validate(
+                new WorkflowDefinition(
+                    "d",
+                    List.of(
+                        new WorkflowDefinition.Node("t", "T", Map.of()),
+                        new WorkflowDefinition.Node("g", "GUARD", Map.of())),
+                    List.of(new WorkflowDefinition.Edge("t", "g")))))
         .expectError()
         .verify();
 
     // Guard custom error port (Line 188, 189)
-    WorkflowDefinition defG = new WorkflowDefinition("d",
-        List.of(new WorkflowDefinition.Node("t", "T", Map.of()), new WorkflowDefinition.Node("g", "GUARD", Map.of("errorPort", "custom")), new WorkflowDefinition.Node("term", "TERM", Map.of())),
-        List.of(new WorkflowDefinition.Edge("t", "g"), new WorkflowDefinition.Edge("g", "term", "custom")));
+    WorkflowDefinition defG =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("g", "GUARD", Map.of("errorPort", "custom")),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "g"),
+                new WorkflowDefinition.Edge("g", "term", "custom")));
     StepVerifier.create(validator.validate(defG)).expectError().verify();
 
     // Endpoint but not terminal (Line 215)
     interface Hybrid extends TriggerPlugin, ProcessorPlugin {
-        @Override default PluginCategory getCategory() { return PluginCategory.PROCESSOR; }
+      @Override
+      default PluginCategory getCategory() {
+        return PluginCategory.PROCESSOR;
+      }
     }
     Hybrid hybrid = mock(Hybrid.class);
     when(hybrid.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(hybrid.validateConfig(any())).thenReturn(Mono.empty());
     when(registry.get("HYBRID")).thenReturn(hybrid);
-    StepVerifier.create(validator.validate(new WorkflowDefinition("d",
-        List.of(new WorkflowDefinition.Node("h1", "HYBRID", Map.of())),
-        List.of())))
+    StepVerifier.create(
+            validator.validate(
+                new WorkflowDefinition(
+                    "d",
+                    List.of(new WorkflowDefinition.Node("h1", "HYBRID", Map.of())),
+                    List.of())))
         .expectError()
         .verify();
 
     // Terminal with outgoing (Line 220)
-    StepVerifier.create(validator.validate(new WorkflowDefinition("d",
-        List.of(new WorkflowDefinition.Node("t", "T", Map.of()), new WorkflowDefinition.Node("term1", "TERM", Map.of()), new WorkflowDefinition.Node("p1", "P", Map.of())),
-        List.of(new WorkflowDefinition.Edge("t", "term1"), new WorkflowDefinition.Edge("term1", "p1")))))
+    StepVerifier.create(
+            validator.validate(
+                new WorkflowDefinition(
+                    "d",
+                    List.of(
+                        new WorkflowDefinition.Node("t", "T", Map.of()),
+                        new WorkflowDefinition.Node("term1", "TERM", Map.of()),
+                        new WorkflowDefinition.Node("p1", "P", Map.of())),
+                    List.of(
+                        new WorkflowDefinition.Edge("t", "term1"),
+                        new WorkflowDefinition.Edge("term1", "p1")))))
         .expectError()
         .verify();
 
     // Orphan (Line 263)
-    StepVerifier.create(validator.validate(new WorkflowDefinition("d",
-        List.of(new WorkflowDefinition.Node("t", "T", Map.of()), new WorkflowDefinition.Node("term", "TERM", Map.of()), new WorkflowDefinition.Node("o", "TERM", Map.of())),
-        List.of(new WorkflowDefinition.Edge("t", "term")))))
+    StepVerifier.create(
+            validator.validate(
+                new WorkflowDefinition(
+                    "d",
+                    List.of(
+                        new WorkflowDefinition.Node("t", "T", Map.of()),
+                        new WorkflowDefinition.Node("term", "TERM", Map.of()),
+                        new WorkflowDefinition.Node("o", "TERM", Map.of())),
+                    List.of(new WorkflowDefinition.Edge("t", "term")))))
         .expectError()
         .verify();
   }
@@ -144,19 +176,31 @@ class WorkflowValidatorTest {
     mockPlugin("FILTER", PluginCategory.PROCESSOR);
     mockPlugin("TERM", PluginCategory.TERMINAL);
 
-    WorkflowDefinition.Node m1 = new WorkflowDefinition.Node("m1", "MAPPER", Map.of("mode", "SCRIPT", "mapping", "payload"));
-    WorkflowDefinition.Node m2 = new WorkflowDefinition.Node("m2", "MAPPER", Map.of("mode", "SCRIPT", "mapping", "if(1)for(;;);"));
+    WorkflowDefinition.Node m1 =
+        new WorkflowDefinition.Node("m1", "MAPPER", Map.of("mode", "SCRIPT", "mapping", "payload"));
+    WorkflowDefinition.Node m2 =
+        new WorkflowDefinition.Node(
+            "m2", "MAPPER", Map.of("mode", "SCRIPT", "mapping", "if(1)for(;;);"));
     WorkflowDefinition.Node f1 = new WorkflowDefinition.Node("f1", "FILTER", Map.of());
-    WorkflowDefinition.Node m4 = new WorkflowDefinition.Node("m4", "MAPPER", Map.of("mode", "PROJECTION"));
+    WorkflowDefinition.Node m4 =
+        new WorkflowDefinition.Node("m4", "MAPPER", Map.of("mode", "PROJECTION"));
 
-    WorkflowDefinition def = new WorkflowDefinition("d",
-        List.of(new WorkflowDefinition.Node("t", "T", Map.of()), m1, m2, m4, f1, new WorkflowDefinition.Node("term", "TERM", Map.of())),
-        List.of(
-            new WorkflowDefinition.Edge("t", "m1"),
-            new WorkflowDefinition.Edge("m1", "m2"),
-            new WorkflowDefinition.Edge("m2", "m4"),
-            new WorkflowDefinition.Edge("m4", "f1"),
-            new WorkflowDefinition.Edge("f1", "term")));
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                m1,
+                m2,
+                m4,
+                f1,
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "m1"),
+                new WorkflowDefinition.Edge("m1", "m2"),
+                new WorkflowDefinition.Edge("m2", "m4"),
+                new WorkflowDefinition.Edge("m4", "f1"),
+                new WorkflowDefinition.Edge("f1", "term")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }

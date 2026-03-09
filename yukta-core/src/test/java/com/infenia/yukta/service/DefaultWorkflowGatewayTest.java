@@ -127,18 +127,14 @@ class DefaultWorkflowGatewayTest {
     when(orchestrator.execute(anyString(), anyString(), anyString(), eq(prepared), any()))
         .thenReturn(Mono.empty());
 
-    StepVerifier.create(gateway.sendAndReceive(request))
-        .expectNext(request)
-        .verifyComplete();
+    StepVerifier.create(gateway.sendAndReceive(request)).expectNext(request).verifyComplete();
 
     // Coverage for Map payload
     Message request2 = mock(Message.class);
     when(request2.getMetadata()).thenReturn(Map.of("workflowId", "w"));
     when(request2.getPayload()).thenReturn(Map.of("k", "v"));
     when(request2.withPayload(any())).thenReturn(request2);
-    StepVerifier.create(gateway.sendAndReceive(request2))
-        .expectNext(request2)
-        .verifyComplete();
+    StepVerifier.create(gateway.sendAndReceive(request2)).expectNext(request2).verifyComplete();
   }
 
   @Test
@@ -174,19 +170,18 @@ class DefaultWorkflowGatewayTest {
     when(orchestrator.execute(anyString(), anyString(), anyString(), eq(prepared), any()))
         .thenReturn(Mono.empty());
 
-    StepVerifier.create(gateway.send(request))
-        .verifyComplete();
+    StepVerifier.create(gateway.send(request)).verifyComplete();
   }
 
   @Test
   void testReceive() {
-    StepVerifier.create(gateway.receive())
-        .verifyComplete();
+    StepVerifier.create(gateway.receive()).verifyComplete();
   }
 
   @Test
   void testExecuteSubWorkflow_GenericError() {
-    when(configService.getWorkflow(anyString(), anyString())).thenReturn(Mono.error(new RuntimeException("Oops")));
+    when(configService.getWorkflow(anyString(), anyString()))
+        .thenReturn(Mono.error(new RuntimeException("Oops")));
 
     StepVerifier.create(gateway.executeSubWorkflow("p", "c", "w", Map.of()))
         .expectError(WorkflowExecutionException.class)
@@ -195,10 +190,13 @@ class DefaultWorkflowGatewayTest {
 
   @Test
   void testExecuteSubWorkflow_WorkflowExecutionExceptionPropagated() {
-    when(configService.getWorkflow(anyString(), anyString())).thenReturn(Mono.error(new WorkflowExecutionException("Already wrapped")));
+    when(configService.getWorkflow(anyString(), anyString()))
+        .thenReturn(Mono.error(new WorkflowExecutionException("Already wrapped")));
 
     StepVerifier.create(gateway.executeSubWorkflow("p", "c", "w", Map.of()))
-        .expectErrorMatches(e -> e instanceof WorkflowExecutionException && e.getMessage().equals("Already wrapped"))
+        .expectErrorMatches(
+            e ->
+                e instanceof WorkflowExecutionException && e.getMessage().equals("Already wrapped"))
         .verify();
   }
 }

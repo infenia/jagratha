@@ -20,7 +20,6 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
-import java.util.Collections;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -49,7 +48,9 @@ class GlobalExceptionHandlerTest {
     when(exchange.getRequest()).thenReturn(request);
     when(request.getPath()).thenReturn(org.springframework.http.server.RequestPath.parse("/", "/"));
 
-    StepVerifier.create(handler.handleWebExchangeBindException(ex, new HttpHeaders(), HttpStatus.BAD_REQUEST, exchange))
+    StepVerifier.create(
+            handler.handleWebExchangeBindException(
+                ex, new HttpHeaders(), HttpStatus.BAD_REQUEST, exchange))
         .expectNextMatches(resp -> resp.getStatusCode() == HttpStatus.BAD_REQUEST)
         .verifyComplete();
   }
@@ -62,19 +63,24 @@ class GlobalExceptionHandlerTest {
     when(request.getPath()).thenReturn(org.springframework.http.server.RequestPath.parse("/", "/"));
 
     // Case body not ApiResponse
-    StepVerifier.create(handler.createResponseEntity("error msg", new HttpHeaders(), HttpStatusCode.valueOf(400), exchange))
+    StepVerifier.create(
+            handler.createResponseEntity(
+                "error msg", new HttpHeaders(), HttpStatusCode.valueOf(400), exchange))
         .expectNextMatches(resp -> resp.getStatusCode().value() == 400)
         .verifyComplete();
 
     // Case body not ApiResponse and not String
-    StepVerifier.create(handler.createResponseEntity(null, new HttpHeaders(), HttpStatusCode.valueOf(500), exchange))
+    StepVerifier.create(
+            handler.createResponseEntity(
+                null, new HttpHeaders(), HttpStatusCode.valueOf(500), exchange))
         .expectNextMatches(resp -> resp.getStatusCode().value() == 500)
         .verifyComplete();
   }
 
   @Test
   void testHandleConstraintViolation() {
-    jakarta.validation.ConstraintViolation<?> violation = mock(jakarta.validation.ConstraintViolation.class);
+    jakarta.validation.ConstraintViolation<?> violation =
+        mock(jakarta.validation.ConstraintViolation.class);
     when(violation.getPropertyPath()).thenReturn(mock(jakarta.validation.Path.class));
     when(violation.getMessage()).thenReturn("violation");
 
