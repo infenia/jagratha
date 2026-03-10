@@ -66,10 +66,9 @@ class SpelUtilsTest {
   }
 
   @Test
-  void testConstructor() throws Exception {
-    java.lang.reflect.Constructor<SpelUtils> constructor = SpelUtils.class.getDeclaredConstructor();
-    constructor.setAccessible(true);
-    constructor.newInstance();
+  void testEvaluateAsyncWithoutVariables() {
+    Map<String, Object> root = Map.of("value", 42);
+    StepVerifier.create(SpelUtils.evaluate("value", root, null)).expectNext(42).verifyComplete();
   }
 
   @Test
