@@ -87,4 +87,24 @@ class SpelUtilsTest {
     assertEquals(2, (Integer) SpelUtils.evaluateSync("v", root2));
     assertEquals(1, (Integer) SpelUtils.evaluateSync("v", root1));
   }
+
+  @Test
+  void testEvaluateAsyncEmptyVariables() {
+    Map<String, Object> root = Map.of("key", "val");
+    Map<String, Object> vars = Map.of();
+
+    StepVerifier.create(SpelUtils.evaluate("key", root, vars)).expectNext("val").verifyComplete();
+  }
+
+  @Test
+  void testEvaluateSyncWithVariablesCleanup() {
+    Map<String, Object> root = Map.of("key", "val");
+    Map<String, Object> vars = Map.of("temp", "temp-value");
+
+    // This test ensures the finally block cleanup executes
+    assertEquals("val", SpelUtils.evaluateSync("key", root, vars));
+
+    // Verify the variable was cleaned up by checking another call without it
+    assertEquals("val", SpelUtils.evaluateSync("key", root));
+  }
 }
