@@ -52,7 +52,9 @@ public class AppConfiguration {
   @Bean
   @SuppressWarnings("PMD.DoNotUseThreads")
   public Scheduler virtualThreadScheduler() {
-    return Schedulers.fromExecutor(Executors.newVirtualThreadPerTaskExecutor());
+    return Schedulers.fromExecutorService(
+        Executors.newScheduledThreadPool(
+            Runtime.getRuntime().availableProcessors(), Thread.ofVirtual().factory()));
   }
 
   /**

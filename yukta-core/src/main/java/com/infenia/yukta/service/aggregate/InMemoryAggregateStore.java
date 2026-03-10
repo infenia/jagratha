@@ -54,6 +54,8 @@ public class InMemoryAggregateStore implements AggregateStore {
   private static final String AGG_MIN = "MIN";
   private static final String AGG_MAX = "MAX";
   private static final String AGG_LIST = "COLLECT_LIST";
+  private static final String AGG_FIRST = "FIRST";
+  private static final String AGG_LAST = "LAST";
   private static final String AGG_CUSTOM = "CUSTOM";
 
   private static final String POLICY_ZERO = "ZERO";
@@ -277,6 +279,7 @@ public class InMemoryAggregateStore implements AggregateStore {
       return switch (cfg.aggregationType()) {
         case AGG_SUM, AGG_AVERAGE, AGG_MIN, AGG_MAX -> 0.0;
         case AGG_LIST -> new ArrayList<>();
+        case AGG_FIRST, AGG_LAST -> null;
         case AGG_CUSTOM -> cfg.initVal();
         default -> null;
       };
@@ -308,7 +311,13 @@ public class InMemoryAggregateStore implements AggregateStore {
     }
 
     private Object performAggregation(final Object acc, final Object val) {
-      final Number numVal = convertToNumber(val);
+      final Number numVal =
+          (!AGG_LIST.equals(config.aggregationType())
+                  && !AGG_CUSTOM.equals(config.aggregationType())
+                  && !AGG_FIRST.equals(config.aggregationType())
+                  && !AGG_LAST.equals(config.aggregationType()))
+              ? convertToNumber(val)
+              : null;
 
       return switch (config.aggregationType()) {
         case AGG_SUM, AGG_AVERAGE -> ((Number) acc).doubleValue() + numVal.doubleValue();
@@ -326,6 +335,8 @@ public class InMemoryAggregateStore implements AggregateStore {
             count == 1
                 ? numVal.doubleValue()
                 : Math.max(((Number) acc).doubleValue(), numVal.doubleValue());
+        case AGG_FIRST -> count == 1 ? val : acc;
+        case AGG_LAST -> val;
         case AGG_CUSTOM ->
             SpelUtils.evaluateSync(config.accExp(), lastMessage, Map.of("acc", acc, "val", val));
         default -> acc;
