@@ -37,8 +37,14 @@ public record WorkflowDefinition(
         @NotBlank(message = "Workflow description is mandatory")
         @Size(max = 256, message = "Workflow description must be at most 256 characters")
         String description,
-    @Schema(description = "Nodes in the workflow") @NotEmpty @Valid List<Node> nodes,
-    @Schema(description = "Edges connecting the nodes") @NotNull @Valid List<Edge> edges) {
+    @Schema(description = "Nodes in the workflow")
+        @NotEmpty(message = "Workflow must contain at least one node")
+        @Valid
+        List<@NotNull(message = "Node cannot be null") Node> nodes,
+    @Schema(description = "Edges connecting the nodes")
+        @NotNull(message = "Edges list cannot be null")
+        @Valid
+        List<@NotNull(message = "Edge cannot be null") Edge> edges) {
 
   /** Compact constructor to ensure immutability. */
   public WorkflowDefinition {
@@ -55,8 +61,14 @@ public record WorkflowDefinition(
    */
   @Schema(description = "A single node in the workflow DAG")
   public record Node(
-      @Schema(description = "Unique ID for the node") @NotBlank String nodeId,
-      @Schema(description = "Plugin type") @NotBlank String type,
+      @Schema(description = "Unique ID for the node")
+          @NotNull(message = "Node ID cannot be null")
+          @NotBlank(message = "Node ID cannot be blank")
+          String nodeId,
+      @Schema(description = "Plugin type")
+          @NotNull(message = "Plugin type cannot be null")
+          @NotBlank(message = "Plugin type cannot be blank")
+          String type,
       @Schema(description = "Plugin configuration") Map<String, Object> config) {
     /** Compact constructor. */
     public Node {
@@ -73,8 +85,14 @@ public record WorkflowDefinition(
    */
   @Schema(description = "A connection between two nodes")
   public record Edge(
-      @Schema(description = "Source node ID") @NotBlank String source,
-      @Schema(description = "Target node ID") @NotBlank String target,
+      @Schema(description = "Source node ID")
+          @NotNull(message = "Source node ID cannot be null")
+          @NotBlank(message = "Source node ID cannot be blank")
+          String source,
+      @Schema(description = "Target node ID")
+          @NotNull(message = "Target node ID cannot be null")
+          @NotBlank(message = "Target node ID cannot be blank")
+          String target,
       @Schema(description = "Source port name") String sourcePort) {
     /**
      * Backward-compatible constructor.
