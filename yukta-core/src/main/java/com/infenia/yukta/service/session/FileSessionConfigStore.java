@@ -314,18 +314,6 @@ public class FileSessionConfigStore implements SessionConfigStore {
         getDescription(sessionId));
   }
 
-  @Override
-  public Flux<String> getActiveSessionIds() {
-    return Mono.fromCallable(this::getSessionFiles)
-        .flatMapMany(Flux::fromIterable)
-        .map(this::extractSessionIdFromFile);
-  }
-
-  @Override
-  public Mono<Boolean> isActive(@SessionId final String sessionId) {
-    return Mono.fromCallable(() -> getSessionConfigPath(sessionId).toFile().exists())
-        .defaultIfEmpty(false);
-  }
 
   /**
    * Load session configuration from file (with caching).

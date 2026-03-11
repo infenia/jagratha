@@ -79,19 +79,6 @@ class InMemorySessionConfigStoreTest {
   }
 
   @Test
-  void testActiveTrackingDetailed() {
-    StepVerifier.create(configService.setInitiatedTime("s1", "time")).verifyComplete();
-    StepVerifier.create(configService.setTags("s2", Map.of())).verifyComplete();
-    StepVerifier.create(configService.setDescription("s3", "desc")).verifyComplete();
-
-    StepVerifier.create(configService.getActiveSessionIds())
-        .expectNextMatches(id -> List.of("s1", "s2", "s3").contains(id))
-        .expectNextMatches(id -> List.of("s1", "s2", "s3").contains(id))
-        .expectNextMatches(id -> List.of("s1", "s2", "s3").contains(id))
-        .verifyComplete();
-  }
-
-  @Test
   void testApiOverrides() {
     String sessionId = "sess-1";
     StepVerifier.create(configService.setProjectPath(sessionId, "/api/path")).verifyComplete();
@@ -111,27 +98,6 @@ class InMemorySessionConfigStoreTest {
     // Another session should still have defaults
     String otherSession = "sess-2";
     StepVerifier.create(configService.getProjectPath(otherSession)).expectNext("").verifyComplete();
-  }
-
-  @Test
-  void testActiveSessionTracking() {
-    String sess1 = "sess-1";
-    String sess2 = "sess-2";
-
-    StepVerifier.create(configService.getActiveSessionIds()).expectNextCount(0).verifyComplete();
-    StepVerifier.create(configService.isActive(sess1)).expectNext(false).verifyComplete();
-
-    StepVerifier.create(configService.setProjectPath(sess1, "/path/1")).verifyComplete();
-    StepVerifier.create(configService.getActiveSessionIds()).expectNext(sess1).verifyComplete();
-    StepVerifier.create(configService.isActive(sess1)).expectNext(true).verifyComplete();
-    StepVerifier.create(configService.isActive(sess2)).expectNext(false).verifyComplete();
-
-    WorkflowDefinition workflow =
-        new WorkflowDefinition(
-            "desc", List.of(new WorkflowDefinition.Node("n1", "api-trigger", Map.of())), List.of());
-    StepVerifier.create(configService.setWorkflows(sess2, Map.of("w1", workflow))).verifyComplete();
-
-    StepVerifier.create(configService.getActiveSessionIds()).expectNextCount(2).verifyComplete();
   }
 
   @Test
@@ -203,12 +169,4 @@ class InMemorySessionConfigStoreTest {
         .verifyComplete();
   }
 
-  @Test
-  void testActiveTrackingWithMetadata() {
-    String sess = "sess-tracking";
-    StepVerifier.create(configService.isActive(sess)).expectNext(false).verifyComplete();
-
-    configService.setInitiator(sess, "Jules").block();
-    StepVerifier.create(configService.isActive(sess)).expectNext(true).verifyComplete();
-  }
 }

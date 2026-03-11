@@ -51,37 +51,6 @@ public class AppMcpTools {
   private final ObjectMapper objectMapper;
 
   /**
-   * List all active sessions.
-   *
-   * @return Mono containing a list of session summaries
-   */
-  @Tool(description = "List all active Yukta sessions with their summaries")
-  @SuppressWarnings("unchecked")
-  public Mono<List<SessionSummary>> listSessions() {
-    return sessionService
-        .getActiveSessions()
-        .flatMap(
-            id ->
-                sessionService
-                    .getSessionConfig(id)
-                    .map(
-                        config -> {
-                          final List<WorkflowExecutionSummary> history =
-                              trackerService.getHistory(id);
-                          final LocalDateTime lastActive =
-                              history.isEmpty() ? null : history.get(0).startTime();
-                          return new SessionSummary(
-                              id,
-                              (String) config.getOrDefault("initiator", ""),
-                              (String) config.getOrDefault("initiatedTime", ""),
-                              lastActive,
-                              (String) config.getOrDefault("description", ""),
-                              (Map<String, String>) config.getOrDefault("tags", Map.of()));
-                        }))
-        .collectList();
-  }
-
-  /**
    * Get details of a specific session.
    *
    * @param sessionId the session identifier

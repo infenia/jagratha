@@ -84,13 +84,6 @@ class SessionServiceTest {
   }
 
   @Test
-  void testGetActiveSessions() {
-    when(configService.getActiveSessionIds())
-        .thenReturn(reactor.core.publisher.Flux.just("sess-1"));
-    StepVerifier.create(sessionService.getActiveSessions()).expectNext("sess-1").verifyComplete();
-  }
-
-  @Test
   void testGetSessionConfig() {
     String sessionId = "sess-1";
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(Map.of("k", "v")));
@@ -101,18 +94,12 @@ class SessionServiceTest {
   }
 
   @Test
-  void testGetHistorySessions() {
-    StepVerifier.create(sessionService.getHistorySessions()).verifyComplete();
-  }
-
-  @Test
   void testGetSessionWorkflowFromDisk() {
     String sessionId = "sess-disk";
 
     WorkflowDefinition workflow = new WorkflowDefinition("desc", List.of(), List.of());
     Map<String, Object> configMap = Map.of("workflows", Map.of("w1", workflow));
 
-    when(configService.isActive(sessionId)).thenReturn(Mono.just(false));
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
 
     StepVerifier.create(sessionService.getSessionWorkflow(sessionId, "w1"))
@@ -124,7 +111,6 @@ class SessionServiceTest {
   void testGetSessionWorkflowFromDiskNoWorkflow() {
     String sessionId = "sess-noworkflow";
 
-    when(configService.isActive(sessionId)).thenReturn(Mono.just(false));
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(Map.of()));
     when(configService.getWorkflow(sessionId, "w1")).thenReturn(Mono.empty());
 

@@ -25,7 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -186,20 +185,4 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
         getDescription(sessionId));
   }
 
-  @Override
-  public Flux<String> getActiveSessionIds() {
-    final java.util.Set<String> active = new java.util.HashSet<>();
-    active.addAll(projectPaths.keySet());
-    active.addAll(workflowsMap.keySet());
-    active.addAll(initiators.keySet());
-    active.addAll(initiatedTimes.keySet());
-    active.addAll(tagsMap.keySet());
-    active.addAll(descriptions.keySet());
-    return Flux.fromIterable(active);
-  }
-
-  @Override
-  public Mono<Boolean> isActive(@SessionId final String sessionId) {
-    return getActiveSessionIds().collectList().map(list -> list.contains(sessionId));
-  }
 }

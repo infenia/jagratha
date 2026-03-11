@@ -20,7 +20,6 @@ import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.Map;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Interface for managing session configuration with runtime overrides. */
@@ -170,19 +169,4 @@ public interface SessionConfigStore {
    * @return Mono containing map of configurations
    */
   Mono<Map<String, Object>> getAllConfigs(@SessionId String sessionId);
-
-  /**
-   * Get all active session IDs currently in memory.
-   *
-   * @return Flux of session IDs
-   */
-  Flux<String> getActiveSessionIds();
-
-  /**
-   * Check if a session is active in memory.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing true if active
-   */
-  Mono<Boolean> isActive(@SessionId String sessionId);
 }

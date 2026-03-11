@@ -58,28 +58,6 @@ class AppMcpToolsTest {
   }
 
   @Test
-  void testListSessions() {
-    when(sessionService.getActiveSessions()).thenReturn(Flux.just("session-1"));
-    when(sessionService.getSessionConfig("session-1"))
-        .thenReturn(
-            Mono.just(
-                Map.of(
-                    "initiator", "user",
-                    "initiatedTime", "2023-01-01T00:00:00Z",
-                    "description", "test desc",
-                    "tags", Map.of("env", "prod"))));
-    when(trackerService.getHistory("session-1")).thenReturn(List.of());
-
-    StepVerifier.create(mcpTools.listSessions())
-        .expectNextMatches(
-            list ->
-                list.size() == 1
-                    && list.get(0).sessionId().equals("session-1")
-                    && list.get(0).initiator().equals("user"))
-        .verifyComplete();
-  }
-
-  @Test
   void testGetSessionDetails() {
     when(sessionService.getSessionConfig("session-1"))
         .thenReturn(Mono.just(Map.of("workflows", Map.of("wf-1", Map.of()))));

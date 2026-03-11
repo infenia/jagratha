@@ -46,39 +46,6 @@ public class SessionController {
   private final TaskTrackerService trackerService;
 
   /**
-   * List all active sessions.
-   *
-   * @return list of session summaries
-   */
-  @GetMapping
-  @Operation(summary = "List sessions", description = "Lists all active sessions with summaries")
-  @SuppressWarnings("unchecked")
-  public Mono<ApiResponse<List<SessionSummary>>> listSessions() {
-    return sessionService
-        .getActiveSessions()
-        .flatMap(
-            id ->
-                sessionService
-                    .getSessionConfig(id)
-                    .map(
-                        config -> {
-                          final List<WorkflowExecutionSummary> history =
-                              trackerService.getHistory(id);
-                          final LocalDateTime lastActive =
-                              history.isEmpty() ? null : history.getFirst().startTime();
-                          return new SessionSummary(
-                              id,
-                              (String) config.getOrDefault("initiator", ""),
-                              (String) config.getOrDefault("initiatedTime", ""),
-                              lastActive,
-                              (String) config.getOrDefault("description", ""),
-                              (Map<String, String>) config.getOrDefault("tags", Map.of()));
-                        }))
-        .collectList()
-        .map(sessions -> ApiResponse.success(200, "Sessions retrieved successfully", sessions));
-  }
-
-  /**
    * Get details of a specific session.
    *
    * @param sessionId the session identifier

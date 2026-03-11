@@ -41,47 +41,6 @@ class SessionControllerTest {
   @MockitoBean private TaskTrackerService trackerService;
 
   @Test
-  void testListSessions() {
-    LocalDateTime now = LocalDateTime.now();
-    WorkflowExecutionSummary summary = new WorkflowExecutionSummary("e", "w", "s", now, null);
-
-    when(sessionService.getActiveSessions()).thenReturn(Flux.just("session-1"));
-    when(sessionService.getSessionConfig("session-1")).thenReturn(Mono.just(Map.of()));
-    when(trackerService.getHistory("session-1")).thenReturn(List.of(summary));
-
-    webTestClient
-        .get()
-        .uri("/api/sessions")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.data[0].sessionId")
-        .isEqualTo("session-1")
-        .jsonPath("$.data[0].lastActiveTime")
-        .exists();
-  }
-
-  @Test
-  void testListSessionsWithEmptyHistory() {
-    when(sessionService.getActiveSessions()).thenReturn(Flux.just("session-2"));
-    when(sessionService.getSessionConfig("session-2")).thenReturn(Mono.just(Map.of()));
-    when(trackerService.getHistory("session-2")).thenReturn(List.of());
-
-    webTestClient
-        .get()
-        .uri("/api/sessions")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.data[0].sessionId")
-        .isEqualTo("session-2")
-        .jsonPath("$.data[0].lastActiveTime")
-        .doesNotExist();
-  }
-
-  @Test
   void testGetSessionDetails() {
     Map<String, Object> config = Map.of("workflows", Map.of("wf1", Map.of()));
     when(sessionService.getSessionConfig("s1")).thenReturn(Mono.just(config));

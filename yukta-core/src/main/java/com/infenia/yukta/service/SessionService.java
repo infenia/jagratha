@@ -81,28 +81,6 @@ public class SessionService {
         });
   }
 
-  /**
-   * Get all active session IDs.
-   *
-   * @return Flux of active session IDs
-   */
-  public Flux<String> getActiveSessions() {
-    return configService.getActiveSessionIds();
-  }
-
-  /**
-   * Get all history session IDs (sessions that were active but are no longer).
-   *
-   * <p>Note: This method delegates to the store implementation for retrieving session history based
-   * on the configured backend (file or in-memory).
-   *
-   * @return Flux of history session IDs
-   */
-  public Flux<String> getHistorySessions() {
-    // The store implementation handles history retrieval based on its backend
-    // File-based stores can return sessions from disk, in-memory stores return empty
-    return Flux.empty();
-  }
 
   /**
    * Get configuration for a session.
@@ -117,7 +95,7 @@ public class SessionService {
   }
 
   /**
-   * Get workflow for a session, from memory or disk.
+   * Get workflow for a session.
    *
    * @param sessionId the session identifier
    * @param workflowId the workflow identifier
@@ -125,19 +103,6 @@ public class SessionService {
    */
   public Mono<WorkflowDefinition> getSessionWorkflow(
       @SessionId final String sessionId, @WorkflowId final String workflowId) {
-    return configService
-        .isActive(sessionId)
-        .flatMap(
-            active -> {
-              if (active) {
-                return configService.getWorkflow(sessionId, workflowId);
-              }
-              return getWorkflowFromDisk(sessionId, workflowId);
-            });
-  }
-
-  private Mono<WorkflowDefinition> getWorkflowFromDisk(
-      final String sessionId, final String workflowId) {
     return getSessionConfig(sessionId)
         .flatMap(
             config -> {

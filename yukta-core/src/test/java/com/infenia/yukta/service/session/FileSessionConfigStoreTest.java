@@ -108,26 +108,6 @@ class FileSessionConfigStoreTest {
   }
 
   @Test
-  void testActiveSessionTracking() {
-    String sess1 = "sess-1";
-    String sess2 = "sess-2";
-
-    StepVerifier.create(configStore.getActiveSessionIds()).expectNextCount(0).verifyComplete();
-    StepVerifier.create(configStore.isActive(sess1)).expectNext(false).verifyComplete();
-
-    StepVerifier.create(configStore.setProjectPath(sess1, "/path/1")).verifyComplete();
-    StepVerifier.create(configStore.getActiveSessionIds()).expectNext(sess1).verifyComplete();
-    StepVerifier.create(configStore.isActive(sess1)).expectNext(true).verifyComplete();
-
-    WorkflowDefinition workflow =
-        new WorkflowDefinition(
-            "desc", List.of(new WorkflowDefinition.Node("n1", "api-trigger", Map.of())), List.of());
-    StepVerifier.create(configStore.setWorkflows(sess2, Map.of("w1", workflow))).verifyComplete();
-
-    StepVerifier.create(configStore.getActiveSessionIds()).expectNextCount(2).verifyComplete();
-  }
-
-  @Test
   void testPutIfAbsentBehaviorForMetadata() {
     String sessionId = "sess-1";
     String initiator = "John Doe";
