@@ -180,7 +180,12 @@ class FileSessionConfigStoreTest {
             "desc", List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
     SessionConfigData data =
         new SessionConfigData(
-            sessionId, "full desc", "initiator-y", Map.of("tier", "prod"), "/file/path", Map.of("w1", workflow));
+            sessionId,
+            "full desc",
+            "initiator-y",
+            Map.of("tier", "prod"),
+            "/file/path",
+            Map.of("w1", workflow));
 
     StepVerifier.create(configStore.applySessionConfig(data)).verifyComplete();
 

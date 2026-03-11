@@ -16,7 +16,6 @@
 package com.infenia.yukta.service;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.SessionConfigData;
@@ -60,7 +59,6 @@ class SessionServiceTest {
 
     StepVerifier.create(sessionService.applyConfig(data)).verifyComplete();
   }
-
 
   @Test
   void testApplyConfigPartial() {

@@ -63,7 +63,7 @@ public class UiController {
   @ResponseBody
   public Mono<String> index(final Model model) {
     return sessionService
-        .getActiveSessions()
+        .getSessionIds()
         .flatMap(
             id ->
                 sessionService
@@ -98,7 +98,17 @@ public class UiController {
   @ResponseBody
   public Mono<String> history(final Model model) {
     return sessionService
-        .getHistorySessions()
+        .getSessionIds()
+        .flatMap(
+            id ->
+                sessionService
+                    .getSessionConfig(id)
+                    .map(
+                        config -> {
+                          final Map<String, Object> map = new ConcurrentHashMap<>(config);
+                          map.put("sessionId", id);
+                          return map;
+                        }))
         .collectList()
         .flatMap(
             sessions -> {

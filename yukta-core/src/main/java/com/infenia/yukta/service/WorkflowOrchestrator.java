@@ -36,6 +36,7 @@ import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -120,7 +121,7 @@ public class WorkflowOrchestrator {
    * @param virtualThreadScheduler the scheduler for virtual threads
    */
   @Autowired
-  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("EI_EXPOSE_REP2")
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public WorkflowOrchestrator(
       final WorkflowRegistry registry,
       final TaskTrackerService tracker,

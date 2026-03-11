@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -202,4 +203,15 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
         getDescription(sessionId));
   }
 
+  @Override
+  public Flux<String> getSessionIds() {
+    final java.util.Set<String> allSessions = new java.util.HashSet<>();
+    allSessions.addAll(projectPaths.keySet());
+    allSessions.addAll(workflowsMap.keySet());
+    allSessions.addAll(initiators.keySet());
+    allSessions.addAll(initiatedTimes.keySet());
+    allSessions.addAll(tagsMap.keySet());
+    allSessions.addAll(descriptions.keySet());
+    return Flux.fromIterable(allSessions);
+  }
 }

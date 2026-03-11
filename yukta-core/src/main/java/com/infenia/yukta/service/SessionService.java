@@ -60,6 +60,17 @@ public class SessionService {
                 .then());
   }
 
+  /**
+   * Get all available session IDs.
+   *
+   * <p>Retrieves all session identifiers that have configurations stored in the system, regardless
+   * of whether they are currently active or not.
+   *
+   * @return Flux of session IDs
+   */
+  public Flux<String> getSessionIds() {
+    return configService.getSessionIds();
+  }
 
   /**
    * Get configuration for a session.

@@ -22,6 +22,7 @@ import com.infenia.yukta.validation.SessionId;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.Map;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Interface for managing session configuration with runtime overrides. */
@@ -31,8 +32,8 @@ public interface SessionConfigStore {
    * Apply complete session configuration data.
    *
    * <p>This method stores the entire session configuration, allowing implementations to optimize
-   * storage (e.g., file-based stores can write a single JSON document, in-memory stores can
-   * update all maps atomically).
+   * storage (e.g., file-based stores can write a single JSON document, in-memory stores can update
+   * all maps atomically).
    *
    * @param data the complete session configuration data
    * @return Mono that completes when the configuration is stored
@@ -183,4 +184,14 @@ public interface SessionConfigStore {
    * @return Mono containing map of configurations
    */
   Mono<Map<String, Object>> getAllConfigs(@SessionId String sessionId);
+
+  /**
+   * Get all available session IDs.
+   *
+   * <p>Retrieves all session identifiers that have configurations stored in the system, regardless
+   * of whether they are currently active or not.
+   *
+   * @return Flux of session IDs
+   */
+  Flux<String> getSessionIds();
 }

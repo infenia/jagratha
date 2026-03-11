@@ -336,7 +336,6 @@ public class FileSessionConfigStore implements SessionConfigStore {
         getDescription(sessionId));
   }
 
-
   /**
    * Load session configuration from file (with caching).
    *
@@ -359,7 +358,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
             })
         .doOnNext(
             config -> {
-                sessionCache.put(sessionId, config);
+              sessionCache.put(sessionId, config);
             })
         .flatMap(Mono::just)
         .subscribeOn(Schedulers.boundedElastic());
@@ -440,5 +439,13 @@ public class FileSessionConfigStore implements SessionConfigStore {
   private String extractSessionIdFromFile(final Path path) {
     final String filename = path.getFileName().toString();
     return filename.substring(0, filename.length() - 5); // Remove .json extension
+  }
+
+  @Override
+  public Flux<String> getSessionIds() {
+    return Mono.fromCallable(this::getSessionFiles)
+        .flatMapMany(Flux::fromIterable)
+        .map(this::extractSessionIdFromFile)
+        .subscribeOn(Schedulers.boundedElastic());
   }
 }
