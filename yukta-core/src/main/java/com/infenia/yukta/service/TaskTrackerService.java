@@ -91,7 +91,7 @@ public class TaskTrackerService {
                 Mono.fromRunnable(() -> handleTaskStatusEvents(batch))
                     .onErrorResume(
                         e -> {
-                          log.error("Error processing task status event batch", e);
+                          log.atError().setCause(e).log("Error processing task status event batch");
                           return Mono.empty();
                         }))
         .subscribe();
@@ -106,7 +106,9 @@ public class TaskTrackerService {
                 Mono.fromRunnable(() -> handleWorkflowStatusEvents(batch))
                     .onErrorResume(
                         e -> {
-                          log.error("Error processing workflow status event batch", e);
+                          log.atError()
+                              .setCause(e)
+                              .log("Error processing workflow status event batch");
                           return Mono.empty();
                         }))
         .subscribe();
@@ -121,7 +123,7 @@ public class TaskTrackerService {
                 Mono.fromRunnable(() -> handleLogEvents(batch))
                     .onErrorResume(
                         e -> {
-                          log.error("Error processing log event batch", e);
+                          log.atError().setCause(e).log("Error processing log event batch");
                           return Mono.empty();
                         }))
         .subscribe();

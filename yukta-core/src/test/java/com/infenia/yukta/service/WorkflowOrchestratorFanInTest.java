@@ -24,7 +24,6 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.config.AppConfigService;
 import com.infenia.yukta.model.WorkflowDefinition;
 import com.infenia.yukta.model.WorkflowDefinition.Edge;
 import com.infenia.yukta.model.WorkflowDefinition.Node;
@@ -34,6 +33,7 @@ import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.session.SessionConfigStore;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -49,7 +49,7 @@ class WorkflowOrchestratorFanInTest {
   private WorkflowRegistry registry;
   private TaskTrackerService tracker;
   private WorkflowValidator validator;
-  private AppConfigService configService;
+  private SessionConfigStore configService;
   private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
   private WorkflowOrchestrator orchestrator;
 
@@ -57,7 +57,7 @@ class WorkflowOrchestratorFanInTest {
   void setUp() {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
-    configService = mock(AppConfigService.class);
+    configService = mock(SessionConfigStore.class);
     controlBusGateway = mock(com.infenia.yukta.service.DefaultControlBusGateway.class);
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
     com.infenia.yukta.service.ControlBusService controlBusService =

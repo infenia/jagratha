@@ -20,7 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.config.AppConfigService;
+import com.infenia.yukta.service.session.SessionConfigStore;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,7 +33,7 @@ import reactor.test.StepVerifier;
 class LogRetrievalServiceTest {
 
   private LogRetrievalService service;
-  private AppConfigService configService;
+  private SessionConfigStore configService;
 
   @TempDir Path tempDir;
   private Path resultsDir;
@@ -46,7 +46,7 @@ class LogRetrievalServiceTest {
     Files.createDirectories(resultsDir);
     Files.createDirectories(fileLogDir);
 
-    configService = mock(AppConfigService.class);
+    configService = mock(SessionConfigStore.class);
     service = new LogRetrievalService(configService);
 
     when(configService.getResultLogDir(any())).thenReturn(Mono.just(resultsDir.toString()));

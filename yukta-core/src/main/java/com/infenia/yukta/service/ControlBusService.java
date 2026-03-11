@@ -67,7 +67,7 @@ public class ControlBusService {
                 Mono.fromRunnable(() -> handleControlBatch(batch))
                     .onErrorResume(
                         e -> {
-                          log.error("Error processing control signal batch", e);
+                          log.atError().setCause(e).log("Error processing control signal batch");
                           return Mono.empty();
                         }))
         .subscribe();

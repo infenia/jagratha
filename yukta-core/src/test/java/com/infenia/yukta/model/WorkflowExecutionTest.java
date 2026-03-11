@@ -13,26 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service;
+package com.infenia.yukta.model;
 
-import com.infenia.yukta.plugin.store.SecretProvider;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
-/** Default implementation of SecretProvider that does nothing. */
-@Slf4j
-@Service
-public class NoOpSecretProvider implements SecretProvider {
+class WorkflowExecutionTest {
 
-  /** Default constructor. */
-  public NoOpSecretProvider() {
-    super();
-  }
-
-  @Override
-  public Mono<String> getSecret(final String key) {
-    log.atWarn().log("Secret requested for key '{}' but no SecretProvider is configured.", key);
-    return Mono.empty();
+  @Test
+  void testWorkflowExecution() {
+    Mono<TaskResponse> result = Mono.empty();
+    WorkflowExecution execution = new WorkflowExecution("e", result);
+    assertEquals("e", execution.executionId());
+    assertEquals(result, execution.result());
   }
 }

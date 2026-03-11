@@ -63,6 +63,25 @@ class SessionControllerTest {
   }
 
   @Test
+  void testListSessionsWithEmptyHistory() {
+    when(sessionService.getActiveSessions()).thenReturn(Flux.just("session-2"));
+    when(sessionService.getSessionConfig("session-2")).thenReturn(Mono.just(Map.of()));
+    when(trackerService.getHistory("session-2")).thenReturn(List.of());
+
+    webTestClient
+        .get()
+        .uri("/api/sessions")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.data[0].sessionId")
+        .isEqualTo("session-2")
+        .jsonPath("$.data[0].lastActiveTime")
+        .doesNotExist();
+  }
+
+  @Test
   void testGetSessionDetails() {
     Map<String, Object> config = Map.of("workflows", Map.of("wf1", Map.of()));
     when(sessionService.getSessionConfig("s1")).thenReturn(Mono.just(config));

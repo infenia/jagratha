@@ -290,12 +290,12 @@ public class WorkflowValidator {
 
               if ("SCRIPT".equals(mode)
                   && mapping instanceof String script
-                  && isSimpleScript(script)
-                  && log.isWarnEnabled()) {
-                log.warn(
-                    "Mapper node {} uses SCRIPT mode for a simple transformation. "
-                        + "Consider using PROJECTION mode for better performance.",
-                    node.nodeId());
+                  && isSimpleScript(script)) {
+                log.atWarn()
+                    .log(
+                        "Mapper node {} uses SCRIPT mode for a simple transformation. "
+                            + "Consider using PROJECTION mode for better performance.",
+                        node.nodeId());
               }
             })
         .then();
@@ -313,13 +313,12 @@ public class WorkflowValidator {
         .doOnNext(
             filterNode -> {
               final int depth = getMinDepth(filterNode.nodeId(), def);
-              if (depth > 1
-                  && hasHeavyAncestor(filterNode.nodeId(), parents, nodeMap)
-                  && log.isWarnEnabled()) {
-                log.warn(
-                    "Performance Hint: Filter [{}] is positioned after heavy computation. "
-                        + "Moving it closer to the Trigger may reduce unnecessary load.",
-                    filterNode.nodeId());
+              if (depth > 1 && hasHeavyAncestor(filterNode.nodeId(), parents, nodeMap)) {
+                log.atWarn()
+                    .log(
+                        "Performance Hint: Filter [{}] is positioned after heavy computation. "
+                            + "Moving it closer to the Trigger may reduce unnecessary load.",
+                        filterNode.nodeId());
               }
             })
         .then();

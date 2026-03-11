@@ -149,8 +149,8 @@ public class InMemoryJoinStore implements JoinStore {
     final int before = store.size();
     store.entrySet().removeIf(entry -> entry.getValue().getExpirationTime() < now);
     final int after = store.size();
-    if (before != after && log.isDebugEnabled()) {
-      log.debug("Cleaned up {} expired join entries", before - after);
+    if (before != after) {
+      log.atDebug().log("Cleaned up {} expired join entries", before - after);
     }
   }
 

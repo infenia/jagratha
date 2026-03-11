@@ -47,5 +47,21 @@ class ApiResponseTest {
     assertEquals("/p", resp.path());
     assertEquals(1, resp.errors().size());
     assertEquals("f", resp.errors().get(0).field());
+    assertEquals("m", resp.errors().get(0).message());
+  }
+
+  @Test
+  void testErrorWithNullErrors() {
+    ApiResponse<Void> resp = ApiResponse.error(500, "Error", "msg", "/p", null);
+    assertNotNull(resp.errors());
+    assertTrue(resp.errors().isEmpty());
+  }
+
+  @Test
+  void testConstructorWithNullErrors() {
+    ApiResponse<String> resp =
+        new ApiResponse<>(java.time.LocalDateTime.now(), 200, "ok", "data", null, null, null);
+    assertNotNull(resp.errors());
+    assertTrue(resp.errors().isEmpty());
   }
 }

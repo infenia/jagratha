@@ -13,32 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.config;
+package com.infenia.yukta.service.session;
 
+import com.infenia.yukta.config.SessionConfigProperties;
 import com.infenia.yukta.model.WorkflowDefinition;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Service for managing app configuration with runtime overrides. All configuration is session-based
- * and updated via API.
+ * In-memory implementation of SessionConfigStore. All configuration is session-based and updated
+ * via API.
  */
-@Service
+@Component
 @Validated
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.UseConcurrentHashMap", "PMD.LinguisticNaming", "PMD.TooManyMethods"})
-public class AppConfigService {
+public class InMemorySessionConfigStore implements SessionConfigStore {
 
-  private static final String DEFAULT_BASE_DIR = System.getProperty("user.home") + "/.yukta";
-  private static final String DEFAULT_FILE_LOG = DEFAULT_BASE_DIR + "/modified-files";
-  private static final String DEFAULT_RES_LOG = DEFAULT_BASE_DIR + "/results";
-  private static final long DEFAULT_TIMEOUT = 3600L;
+  private final SessionConfigProperties props;
 
   private final Map<String, String> projectPaths = new ConcurrentHashMap<>();
   private final Map<String, Map<String, WorkflowDefinition>> workflowsMap =
@@ -48,53 +48,26 @@ public class AppConfigService {
   private final Map<String, Map<String, String>> tagsMap = new ConcurrentHashMap<>();
   private final Map<String, String> descriptions = new ConcurrentHashMap<>();
 
-  /** Public constructor. */
-  public AppConfigService() {
-    super();
-  }
-
-  /**
-   * Get the external project path for a session.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing the project path
-   */
+  @Override
   public Mono<String> getProjectPath(@SessionId final String sessionId) {
     final String result = projectPaths.get(sessionId);
     return Mono.just(result != null ? result : "");
   }
 
-  /**
-   * Set the external project path override for a session.
-   *
-   * @param sessionId the session identifier
-   * @param path the project path
-   * @return Mono that completes when the path is set
-   */
+  @Override
   public Mono<Void> setProjectPath(
       @SessionId final String sessionId, @ProjectPath final String path) {
     projectPaths.put(sessionId, path);
     return Mono.empty();
   }
 
-  /**
-   * Get all workflow definitions for a session.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing map of workflows
-   */
+  @Override
   public Mono<Map<String, WorkflowDefinition>> getWorkflows(@SessionId final String sessionId) {
     final Map<String, WorkflowDefinition> result = workflowsMap.get(sessionId);
     return Mono.just(result != null ? result : Map.of());
   }
 
-  /**
-   * Get a specific workflow definition for a session.
-   *
-   * @param sessionId the session identifier
-   * @param workflowId the workflow identifier
-   * @return Mono containing the workflow definition
-   */
+  @Override
   public Mono<WorkflowDefinition> getWorkflow(
       @SessionId final String sessionId, final String workflowId) {
     return getWorkflows(sessionId)
@@ -105,13 +78,7 @@ public class AppConfigService {
             });
   }
 
-  /**
-   * Set the workflow definitions for a session.
-   *
-   * @param sessionId the session identifier
-   * @param workflows the map of workflow definitions
-   * @return Mono that completes when the workflows are set
-   */
+  @Override
   public Mono<Void> setWorkflows(
       @SessionId final String sessionId,
       @NotEmpty(message = "Workflows cannot be empty")
@@ -120,54 +87,28 @@ public class AppConfigService {
     return Mono.empty();
   }
 
-  /**
-   * Get the execution timeout in seconds for a session.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing the timeout
-   */
+  @Override
   public Mono<Long> getExecutionTimeout(@SessionId final String sessionId) {
-    return Mono.just(DEFAULT_TIMEOUT);
+    return Mono.just(props.getExecutionTimeoutSeconds());
   }
 
-  /**
-   * Get the modified files log directory for a session.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing the log directory
-   */
+  @Override
   public Mono<String> getFileLogDir(final String sessionId) {
-    return Mono.just(DEFAULT_FILE_LOG);
+    return Mono.just(props.getBaseDir() + "/" + props.getFileLogSubDir());
   }
 
-  /**
-   * Get the results log directory for a session.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing the log directory
-   */
+  @Override
   public Mono<String> getResultLogDir(final String sessionId) {
-    return Mono.just(DEFAULT_RES_LOG);
+    return Mono.just(props.getBaseDir() + "/" + props.getResultLogSubDir());
   }
 
-  /**
-   * Get the description for a session.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing the description
-   */
+  @Override
   public Mono<String> getDescription(@SessionId final String sessionId) {
     final String result = descriptions.get(sessionId);
     return Mono.just(result != null ? result : "");
   }
 
-  /**
-   * Set the description for a session.
-   *
-   * @param sessionId the session identifier
-   * @param description the description
-   * @return Mono that completes when the description is set
-   */
+  @Override
   public Mono<Void> setDescription(@SessionId final String sessionId, final String description) {
     if (description != null) {
       descriptions.putIfAbsent(sessionId, description);
@@ -175,24 +116,13 @@ public class AppConfigService {
     return Mono.empty();
   }
 
-  /**
-   * Get the initiator for a session.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing the initiator
-   */
+  @Override
   public Mono<String> getInitiator(@SessionId final String sessionId) {
     final String result = initiators.get(sessionId);
     return Mono.just(result != null ? result : "");
   }
 
-  /**
-   * Set the initiator for a session.
-   *
-   * @param sessionId the session identifier
-   * @param initiator the initiator
-   * @return Mono that completes when the initiator is set
-   */
+  @Override
   public Mono<Void> setInitiator(@SessionId final String sessionId, final String initiator) {
     if (initiator != null) {
       initiators.putIfAbsent(sessionId, initiator);
@@ -200,24 +130,13 @@ public class AppConfigService {
     return Mono.empty();
   }
 
-  /**
-   * Get the initiated time for a session.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing the initiated time
-   */
+  @Override
   public Mono<String> getInitiatedTime(@SessionId final String sessionId) {
     final String result = initiatedTimes.get(sessionId);
     return Mono.just(result != null ? result : "");
   }
 
-  /**
-   * Set the initiated time for a session.
-   *
-   * @param sessionId the session identifier
-   * @param initiatedTime the initiated time
-   * @return Mono that completes when the initiated time is set
-   */
+  @Override
   public Mono<Void> setInitiatedTime(
       @SessionId final String sessionId, final String initiatedTime) {
     if (initiatedTime != null) {
@@ -226,24 +145,13 @@ public class AppConfigService {
     return Mono.empty();
   }
 
-  /**
-   * Get the tags for a session.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing the tags
-   */
+  @Override
   public Mono<Map<String, String>> getTags(@SessionId final String sessionId) {
     final Map<String, String> result = tagsMap.get(sessionId);
     return Mono.just(result != null ? result : Map.of());
   }
 
-  /**
-   * Set the tags for a session.
-   *
-   * @param sessionId the session identifier
-   * @param tags the tags
-   * @return Mono that completes when the tags are set
-   */
+  @Override
   public Mono<Void> setTags(@SessionId final String sessionId, final Map<String, String> tags) {
     if (tags != null) {
       tagsMap.putIfAbsent(sessionId, Map.copyOf(tags));
@@ -251,12 +159,7 @@ public class AppConfigService {
     return Mono.empty();
   }
 
-  /**
-   * Get all configurations for a session as a map.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing map of configurations
-   */
+  @Override
   public Mono<Map<String, Object>> getAllConfigs(@SessionId final String sessionId) {
     return Mono.zip(
         arr -> {
@@ -283,11 +186,7 @@ public class AppConfigService {
         getDescription(sessionId));
   }
 
-  /**
-   * Get all active session IDs currently in memory.
-   *
-   * @return Flux of session IDs
-   */
+  @Override
   public Flux<String> getActiveSessionIds() {
     final java.util.Set<String> active = new java.util.HashSet<>();
     active.addAll(projectPaths.keySet());
@@ -299,12 +198,7 @@ public class AppConfigService {
     return Flux.fromIterable(active);
   }
 
-  /**
-   * Check if a session is active in memory.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing true if active
-   */
+  @Override
   public Mono<Boolean> isActive(@SessionId final String sessionId) {
     return getActiveSessionIds().collectList().map(list -> list.contains(sessionId));
   }

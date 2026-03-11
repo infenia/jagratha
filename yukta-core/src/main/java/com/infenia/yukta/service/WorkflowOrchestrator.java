@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.config.AppConfigService;
 import com.infenia.yukta.model.NodeAssembler;
 import com.infenia.yukta.model.PreparedWorkflow;
 import com.infenia.yukta.model.WorkflowDefinition;
@@ -34,6 +33,7 @@ import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
 import jakarta.annotation.Nullable;
@@ -101,7 +101,7 @@ public class WorkflowOrchestrator {
   private final WorkflowRegistry registry;
   private final TaskTrackerService tracker;
   private final WorkflowValidator validator;
-  private final AppConfigService configService;
+  private final SessionConfigStore configService;
   private final MessageStore messageStore;
   private final ControlBusGateway controlBusGateway;
   private final Duration heartbeatInterval;
@@ -113,7 +113,7 @@ public class WorkflowOrchestrator {
    * @param registry the workflow registry
    * @param tracker the task tracker service
    * @param validator the workflow validator
-   * @param configService the app config service
+   * @param configService the session config store
    * @param messageStore the message store for auditing
    * @param controlBusGateway the control bus gateway
    * @param heartbeatInterval the heartbeat interval duration
@@ -125,7 +125,7 @@ public class WorkflowOrchestrator {
       final WorkflowRegistry registry,
       final TaskTrackerService tracker,
       final WorkflowValidator validator,
-      final AppConfigService configService,
+      final SessionConfigStore configService,
       @Nullable final MessageStore messageStore,
       final ControlBusGateway controlBusGateway,
       final Duration heartbeatInterval,

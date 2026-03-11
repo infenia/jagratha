@@ -19,9 +19,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.config.AppConfigService;
 import com.infenia.yukta.model.PreparedWorkflow;
 import com.infenia.yukta.model.WorkflowDefinition;
+import com.infenia.yukta.service.session.SessionConfigStore;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +35,7 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class WorkflowServiceTest {
 
-  @Mock private AppConfigService configService;
+  @Mock private SessionConfigStore configService;
   @Mock private WorkflowOrchestrator orchestrator;
 
   private WorkflowService workflowService;

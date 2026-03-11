@@ -42,7 +42,7 @@ class ConfigControllerTest {
   @MockitoBean private AppConfigMapper configMapper;
 
   @Test
-  void testUpdateConfig() {
+  void testApplyConfig() {
     WorkflowDefinition workflow =
         new WorkflowDefinition(
             "desc", List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
@@ -50,7 +50,7 @@ class ConfigControllerTest {
         new ConfigRequest(
             "session-1", "desc", "initiator-1", Map.of(), "/new/path", Map.of("w1", workflow));
 
-    when(sessionService.applyConfigOverrides(any())).thenReturn(Mono.empty());
+    when(sessionService.applyConfig(any())).thenReturn(Mono.empty());
 
     webTestClient
         .post()
@@ -64,9 +64,9 @@ class ConfigControllerTest {
         .jsonPath("$.status")
         .isEqualTo(200)
         .jsonPath("$.message")
-        .isEqualTo("Configuration updated successfully");
+        .isEqualTo("Configuration applied successfully");
 
     verify(configMapper).toData(any());
-    verify(sessionService).applyConfigOverrides(any());
+    verify(sessionService).applyConfig(any());
   }
 }

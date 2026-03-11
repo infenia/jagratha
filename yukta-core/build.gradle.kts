@@ -39,6 +39,8 @@ dependencies {
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.jackson.dataformat.yaml)
     implementation(libs.mapstruct)
+
+    implementation(libs.spring.ai.mcp.server)
     implementation(libs.springdoc.openapi)
 
     compileOnly(libs.lombok)

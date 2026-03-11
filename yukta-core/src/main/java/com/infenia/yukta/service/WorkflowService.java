@@ -15,9 +15,9 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.config.AppConfigService;
 import com.infenia.yukta.model.TaskResponse;
 import com.infenia.yukta.model.WorkflowExecution;
+import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
 import jakarta.validation.constraints.NotEmpty;
@@ -39,7 +39,7 @@ import reactor.core.scheduler.Schedulers;
 @RequiredArgsConstructor
 public class WorkflowService {
 
-  private final AppConfigService configService;
+  private final SessionConfigStore configService;
   private final WorkflowOrchestrator orchestrator;
 
   private final Map<String, Mono<Void>> workflowQueues = new ConcurrentHashMap<>();
@@ -93,14 +93,12 @@ public class WorkflowService {
                                               "No workflow configured with ID: " + workflowId)))
                                   .onErrorResume(
                                       e -> {
-                                        if (log.isErrorEnabled()) {
-                                          log.error(
-                                              "Workflow "
-                                                  + workflowId
-                                                  + " failed for session: "
-                                                  + sessionId,
-                                              e);
-                                        }
+                                        log.atError()
+                                            .setCause(e)
+                                            .log(
+                                                "Workflow {} failed for session: {}",
+                                                workflowId,
+                                                sessionId);
                                         return Mono.just(
                                             new TaskResponse(
                                                 "FAILURE", "Workflow failed: " + e.getMessage()));

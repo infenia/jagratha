@@ -22,6 +22,14 @@ logging:
     org.springframework: WARN
     org.springframework.web: DEBUG
 
+yukta:
+  session:
+    base-dir: ${user.home}/.yukta
+    file-log-sub-dir: modified-files
+    result-log-sub-dir: results
+    execution-timeout-seconds: 3600
+    store-type: in-memory
+
 gg:
   jte:
     developmentMode: true

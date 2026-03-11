@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.config.AppConfigService;
+import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.FileName;
 import com.infenia.yukta.validation.SessionId;
 import java.io.IOException;
@@ -40,7 +40,7 @@ import reactor.core.scheduler.Schedulers;
 @SuppressWarnings("PMD.OnlyOneReturn")
 public class LogRetrievalService {
 
-  private final AppConfigService configService;
+  private final SessionConfigStore configService;
 
   /**
    * List all log files for a given session.
@@ -83,7 +83,7 @@ public class LogRetrievalService {
         }
       }
     } catch (IOException e) {
-      log.warn("Failed to list logs from directory: {}", baseDir, e);
+      log.atWarn().setCause(e).log("Failed to list logs from directory: {}", baseDir);
     }
   }
 

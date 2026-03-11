@@ -65,7 +65,7 @@ public class SessionController {
                           final List<WorkflowExecutionSummary> history =
                               trackerService.getHistory(id);
                           final LocalDateTime lastActive =
-                              history.isEmpty() ? null : history.get(0).startTime();
+                              history.isEmpty() ? null : history.getFirst().startTime();
                           return new SessionSummary(
                               id,
                               (String) config.getOrDefault("initiator", ""),

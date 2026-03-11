@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.config;
+package com.infenia.yukta.service.session;
 
+import com.infenia.yukta.config.SessionConfigProperties;
 import com.infenia.yukta.model.WorkflowDefinition;
 import java.util.List;
 import java.util.Map;
@@ -22,13 +23,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
-class AppConfigServiceTest {
+class InMemorySessionConfigStoreTest {
 
-  private AppConfigService configService;
+  private InMemorySessionConfigStore configService;
 
   @BeforeEach
   void setUp() {
-    configService = new AppConfigService();
+    SessionConfigProperties props = new SessionConfigProperties();
+    props.setBaseDir(System.getProperty("user.home") + "/.yukta");
+    props.setFileLogSubDir("modified-files");
+    props.setResultLogSubDir("results");
+    props.setExecutionTimeoutSeconds(3600L);
+    configService = new InMemorySessionConfigStore(props);
   }
 
   @Test
@@ -37,6 +43,9 @@ class AppConfigServiceTest {
     StepVerifier.create(configService.getProjectPath(sessionId)).expectNext("").verifyComplete();
     StepVerifier.create(configService.getWorkflow(sessionId, "w1"))
         .verifyComplete(); // Empty initially
+    StepVerifier.create(configService.getWorkflows(sessionId))
+        .expectNext(Map.of())
+        .verifyComplete();
     StepVerifier.create(configService.getExecutionTimeout(sessionId))
         .expectNext(3600L)
         .verifyComplete();
@@ -46,6 +55,39 @@ class AppConfigServiceTest {
         .verifyComplete();
     StepVerifier.create(configService.getResultLogDir(sessionId))
         .expectNext(home + "/.yukta/results")
+        .verifyComplete();
+
+    // Metadata defaults
+    StepVerifier.create(configService.getInitiator(sessionId)).expectNext("").verifyComplete();
+    StepVerifier.create(configService.getInitiatedTime(sessionId)).expectNext("").verifyComplete();
+    StepVerifier.create(configService.getTags(sessionId)).expectNext(Map.of()).verifyComplete();
+    StepVerifier.create(configService.getDescription(sessionId)).expectNext("").verifyComplete();
+  }
+
+  @Test
+  void testSetNullMetadata() {
+    String sessionId = "sess-null";
+    StepVerifier.create(configService.setInitiator(sessionId, null)).verifyComplete();
+    StepVerifier.create(configService.setInitiatedTime(sessionId, null)).verifyComplete();
+    StepVerifier.create(configService.setTags(sessionId, null)).verifyComplete();
+    StepVerifier.create(configService.setDescription(sessionId, null)).verifyComplete();
+
+    StepVerifier.create(configService.getInitiator(sessionId)).expectNext("").verifyComplete();
+    StepVerifier.create(configService.getInitiatedTime(sessionId)).expectNext("").verifyComplete();
+    StepVerifier.create(configService.getTags(sessionId)).expectNext(Map.of()).verifyComplete();
+    StepVerifier.create(configService.getDescription(sessionId)).expectNext("").verifyComplete();
+  }
+
+  @Test
+  void testActiveTrackingDetailed() {
+    StepVerifier.create(configService.setInitiatedTime("s1", "time")).verifyComplete();
+    StepVerifier.create(configService.setTags("s2", Map.of())).verifyComplete();
+    StepVerifier.create(configService.setDescription("s3", "desc")).verifyComplete();
+
+    StepVerifier.create(configService.getActiveSessionIds())
+        .expectNextMatches(id -> List.of("s1", "s2", "s3").contains(id))
+        .expectNextMatches(id -> List.of("s1", "s2", "s3").contains(id))
+        .expectNextMatches(id -> List.of("s1", "s2", "s3").contains(id))
         .verifyComplete();
   }
 
@@ -142,6 +184,9 @@ class AppConfigServiceTest {
     configService.setInitiatedTime(sessionId, "now").block();
     configService.setTags(sessionId, Map.of("k", "v")).block();
     configService.setDescription(sessionId, "Sample").block();
+    configService.setProjectPath(sessionId, "/meta/path").block();
+    WorkflowDefinition workflow = new WorkflowDefinition("w", List.of(), List.of());
+    configService.setWorkflows(sessionId, Map.of("w1", workflow)).block();
 
     StepVerifier.create(configService.getAllConfigs(sessionId))
         .expectNextMatches(
@@ -149,7 +194,12 @@ class AppConfigServiceTest {
                 "Jules".equals(map.get("initiator"))
                     && "now".equals(map.get("initiatedTime"))
                     && Map.of("k", "v").equals(map.get("tags"))
-                    && "Sample".equals(map.get("description")))
+                    && "Sample".equals(map.get("description"))
+                    && "/meta/path".equals(map.get("projectPath"))
+                    && Map.of("w1", workflow).equals(map.get("workflows"))
+                    && map.containsKey("executionTimeout")
+                    && map.containsKey("fileLogDir")
+                    && map.containsKey("resultLogDir"))
         .verifyComplete();
   }
 

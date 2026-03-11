@@ -159,9 +159,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Object>> handleGenericException(
       final Exception exception, final ServerHttpRequest request) {
-    if (log.isErrorEnabled()) {
-      log.error("Unhandled exception occurred", exception);
-    }
+    log.atError().setCause(exception).log("Unhandled exception occurred");
     return buildErrorResponse(
         HttpStatus.INTERNAL_SERVER_ERROR,
         "An unexpected error occurred: " + exception.getMessage(),

@@ -13,22 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.mapper;
+package com.infenia.yukta.model;
 
-import com.infenia.yukta.model.ConfigRequest;
-import com.infenia.yukta.model.SessionConfigData;
-import org.mapstruct.Mapper;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Mapper for converting between ConfigRequest DTO and SessionConfigData service record. */
-@Mapper(componentModel = "spring")
-@SuppressWarnings("PMD.ImplicitFunctionalInterface")
-public interface AppConfigMapper {
+import org.junit.jupiter.api.Test;
 
-  /**
-   * Map ConfigRequest to SessionConfigData.
-   *
-   * @param request the config request
-   * @return the session config data
-   */
-  SessionConfigData toData(ConfigRequest request);
+class SessionSummaryTest {
+
+  @Test
+  void testSessionSummary() {
+    SessionSummary summary = new SessionSummary("s", "i", "t", null, "d", null);
+    assertEquals("s", summary.sessionId());
+    assertNotNull(summary.tags());
+    assertTrue(summary.tags().isEmpty());
+  }
 }
