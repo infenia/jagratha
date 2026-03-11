@@ -55,12 +55,7 @@ class SessionServiceTest {
         new SessionConfigData(
             sessionId, "desc", "initiator-1", Map.of(), "/path", Map.of("w1", workflow));
 
-    when(configService.setProjectPath(anyString(), anyString())).thenReturn(Mono.empty());
-    when(configService.setWorkflows(anyString(), any())).thenReturn(Mono.empty());
-    when(configService.setDescription(anyString(), anyString())).thenReturn(Mono.empty());
-    when(configService.setInitiator(anyString(), anyString())).thenReturn(Mono.empty());
-    when(configService.setTags(anyString(), any())).thenReturn(Mono.empty());
-    when(configService.setInitiatedTime(anyString(), anyString())).thenReturn(Mono.empty());
+    when(configService.applySessionConfig(any())).thenReturn(Mono.empty());
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.empty());
 
     StepVerifier.create(sessionService.applyConfig(data)).verifyComplete();
@@ -73,12 +68,7 @@ class SessionServiceTest {
     SessionConfigData data =
         new SessionConfigData(sessionId, "desc", "initiator-p", Map.of(), null, Map.of());
 
-    when(configService.setProjectPath(anyString(), any())).thenReturn(Mono.empty());
-    when(configService.setWorkflows(anyString(), any())).thenReturn(Mono.empty());
-    when(configService.setDescription(anyString(), anyString())).thenReturn(Mono.empty());
-    when(configService.setInitiator(anyString(), anyString())).thenReturn(Mono.empty());
-    when(configService.setTags(anyString(), any())).thenReturn(Mono.empty());
-    when(configService.setInitiatedTime(anyString(), anyString())).thenReturn(Mono.empty());
+    when(configService.applySessionConfig(any())).thenReturn(Mono.empty());
 
     StepVerifier.create(sessionService.applyConfig(data)).verifyComplete();
   }

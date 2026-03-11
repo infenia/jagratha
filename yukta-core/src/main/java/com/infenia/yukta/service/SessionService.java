@@ -21,7 +21,6 @@ import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
 import jakarta.validation.Valid;
-import java.time.Instant;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,40 +44,20 @@ public class SessionService {
   /**
    * Apply configuration for a session.
    *
-   * <p>This method initializes a new session or updates an existing one by applying project paths,
-   * workflow definitions, and metadata.
+   * <p>This method initializes a new session or updates an existing one by applying all
+   * configuration data atomically via the store, then preparing workflows.
    *
    * @param data the configuration data to apply
    * @return Mono that completes when the configuration is successfully applied and persisted
    */
   public Mono<Void> applyConfig(@Valid final SessionConfigData data) {
-    return Mono.defer(
-        () -> {
-          final Mono<Void> projectPathMono =
-              configService.setProjectPath(data.sessionId(), data.projectPath());
-          final Mono<Void> workflowMono =
-              configService.setWorkflows(data.sessionId(), data.workflows());
-          final Mono<Void> descriptionMono =
-              configService.setDescription(data.sessionId(), data.description());
-          final Mono<Void> initiatorMono =
-              configService.setInitiator(data.sessionId(), data.initiator());
-          final Mono<Void> tagsMono = configService.setTags(data.sessionId(), data.tags());
-          final Mono<Void> initiatedTimeMono =
-              configService.setInitiatedTime(data.sessionId(), Instant.now().toString());
-
-          return Mono.when(
-                  projectPathMono,
-                  workflowMono,
-                  descriptionMono,
-                  initiatorMono,
-                  tagsMono,
-                  initiatedTimeMono)
-              .then(
-                  Flux.fromIterable(data.workflows().values())
-                      .flatMap(orchestrator::prepareWorkflow)
-                      .collectList()
-                      .then());
-        });
+    return configService
+        .applySessionConfig(data)
+        .then(
+            Flux.fromIterable(data.workflows().values())
+                .flatMap(orchestrator::prepareWorkflow)
+                .collectList()
+                .then());
   }
 
 

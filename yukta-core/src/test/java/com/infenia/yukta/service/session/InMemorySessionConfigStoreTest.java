@@ -16,6 +16,7 @@
 package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.config.SessionConfigProperties;
+import com.infenia.yukta.model.SessionConfigData;
 import com.infenia.yukta.model.WorkflowDefinition;
 import java.util.List;
 import java.util.Map;
@@ -166,6 +167,36 @@ class InMemorySessionConfigStoreTest {
                     && map.containsKey("executionTimeout")
                     && map.containsKey("fileLogDir")
                     && map.containsKey("resultLogDir"))
+        .verifyComplete();
+  }
+
+  @Test
+  void testApplySessionConfig() {
+    String sessionId = "sess-apply";
+    WorkflowDefinition workflow =
+        new WorkflowDefinition(
+            "desc", List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
+    SessionConfigData data =
+        new SessionConfigData(
+            sessionId, "full desc", "initiator-x", Map.of("env", "prod"), "/full/path", Map.of("w1", workflow));
+
+    StepVerifier.create(configService.applySessionConfig(data)).verifyComplete();
+
+    // Verify all data was applied
+    StepVerifier.create(configService.getProjectPath(sessionId))
+        .expectNext("/full/path")
+        .verifyComplete();
+    StepVerifier.create(configService.getDescription(sessionId))
+        .expectNext("full desc")
+        .verifyComplete();
+    StepVerifier.create(configService.getInitiator(sessionId))
+        .expectNext("initiator-x")
+        .verifyComplete();
+    StepVerifier.create(configService.getTags(sessionId))
+        .expectNext(Map.of("env", "prod"))
+        .verifyComplete();
+    StepVerifier.create(configService.getWorkflow(sessionId, "w1"))
+        .expectNext(workflow)
         .verifyComplete();
   }
 

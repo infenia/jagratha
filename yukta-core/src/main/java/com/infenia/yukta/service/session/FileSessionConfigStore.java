@@ -16,15 +16,18 @@
 package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.config.SessionConfigProperties;
+import com.infenia.yukta.model.SessionConfigData;
 import com.infenia.yukta.model.WorkflowDefinition;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
@@ -94,6 +97,25 @@ public class FileSessionConfigStore implements SessionConfigStore {
       this.initiatedTime = initiatedTime;
       this.tags = tags;
     }
+  }
+
+  @Override
+  public Mono<Void> applySessionConfig(@Valid final SessionConfigData data) {
+    return Mono.fromCallable(
+            () -> {
+              final SessionConfig config =
+                  new SessionConfig(
+                      data.sessionId(),
+                      data.projectPath(),
+                      data.workflows(),
+                      data.description(),
+                      data.initiator(),
+                      Instant.now().toString(),
+                      data.tags());
+              return config;
+            })
+        .flatMap(config -> saveSessionConfig(data.sessionId(), config))
+        .subscribeOn(Schedulers.boundedElastic());
   }
 
   @Override

@@ -15,15 +15,29 @@
  */
 package com.infenia.yukta.service.session;
 
+import com.infenia.yukta.model.SessionConfigData;
 import com.infenia.yukta.model.WorkflowDefinition;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.Map;
 import reactor.core.publisher.Mono;
 
 /** Interface for managing session configuration with runtime overrides. */
 public interface SessionConfigStore {
+
+  /**
+   * Apply complete session configuration data.
+   *
+   * <p>This method stores the entire session configuration, allowing implementations to optimize
+   * storage (e.g., file-based stores can write a single JSON document, in-memory stores can
+   * update all maps atomically).
+   *
+   * @param data the complete session configuration data
+   * @return Mono that completes when the configuration is stored
+   */
+  Mono<Void> applySessionConfig(@Valid SessionConfigData data);
 
   /**
    * Get the external project path for a session.

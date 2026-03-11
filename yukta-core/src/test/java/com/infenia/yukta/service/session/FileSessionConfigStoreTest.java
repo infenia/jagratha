@@ -16,6 +16,7 @@
 package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.config.SessionConfigProperties;
+import com.infenia.yukta.model.SessionConfigData;
 import com.infenia.yukta.model.WorkflowDefinition;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -169,5 +170,35 @@ class FileSessionConfigStoreTest {
     StepVerifier.create(configStore.getInitiatedTime(sessionId)).expectNext("").verifyComplete();
     StepVerifier.create(configStore.getTags(sessionId)).expectNext(Map.of()).verifyComplete();
     StepVerifier.create(configStore.getDescription(sessionId)).expectNext("").verifyComplete();
+  }
+
+  @Test
+  void testApplySessionConfig() {
+    String sessionId = "sess-apply";
+    WorkflowDefinition workflow =
+        new WorkflowDefinition(
+            "desc", List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
+    SessionConfigData data =
+        new SessionConfigData(
+            sessionId, "full desc", "initiator-y", Map.of("tier", "prod"), "/file/path", Map.of("w1", workflow));
+
+    StepVerifier.create(configStore.applySessionConfig(data)).verifyComplete();
+
+    // Verify all data was persisted and retrieved
+    StepVerifier.create(configStore.getProjectPath(sessionId))
+        .expectNext("/file/path")
+        .verifyComplete();
+    StepVerifier.create(configStore.getDescription(sessionId))
+        .expectNext("full desc")
+        .verifyComplete();
+    StepVerifier.create(configStore.getInitiator(sessionId))
+        .expectNext("initiator-y")
+        .verifyComplete();
+    StepVerifier.create(configStore.getTags(sessionId))
+        .expectNext(Map.of("tier", "prod"))
+        .verifyComplete();
+    StepVerifier.create(configStore.getWorkflow(sessionId, "w1"))
+        .expectNext(workflow)
+        .verifyComplete();
   }
 }

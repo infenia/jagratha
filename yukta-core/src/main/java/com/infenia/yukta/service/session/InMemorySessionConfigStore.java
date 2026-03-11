@@ -16,10 +16,13 @@
 package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.config.SessionConfigProperties;
+import com.infenia.yukta.model.SessionConfigData;
 import com.infenia.yukta.model.WorkflowDefinition;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +49,20 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
   private final Map<String, String> initiatedTimes = new ConcurrentHashMap<>();
   private final Map<String, Map<String, String>> tagsMap = new ConcurrentHashMap<>();
   private final Map<String, String> descriptions = new ConcurrentHashMap<>();
+
+  @Override
+  public Mono<Void> applySessionConfig(@Valid final SessionConfigData data) {
+    return Mono.fromRunnable(
+        () -> {
+          final String sessionId = data.sessionId();
+          projectPaths.put(sessionId, data.projectPath());
+          workflowsMap.put(sessionId, data.workflows());
+          descriptions.put(sessionId, data.description());
+          initiators.put(sessionId, data.initiator());
+          initiatedTimes.put(sessionId, Instant.now().toString());
+          tagsMap.put(sessionId, data.tags());
+        });
+  }
 
   @Override
   public Mono<String> getProjectPath(@SessionId final String sessionId) {
