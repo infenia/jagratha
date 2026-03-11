@@ -39,12 +39,10 @@ public record WorkflowDefinition(
         String description,
     @Schema(description = "Nodes in the workflow")
         @NotEmpty(message = "Workflow must contain at least one node")
-        @Valid
-        List<@NotNull(message = "Node cannot be null") Node> nodes,
+        List<@Valid @NotNull(message = "Node cannot be null") Node> nodes,
     @Schema(description = "Edges connecting the nodes")
         @NotNull(message = "Edges list cannot be null")
-        @Valid
-        List<@NotNull(message = "Edge cannot be null") Edge> edges) {
+        List<@Valid @NotNull(message = "Edge cannot be null") Edge> edges) {
 
   /** Compact constructor to ensure immutability. */
   public WorkflowDefinition {
