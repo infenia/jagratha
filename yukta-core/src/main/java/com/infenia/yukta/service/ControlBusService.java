@@ -18,12 +18,14 @@ package com.infenia.yukta.service;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.ControlSignalHandler;
+import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,7 +51,8 @@ public class ControlBusService {
   private final int bufferSize;
   private final List<ControlSignalHandler> handlers;
   private final Map<String, WorkflowPlugin> activePlugins = new ConcurrentHashMap<>();
-  private Sinks.Many<Message<?>> controlSink;
+  private Sinks.Many<Message<?>> controlSink =
+      Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
       Sinks.EmitFailureHandler.busyLooping(Duration.ofMillis(100));
 
@@ -60,17 +63,16 @@ public class ControlBusService {
       final List<ControlSignalHandler> handlers) {
     this.batchSize = batchSize;
     this.batchTimeout = Duration.ofMillis(batchTimeoutMs);
-    this.bufferSize = bufferSize;
+    this.bufferSize = Math.max(bufferSize, Queues.SMALL_BUFFER_SIZE);
     this.handlers = handlers;
   }
 
   /** Initialize the control sink and background event consumer. */
   @PostConstruct
   public void init() {
-    controlSink =
-        Sinks.many()
-            .multicast()
-            .onBackpressureBuffer(bufferSize < 0 ? Queues.SMALL_BUFFER_SIZE : bufferSize, false);
+    if (bufferSize > 0 && bufferSize != 256) {
+      controlSink = Sinks.many().multicast().onBackpressureBuffer(bufferSize, false);
+    }
 
     controlSink
         .asFlux()
@@ -94,7 +96,15 @@ public class ControlBusService {
    * @return a Mono that completes when the signal is emitted
    */
   public Mono<Void> emit(final Message<?> signal) {
-    return Mono.fromRunnable(() -> controlSink.emitNext(signal, RETRY_HANDLER));
+    return Mono.create(
+        sink -> {
+          try {
+            controlSink.emitNext(signal, RETRY_HANDLER);
+            sink.success();
+          } catch (final Exception e) {
+            sink.error(new IllegalStateException("Control bus emit failed", e));
+          }
+        });
   }
 
   /**
@@ -112,13 +122,13 @@ public class ControlBusService {
    * @param nodeId the node identifier
    * @return the last heartbeat message, or null
    */
-  public Message<?> getLastHeartbeat(final String nodeId) {
-    for (final ControlSignalHandler handler : handlers) {
-      if (handler instanceof com.infenia.yukta.service.control.ControlHeartbeatHandler hb) {
-        return hb.getLastHeartbeat(nodeId);
-      }
-    }
-    return null;
+  @Nullable
+  public Message<?> getLastHeartbeat(@NotBlank final String nodeId) {
+    return handlers.stream()
+        .map(h -> h.getLastHeartbeat(nodeId))
+        .filter(Objects::nonNull)
+        .findFirst()
+        .orElse(null);
   }
 
   /**
@@ -127,13 +137,13 @@ public class ControlBusService {
    * @param nodeId the node identifier
    * @return the last statistics message, or null
    */
-  public Message<?> getLastStatistics(final String nodeId) {
-    for (final ControlSignalHandler handler : handlers) {
-      if (handler instanceof com.infenia.yukta.service.control.ControlStatisticsHandler cs) {
-        return cs.getLastStatistics(nodeId);
-      }
-    }
-    return null;
+  @Nullable
+  public Message<?> getLastStatistics(@NotBlank final String nodeId) {
+    return handlers.stream()
+        .map(h -> h.getLastStatistics(nodeId))
+        .filter(Objects::nonNull)
+        .findFirst()
+        .orElse(null);
   }
 
   /**
@@ -142,12 +152,11 @@ public class ControlBusService {
    * @return list of node IDs
    */
   public List<String> getActiveNodes() {
-    for (final ControlSignalHandler handler : handlers) {
-      if (handler instanceof com.infenia.yukta.service.control.ControlHeartbeatHandler hb) {
-        return hb.getActiveNodes();
-      }
-    }
-    return List.of();
+    return handlers.stream()
+        .map(ControlSignalHandler::getActiveNodes)
+        .filter(list -> !list.isEmpty())
+        .findFirst()
+        .orElse(List.of());
   }
 
   /**
@@ -167,14 +176,7 @@ public class ControlBusService {
    */
   public void unregisterPlugin(@NotBlank final String nodeId) {
     activePlugins.remove(nodeId);
-    // Clean up handler state
-    for (final ControlSignalHandler handler : handlers) {
-      if (handler instanceof com.infenia.yukta.service.control.ControlHeartbeatHandler hb) {
-        hb.removeNode(nodeId);
-      } else if (handler instanceof com.infenia.yukta.service.control.ControlStatisticsHandler cs) {
-        cs.removeNode(nodeId);
-      }
-    }
+    handlers.forEach(h -> h.removeNode(nodeId));
   }
 
   /**
@@ -205,14 +207,14 @@ public class ControlBusService {
   private void handleControlBatch(final List<Message<?>> batch) {
     final List<Message<?>> prioritized =
         batch.stream()
-            .sorted(Comparator.comparingInt((Message<?> m) -> m.getPriority()).reversed())
+            .sorted(Comparator.comparingInt((final Message<?> m) -> m.getPriority()).reversed())
             .toList();
 
     for (final Message<?> msg : prioritized) {
       final Object payload = msg.getPayload();
       final String nodeId = msg.getSourceNodeId();
 
-      if (nodeId != null) {
+      if (nodeId != null && payload != null) {
         for (final ControlSignalHandler handler : handlers) {
           if (handler.canHandle(payload)) {
             handler.handle(nodeId, msg, payload);

@@ -42,4 +42,42 @@ public interface ControlSignalHandler {
    * @param payload the signal payload (pre-cast by the handler)
    */
   void handle(String nodeId, Message<?> message, Object payload);
+
+  /**
+   * Get the last heartbeat for a node (optional, default returns null).
+   *
+   * @param nodeId the node identifier
+   * @return the last heartbeat message, or null if not applicable
+   */
+  default Message<?> getLastHeartbeat(final String nodeId) {
+    return null;
+  }
+
+  /**
+   * Get the last statistics for a node (optional, default returns null).
+   *
+   * @param nodeId the node identifier
+   * @return the last statistics message, or null if not applicable
+   */
+  default Message<?> getLastStatistics(final String nodeId) {
+    return null;
+  }
+
+  /**
+   * Get all active node IDs (optional, default returns empty list).
+   *
+   * @return list of node IDs, or empty list if not applicable
+   */
+  default java.util.List<String> getActiveNodes() {
+    return java.util.List.of();
+  }
+
+  /**
+   * Remove a node's state (optional, default is no-op).
+   *
+   * @param nodeId the node identifier
+   */
+  default void removeNode(final String nodeId) {
+    // No-op by default
+  }
 }
