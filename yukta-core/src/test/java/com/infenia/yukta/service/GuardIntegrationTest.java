@@ -98,19 +98,23 @@ class GuardIntegrationTest {
     when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(triggerPlugin.initialize(any())).thenReturn(Mono.empty());
     when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
 
     when(guardPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(guardPlugin.initialize(any())).thenReturn(Mono.empty());
     when(guardPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(guardPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
 
     when(terminalTrue.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminalTrue.initialize(any())).thenReturn(Mono.empty());
     when(terminalTrue.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalTrue.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminalTrue.consume(any(), any())).thenReturn(Mono.empty());
 
     when(terminalFalse.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminalFalse.initialize(any())).thenReturn(Mono.empty());
     when(terminalFalse.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalFalse.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminalFalse.consume(any(), any())).thenReturn(Mono.empty());
 
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), any()))

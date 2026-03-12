@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 import lombok.extern.slf4j.Slf4j;
@@ -147,17 +148,17 @@ public class WorkflowOrchestrator {
    * @param def the workflow definition
    * @return a Mono containing the prepared workflow
    */
-  @SuppressWarnings("PMD.UseConcurrentHashMap")
   public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
-    final Map<String, List<Node>> adjacencyList = new HashMap<>();
-    final Map<String, List<Node>> parentsList = new HashMap<>();
-    final Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
-    final Map<String, Node> nodeMap = new HashMap<>();
+    final int numNodes = def.nodes().size();
+    final Map<String, List<Node>> adjacencyList = new ConcurrentHashMap<>(numNodes);
+    final Map<String, List<Node>> parentsList = new ConcurrentHashMap<>(numNodes);
+    final Map<String, WorkflowPlugin> pluginCache = new ConcurrentHashMap<>(numNodes);
+    final Map<String, Node> nodeMap = new ConcurrentHashMap<>(numNodes);
 
-    def.nodes().forEach(node -> nodeMap.put(node.nodeId(), node));
     def.nodes()
         .forEach(
             node -> {
+              nodeMap.put(node.nodeId(), node);
               adjacencyList.put(node.nodeId(), new ArrayList<>());
               parentsList.put(node.nodeId(), new ArrayList<>());
               final WorkflowPlugin plugin = registry.get(node.type());
@@ -210,19 +211,21 @@ public class WorkflowOrchestrator {
                 }))
         .onErrorResume(
             e ->
-                Flux.fromIterable(def.nodes())
+                Flux.fromIterable(pluginCache.entrySet())
                     .flatMap(
-                        node -> {
-                          final WorkflowPlugin plugin = pluginCache.get(node.nodeId());
-                          if (plugin != null) {
-                            ((DefaultControlBusGateway) controlBusGateway)
-                                .getControlBusService()
-                                .unregisterPlugin(node.nodeId());
-                            final Mono<Void> shutdown = plugin.shutdown(node.config());
-                            return (shutdown != null ? shutdown : Mono.<Void>empty())
-                                .onErrorResume(ex -> Mono.empty());
-                          }
-                          return Mono.empty();
+                        entry -> {
+                          final String nodeId = entry.getKey();
+                          final WorkflowPlugin plugin = entry.getValue();
+
+                          ((DefaultControlBusGateway) controlBusGateway)
+                              .getControlBusService()
+                              .unregisterPlugin(nodeId);
+
+                          final Node node = nodeMap.get(nodeId);
+                          final Mono<Void> shutdown = plugin.shutdown(node.config());
+
+                          return (shutdown != null ? shutdown : Mono.<Void>empty())
+                              .onErrorResume(ex -> Mono.empty());
                         })
                     .then(Mono.error(e)));
   }

@@ -102,6 +102,23 @@ class InMemorySessionConfigStoreTest {
   }
 
   @Test
+  void testGetSessionIds() {
+    configService.setProjectPath("s1", "/p1").block();
+    configService
+        .setWorkflows("s2", Map.of("w1", new WorkflowDefinition("d", List.of(), List.of())))
+        .block();
+    configService.setInitiator("s3", "i1").block();
+    configService.setInitiatedTime("s4", "t1").block();
+    configService.setTags("s5", Map.of("t", "v")).block();
+    configService.setDescription("s6", "d1").block();
+
+    StepVerifier.create(configService.getSessionIds().collectList())
+        .expectNextMatches(
+            ids -> ids.size() == 6 && ids.containsAll(List.of("s1", "s2", "s3", "s4", "s5", "s6")))
+        .verifyComplete();
+  }
+
+  @Test
   void testMetadataOverrides() {
     String sessionId = "sess-1";
     String initiator = "John Doe";

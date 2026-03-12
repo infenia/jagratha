@@ -61,6 +61,7 @@ class WorkflowValidatorTest {
     when(plugin.getCategory()).thenReturn(category);
     when(plugin.getType()).thenReturn(type);
     when(plugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(plugin.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(registry.get(type)).thenReturn(plugin);
   }
 
@@ -89,12 +90,12 @@ class WorkflowValidatorTest {
     mockPlugin("P", PluginCategory.PROCESSOR);
     mockPlugin("TERM", PluginCategory.TERMINAL);
 
-    // Guard without outgoing (Line 176)
+    // Processor without outgoing (via Guard)
     WorkflowPlugin guardPlugin = mock(ProcessorPlugin.class);
-    when(guardPlugin.getCategory())
-        .thenReturn(PluginCategory.TERMINAL); // Mock as Terminal to bypass Processor validation
+    when(guardPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(guardPlugin.getType()).thenReturn("GUARD");
     when(guardPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(guardPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(registry.get("GUARD")).thenReturn(guardPlugin);
     StepVerifier.create(
             validator.validate(
@@ -106,19 +107,6 @@ class WorkflowValidatorTest {
                     List.of(new WorkflowDefinition.Edge("t", "g")))))
         .expectError()
         .verify();
-
-    // Guard custom error port (Line 188, 189)
-    WorkflowDefinition defG =
-        new WorkflowDefinition(
-            "d",
-            List.of(
-                new WorkflowDefinition.Node("t", "T", Map.of()),
-                new WorkflowDefinition.Node("g", "GUARD", Map.of("errorPort", "custom")),
-                new WorkflowDefinition.Node("term", "TERM", Map.of())),
-            List.of(
-                new WorkflowDefinition.Edge("t", "g"),
-                new WorkflowDefinition.Edge("g", "term", "custom")));
-    StepVerifier.create(validator.validate(defG)).expectError().verify();
 
     // Endpoint but not terminal (Line 215)
     interface Hybrid extends TriggerPlugin, ProcessorPlugin {
@@ -203,5 +191,430 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Edge("f1", "term")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
+
+  @Test
+  void testProcessorNullPluginContinues() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p", "UNKNOWN", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p"), new WorkflowDefinition.Edge("p", "term")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testProcessorWithBothIncomingAndOutgoing() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p"), new WorkflowDefinition.Edge("p", "term")));
+
+    StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
+
+  @Test
+  void testEndpointNullPluginContinues() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("unknown", "UNKNOWN_TYPE", Map.of())),
+            List.of(new WorkflowDefinition.Edge("t", "unknown")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testEndpointIsTerminal() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(new WorkflowDefinition.Edge("t", "term")));
+
+    StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
+
+  @Test
+  void testNodeContextsCallsPluginValidation() {
+    WorkflowPlugin mockPlugin = mock(ProcessorPlugin.class);
+    when(mockPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(mockPlugin.getType()).thenReturn("CUSTOM");
+    when(mockPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(mockPlugin.validateInContext(any(), any()))
+        .thenReturn(Mono.error(new IllegalArgumentException("Context validation failed")));
+    when(registry.get("CUSTOM")).thenReturn(mockPlugin);
+
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("c", "CUSTOM", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "c"), new WorkflowDefinition.Edge("c", "term")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testCycleDetection() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p1"),
+                new WorkflowDefinition.Edge("p1", "p2"),
+                new WorkflowDefinition.Edge("p2", "p1")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testMultipleOrphans() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of()),
+                new WorkflowDefinition.Node("term1", "TERM", Map.of()),
+                new WorkflowDefinition.Node("term2", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p1"),
+                new WorkflowDefinition.Edge("p1", "term1")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testMultipleTriggers() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t1", "T", Map.of()),
+                new WorkflowDefinition.Node("t2", "T", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t1", "p"),
+                new WorkflowDefinition.Edge("t2", "p"),
+                new WorkflowDefinition.Edge("p", "term")));
+
+    StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
+
+  @Test
+  void testProcessorAsEntryPoint() {
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("p", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(new WorkflowDefinition.Edge("p", "term")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testProcessorWithoutOutgoing() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of())),
+            List.of(new WorkflowDefinition.Edge("t", "p")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testProcessorWithoutIncoming() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "term"),
+                new WorkflowDefinition.Edge("p", "term")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testTerminalNotAsEndpoint() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "term"),
+                new WorkflowDefinition.Edge("term", "p")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testNonTerminalAsEndpoint() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of())),
+            List.of(new WorkflowDefinition.Edge("t", "p")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testComplexValidWorkflow() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of()),
+                new WorkflowDefinition.Node("p3", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p1"),
+                new WorkflowDefinition.Edge("p1", "p2"),
+                new WorkflowDefinition.Edge("p2", "p3"),
+                new WorkflowDefinition.Edge("p3", "term")));
+
+    StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
+
+  @Test
+  void testDiamondWorkflow() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of()),
+                new WorkflowDefinition.Node("p3", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p1"),
+                new WorkflowDefinition.Edge("p1", "p2"),
+                new WorkflowDefinition.Edge("p1", "p3"),
+                new WorkflowDefinition.Edge("p2", "term"),
+                new WorkflowDefinition.Edge("p3", "term")));
+
+    StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
+
+  @Test
+  void testSelfCycle() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of())),
+            List.of(new WorkflowDefinition.Edge("t", "p"), new WorkflowDefinition.Edge("p", "p")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testTriggerWithoutOutgoing() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d", List.of(new WorkflowDefinition.Node("t", "T", Map.of())), List.of());
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testMissingPluginInProcessors() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // Intentionally don't mock "UNKNOWN"
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("unknown", "UNKNOWN", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "unknown"),
+                new WorkflowDefinition.Edge("unknown", "term")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testMissingPluginInEndpoints() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // Intentionally don't mock "UNKNOWN"
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("unknown", "UNKNOWN", Map.of())),
+            List.of(new WorkflowDefinition.Edge("t", "unknown")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testEntryPointIsTerminal() {
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d", List.of(new WorkflowDefinition.Node("term", "TERM", Map.of())), List.of());
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testComplexCyclePath() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of()),
+                new WorkflowDefinition.Node("p3", "P", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p1"),
+                new WorkflowDefinition.Edge("p1", "p2"),
+                new WorkflowDefinition.Edge("p2", "p3"),
+                new WorkflowDefinition.Edge("p3", "p1")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
   }
 }

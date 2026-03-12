@@ -76,6 +76,7 @@ class WorkflowOrchestratorTest {
             inv -> {
               WorkflowPlugin p = mock(WorkflowPlugin.class);
               when(p.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+              when(p.validateInContext(any(), any())).thenReturn(Mono.empty());
               return p;
             });
     orchestrator =
@@ -104,6 +105,8 @@ class WorkflowOrchestratorTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.prepare(any())).thenReturn(Mono.empty());
 
@@ -111,6 +114,8 @@ class WorkflowOrchestratorTest {
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
     when(terminal.prepare(any())).thenReturn(Mono.empty());
 
@@ -160,9 +165,11 @@ class WorkflowOrchestratorTest {
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("processor")).thenReturn(processor);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
+    when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
     when(processor.prepare(any())).thenReturn(Mono.empty());
 
@@ -183,6 +190,7 @@ class WorkflowOrchestratorTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.prepare(any())).thenReturn(Mono.empty());
 
@@ -221,9 +229,11 @@ class WorkflowOrchestratorTest {
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("processor")).thenReturn(processor);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
+    when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
     when(processor.prepare(any())).thenReturn(Mono.empty());
 
@@ -304,6 +314,7 @@ class WorkflowOrchestratorTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
@@ -312,6 +323,7 @@ class WorkflowOrchestratorTest {
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
     when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
@@ -357,6 +369,7 @@ class WorkflowOrchestratorTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
@@ -365,6 +378,7 @@ class WorkflowOrchestratorTest {
     when(processor.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
+    when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
     when(processor.prepare(any())).thenReturn(Mono.empty());
     when(processor.process(any(), any())).thenAnswer(inv -> inv.getArgument(0));
@@ -374,6 +388,7 @@ class WorkflowOrchestratorTest {
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
     when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
@@ -428,6 +443,7 @@ class WorkflowOrchestratorTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(DefaultMessage.create(UUID.randomUUID(), "d")));
@@ -435,6 +451,7 @@ class WorkflowOrchestratorTest {
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
     when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any())).thenReturn(Mono.empty());
@@ -473,6 +490,7 @@ class WorkflowOrchestratorTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
@@ -481,6 +499,7 @@ class WorkflowOrchestratorTest {
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
     when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
@@ -522,6 +541,7 @@ class WorkflowOrchestratorTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
@@ -530,6 +550,7 @@ class WorkflowOrchestratorTest {
     when(processor.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
+    when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
     when(processor.prepare(any())).thenReturn(Mono.empty());
     when(processor.process(any(), any())).thenReturn(Flux.just(msg));
@@ -538,6 +559,7 @@ class WorkflowOrchestratorTest {
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
     when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
@@ -600,6 +622,7 @@ class WorkflowOrchestratorTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
@@ -608,6 +631,7 @@ class WorkflowOrchestratorTest {
     when(processor.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
+    when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
     when(processor.prepare(any())).thenReturn(Mono.empty());
     when(processor.process(any(), any())).thenReturn(Flux.just(msg));
@@ -616,6 +640,7 @@ class WorkflowOrchestratorTest {
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
     when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))

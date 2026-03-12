@@ -91,6 +91,7 @@ class WorkflowOrchestratorImprovementsTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.shutdown(any())).thenReturn(Mono.empty());
 
@@ -98,6 +99,7 @@ class WorkflowOrchestratorImprovementsTest {
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     // Fail initialization for terminal
     when(terminal.initialize(any())).thenReturn(Mono.error(new RuntimeException("Init failed")));
     when(terminal.shutdown(any())).thenReturn(Mono.empty());
@@ -127,6 +129,7 @@ class WorkflowOrchestratorImprovementsTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.start(any()))
         .thenReturn(Flux.just(DefaultMessage.create(UUID.randomUUID(), "data")));
@@ -135,6 +138,7 @@ class WorkflowOrchestratorImprovementsTest {
     when(term1Plugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(term1Plugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(term1Plugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(term1Plugin.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(term1Plugin.initialize(any())).thenReturn(Mono.empty());
     // term1 fails AFTER subscribing
     when(term1Plugin.consume(any(), any()))
@@ -147,6 +151,7 @@ class WorkflowOrchestratorImprovementsTest {
     when(term2Plugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(term2Plugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(term2Plugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(term2Plugin.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(term2Plugin.initialize(any())).thenReturn(Mono.empty());
     // term2 succeeds
     when(term2Plugin.consume(any(), any()))
@@ -188,6 +193,7 @@ class WorkflowOrchestratorImprovementsTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.never());
 
@@ -195,6 +201,7 @@ class WorkflowOrchestratorImprovementsTest {
     when(term1Plugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(term1Plugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(term1Plugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(term1Plugin.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(term1Plugin.initialize(any())).thenReturn(Mono.empty());
     // This one subscribes and waits
     when(term1Plugin.consume(any(), any()))
@@ -208,6 +215,7 @@ class WorkflowOrchestratorImprovementsTest {
     when(term2Plugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(term2Plugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(term2Plugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(term2Plugin.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(term2Plugin.initialize(any())).thenReturn(Mono.empty());
     // This one DOES NOT subscribe to the stream
     when(term2Plugin.consume(any(), any())).thenReturn(Mono.empty());
@@ -255,6 +263,7 @@ class WorkflowOrchestratorImprovementsTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.start(any()))
         .thenReturn(Flux.just(DefaultMessage.create(UUID.randomUUID(), "data")));
@@ -263,6 +272,7 @@ class WorkflowOrchestratorImprovementsTest {
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());

@@ -67,9 +67,6 @@ public class FileSessionConfigStore implements SessionConfigStore {
     public String initiatedTime;
     public Map<String, String> tags;
 
-    /** Default constructor for Jackson. */
-    public SessionConfig() {}
-
     /**
      * Full constructor.
      *
@@ -384,14 +381,15 @@ public class FileSessionConfigStore implements SessionConfigStore {
                   StandardOpenOption.CREATE,
                   StandardOpenOption.WRITE,
                   StandardOpenOption.TRUNCATE_EXISTING);
-              return (Void) null;
+              return true;
             })
         .doOnNext(
             unused -> {
               sessionCache.put(sessionId, config);
               log.debug("Session config saved for sessionId: {}", sessionId);
             })
-        .subscribeOn(Schedulers.boundedElastic());
+        .subscribeOn(Schedulers.boundedElastic())
+        .then();
   }
 
   /**
