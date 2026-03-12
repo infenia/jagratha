@@ -15,8 +15,11 @@
  */
 package com.infenia.yukta.service;
 
+import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
+import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -28,19 +31,42 @@ import reactor.core.publisher.Mono;
 @Service
 @RequiredArgsConstructor
 public class DefaultControlBusGateway implements ControlBusGateway {
-  private final ControlBusService controlBusService;
 
-  /**
-   * Get the underlying ControlBusService.
-   *
-   * @return the control bus service
-   */
-  public ControlBusService getControlBusService() {
-    return controlBusService;
-  }
+  private final ControlBusService controlBusService;
 
   @Override
   public <T> Mono<Void> emit(final Message<T> signal) {
     return controlBusService.emit(signal);
+  }
+
+  @Override
+  public void registerPlugin(@NotBlank final String nodeId, final WorkflowPlugin plugin) {
+    controlBusService.registerPlugin(nodeId, plugin);
+  }
+
+  @Override
+  public void unregisterPlugin(@NotBlank final String nodeId) {
+    controlBusService.unregisterPlugin(nodeId);
+  }
+
+  @Override
+  public Mono<Message<?>> sendCommand(
+      @NotBlank final String nodeId, final Message<?> command) {
+    return controlBusService.sendCommand(nodeId, command);
+  }
+
+  @Override
+  public Message<?> getLastHeartbeat(@NotBlank final String nodeId) {
+    return controlBusService.getLastHeartbeat(nodeId);
+  }
+
+  @Override
+  public Message<?> getLastStatistics(@NotBlank final String nodeId) {
+    return controlBusService.getLastStatistics(nodeId);
+  }
+
+  @Override
+  public List<String> getActiveNodes() {
+    return controlBusService.getActiveNodes();
   }
 }

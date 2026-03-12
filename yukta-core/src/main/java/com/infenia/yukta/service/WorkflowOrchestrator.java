@@ -191,11 +191,7 @@ public class WorkflowOrchestrator {
                       }
                       return plugin
                           .initialize(node.config())
-                          .doOnSuccess(
-                              v ->
-                                  ((DefaultControlBusGateway) controlBusGateway)
-                                      .getControlBusService()
-                                      .registerPlugin(node.nodeId(), plugin))
+                          .doOnSuccess(v -> controlBusGateway.registerPlugin(node.nodeId(), plugin))
                           .then(
                               controlBusGateway.emit(
                                   DefaultMessage.create(null, "Node Online")
@@ -222,9 +218,7 @@ public class WorkflowOrchestrator {
                           final String nodeId = entry.getKey();
                           final WorkflowPlugin plugin = entry.getValue();
 
-                          ((DefaultControlBusGateway) controlBusGateway)
-                              .getControlBusService()
-                              .unregisterPlugin(nodeId);
+                          controlBusGateway.unregisterPlugin(nodeId);
 
                           final Node node = nodeMap.get(nodeId);
                           final Mono<Void> shutdown = plugin.shutdown(node.config());
@@ -469,7 +463,7 @@ public class WorkflowOrchestrator {
       }
       stream =
           stream
-              .<Message<?>>flatMap(
+              .flatMap(
                   msg ->
                       Mono.<Message<?>>just(msg)
                           .timeout(timeout, virtualThreadScheduler)
