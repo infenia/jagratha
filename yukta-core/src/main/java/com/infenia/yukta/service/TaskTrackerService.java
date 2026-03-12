@@ -31,14 +31,14 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -53,14 +53,17 @@ import reactor.util.concurrent.Queues;
 @Service
 @Validated
 @SuppressWarnings({"PMD.TooManyMethods", "PMD.ExcessiveImports", "PMD.CouplingBetweenObjects"})
+@NoArgsConstructor
 public class TaskTrackerService {
 
   private static final int BATCH_SIZE = 100;
   private static final Duration BATCH_TIMEOUT = Duration.ofMillis(50);
+  private static final Duration CLEANUP_TTL = Duration.ofMinutes(10);
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
       Sinks.EmitFailureHandler.busyLooping(Duration.ofMillis(100));
 
   private final Map<String, Map<String, WorkflowState>> sessionStates = new ConcurrentHashMap<>();
+  private final Map<String, WorkflowState> executionIndex = new ConcurrentHashMap<>();
   private final Map<String, String> latestExecs = new ConcurrentHashMap<>();
   private final Map<String, Sinks.Many<String>> logSinks = new ConcurrentHashMap<>();
   private final Map<String, Sinks.Many<WorkflowProgress>> statusSinks = new ConcurrentHashMap<>();
@@ -72,11 +75,6 @@ public class TaskTrackerService {
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE * 4, false);
   private final Sinks.Many<WorkflowStatusEvent> wfStatusSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
-
-  /** Default constructor. */
-  public TaskTrackerService() {
-    // Standard service initialization
-  }
 
   /** Initialize background event consumers. */
   @PostConstruct
@@ -145,24 +143,15 @@ public class TaskTrackerService {
       @NotEmpty final List<String> nodeIds) {
     return Mono.fromRunnable(
         () -> {
-          final List<TaskProgress> initialTasks =
-              nodeIds.stream()
-                  .map(
-                      id -> new TaskProgress(id, "", "PENDING", null, null, Collections.emptyMap()))
-                  .toList();
-
           final WorkflowState state =
               new WorkflowState(
-                  executionId,
-                  sessionId,
-                  workflowId,
-                  "RUNNING",
-                  new ArrayList<>(initialTasks),
-                  LocalDateTime.now());
+                  executionId, sessionId, workflowId, "RUNNING", nodeIds, LocalDateTime.now());
 
           sessionStates
               .computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>())
               .put(executionId, state);
+
+          executionIndex.put(executionId, state);
 
           latestExecs.put(getLatestKey(sessionId, workflowId), executionId);
 
@@ -300,7 +289,7 @@ public class TaskTrackerService {
                 state.sessionId,
                 state.workflowId,
                 state.status,
-                List.copyOf(state.tasks),
+                state.getTasks(),
                 state.startTime,
                 state.endTime);
       }
@@ -374,10 +363,11 @@ public class TaskTrackerService {
           .keySet()
           .forEach(
               execId -> {
+                executionIndex.remove(execId);
                 logSinks.remove(execId);
                 statusSinks.remove(execId);
               });
-      latestExecs.keySet().removeIf(key -> key.startsWith(sessionId + ":"));
+      latestExecs.keySet().removeIf(key -> key.startsWith(sessionId + "\0"));
     }
   }
 
@@ -401,6 +391,10 @@ public class TaskTrackerService {
         state.setStatus(event.status());
         state.setEndTime(event.timestamp());
         execIds.add(event.executionId());
+
+        if (isTerminal(event.status())) {
+          scheduleCleanup(event.executionId());
+        }
       }
     }
     execIds.forEach(this::notifyStatusChange);
@@ -437,19 +431,34 @@ public class TaskTrackerService {
   }
 
   private WorkflowState findState(final String executionId) {
-    WorkflowState result = null;
-    for (final Map<String, WorkflowState> states : sessionStates.values()) {
-      final WorkflowState state = states.get(executionId);
-      if (state != null) {
-        result = state;
-        break;
-      }
-    }
-    return result;
+    return executionIndex.get(executionId);
   }
 
   private String getLatestKey(final String sessionId, final String workflowId) {
-    return sessionId + ":" + workflowId;
+    return sessionId + "\0" + workflowId;
+  }
+
+  private boolean isTerminal(final String status) {
+    return "SUCCESS".equals(status) || "ERROR".equals(status) || "FAILURE".equals(status);
+  }
+
+  private void scheduleCleanup(final String executionId) {
+    Mono.delay(CLEANUP_TTL)
+        .subscribe(
+            ignored -> cleanupExecution(executionId),
+            error -> log.atError().setCause(error).log("Error during cleanup scheduling"));
+  }
+
+  private void cleanupExecution(final String executionId) {
+    final Sinks.Many<String> logSink = logSinks.remove(executionId);
+    if (logSink != null) {
+      logSink.emitComplete(RETRY_HANDLER);
+    }
+    final Sinks.Many<WorkflowProgress> statusSink = statusSinks.remove(executionId);
+    if (statusSink != null) {
+      statusSink.emitComplete(RETRY_HANDLER);
+    }
+    executionIndex.remove(executionId);
   }
 
   private static final class WorkflowState {
@@ -457,7 +466,7 @@ public class TaskTrackerService {
     private final String sessionId;
     private final String workflowId;
     private String status;
-    private final List<TaskProgress> tasks;
+    private final Map<String, TaskProgress> taskMap;
     private final LocalDateTime startTime;
     private LocalDateTime endTime;
 
@@ -466,13 +475,18 @@ public class TaskTrackerService {
         final String sessionId,
         final String workflowId,
         final String status,
-        final List<TaskProgress> tasks,
+        final List<String> nodeIds,
         final LocalDateTime startTime) {
       this.executionId = executionId;
       this.sessionId = sessionId;
       this.workflowId = workflowId;
       this.status = status;
-      this.tasks = new CopyOnWriteArrayList<>(tasks);
+      this.taskMap = Collections.synchronizedMap(new LinkedHashMap<>());
+      nodeIds.forEach(
+          nodeId ->
+              taskMap.put(
+                  nodeId,
+                  new TaskProgress(nodeId, "", "PENDING", null, null, Collections.emptyMap())));
       this.startTime = startTime;
     }
 
@@ -481,18 +495,18 @@ public class TaskTrackerService {
         final String module,
         final String status,
         final Map<String, Object> metadata) {
-      int index = -1;
-      for (int i = 0; i < tasks.size(); i++) {
-        if (tasks.get(i).nodeId().equals(nodeId)) {
-          index = i;
-          break;
-        }
-      }
+      taskMap.compute(
+          nodeId,
+          (k, old) -> {
+            if (old == null) {
+              return null;
+            }
+            return createUpdatedTask(old, module, status, metadata);
+          });
+    }
 
-      if (index != -1) {
-        final TaskProgress current = tasks.get(index);
-        tasks.set(index, createUpdatedTask(current, module, status, metadata));
-      }
+    /* default */ List<TaskProgress> getTasks() {
+      return List.copyOf(taskMap.values());
     }
 
     private TaskProgress createUpdatedTask(
