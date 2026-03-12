@@ -763,4 +763,35 @@ class WorkflowValidatorTest {
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
+
+  @Test
+  void testMixedReachableAndUnreachableNodes() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    // t1 → p1 → term1 (reachable)
+    // t2 → p2 → term2 (reachable)
+    // orphan (unreachable - not connected to any trigger)
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t1", "T", Map.of()),
+                new WorkflowDefinition.Node("t2", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of()),
+                new WorkflowDefinition.Node("term1", "TERM", Map.of()),
+                new WorkflowDefinition.Node("term2", "TERM", Map.of()),
+                new WorkflowDefinition.Node("orphan", "P", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t1", "p1"),
+                new WorkflowDefinition.Edge("t2", "p2"),
+                new WorkflowDefinition.Edge("p1", "term1"),
+                new WorkflowDefinition.Edge("p2", "term2")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
 }

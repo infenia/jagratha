@@ -135,26 +135,28 @@ public class WorkflowValidator {
 
   private Mono<Void> validateEndpoints(final WorkflowDefinition def, final Set<String> sourceIds) {
     return Flux.fromIterable(def.nodes())
-        .flatMap(
-            node -> {
-              final WorkflowPlugin plugin = registry.get(node.type());
-              // Plugin is guaranteed non-null by validatePluginsRegistered (runs first)
-              final boolean isEndpoint = !sourceIds.contains(node.nodeId());
-              final boolean isTerminal = plugin.getCategory() == PluginCategory.TERMINAL;
-
-              if (isEndpoint && !isTerminal) {
-                return Mono.error(
-                    new IllegalArgumentException(
-                        "Node " + node.nodeId() + " is an endpoint but not a TERMINAL"));
-              } else if (!isEndpoint && isTerminal) {
-                return Mono.error(
-                    new IllegalArgumentException(
-                        "Terminal node " + node.nodeId() + " cannot have outgoing edges"));
-              } else {
-                return Mono.empty();
-              }
-            })
+        .concatMap(node -> validateEndpointNode(node, sourceIds))
         .then();
+  }
+
+  private Mono<Void> validateEndpointNode(
+      final WorkflowDefinition.Node node, final Set<String> sourceIds) {
+    final WorkflowPlugin plugin = registry.get(node.type());
+    // Plugin is guaranteed non-null by validatePluginsRegistered (runs first)
+    final boolean isEndpoint = !sourceIds.contains(node.nodeId());
+    final boolean isTerminal = plugin.getCategory() == PluginCategory.TERMINAL;
+
+    if (isEndpoint && !isTerminal) {
+      return Mono.error(
+          new IllegalArgumentException(
+              "Node " + node.nodeId() + " is an endpoint but not a TERMINAL"));
+    }
+    if (!isEndpoint && isTerminal) {
+      return Mono.error(
+          new IllegalArgumentException(
+              "Terminal node " + node.nodeId() + " cannot have outgoing edges"));
+    }
+    return Mono.empty();
   }
 
   private Mono<Void> validateNodeContexts(final WorkflowDefinition def) {
@@ -221,18 +223,18 @@ public class WorkflowValidator {
     }
 
     return Flux.fromIterable(def.nodes())
-        .flatMap(
-            node -> {
-              final String nodeId = node.nodeId();
-              if (reachable.contains(nodeId)) {
-                return Mono.empty();
-              } else {
-                return Mono.error(
-                    new IllegalArgumentException(
-                        "Node " + nodeId + " is not reachable from any trigger"));
-              }
-            })
+        .concatMap(node -> validateOrphanNode(node, reachable))
         .then();
+  }
+
+  private Mono<Void> validateOrphanNode(
+      final WorkflowDefinition.Node node, final Set<String> reachable) {
+    final String nodeId = node.nodeId();
+    if (!reachable.contains(nodeId)) {
+      return Mono.error(
+          new IllegalArgumentException("Node " + nodeId + " is not reachable from any trigger"));
+    }
+    return Mono.empty();
   }
 
   private void dfs(
