@@ -794,4 +794,87 @@ class WorkflowValidatorTest {
         .expectError(IllegalArgumentException.class)
         .verify();
   }
+
+  @Test
+  void testEndpointNodeWithTerminal() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    // Endpoint node that IS terminal - should pass
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(new WorkflowDefinition.Edge("t", "term")));
+
+    StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
+
+  @Test
+  void testNonEndpointNodeWithoutTerminal() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    // Non-endpoint node (has outgoing edge) that is NOT terminal - should pass
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p"),
+                new WorkflowDefinition.Edge("p", "term")));
+
+    StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
+
+  @Test
+  void testOrphanNodeReachable() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    // Node that IS reachable - should pass
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p"),
+                new WorkflowDefinition.Edge("p", "term")));
+
+    StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
+
+  @Test
+  void testOrphanNodeUnreachable() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    // Node that is NOT reachable - should fail
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p1"),
+                new WorkflowDefinition.Edge("p1", "term")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
 }
