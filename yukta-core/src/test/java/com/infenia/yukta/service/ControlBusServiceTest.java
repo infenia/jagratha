@@ -25,9 +25,12 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
 import com.infenia.yukta.plugin.message.control.ControlStatistics;
+import com.infenia.yukta.service.control.ControlHeartbeatHandler;
 import com.infenia.yukta.service.control.ControlSignalHandler;
+import com.infenia.yukta.service.control.ControlStatisticsHandler;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -39,7 +42,9 @@ class ControlBusServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new ControlBusService(100, 50, 256, new ArrayList<ControlSignalHandler>());
+    final List<ControlSignalHandler> handlers =
+        List.of(new ControlHeartbeatHandler(), new ControlStatisticsHandler());
+    service = new ControlBusService(100, 50, 256, handlers);
     service.init();
   }
 
@@ -56,10 +61,10 @@ class ControlBusServiceTest {
 
   @Test
   void testHeartbeatAndStatistics() {
-    ControlHeartbeat hb = mock(ControlHeartbeat.class);
+    ControlHeartbeat hb = new ControlHeartbeat("node1", 1000L);
     Message<ControlHeartbeat> hbMsg = DefaultMessage.create(null, hb).withSourceNodeId("node1");
 
-    ControlStatistics stats = mock(ControlStatistics.class);
+    ControlStatistics stats = new ControlStatistics("node1", 100.0, 50.0);
     Message<ControlStatistics> statsMsg =
         DefaultMessage.create(null, stats).withSourceNodeId("node1");
 
