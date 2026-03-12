@@ -103,9 +103,7 @@ public class ControlBusService {
             controlSink.emitNext(signal, RETRY_HANDLER);
             sink.success();
           } catch (final RuntimeException e) {
-            if (log.isErrorEnabled()) {
-              log.error("Control bus emit failed", e);
-            }
+            log.atError().setCause(e).log("Control bus emit failed");
             sink.error(new IllegalStateException("Control bus emit failed", e));
           }
         });

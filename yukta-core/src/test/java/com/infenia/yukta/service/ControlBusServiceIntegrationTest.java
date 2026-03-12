@@ -354,4 +354,45 @@ class ControlBusServiceIntegrationTest {
     assertNotNull(controlBusService.getLastHeartbeat("node-low"));
     assertNotNull(controlBusService.getLastHeartbeat("node-high"));
   }
+
+  @Test
+  void testEmitWithBufferSize256() {
+    // Test default buffer size (256) - should not reinitialize sink
+    final ControlBusService service = new ControlBusService(100, 50, 256, List.of());
+    service.init();
+
+    final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
+    StepVerifier.create(service.emit(msg)).verifyComplete();
+  }
+
+  @Test
+  void testEmitWithCustomBufferSizeLessThanSmall() {
+    // Test buffer size smaller than SMALL_BUFFER_SIZE (64) - should use SMALL_BUFFER_SIZE
+    final ControlBusService service = new ControlBusService(100, 50, 32, List.of());
+    service.init();
+
+    final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
+    StepVerifier.create(service.emit(msg)).verifyComplete();
+  }
+
+  @Test
+  void testEmitSuccessPath() {
+    final Message<?> hb =
+        DefaultMessage.create(null, new ControlHeartbeat("emit-test", 1000L))
+            .withSourceNodeId("emit-test")
+            .withPriority(5);
+
+    // Verify emit completes successfully (returns Mono<Void>)
+    StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
+  }
+
+  @Test
+  void testInitWithBufferSizeZero() {
+    // Test buffer size = 0 - should use SMALL_BUFFER_SIZE
+    final ControlBusService service = new ControlBusService(100, 50, 0, List.of());
+    service.init();
+
+    final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
+    StepVerifier.create(service.emit(msg)).verifyComplete();
+  }
 }
