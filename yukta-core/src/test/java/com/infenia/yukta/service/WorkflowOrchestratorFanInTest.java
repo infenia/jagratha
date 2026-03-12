@@ -58,13 +58,8 @@ class WorkflowOrchestratorFanInTest {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
     configService = mock(SessionConfigStore.class);
-    controlBusGateway = mock(com.infenia.yukta.service.DefaultControlBusGateway.class);
+    controlBusGateway = mock(com.infenia.yukta.plugin.gateway.ControlBusGateway.class);
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
-    com.infenia.yukta.service.ControlBusService controlBusService =
-        mock(com.infenia.yukta.service.ControlBusService.class);
-    when(((com.infenia.yukta.service.DefaultControlBusGateway) controlBusGateway)
-            .getControlBusService())
-        .thenReturn(controlBusService);
     validator = new WorkflowValidator(registry);
     when(tracker.startWorkflow(any(), any(), any(), any())).thenReturn(Mono.empty());
     when(configService.getExecutionTimeout(anyString())).thenReturn(Mono.just(3600L));

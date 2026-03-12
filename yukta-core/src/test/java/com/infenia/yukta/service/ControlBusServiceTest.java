@@ -25,6 +25,9 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
 import com.infenia.yukta.plugin.message.control.ControlStatistics;
+import com.infenia.yukta.service.control.ControlSignalHandler;
+import java.time.Duration;
+import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -36,7 +39,7 @@ class ControlBusServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new ControlBusService();
+    service = new ControlBusService(100, 50, 256, new ArrayList<ControlSignalHandler>());
     service.init();
   }
 
