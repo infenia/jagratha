@@ -40,28 +40,27 @@ public class DefaultControlBusGateway implements ControlBusGateway {
   }
 
   @Override
-  public void registerPlugin(@NotBlank final String nodeId, final WorkflowPlugin plugin) {
+  public void registerPlugin(final String nodeId, final WorkflowPlugin plugin) {
     controlBusService.registerPlugin(nodeId, plugin);
   }
 
   @Override
-  public void unregisterPlugin(@NotBlank final String nodeId) {
+  public void unregisterPlugin(final String nodeId) {
     controlBusService.unregisterPlugin(nodeId);
   }
 
   @Override
-  public Mono<Message<?>> sendCommand(
-      @NotBlank final String nodeId, final Message<?> command) {
+  public Mono<Message<?>> sendCommand(final String nodeId, final Message<?> command) {
     return controlBusService.sendCommand(nodeId, command);
   }
 
   @Override
-  public Message<?> getLastHeartbeat(@NotBlank final String nodeId) {
+  public Message<?> getLastHeartbeat(final String nodeId) {
     return controlBusService.getLastHeartbeat(nodeId);
   }
 
   @Override
-  public Message<?> getLastStatistics(@NotBlank final String nodeId) {
+  public Message<?> getLastStatistics(final String nodeId) {
     return controlBusService.getLastStatistics(nodeId);
   }
 
