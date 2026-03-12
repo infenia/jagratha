@@ -877,4 +877,27 @@ class WorkflowValidatorTest {
         .expectError(IllegalArgumentException.class)
         .verify();
   }
+
+  @Test
+  void testTerminalNodeWithOutgoingEdge() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    // Terminal node that has an outgoing edge (not an endpoint) - should fail
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "term"),
+                new WorkflowDefinition.Edge("term", "p")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
 }
