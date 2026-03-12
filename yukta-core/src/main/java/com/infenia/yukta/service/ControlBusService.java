@@ -15,14 +15,18 @@
  */
 package com.infenia.yukta.service;
 
+import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.service.control.ControlSignalHandler;
 import jakarta.annotation.PostConstruct;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -34,34 +38,45 @@ import reactor.util.concurrent.Queues;
  * Service for managing the system's Control Bus.
  *
  * <p>Handles administrative commands, heartbeats, and performance metrics from plugins.
+ * Dispatches signals to registered handlers for extensible processing.
  */
 @Slf4j
 @Service
 public class ControlBusService {
 
-  private static final int BATCH_SIZE = 100;
-  private static final Duration BATCH_TIMEOUT = Duration.ofMillis(50);
+  private final int batchSize;
+  private final Duration batchTimeout;
+  private final int bufferSize;
+  private final List<ControlSignalHandler> handlers;
+  private final Map<String, WorkflowPlugin> activePlugins = new ConcurrentHashMap<>();
+  private Sinks.Many<Message<?>> controlSink;
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
       Sinks.EmitFailureHandler.busyLooping(Duration.ofMillis(100));
-  private final Sinks.Many<Message<?>> controlSink =
-      Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
-  private final Map<String, Message<?>> lastHeartbeats = new ConcurrentHashMap<>();
-  private final Map<String, Message<?>> lastStatistics = new ConcurrentHashMap<>();
-  private final Map<String, com.infenia.yukta.plugin.core.WorkflowPlugin> activePlugins =
-      new ConcurrentHashMap<>();
 
-  /** Default constructor. */
-  public ControlBusService() {
-    // Standard service initialization
+  public ControlBusService(
+      @Value("${control.bus.batch.size:100}") final int batchSize,
+      @Value("${control.bus.batch.timeout.ms:50}") final int batchTimeoutMs,
+      @Value("${control.bus.buffer.size:256}") final int bufferSize,
+      final List<ControlSignalHandler> handlers) {
+    this.batchSize = batchSize;
+    this.batchTimeout = Duration.ofMillis(batchTimeoutMs);
+    this.bufferSize = bufferSize;
+    this.handlers = handlers;
   }
 
-  /** Initialize background event consumers. */
+  /** Initialize the control sink and background event consumer. */
   @PostConstruct
   public void init() {
+    controlSink =
+        Sinks.many()
+            .multicast()
+            .onBackpressureBuffer(
+                bufferSize < 0 ? Queues.SMALL_BUFFER_SIZE : bufferSize, false);
+
     controlSink
         .asFlux()
         .publishOn(Schedulers.parallel())
-        .bufferTimeout(BATCH_SIZE, BATCH_TIMEOUT)
+        .bufferTimeout(batchSize, batchTimeout)
         .concatMap(
             batch ->
                 Mono.fromRunnable(() -> handleControlBatch(batch))
@@ -99,7 +114,27 @@ public class ControlBusService {
    * @return the last heartbeat message, or null
    */
   public Message<?> getLastHeartbeat(final String nodeId) {
-    return lastHeartbeats.get(nodeId);
+    for (final ControlSignalHandler handler : handlers) {
+      if (handler instanceof com.infenia.yukta.service.control.ControlHeartbeatHandler hb) {
+        return hb.getLastHeartbeat(nodeId);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get the last statistics for a node.
+   *
+   * @param nodeId the node identifier
+   * @return the last statistics message, or null
+   */
+  public Message<?> getLastStatistics(final String nodeId) {
+    for (final ControlSignalHandler handler : handlers) {
+      if (handler instanceof com.infenia.yukta.service.control.ControlStatisticsHandler cs) {
+        return cs.getLastStatistics(nodeId);
+      }
+    }
+    return null;
   }
 
   /**
@@ -108,7 +143,12 @@ public class ControlBusService {
    * @return list of node IDs
    */
   public List<String> getActiveNodes() {
-    return List.copyOf(lastHeartbeats.keySet());
+    for (final ControlSignalHandler handler : handlers) {
+      if (handler instanceof com.infenia.yukta.service.control.ControlHeartbeatHandler hb) {
+        return hb.getActiveNodes();
+      }
+    }
+    return List.of();
   }
 
   /**
@@ -117,18 +157,25 @@ public class ControlBusService {
    * @param nodeId the node identifier
    * @param plugin the plugin instance
    */
-  public void registerPlugin(
-      final String nodeId, final com.infenia.yukta.plugin.core.WorkflowPlugin plugin) {
+  public void registerPlugin(@NotBlank final String nodeId, final WorkflowPlugin plugin) {
     activePlugins.put(nodeId, plugin);
   }
 
   /**
-   * Unregister a plugin from the control bus.
+   * Unregister a plugin from the control bus and clean up all state.
    *
    * @param nodeId the node identifier
    */
-  public void unregisterPlugin(final String nodeId) {
+  public void unregisterPlugin(@NotBlank final String nodeId) {
     activePlugins.remove(nodeId);
+    // Clean up handler state
+    for (final ControlSignalHandler handler : handlers) {
+      if (handler instanceof com.infenia.yukta.service.control.ControlHeartbeatHandler hb) {
+        hb.removeNode(nodeId);
+      } else if (handler instanceof com.infenia.yukta.service.control.ControlStatisticsHandler cs) {
+        cs.removeNode(nodeId);
+      }
+    }
   }
 
   /**
@@ -138,31 +185,41 @@ public class ControlBusService {
    * @param command the command message
    * @return a Mono of the response message
    */
-  public Mono<Message<?>> sendCommand(final String nodeId, final Message<?> command) {
-    final com.infenia.yukta.plugin.core.WorkflowPlugin plugin = activePlugins.get(nodeId);
-    final Mono<Message<?>> result;
+  public Mono<Message<?>> sendCommand(
+      @NotBlank final String nodeId, final Message<?> command) {
+    final WorkflowPlugin plugin = activePlugins.get(nodeId);
     if (plugin == null) {
-      result = Mono.error(new IllegalArgumentException("Node not found: " + nodeId));
-    } else {
-      result = plugin.onControlSignal(command);
+      return Mono.error(new IllegalArgumentException("Node not found: " + nodeId));
     }
-    return result;
+    return plugin.onControlSignal(command);
   }
 
-  @SuppressWarnings("PMD.LawOfDemeter")
+  /**
+   * Shutdown the control bus gracefully.
+   *
+   * <p>Signals completion on the control sink, terminating the control stream and allowing
+   * subscribers to close cleanly.
+   */
+  public void shutdown() {
+    controlSink.emitComplete(RETRY_HANDLER);
+  }
+
   private void handleControlBatch(final List<Message<?>> batch) {
     final List<Message<?>> prioritized =
         batch.stream()
             .sorted(Comparator.comparingInt((Message<?> m) -> m.getPriority()).reversed())
             .toList();
+
     for (final Message<?> msg : prioritized) {
       final Object payload = msg.getPayload();
       final String nodeId = msg.getSourceNodeId();
+
       if (nodeId != null) {
-        if (payload instanceof com.infenia.yukta.plugin.message.control.ControlHeartbeat) {
-          lastHeartbeats.put(nodeId, msg);
-        } else if (payload instanceof com.infenia.yukta.plugin.message.control.ControlStatistics) {
-          lastStatistics.put(nodeId, msg);
+        for (final ControlSignalHandler handler : handlers) {
+          if (handler.canHandle(payload)) {
+            handler.handle(nodeId, msg, payload);
+            break;
+          }
         }
       }
     }
