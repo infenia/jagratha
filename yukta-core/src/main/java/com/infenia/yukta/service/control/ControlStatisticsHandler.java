@@ -49,6 +49,7 @@ public class ControlStatisticsHandler implements ControlSignalHandler {
    * @param nodeId the node identifier
    * @return the last statistics message, or null if none
    */
+  @Override
   public Message<?> getLastStatistics(final String nodeId) {
     return lastStatistics.get(nodeId);
   }
@@ -58,6 +59,7 @@ public class ControlStatisticsHandler implements ControlSignalHandler {
    *
    * @param nodeId the node identifier
    */
+  @Override
   public void removeNode(final String nodeId) {
     lastStatistics.remove(nodeId);
   }

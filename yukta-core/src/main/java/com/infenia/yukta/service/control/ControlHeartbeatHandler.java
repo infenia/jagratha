@@ -49,6 +49,7 @@ public class ControlHeartbeatHandler implements ControlSignalHandler {
    * @param nodeId the node identifier
    * @return the last heartbeat message, or null if none
    */
+  @Override
   public Message<?> getLastHeartbeat(final String nodeId) {
     return lastHeartbeats.get(nodeId);
   }
@@ -58,6 +59,7 @@ public class ControlHeartbeatHandler implements ControlSignalHandler {
    *
    * @return list of node IDs that have sent heartbeats
    */
+  @Override
   public java.util.List<String> getActiveNodes() {
     return java.util.List.copyOf(lastHeartbeats.keySet());
   }
@@ -67,6 +69,7 @@ public class ControlHeartbeatHandler implements ControlSignalHandler {
    *
    * @param nodeId the node identifier
    */
+  @Override
   public void removeNode(final String nodeId) {
     lastHeartbeats.remove(nodeId);
   }

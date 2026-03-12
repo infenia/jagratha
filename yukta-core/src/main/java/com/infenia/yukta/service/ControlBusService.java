@@ -101,7 +101,10 @@ public class ControlBusService {
           try {
             controlSink.emitNext(signal, RETRY_HANDLER);
             sink.success();
-          } catch (final Exception e) {
+          } catch (final RuntimeException e) {
+            if (log.isErrorEnabled()) {
+              log.error("Control bus emit failed", e);
+            }
             sink.error(new IllegalStateException("Control bus emit failed", e));
           }
         });
@@ -188,10 +191,9 @@ public class ControlBusService {
    */
   public Mono<Message<?>> sendCommand(@NotBlank final String nodeId, final Message<?> command) {
     final WorkflowPlugin plugin = activePlugins.get(nodeId);
-    if (plugin == null) {
-      return Mono.error(new IllegalArgumentException("Node not found: " + nodeId));
-    }
-    return plugin.onControlSignal(command);
+    return plugin != null
+        ? plugin.onControlSignal(command)
+        : Mono.error(new IllegalArgumentException("Node not found: " + nodeId));
   }
 
   /**
