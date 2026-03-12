@@ -31,6 +31,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class TopologicalSortService {
 
+  /** Default constructor for Spring autowiring. */
+  public TopologicalSortService() {
+    // Constructor for Spring
+  }
+
   /**
    * Compute the topological order of nodes using Kahn's algorithm.
    *
