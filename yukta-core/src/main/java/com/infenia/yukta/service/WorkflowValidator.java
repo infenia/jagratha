@@ -16,7 +16,6 @@
 package com.infenia.yukta.service;
 
 import com.infenia.yukta.model.WorkflowDefinition;
-import com.infenia.yukta.model.WorkflowDefinition.Node;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowContext;
 import com.infenia.yukta.plugin.core.WorkflowContext.WorkflowEdge;
@@ -147,13 +146,13 @@ public class WorkflowValidator {
                 return Mono.error(
                     new IllegalArgumentException(
                         "Node " + node.nodeId() + " is an endpoint but not a TERMINAL"));
-              }
-              if (!isEndpoint && isTerminal) {
+              } else if (!isEndpoint && isTerminal) {
                 return Mono.error(
                     new IllegalArgumentException(
                         "Terminal node " + node.nodeId() + " cannot have outgoing edges"));
+              } else {
+                return Mono.empty();
               }
-              return Mono.empty();
             })
         .then();
   }
@@ -204,7 +203,7 @@ public class WorkflowValidator {
                   // Plugin is guaranteed non-null by validatePluginsRegistered (runs first)
                   return plugin instanceof TriggerPlugin && !targetIds.contains(node.nodeId());
                 })
-            .map(Node::nodeId)
+            .map(WorkflowDefinition.Node::nodeId)
             .collect(Collectors.toSet());
 
     final Map<String, List<String>> adj = new ConcurrentHashMap<>();
@@ -224,12 +223,14 @@ public class WorkflowValidator {
     return Flux.fromIterable(def.nodes())
         .flatMap(
             node -> {
-              if (!reachable.contains(node.nodeId())) {
+              final String nodeId = node.nodeId();
+              if (reachable.contains(nodeId)) {
+                return Mono.empty();
+              } else {
                 return Mono.error(
                     new IllegalArgumentException(
-                        "Node " + node.nodeId() + " is not reachable from any trigger"));
+                        "Node " + nodeId + " is not reachable from any trigger"));
               }
-              return Mono.empty();
             })
         .then();
   }

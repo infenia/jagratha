@@ -670,4 +670,97 @@ class WorkflowValidatorTest {
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
+
+  @Test
+  void testTerminalAsEndpointWithOutgoing() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+
+    // Terminal with outgoing edge
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "term"),
+                new WorkflowDefinition.Edge("term", "p")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testProcessorAsEndpoint() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+
+    // Processor at endpoint (not terminal)
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of())),
+            List.of(new WorkflowDefinition.Edge("t", "p")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testMultipleNodes() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t1", "T", Map.of()),
+                new WorkflowDefinition.Node("t2", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of()),
+                new WorkflowDefinition.Node("term1", "TERM", Map.of()),
+                new WorkflowDefinition.Node("term2", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t1", "p1"),
+                new WorkflowDefinition.Edge("t2", "p2"),
+                new WorkflowDefinition.Edge("p1", "term1"),
+                new WorkflowDefinition.Edge("p2", "term2")));
+
+    StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
+
+  @Test
+  void testUnreachableProcessorFromDifferentTrigger() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    // p2 is not reachable from t1
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t1", "T", Map.of()),
+                new WorkflowDefinition.Node("t2", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of()),
+                new WorkflowDefinition.Node("term1", "TERM", Map.of()),
+                new WorkflowDefinition.Node("term2", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t1", "p1"),
+                new WorkflowDefinition.Edge("t2", "p2"),
+                new WorkflowDefinition.Edge("p1", "term1"),
+                new WorkflowDefinition.Edge("p2", "term2")));
+
+    StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
 }
