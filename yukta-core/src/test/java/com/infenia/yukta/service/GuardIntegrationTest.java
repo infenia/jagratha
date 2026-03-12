@@ -76,6 +76,7 @@ class GuardIntegrationTest {
             registry,
             tracker,
             validator,
+            new TopologicalSortService(),
             configService,
             null,
             controlBusGateway,

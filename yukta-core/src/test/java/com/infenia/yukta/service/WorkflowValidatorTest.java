@@ -827,8 +827,7 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p"),
-                new WorkflowDefinition.Edge("p", "term")));
+                new WorkflowDefinition.Edge("t", "p"), new WorkflowDefinition.Edge("p", "term")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -848,8 +847,7 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p"),
-                new WorkflowDefinition.Edge("p", "term")));
+                new WorkflowDefinition.Edge("t", "p"), new WorkflowDefinition.Edge("p", "term")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -910,8 +908,7 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p2", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p1"),
-                new WorkflowDefinition.Edge("p1", "term")));
+                new WorkflowDefinition.Edge("t", "p1"), new WorkflowDefinition.Edge("p1", "term")));
 
     // p2 is not connected to anything, so it's an entry point without being
     // a TRIGGER - caught by validateEntryPoints before validateOrphanNode

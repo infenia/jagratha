@@ -73,6 +73,7 @@ class WorkflowOrchestratorFanInTest {
             registry,
             tracker,
             validator,
+            new TopologicalSortService(),
             configService,
             null,
             controlBusGateway,

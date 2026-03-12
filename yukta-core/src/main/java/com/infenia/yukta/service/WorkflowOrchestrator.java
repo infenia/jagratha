@@ -103,6 +103,7 @@ public class WorkflowOrchestrator {
   private final WorkflowRegistry registry;
   private final TaskTrackerService tracker;
   private final WorkflowValidator validator;
+  private final TopologicalSortService topologicalSortService;
   private final SessionConfigStore configService;
   private final MessageStore messageStore;
   private final ControlBusGateway controlBusGateway;
@@ -115,6 +116,7 @@ public class WorkflowOrchestrator {
    * @param registry the workflow registry
    * @param tracker the task tracker service
    * @param validator the workflow validator
+   * @param topologicalSortService the topological sort service
    * @param configService the session config store
    * @param messageStore the message store for auditing
    * @param controlBusGateway the control bus gateway
@@ -127,6 +129,7 @@ public class WorkflowOrchestrator {
       final WorkflowRegistry registry,
       final TaskTrackerService tracker,
       final WorkflowValidator validator,
+      final TopologicalSortService topologicalSortService,
       final SessionConfigStore configService,
       @Nullable final MessageStore messageStore,
       final ControlBusGateway controlBusGateway,
@@ -135,6 +138,7 @@ public class WorkflowOrchestrator {
     this.registry = registry;
     this.tracker = tracker;
     this.validator = validator;
+    this.topologicalSortService = topologicalSortService;
     this.configService = configService;
     this.messageStore = messageStore;
     this.controlBusGateway = controlBusGateway;
@@ -203,7 +207,8 @@ public class WorkflowOrchestrator {
             Mono.fromCallable(
                 () -> {
                   final List<Node> topologicalOrder =
-                      PreparedWorkflow.computeTopologicalOrder(def, adjacencyList, parentsList);
+                      topologicalSortService.computeTopologicalOrder(
+                          def, adjacencyList, parentsList);
                   final WorkflowTemplate template =
                       compileTemplate(def, parentsList, pluginCache, topologicalOrder);
                   return new PreparedWorkflow(
