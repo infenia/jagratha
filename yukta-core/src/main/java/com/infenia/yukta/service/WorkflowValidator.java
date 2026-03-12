@@ -115,10 +115,14 @@ public class WorkflowValidator {
         .flatMap(
             node -> {
               final WorkflowPlugin plugin = registry.get(node.type());
-              if (plugin != null
-                  && plugin.getCategory() == PluginCategory.PROCESSOR
-                  && !(!targetIds.contains(node.nodeId()) && plugin instanceof TriggerPlugin)
-                  && (!targetIds.contains(node.nodeId()) || !sourceIds.contains(node.nodeId()))) {
+              // Plugin is guaranteed non-null by validatePluginsRegistered (runs first)
+              final boolean isProcessor = plugin.getCategory() == PluginCategory.PROCESSOR;
+              final boolean isEntryPoint = !targetIds.contains(node.nodeId());
+              final boolean hasOutgoing = sourceIds.contains(node.nodeId());
+
+              // Processor nodes must have both incoming and outgoing edges
+              // (unless it's an entry-point trigger, which is caught by validateEntryPoints)
+              if (isProcessor && !isEntryPoint && !hasOutgoing) {
                 return Mono.error(
                     new IllegalArgumentException(
                         "Processor node "
@@ -135,20 +139,19 @@ public class WorkflowValidator {
         .flatMap(
             node -> {
               final WorkflowPlugin plugin = registry.get(node.type());
-              if (plugin != null) {
-                final boolean isEndpoint = !sourceIds.contains(node.nodeId());
-                final boolean isTerminal = plugin.getCategory() == PluginCategory.TERMINAL;
+              // Plugin is guaranteed non-null by validatePluginsRegistered (runs first)
+              final boolean isEndpoint = !sourceIds.contains(node.nodeId());
+              final boolean isTerminal = plugin.getCategory() == PluginCategory.TERMINAL;
 
-                if (isEndpoint && !isTerminal) {
-                  return Mono.error(
-                      new IllegalArgumentException(
-                          "Node " + node.nodeId() + " is an endpoint but not a TERMINAL"));
-                }
-                if (!isEndpoint && isTerminal) {
-                  return Mono.error(
-                      new IllegalArgumentException(
-                          "Terminal node " + node.nodeId() + " cannot have outgoing edges"));
-                }
+              if (isEndpoint && !isTerminal) {
+                return Mono.error(
+                    new IllegalArgumentException(
+                        "Node " + node.nodeId() + " is an endpoint but not a TERMINAL"));
+              }
+              if (!isEndpoint && isTerminal) {
+                return Mono.error(
+                    new IllegalArgumentException(
+                        "Terminal node " + node.nodeId() + " cannot have outgoing edges"));
               }
               return Mono.empty();
             })
@@ -160,9 +163,7 @@ public class WorkflowValidator {
         .flatMap(
             node -> {
               final WorkflowPlugin plugin = registry.get(node.type());
-              if (plugin == null) {
-                return Mono.empty();
-              }
+              // Plugin is guaranteed non-null by validatePluginsRegistered (runs first)
               final WorkflowContext context = buildContext(node.nodeId(), def);
               return plugin.validateInContext(context, node.config());
             })
@@ -200,6 +201,7 @@ public class WorkflowValidator {
             .filter(
                 node -> {
                   final WorkflowPlugin plugin = registry.get(node.type());
+                  // Plugin is guaranteed non-null by validatePluginsRegistered (runs first)
                   return plugin instanceof TriggerPlugin && !targetIds.contains(node.nodeId());
                 })
             .map(Node::nodeId)
@@ -210,10 +212,8 @@ public class WorkflowValidator {
     def.edges()
         .forEach(
             edge -> {
-              final List<String> sourceAdj = adj.get(edge.source());
-              if (sourceAdj != null) {
-                sourceAdj.add(edge.target());
-              }
+              // sourceAdj is guaranteed non-null (all nodes initialized above)
+              adj.get(edge.source()).add(edge.target());
             });
 
     final Set<String> reachable = new HashSet<>();
@@ -223,12 +223,14 @@ public class WorkflowValidator {
 
     return Flux.fromIterable(def.nodes())
         .flatMap(
-            node ->
-                reachable.contains(node.nodeId())
-                    ? Mono.empty()
-                    : Mono.error(
-                        new IllegalArgumentException(
-                            "Node " + node.nodeId() + " is not reachable from any trigger")))
+            node -> {
+              if (!reachable.contains(node.nodeId())) {
+                return Mono.error(
+                    new IllegalArgumentException(
+                        "Node " + node.nodeId() + " is not reachable from any trigger"));
+              }
+              return Mono.empty();
+            })
         .then();
   }
 
@@ -236,11 +238,10 @@ public class WorkflowValidator {
       final String nodeId, final Map<String, List<String>> adj, final Set<String> reachable) {
     if (!reachable.contains(nodeId)) {
       reachable.add(nodeId);
+      // children is guaranteed non-null (all nodes initialized in validateNoOrphans)
       final List<String> children = adj.get(nodeId);
-      if (children != null) {
-        for (final String child : children) {
-          dfs(child, adj, reachable);
-        }
+      for (final String child : children) {
+        dfs(child, adj, reachable);
       }
     }
   }
@@ -261,23 +262,19 @@ public class WorkflowValidator {
     def.edges()
         .forEach(
             edge -> {
-              final List<String> sourceAdj = adj.get(edge.source());
-              if (sourceAdj != null) {
-                sourceAdj.add(edge.target());
-              }
+              // sourceAdj is guaranteed non-null (all nodes initialized above)
+              adj.get(edge.source()).add(edge.target());
             });
 
     final Set<String> visited = new HashSet<>();
     final Set<String> recStack = new HashSet<>();
 
-    boolean result = false;
     for (final String nodeId : adj.keySet()) {
       if (isCyclicUtil(nodeId, visited, recStack, adj)) {
-        result = true;
-        break;
+        return true;
       }
     }
-    return result;
+    return false;
   }
 
   private boolean isCyclicUtil(
@@ -304,15 +301,12 @@ public class WorkflowValidator {
       final Set<String> visited,
       final Set<String> recStack,
       final Map<String, List<String>> adj) {
-    boolean found = false;
-    if (children != null) {
-      for (final String child : children) {
-        if (isCyclicUtil(child, visited, recStack, adj)) {
-          found = true;
-          break;
-        }
+    // children is guaranteed non-null (all nodes initialized in hasCycles)
+    for (final String child : children) {
+      if (isCyclicUtil(child, visited, recStack, adj)) {
+        return true;
       }
     }
-    return found;
+    return false;
   }
 }
