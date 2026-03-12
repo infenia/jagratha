@@ -18,9 +18,11 @@ package com.infenia.yukta.service;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.service.control.ControlSignalHandler;
 import java.lang.reflect.Field;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -87,5 +89,35 @@ class ControlBusServiceUnitTest {
                 e instanceof IllegalStateException
                     && e.getMessage().contains("Control bus emit failed"))
         .verify();
+  }
+
+  @Test
+  void testHandleControlBatchExceptionIsHandledGracefully() {
+    // Create a mock handler that throws an exception during handle()
+    final ControlSignalHandler faultyHandler = mock(ControlSignalHandler.class);
+    when(faultyHandler.canHandle(any())).thenReturn(true);
+    doThrow(new RuntimeException("Handler error")).when(faultyHandler).handle(any(), any(), any());
+
+    final ControlBusService service = new ControlBusService(1, 50, 256, List.of(faultyHandler));
+    service.init();
+
+    final Message<?> msg =
+        DefaultMessage.create(null, "test").withSourceNodeId("test").withPriority(5);
+
+    // Emit the message. The handler will throw an exception, which should be caught by
+    // .onErrorResume() in init() at line 84-88. The service should continue running.
+    StepVerifier.create(service.emit(msg)).verifyComplete();
+
+    // Small delay to allow batch processing with batch size 1
+    try {
+      Thread.sleep(100);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Service should still be functional despite the exception in handleControlBatch
+    final Message<?> followUp =
+        DefaultMessage.create(null, "followup").withSourceNodeId("followup").withPriority(5);
+    StepVerifier.create(service.emit(followUp)).verifyComplete();
   }
 }
