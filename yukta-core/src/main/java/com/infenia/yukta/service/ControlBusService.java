@@ -56,6 +56,14 @@ public class ControlBusService {
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
       Sinks.EmitFailureHandler.busyLooping(Duration.ofMillis(100));
 
+  /**
+   * Constructor for ControlBusService.
+   *
+   * @param batchSize the number of messages to batch before processing
+   * @param batchTimeoutMs the timeout in milliseconds for batching
+   * @param bufferSize the size of the control sink buffer (uses SMALL_BUFFER_SIZE if too small)
+   * @param handlers the list of signal handlers for dispatching messages
+   */
   public ControlBusService(
       @Value("${control.bus.batch.size:100}") final int batchSize,
       @Value("${control.bus.batch.timeout.ms:50}") final int batchTimeoutMs,
