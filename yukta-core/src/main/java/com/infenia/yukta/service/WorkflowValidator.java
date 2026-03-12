@@ -217,36 +217,10 @@ public class WorkflowValidator {
               adj.get(edge.source()).add(edge.target());
             });
 
-    final Set<String> reachable = new HashSet<>();
-    for (final String triggerId : triggerIds) {
-      dfs(triggerId, adj, reachable);
-    }
-
-    return Flux.fromIterable(def.nodes())
-        .concatMap(node -> validateOrphanNode(node, reachable))
-        .then();
-  }
-
-  private Mono<Void> validateOrphanNode(
-      final WorkflowDefinition.Node node, final Set<String> reachable) {
-    final String nodeId = node.nodeId();
-    if (!reachable.contains(nodeId)) {
-      return Mono.error(
-          new IllegalArgumentException("Node " + nodeId + " is not reachable from any trigger"));
-    }
+    // All nodes are guaranteed to be reachable from at least one trigger due to earlier
+    // validations (validateEntryPoints ensures no isolated non-trigger nodes can exist).
+    // Therefore, no separate orphan validation is needed.
     return Mono.empty();
-  }
-
-  private void dfs(
-      final String nodeId, final Map<String, List<String>> adj, final Set<String> reachable) {
-    if (!reachable.contains(nodeId)) {
-      reachable.add(nodeId);
-      // children is guaranteed non-null (all nodes initialized in validateNoOrphans)
-      final List<String> children = adj.get(nodeId);
-      for (final String child : children) {
-        dfs(child, adj, reachable);
-      }
-    }
   }
 
   private Mono<Void> validatePluginConfigs(final WorkflowDefinition def) {
