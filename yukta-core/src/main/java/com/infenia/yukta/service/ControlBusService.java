@@ -37,8 +37,8 @@ import reactor.util.concurrent.Queues;
 /**
  * Service for managing the system's Control Bus.
  *
- * <p>Handles administrative commands, heartbeats, and performance metrics from plugins.
- * Dispatches signals to registered handlers for extensible processing.
+ * <p>Handles administrative commands, heartbeats, and performance metrics from plugins. Dispatches
+ * signals to registered handlers for extensible processing.
  */
 @Slf4j
 @Service
@@ -70,8 +70,7 @@ public class ControlBusService {
     controlSink =
         Sinks.many()
             .multicast()
-            .onBackpressureBuffer(
-                bufferSize < 0 ? Queues.SMALL_BUFFER_SIZE : bufferSize, false);
+            .onBackpressureBuffer(bufferSize < 0 ? Queues.SMALL_BUFFER_SIZE : bufferSize, false);
 
     controlSink
         .asFlux()
@@ -185,8 +184,7 @@ public class ControlBusService {
    * @param command the command message
    * @return a Mono of the response message
    */
-  public Mono<Message<?>> sendCommand(
-      @NotBlank final String nodeId, final Message<?> command) {
+  public Mono<Message<?>> sendCommand(@NotBlank final String nodeId, final Message<?> command) {
     final WorkflowPlugin plugin = activePlugins.get(nodeId);
     if (plugin == null) {
       return Mono.error(new IllegalArgumentException("Node not found: " + nodeId));

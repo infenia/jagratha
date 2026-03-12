@@ -481,7 +481,7 @@ public class TaskTrackerService {
       this.sessionId = sessionId;
       this.workflowId = workflowId;
       this.status = status;
-      this.taskMap = Collections.synchronizedMap(new LinkedHashMap<>());
+      this.taskMap = Collections.synchronizedMap(new LinkedHashMap<>(nodeIds.size()));
       nodeIds.forEach(
           nodeId ->
               taskMap.put(

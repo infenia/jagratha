@@ -18,7 +18,6 @@ package com.infenia.yukta.service;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
-import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

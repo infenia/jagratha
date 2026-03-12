@@ -20,9 +20,9 @@ import com.infenia.yukta.plugin.message.Message;
 /**
  * Handler for a specific type of control signal.
  *
- * <p>Implementations process control signals of a particular type (e.g., heartbeat,
- * statistics). Multiple handlers can be registered in ControlBusService; when a signal
- * arrives, the first handler that can handle it processes it.
+ * <p>Implementations process control signals of a particular type (e.g., heartbeat, statistics).
+ * Multiple handlers can be registered in ControlBusService; when a signal arrives, the first
+ * handler that can handle it processes it.
  */
 public interface ControlSignalHandler {
 

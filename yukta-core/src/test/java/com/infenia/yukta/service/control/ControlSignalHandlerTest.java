@@ -41,8 +41,7 @@ class ControlSignalHandlerTest {
   @Test
   void testHeartbeatHandlerCanHandle() {
     final Message<?> hb =
-        DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
-            .withSourceNodeId("node1");
+        DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L)).withSourceNodeId("node1");
     final Message<?> stats =
         DefaultMessage.create(null, new ControlStatistics("node1", 100.0, 50.0))
             .withSourceNodeId("node1");
@@ -57,8 +56,7 @@ class ControlSignalHandlerTest {
   @Test
   void testHeartbeatHandlerStoresAndRetrievesMessages() {
     final Message<?> msg =
-        DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
-            .withSourceNodeId("node1");
+        DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L)).withSourceNodeId("node1");
 
     heartbeatHandler.handle("node1", msg, msg.getPayload());
 
@@ -69,8 +67,7 @@ class ControlSignalHandlerTest {
   @Test
   void testHeartbeatHandlerRemovesNode() {
     final Message<?> msg =
-        DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
-            .withSourceNodeId("node1");
+        DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L)).withSourceNodeId("node1");
 
     heartbeatHandler.handle("node1", msg, msg.getPayload());
     assertEquals(msg, heartbeatHandler.getLastHeartbeat("node1"));
