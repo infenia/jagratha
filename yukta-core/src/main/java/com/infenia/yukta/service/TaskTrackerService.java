@@ -19,6 +19,7 @@ import com.infenia.yukta.event.TaskStatusEvent;
 import com.infenia.yukta.event.WorkflowLogEvent;
 import com.infenia.yukta.event.WorkflowStatusEvent;
 import com.infenia.yukta.model.monitoring.TaskProgress;
+import com.infenia.yukta.model.monitoring.TaskStatus;
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import com.infenia.yukta.validation.NodeId;
@@ -38,8 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
@@ -53,15 +54,14 @@ import reactor.util.concurrent.Queues;
 @Service
 @Validated
 @SuppressWarnings({"PMD.TooManyMethods", "PMD.ExcessiveImports", "PMD.CouplingBetweenObjects"})
-@NoArgsConstructor
 public class TaskTrackerService {
 
   private static final int BATCH_SIZE = 100;
   private static final Duration BATCH_TIMEOUT = Duration.ofMillis(50);
-  private static final Duration CLEANUP_TTL = Duration.ofMinutes(10);
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
       Sinks.EmitFailureHandler.busyLooping(Duration.ofMillis(100));
 
+  private final Duration cleanupTtl;
   private final Map<String, Map<String, WorkflowState>> sessionStates = new ConcurrentHashMap<>();
   private final Map<String, WorkflowState> executionIndex = new ConcurrentHashMap<>();
   private final Map<String, String> latestExecs = new ConcurrentHashMap<>();
@@ -75,6 +75,15 @@ public class TaskTrackerService {
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE * 4, false);
   private final Sinks.Many<WorkflowStatusEvent> wfStatusSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
+
+  /**
+   * Create a new TaskTrackerService with configurable cleanup TTL.
+   *
+   * @param cleanupTtl the time to live for execution data after terminal status
+   */
+  public TaskTrackerService(@Value("${yukta.tracker.cleanup-ttl:10m}") final Duration cleanupTtl) {
+    this.cleanupTtl = cleanupTtl;
+  }
 
   /** Initialize background event consumers. */
   @PostConstruct
@@ -439,11 +448,11 @@ public class TaskTrackerService {
   }
 
   private boolean isTerminal(final String status) {
-    return "SUCCESS".equals(status) || "ERROR".equals(status) || "FAILURE".equals(status);
+    return TaskStatus.valueOf(status).isTerminal();
   }
 
   private void scheduleCleanup(final String executionId) {
-    Mono.delay(CLEANUP_TTL)
+    Mono.delay(cleanupTtl)
         .subscribe(
             ignored -> cleanupExecution(executionId),
             error -> log.atError().setCause(error).log("Error during cleanup scheduling"));
@@ -527,9 +536,8 @@ public class TaskTrackerService {
     }
 
     private LocalDateTime determineEndTime(final LocalDateTime current, final String status) {
-      return (("SUCCESS".equals(status) || "FAILURE".equals(status)) && current == null)
-          ? LocalDateTime.now()
-          : current;
+      final TaskStatus taskStatus = TaskStatus.valueOf(status);
+      return (taskStatus.isTerminal() && current == null) ? LocalDateTime.now() : current;
     }
 
     private Map<String, Object> mergeMetadata(

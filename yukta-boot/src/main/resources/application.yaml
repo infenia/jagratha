@@ -29,6 +29,8 @@ yukta:
     result-log-sub-dir: results
     execution-timeout-seconds: 3600
     store-type: in-memory
+  tracker:
+    cleanup-ttl: 10m
 
 control:
   bus:
