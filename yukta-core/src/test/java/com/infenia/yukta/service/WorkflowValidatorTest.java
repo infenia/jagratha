@@ -882,19 +882,25 @@ class WorkflowValidatorTest {
   void testTerminalNodeWithOutgoingEdge() {
     mockPlugin("T", PluginCategory.TRIGGER);
     mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    mockPlugin("TERMINAL", PluginCategory.TERMINAL);
 
     // Terminal node that has an outgoing edge (not an endpoint) - should fail
+    // Workflow: T -> P -> TERMINAL -> P2 -> TERMINAL2
+    // The second TERMINAL should fail because it has an outgoing edge
     WorkflowDefinition def =
         new WorkflowDefinition(
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
-                new WorkflowDefinition.Node("term", "TERM", Map.of()),
-                new WorkflowDefinition.Node("p", "P", Map.of())),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("term1", "TERMINAL", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of()),
+                new WorkflowDefinition.Node("term2", "TERMINAL", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "term"),
-                new WorkflowDefinition.Edge("term", "p")));
+                new WorkflowDefinition.Edge("t", "p1"),
+                new WorkflowDefinition.Edge("p1", "term1"),
+                new WorkflowDefinition.Edge("term1", "p2"),
+                new WorkflowDefinition.Edge("p2", "term2")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
