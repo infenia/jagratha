@@ -15,11 +15,11 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.model.NodeAssembler;
-import com.infenia.yukta.model.PreparedWorkflow;
-import com.infenia.yukta.model.WorkflowDefinition;
-import com.infenia.yukta.model.WorkflowDefinition.Node;
-import com.infenia.yukta.model.WorkflowTemplate;
+import com.infenia.yukta.model.workflow.NodeAssembler;
+import com.infenia.yukta.model.workflow.PreparedWorkflow;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.WorkflowTemplate;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
@@ -279,7 +279,7 @@ public class WorkflowOrchestrator {
       final List<Node> topologicalOrder) {
 
     final int nodeCount = topologicalOrder.size();
-    final Map<String, Integer> nodeToIndex = new HashMap<>();
+    final Map<String, Integer> nodeToIndex = new HashMap<>(nodeCount);
     for (int i = 0; i < nodeCount; i++) {
       nodeToIndex.put(topologicalOrder.get(i).nodeId(), i);
     }

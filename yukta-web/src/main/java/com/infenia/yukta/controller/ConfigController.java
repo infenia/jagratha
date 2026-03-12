@@ -16,9 +16,9 @@
 package com.infenia.yukta.controller;
 
 import com.infenia.yukta.mapper.AppConfigMapper;
-import com.infenia.yukta.model.ApiResponse;
-import com.infenia.yukta.model.ConfigRequest;
-import com.infenia.yukta.model.SessionConfigData;
+import com.infenia.yukta.model.api.ApiResponse;
+import com.infenia.yukta.model.api.ConfigRequest;
+import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.service.SessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

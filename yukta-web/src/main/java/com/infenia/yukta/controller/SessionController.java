@@ -15,9 +15,9 @@
  */
 package com.infenia.yukta.controller;
 
-import com.infenia.yukta.model.ApiResponse;
-import com.infenia.yukta.model.SessionDetails;
-import com.infenia.yukta.model.WorkflowDefinition;
+import com.infenia.yukta.model.api.ApiResponse;
+import com.infenia.yukta.model.api.SessionDetails;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.TaskTrackerService;
 import io.swagger.v3.oas.annotations.Operation;

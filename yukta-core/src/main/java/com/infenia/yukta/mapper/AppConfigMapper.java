@@ -15,8 +15,8 @@
  */
 package com.infenia.yukta.mapper;
 
-import com.infenia.yukta.model.ConfigRequest;
-import com.infenia.yukta.model.SessionConfigData;
+import com.infenia.yukta.model.api.ConfigRequest;
+import com.infenia.yukta.model.session.SessionConfigData;
 import org.mapstruct.Mapper;
 
 /** Mapper for converting between ConfigRequest DTO and SessionConfigData service record. */

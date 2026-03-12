@@ -15,11 +15,11 @@
  */
 package com.infenia.yukta.mcp;
 
-import com.infenia.yukta.model.PluginDetails;
-import com.infenia.yukta.model.PluginSummary;
-import com.infenia.yukta.model.SessionDetails;
-import com.infenia.yukta.model.WorkflowDefinition;
-import com.infenia.yukta.model.WorkflowExecutionSummary;
+import com.infenia.yukta.model.api.PluginDetails;
+import com.infenia.yukta.model.api.PluginSummary;
+import com.infenia.yukta.model.api.SessionDetails;
+import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.TaskTrackerService;

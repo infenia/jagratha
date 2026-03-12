@@ -18,8 +18,8 @@ package com.infenia.yukta.service;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.SessionConfigData;
-import com.infenia.yukta.model.WorkflowDefinition;
+import com.infenia.yukta.model.session.SessionConfigData;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import java.util.List;
 import java.util.Map;

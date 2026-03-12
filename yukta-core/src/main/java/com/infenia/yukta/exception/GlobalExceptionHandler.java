@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.exception;
 
-import com.infenia.yukta.model.ApiResponse;
+import com.infenia.yukta.model.api.ApiResponse;
 import jakarta.annotation.Nullable;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;

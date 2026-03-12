@@ -16,8 +16,8 @@
 package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.config.SessionConfigProperties;
-import com.infenia.yukta.model.SessionConfigData;
-import com.infenia.yukta.model.WorkflowDefinition;
+import com.infenia.yukta.model.session.SessionConfigData;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;

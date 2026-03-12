@@ -15,8 +15,8 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.model.TaskResponse;
-import com.infenia.yukta.model.WorkflowExecution;
+import com.infenia.yukta.model.session.TaskResponse;
+import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;

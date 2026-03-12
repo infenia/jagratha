@@ -15,26 +15,19 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.model.WorkflowDefinition;
-import com.infenia.yukta.model.WorkflowDefinition.Node;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /** Service for computing topological sort of workflow DAG nodes. */
 @Slf4j
 @Service
+@NoArgsConstructor
 public class TopologicalSortService {
-
-  /** Default constructor for Spring autowiring. */
-  public TopologicalSortService() {
-    // Constructor for Spring
-  }
 
   /**
    * Compute the topological order of nodes using Kahn's algorithm.
@@ -57,7 +50,7 @@ public class TopologicalSortService {
       inDegree.put(node.nodeId(), parents.getOrDefault(node.nodeId(), List.of()).size());
     }
 
-    final Queue<String> queue = new LinkedList<>();
+    final Queue<String> queue = new ArrayDeque<>();
     inDegree.forEach(
         (id, degree) -> {
           if (degree == 0) {
