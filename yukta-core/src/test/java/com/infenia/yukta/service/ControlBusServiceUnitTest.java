@@ -120,4 +120,18 @@ class ControlBusServiceUnitTest {
         DefaultMessage.create(null, "followup").withSourceNodeId("followup").withPriority(5);
     StepVerifier.create(service.emit(followUp)).verifyComplete();
   }
+
+  @Test
+  void testInitWithExactBufferSize256DoesNotReinitializeSink() {
+    // When bufferSize is exactly 256, the condition in init():
+    // if (bufferSize > 0 && bufferSize != 256) is FALSE
+    // So the sink is NOT reinitialized - it uses the default SMALL_BUFFER_SIZE sink
+    final ControlBusService service = new ControlBusService(100, 50, 256, List.of());
+    service.init();
+
+    final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
+
+    // Verify emit still works with the default sink (not reinitialized)
+    StepVerifier.create(service.emit(msg)).verifyComplete();
+  }
 }

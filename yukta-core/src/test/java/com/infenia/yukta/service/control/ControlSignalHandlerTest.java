@@ -102,4 +102,23 @@ class ControlSignalHandlerTest {
 
     assertNull(statisticsHandler.getLastStatistics("node1"));
   }
+
+  @Test
+  void testDefaultMethods() {
+    ControlSignalHandler dummy =
+        new ControlSignalHandler() {
+          @Override
+          public boolean canHandle(Object payload) {
+            return false;
+          }
+
+          @Override
+          public void handle(String nodeId, Message<?> message, Object payload) {}
+        };
+
+    assertNull(dummy.getLastHeartbeat("node1"));
+    assertNull(dummy.getLastStatistics("node1"));
+    assertEquals(List.of(), dummy.getActiveNodes());
+    dummy.removeNode("node1"); // Cover default no-op
+  }
 }
