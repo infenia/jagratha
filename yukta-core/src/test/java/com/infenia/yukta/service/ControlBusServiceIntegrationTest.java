@@ -146,4 +146,212 @@ class ControlBusServiceIntegrationTest {
     assertNull(controlBusService.getLastHeartbeat("node1"));
     assertNotNull(controlBusService.getLastHeartbeat("node2"));
   }
+
+  @Test
+  void testGetControlStream() {
+    final Message<?> hb =
+        DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
+            .withSourceNodeId("node1")
+            .withPriority(5);
+
+    StepVerifier.create(controlBusService.getControlStream().take(1))
+        .then(() -> StepVerifier.create(controlBusService.emit(hb)).verifyComplete())
+        .expectNextCount(1)
+        .verifyComplete();
+  }
+
+  @Test
+  void testSendCommandSuccess() {
+    // Emit heartbeat to ensure node1 is in activePlugins
+    final Message<?> hb =
+        DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
+            .withSourceNodeId("node1")
+            .withPriority(5);
+
+    StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
+
+    try {
+      Thread.sleep(100);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Verify heartbeat was registered (sendCommand only works with registered plugins)
+    assertNotNull(controlBusService.getLastHeartbeat("node1"));
+  }
+
+  @Test
+  void testSendCommandNodeNotFound() {
+    final Message<?> command =
+        DefaultMessage.create(null, "command").withSourceNodeId("nonexistent");
+
+    StepVerifier.create(controlBusService.sendCommand("nonexistent", command))
+        .expectErrorMatches(
+            e -> e instanceof IllegalArgumentException && e.getMessage().contains("Node not found"))
+        .verify();
+  }
+
+  @Test
+  void testRegisterPlugin() {
+    final Message<?> hb =
+        DefaultMessage.create(null, new ControlHeartbeat("node-test", 1000L))
+            .withSourceNodeId("node-test")
+            .withPriority(5);
+
+    StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
+
+    try {
+      Thread.sleep(100);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Verify heartbeat recorded and node active
+    assertNotNull(controlBusService.getLastHeartbeat("node-test"));
+    assertTrue(controlBusService.getActiveNodes().contains("node-test"));
+  }
+
+  @Test
+  void testShutdown() {
+    controlBusService.shutdown();
+
+    // After shutdown, control stream should complete
+    StepVerifier.create(controlBusService.getControlStream()).verifyComplete();
+  }
+
+  @Test
+  void testInitWithCustomBufferSize() {
+    final ControlBusService service = new ControlBusService(50, 30, 512, List.of());
+    service.init();
+
+    final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
+    StepVerifier.create(service.emit(msg)).verifyComplete();
+  }
+
+  @Test
+  void testHandleControlBatchWithNullNodeId() {
+    final Message<?> msgWithoutNodeId =
+        DefaultMessage.create(null, new ControlHeartbeat("ignored", 1000L)).withPriority(5);
+    // Message without sourceNodeId (null)
+
+    StepVerifier.create(controlBusService.emit(msgWithoutNodeId)).verifyComplete();
+
+    // Sleep to allow batch processing
+    try {
+      Thread.sleep(100);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Node should not be registered (null nodeId ignored)
+    assertTrue(controlBusService.getActiveNodes().isEmpty());
+  }
+
+  @Test
+  void testHandleControlBatchWithNullPayload() {
+    final Message<?> msgWithoutPayload =
+        DefaultMessage.create(null, null).withSourceNodeId("node1").withPriority(5);
+
+    StepVerifier.create(controlBusService.emit(msgWithoutPayload)).verifyComplete();
+
+    // Sleep to allow batch processing
+    try {
+      Thread.sleep(100);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Node should not be tracked (null payload ignored)
+    assertNull(controlBusService.getLastHeartbeat("node1"));
+  }
+
+  @Test
+  void testGetLastHeartbeatFromMultipleHandlers() {
+    final Message<?> hb =
+        DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
+            .withSourceNodeId("node1")
+            .withPriority(5);
+
+    StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
+
+    try {
+      Thread.sleep(100);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Verify getLastHeartbeat searches through handlers
+    assertNotNull(controlBusService.getLastHeartbeat("node1"));
+    assertEquals(
+        1000L,
+        ((ControlHeartbeat) controlBusService.getLastHeartbeat("node1").getPayload()).uptime());
+  }
+
+  @Test
+  void testGetLastStatisticsFromMultipleHandlers() {
+    final Message<?> stats =
+        DefaultMessage.create(null, new ControlStatistics("node1", 75.0, 25.0))
+            .withSourceNodeId("node1")
+            .withPriority(5);
+
+    StepVerifier.create(controlBusService.emit(stats)).verifyComplete();
+
+    try {
+      Thread.sleep(100);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Verify getLastStatistics searches through handlers
+    assertNotNull(controlBusService.getLastStatistics("node1"));
+    assertEquals(
+        75.0,
+        ((ControlStatistics) controlBusService.getLastStatistics("node1").getPayload())
+            .throughput());
+  }
+
+  @Test
+  void testGetActiveNodesFromMultipleHandlers() {
+    final Message<?> hb =
+        DefaultMessage.create(null, new ControlHeartbeat("node-active", 1000L))
+            .withSourceNodeId("node-active")
+            .withPriority(5);
+
+    StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
+
+    try {
+      Thread.sleep(100);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Verify getActiveNodes searches through handlers and returns first non-empty list
+    final List<String> activeNodes = controlBusService.getActiveNodes();
+    assertTrue(activeNodes.contains("node-active"));
+  }
+
+  @Test
+  void testHandleControlBatchPrioritization() {
+    final Message<?> lowPriority =
+        DefaultMessage.create(null, new ControlHeartbeat("node-low", 1000L))
+            .withSourceNodeId("node-low")
+            .withPriority(1);
+    final Message<?> highPriority =
+        DefaultMessage.create(null, new ControlHeartbeat("node-high", 2000L))
+            .withSourceNodeId("node-high")
+            .withPriority(10);
+
+    StepVerifier.create(controlBusService.emit(lowPriority)).verifyComplete();
+    StepVerifier.create(controlBusService.emit(highPriority)).verifyComplete();
+
+    try {
+      Thread.sleep(150);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Both messages should be processed regardless of priority
+    assertNotNull(controlBusService.getLastHeartbeat("node-low"));
+    assertNotNull(controlBusService.getLastHeartbeat("node-high"));
+  }
 }

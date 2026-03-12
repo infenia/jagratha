@@ -15,21 +15,14 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.plugin.store.SecretProvider;
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
+import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
 
-/** Default implementation of SecretProvider that does nothing. */
-@Slf4j
-@Service
-@NoArgsConstructor
-public class NoOpSecretProvider implements SecretProvider {
+class NoOpSecretProviderTest {
 
-  @Override
-  public Mono<String> getSecret(final String key) {
-    log.atWarn().log("Secret requested for key '{}' but no SecretProvider is configured.", key);
-    return Mono.empty();
+  @Test
+  void testGetSecretReturnsEmpty() {
+    NoOpSecretProvider provider = new NoOpSecretProvider();
+    StepVerifier.create(provider.getSecret("any-key")).verifyComplete();
   }
 }
