@@ -30,6 +30,15 @@ yukta:
     execution-timeout-seconds: 3600
     store-type: in-memory
 
+control:
+  bus:
+    batch:
+      size: 100          # Number of control signals to batch before processing
+      timeout:
+        ms: 50           # Timeout (in ms) for batch accumulation
+    buffer:
+      size: 256          # Internal buffer size (Queues.SMALL_BUFFER_SIZE = 256)
+
 gg:
   jte:
     developmentMode: true
