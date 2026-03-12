@@ -617,4 +617,57 @@ class WorkflowValidatorTest {
         .expectError(IllegalArgumentException.class)
         .verify();
   }
+
+  @Test
+  void testTriggerWithIncomingEdge() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    // Trigger with incoming edge - creates orphan nodes since no free entry point
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t1", "T", Map.of()),
+                new WorkflowDefinition.Node("t2", "T", Map.of()),
+                new WorkflowDefinition.Node("p", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge(
+                    "t1", "t2"), // t2 is a trigger with incoming edge - invalid
+                new WorkflowDefinition.Edge("t2", "p"),
+                new WorkflowDefinition.Edge("p", "term")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testAllProcessorsValidStructure() {
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    // All nodes with both edges
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of()),
+                new WorkflowDefinition.Node("p3", "P", Map.of()),
+                new WorkflowDefinition.Node("p4", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t", "p1"),
+                new WorkflowDefinition.Edge("p1", "p2"),
+                new WorkflowDefinition.Edge("p2", "p3"),
+                new WorkflowDefinition.Edge("p3", "p4"),
+                new WorkflowDefinition.Edge("p4", "term")));
+
+    StepVerifier.create(validator.validate(def)).verifyComplete();
+  }
 }
