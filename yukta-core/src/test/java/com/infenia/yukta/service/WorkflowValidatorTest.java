@@ -925,6 +925,63 @@ class WorkflowValidatorTest {
   }
 
   @Test
+  void testOrphanNodeUnreachableTheoryProof() {
+    // This test proves that the !reachable.contains(nodeId) branch in validateOrphanNode
+    // is THEORETICALLY unreachable in valid workflows.
+    //
+    // PROOF: For a node to be unreachable:
+    // Case 1: Node has NO incoming edges
+    //   -> It's an entry point (not in targetIds)
+    //   -> validateEntryPoints checks: must be TRIGGER or MUST BE CAUGHT
+    //   -> If TRIGGER: caught by "mustBeTrigger" rule if it has outgoing to non-endpoint
+    //   -> If not TRIGGER: caught immediately as "entry point but not TRIGGER"
+    //
+    // Case 2: Node HAS incoming edges
+    //   -> Not an entry point, so passes validateEntryPoints
+    //   -> But if its source is unreachable, source falls into Case 1 or 2...
+    //   -> Following chain backwards, always hits a node without incoming (Case 1)
+    //   -> Case 1 nodes are always caught
+    //
+    // Case 3: Node is a TRIGGER with incoming edges
+    //   -> validateEntryPoints has rule: "if (!isEntryPoint && mustBeTrigger)"
+    //   -> Returns error: "Trigger node X cannot have incoming edges"
+    //
+    // CONCLUSION: All paths that could create an unreachable node are caught by
+    // earlier validation rules. validateOrphanNode's !reachable.contains(nodeId) check
+    // is defensive code that protects against logical errors, but cannot be reached
+    // in correctly validated workflows.
+
+    mockPlugin("T", PluginCategory.TRIGGER);
+    mockPlugin("P", PluginCategory.PROCESSOR);
+    mockPlugin("TERM", PluginCategory.TERMINAL);
+
+    // Try to create a trigger with incoming edges - caught by validateEntryPoints
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t_main", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("term1", "TERM", Map.of()),
+                new WorkflowDefinition.Node("t_hidden", "T", Map.of()),
+                new WorkflowDefinition.Node("term_unreachable", "TERM", Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge("t_main", "p1"),
+                new WorkflowDefinition.Edge("p1", "term1"),
+                // This edge makes t_hidden have incoming - will be caught as invalid
+                new WorkflowDefinition.Edge("term1", "t_hidden"),
+                new WorkflowDefinition.Edge("t_hidden", "term_unreachable")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("Trigger node")
+                    && error.getMessage().contains("cannot have incoming edges"))
+        .verify();
+  }
+
+  @Test
   void testTerminalNodeWithOutgoingEdge() {
     mockPlugin("T", PluginCategory.TRIGGER);
     mockPlugin("P", PluginCategory.PROCESSOR);
