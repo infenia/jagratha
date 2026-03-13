@@ -178,6 +178,70 @@ public class AppMcpTools {
   }
 
   /**
+   * Get workflow execution logs.
+   *
+   * @param sessionId the session identifier
+   * @param executionId the execution identifier
+   * @param filterPattern optional regex pattern filter
+   * @return Mono containing formatted logs
+   */
+  @Tool(description = "Get all logs for a specific workflow execution with optional filtering")
+  public Mono<String> getWorkflowExecutionLogs(
+      final String sessionId, final String executionId, final String filterPattern) {
+    return Mono.fromCallable(
+            () -> {
+              if (filterPattern != null && !filterPattern.isBlank()) {
+                try {
+                  Pattern.compile(filterPattern);
+                } catch (final PatternSyntaxException e) {
+                  throw new IllegalArgumentException("Invalid regex pattern: " + e.getMessage(), e);
+                }
+              }
+              return trackerService.getHistory(sessionId);
+            })
+        .map(
+            history ->
+                history.stream()
+                    .filter(exec -> exec.executionId().equals(executionId))
+                    .findFirst()
+                    .orElseThrow(
+                        () -> new IllegalArgumentException("Execution not found: " + executionId)))
+        .map(
+            exec ->
+                String.format(
+                    "Execution: %s | Workflow: %s | Status: %s | Start: %s | End: %s",
+                    exec.executionId(),
+                    exec.workflowId(),
+                    exec.status(),
+                    exec.startTime(),
+                    exec.endTime()))
+        .map(
+            logs ->
+                filterPattern != null && !filterPattern.isBlank()
+                    ? filterLogsByPattern(logs, filterPattern)
+                    : logs);
+  }
+
+  /**
+   * Filter logs by regex pattern.
+   *
+   * @param logs the logs to filter
+   * @param pattern the regex pattern
+   * @return filtered logs
+   */
+  private String filterLogsByPattern(final String logs, final String pattern) {
+    try {
+      if (Pattern.compile(pattern).matcher(logs).find()) {
+        return logs;
+      } else {
+        return "";
+      }
+    } catch (final PatternSyntaxException e) {
+      throw new IllegalArgumentException("Invalid regex pattern: " + e.getMessage(), e);
+    }
+  }
+
+  /**
    * Get workflow definition.
    *
    * @param sessionId the session identifier
