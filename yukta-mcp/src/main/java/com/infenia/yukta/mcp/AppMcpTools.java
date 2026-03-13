@@ -20,17 +20,21 @@ import com.infenia.yukta.model.api.PluginDetails;
 import com.infenia.yukta.model.api.PluginReference;
 import com.infenia.yukta.model.api.PluginSummary;
 import com.infenia.yukta.model.api.SessionCreationGuide;
+import com.infenia.yukta.model.api.SessionCreationResponse;
 import com.infenia.yukta.model.api.SessionDetails;
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
+import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.TaskTrackerService;
 import com.infenia.yukta.service.WorkflowRegistry;
 import com.infenia.yukta.service.WorkflowService;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -41,6 +45,7 @@ import tools.jackson.databind.ObjectMapper;
  * MCP (Model Context Protocol) tools for Yukta. Provides tools for interacting with workflows,
  * sessions, and plugins.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AppMcpTools {
@@ -267,5 +272,57 @@ public class AppMcpTools {
         workflowDefinitionFormat,
         availablePlugins,
         commonErrors);
+  }
+
+  /**
+   * Create a new Yukta session with the provided configuration JSON.
+   *
+   * @param sessionConfigJson JSON string containing session configuration with sessionId,
+   *     workflows, and other configuration details
+   * @return Mono containing SessionCreationResponse with sessionId, created workflows, warnings,
+   *     and success status
+   */
+  @Tool(description = "Create a new Yukta session with the provided configuration JSON")
+  public Mono<SessionCreationResponse> createSession(final String sessionConfigJson) {
+    return parseSessionConfig(sessionConfigJson)
+        .flatMap(
+            config ->
+                sessionService
+                    .applyConfig(config)
+                    .then(
+                        Mono.fromCallable(
+                            () -> {
+                              final List<String> createdWorkflows =
+                                  new ArrayList<>(config.workflows().keySet());
+                              return new SessionCreationResponse(
+                                  config.sessionId(), createdWorkflows, List.of(), true);
+                            })))
+        .onErrorResume(
+            e -> {
+              log.atWarn().setCause(e).log("Failed to create session: {}", e.getMessage());
+              return Mono.just(
+                  new SessionCreationResponse(
+                      "", List.of(), List.of("Error creating session: " + e.getMessage()), false));
+            });
+  }
+
+  /**
+   * Parse session configuration from JSON string.
+   *
+   * @param sessionConfigJson JSON string to parse
+   * @return Mono containing parsed SessionConfigData
+   */
+  private Mono<SessionConfigData> parseSessionConfig(final String sessionConfigJson) {
+    return Mono.fromCallable(
+            () -> objectMapper.readValue(sessionConfigJson, SessionConfigData.class))
+        .onErrorResume(
+            e -> {
+              log.atWarn()
+                  .setCause(e)
+                  .log("Failed to parse session configuration JSON: {}", e.getMessage());
+              return Mono.error(
+                  new IllegalArgumentException(
+                      "Invalid JSON format or missing required fields: " + e.getMessage(), e));
+            });
   }
 }
