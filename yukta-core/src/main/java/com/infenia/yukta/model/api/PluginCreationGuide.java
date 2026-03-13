@@ -37,4 +37,10 @@ public record PluginCreationGuide(
     @Schema(description = "Configuration reference") String configurationReference,
     @Schema(description = "Validation checklist") String validationChecklist,
     @Schema(description = "Testing strategy") String testingStrategy,
-    @Schema(description = "Deployment guide") String deploymentGuide) {}
+    @Schema(description = "Deployment guide") String deploymentGuide) {
+
+  /** Compact constructor to ensure immutability of the template code map. */
+  public PluginCreationGuide {
+    templateCode = templateCode != null ? Map.copyOf(templateCode) : Map.of();
+  }
+}
