@@ -58,6 +58,7 @@ dependencies {
 }
 
 coverageConfig {
+<<<<<<< HEAD
     val baselineCoverage = mapOf(
         "LINE" to 0.8,
         "BRANCH" to 0.5,
@@ -117,3 +118,8 @@ coverageConfig {
         "METHOD" to 1.0
     ))
 }
+=======
+    exceptions.put("com.infenia.yukta.service.join.InMemoryJoinStore", mapOf("LINE" to 0.9, "INSTRUCTION" to 0.9))
+}
+
+>>>>>>> 7b2f971 (feat: improve test coverage for InMemoryJoinStore)

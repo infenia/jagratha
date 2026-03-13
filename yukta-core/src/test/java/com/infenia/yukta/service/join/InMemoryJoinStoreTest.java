@@ -539,4 +539,38 @@ class InMemoryJoinStoreTest {
     getExpirationTime.setAccessible(true);
     assertTrue((long) getExpirationTime.invoke(state) > System.currentTimeMillis());
   }
+
+  @Test
+  void testThreadFactory() throws Exception {
+    InMemoryJoinStore testStore = new InMemoryJoinStore();
+    testStore.init();
+
+    java.lang.reflect.Field field = InMemoryJoinStore.class.getDeclaredField("scheduler");
+    field.setAccessible(true);
+    java.util.concurrent.ScheduledExecutorService scheduler =
+        (java.util.concurrent.ScheduledExecutorService) field.get(testStore);
+
+    java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.atomic.AtomicReference<String> threadName =
+        new java.util.concurrent.atomic.AtomicReference<>();
+
+    scheduler.submit(
+        () -> {
+          threadName.set(Thread.currentThread().getName());
+          latch.countDown();
+        });
+
+    assertTrue(latch.await(2, TimeUnit.SECONDS));
+    assertTrue(threadName.get().contains("join-store-cleanup"));
+
+    testStore.shutdown();
+  }
+
+  @Test
+  void testCleanupEmpty() throws Exception {
+    // Ensure cleanup works when store is empty (before == after)
+    java.lang.reflect.Method method = InMemoryJoinStore.class.getDeclaredMethod("cleanup");
+    method.setAccessible(true);
+    method.invoke(store);
+  }
 }
