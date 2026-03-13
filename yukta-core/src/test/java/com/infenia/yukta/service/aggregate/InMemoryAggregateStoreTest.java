@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.service.aggregate;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.aggregate.AggregateStore.AggregateConfig;
@@ -373,26 +375,46 @@ class InMemoryAggregateStoreTest {
     InMemoryAggregateStore testStore = new InMemoryAggregateStore();
     testStore.init();
 
-    // Mock scheduler to trigger timeout
     java.lang.reflect.Field schedulerField =
         InMemoryAggregateStore.class.getDeclaredField("scheduler");
     schedulerField.setAccessible(true);
     java.util.concurrent.ScheduledExecutorService originalScheduler =
         (java.util.concurrent.ScheduledExecutorService) schedulerField.get(testStore);
 
+    java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
     originalScheduler.submit(
         () -> {
+          latch.countDown();
           try {
             Thread.sleep(2000);
           } catch (InterruptedException e) {
+            // Expected
           }
         });
 
+    assertTrue(latch.await(2, java.util.concurrent.TimeUnit.SECONDS));
     testStore.shutdown();
 
     // Test InterruptedException
     InMemoryAggregateStore interruptStore = new InMemoryAggregateStore();
     interruptStore.init();
+
+    java.util.concurrent.ScheduledExecutorService interruptScheduler =
+        (java.util.concurrent.ScheduledExecutorService) schedulerField.get(interruptStore);
+
+    java.util.concurrent.CountDownLatch latch2 = new java.util.concurrent.CountDownLatch(1);
+    interruptScheduler.submit(
+        () -> {
+          latch2.countDown();
+          try {
+            Thread.sleep(2000);
+          } catch (InterruptedException e) {
+            // Expected
+          }
+        });
+
+    assertTrue(latch2.await(2, java.util.concurrent.TimeUnit.SECONDS));
+
     Thread t =
         new Thread(
             () -> {
