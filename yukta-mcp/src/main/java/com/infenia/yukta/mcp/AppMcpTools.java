@@ -22,6 +22,7 @@ import com.infenia.yukta.model.api.PluginSummary;
 import com.infenia.yukta.model.api.SessionCreationGuide;
 import com.infenia.yukta.model.api.SessionCreationResponse;
 import com.infenia.yukta.model.api.SessionDetails;
+import com.infenia.yukta.model.api.SessionInfo;
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
@@ -30,6 +31,7 @@ import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.TaskTrackerService;
 import com.infenia.yukta.service.WorkflowRegistry;
 import com.infenia.yukta.service.WorkflowService;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -73,6 +76,40 @@ public class AppMcpTools {
                   (Map<String, Object>) config.getOrDefault("workflows", Map.of());
               return new SessionDetails(sessionId, List.copyOf(workflows.keySet()));
             });
+  }
+
+  /**
+   * List all available sessions.
+   *
+   * @return Flux of session information
+   */
+  @Tool(description = "List all available Yukta sessions with metadata")
+  @SuppressWarnings("unchecked")
+  public Flux<SessionInfo> listSessions() {
+    return sessionService
+        .getSessionIds()
+        .flatMap(
+            sessionId ->
+                sessionService
+                    .getSessionConfig(sessionId)
+                    .map(
+                        config -> {
+                          final Map<String, Object> workflows =
+                              (Map<String, Object>) config.getOrDefault("workflows", Map.of());
+                          final int workflowCount = workflows.size();
+                          final LocalDateTime now = LocalDateTime.now();
+                          return new SessionInfo(sessionId, workflowCount, now, now, "active");
+                        })
+                    .onErrorResume(
+                        e -> {
+                          log.atWarn()
+                              .setCause(e)
+                              .log(
+                                  "Failed to load session config for {}: {}",
+                                  sessionId,
+                                  e.getMessage());
+                          return Mono.empty();
+                        }));
   }
 
   /**
