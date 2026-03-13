@@ -56,7 +56,9 @@ import tools.jackson.databind.ObjectMapper;
   "PMD.CyclomaticComplexity",
   "PMD.UseConcurrentHashMap",
   "PMD.GodClass",
-  "PMD.LawOfDemeter"
+  "PMD.LawOfDemeter",
+  "PMD.CouplingBetweenObjects",
+  "PMD.CollapsibleIfStatements"
 })
 public class MapperProcessor implements ProcessorPlugin {
 

@@ -16,16 +16,23 @@
 package com.infenia.yukta.service.resequence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.resequence.ResequencerStore.ResequenceConfig;
 import com.infenia.yukta.service.resequence.ResequencerStore.ResequenceResult;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 class InMemoryResequencerStoreTest {
@@ -554,6 +561,104 @@ class InMemoryResequencerStoreTest {
     // Subsequent add should update lastAccessTime
     StepVerifier.create(store.addMessage(key, 3, m3, config))
         .expectNextMatches(res -> res.status() == ResequenceResult.Status.WAITING)
+        .verifyComplete();
+  }
+
+  @Test
+  void testResequenceResultNullMessages() {
+    ResequenceResult result =
+        new ResequenceResult(ResequenceResult.Status.COMPLETED, null, "key", null);
+    assertThat(result.messages()).isEmpty();
+  }
+
+  @Test
+  void testResequenceConfig() {
+    ResequenceConfig config = new ResequenceConfig(1, 100, 10, "err");
+    assertThat(config.startIndex()).isEqualTo(1);
+    assertThat(config.timeoutMs()).isEqualTo(100);
+    assertThat(config.maxPending()).isEqualTo(10);
+    assertThat(config.errorPort()).isEqualTo("err");
+  }
+
+  @Test
+  void testShutdown() throws Exception {
+    InMemoryResequencerStore testStore = new InMemoryResequencerStore();
+    testStore.init();
+    testStore.shutdown();
+  }
+
+  @Test
+  void testShutdownInterrupted() throws Exception {
+    InMemoryResequencerStore testStore = new InMemoryResequencerStore();
+    testStore.init();
+    Thread t =
+        new Thread(
+            () -> {
+              Thread.currentThread().interrupt();
+              testStore.shutdown();
+            });
+    t.start();
+    t.join();
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testEmitResultRetryBranch() throws Exception {
+    Sinks.Many<ResequenceResult> mockSink = mock(Sinks.Many.class);
+    // Use reflection to inject mock sink
+    java.lang.reflect.Field field = InMemoryResequencerStore.class.getDeclaredField("asyncResults");
+    field.setAccessible(true);
+    field.set(store, mockSink);
+
+    ResequenceResult result =
+        new ResequenceResult(ResequenceResult.Status.COMPLETED, List.of(), "key", null);
+
+    when(mockSink.tryEmitNext(any()))
+        .thenReturn(Sinks.EmitResult.FAIL_NON_SERIALIZED)
+        .thenReturn(Sinks.EmitResult.OK);
+
+    java.lang.reflect.Method method =
+        InMemoryResequencerStore.class.getDeclaredMethod("emitResult", ResequenceResult.class);
+    method.setAccessible(true);
+    method.invoke(store, result);
+
+    verify(mockSink, times(2)).tryEmitNext(result);
+  }
+
+  @Test
+  void testOverflowExistingKey() {
+    final String key = "key1";
+    final ResequenceConfig config = new ResequenceConfig(1, 1000, 1, null); // maxPending = 1
+
+    final Message<String> m1 = DefaultMessage.create(UUID.randomUUID(), "1");
+    final Message<String> m2 = DefaultMessage.create(UUID.randomUUID(), "2");
+
+    // Add first message for key1 - WAITING, size = 1
+    store.addMessage(key, 2, m1, config).block();
+
+    // Add second message for SAME key - should NOT overflow even if store.size() >= maxPending
+    // because store.containsKey(key) is true.
+    StepVerifier.create(store.addMessage(key, 3, m2, config))
+        .expectNextMatches(res -> res.status() == ResequenceResult.Status.WAITING)
+        .verifyComplete();
+  }
+
+  @Test
+  void testIsExpiredFalse() throws Exception {
+    final String key = "test-no-expire";
+    final ResequenceConfig config = new ResequenceConfig(1, 10000, 100, null); // Long timeout
+    store.addMessage(key, 2, DefaultMessage.create(UUID.randomUUID(), "2"), config).block();
+
+    // Trigger cleanup manually via reflection to hit the false branch of isExpired
+    java.lang.reflect.Method cleanupMethod =
+        InMemoryResequencerStore.class.getDeclaredMethod("cleanup");
+    cleanupMethod.setAccessible(true);
+    cleanupMethod.invoke(store);
+
+    // Key should still be there (DUPLICATE check proves it)
+    StepVerifier.create(
+            store.addMessage(key, 2, DefaultMessage.create(UUID.randomUUID(), "2"), config))
+        .expectNextMatches(res -> res.status() == ResequenceResult.Status.DUPLICATE)
         .verifyComplete();
   }
 }

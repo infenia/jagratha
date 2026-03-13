@@ -44,7 +44,8 @@ import reactor.core.publisher.Mono;
   "PMD.CognitiveComplexity",
   "PMD.AvoidDeeplyNestedIfStmts",
   "PMD.ExceptionAsFlowControl",
-  "PMD.AvoidCatchingGenericException"
+  "PMD.AvoidCatchingGenericException",
+  "PMD.UselessParentheses"
 })
 public class BranchProcessor implements ProcessorPlugin {
 

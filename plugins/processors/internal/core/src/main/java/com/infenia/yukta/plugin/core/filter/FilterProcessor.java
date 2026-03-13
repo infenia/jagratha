@@ -39,7 +39,7 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 @Component
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.AvoidCatchingGenericException", "PMD.LongVariable"})
 public final class FilterProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "FILTER";

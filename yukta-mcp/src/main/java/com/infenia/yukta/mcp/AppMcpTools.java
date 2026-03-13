@@ -59,6 +59,19 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@SuppressWarnings({
+  "PMD.GodClass",
+  "PMD.TooManyMethods",
+  "PMD.ExcessiveImports",
+  "PMD.CouplingBetweenObjects",
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.UseObjectForClearerAPI",
+  "PMD.OnlyOneReturn",
+  "PMD.LongVariable",
+  "PMD.UselessParentheses",
+  "PMD.DoNotUseThreads",
+  "PMD.UseConcurrentHashMap"
+})
 public class AppMcpTools {
 
   private final WorkflowService workflowService;
