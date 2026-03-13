@@ -35,6 +35,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -110,6 +112,69 @@ public class AppMcpTools {
                                   e.getMessage());
                           return Mono.empty();
                         }));
+  }
+
+  /**
+   * Stream session logs with optional filtering.
+   *
+   * @param sessionId the session identifier
+   * @param workflowId optional workflow filter
+   * @param executionId optional execution filter
+   * @param filterPattern optional regex pattern filter
+   * @return Flux of log lines
+   */
+  @Tool(
+      description =
+          "Stream session logs with optional filtering by workflow, execution, or pattern")
+  public Flux<String> streamSessionLogs(
+      final String sessionId,
+      final String workflowId,
+      final String executionId,
+      final String filterPattern) {
+    return Mono.fromCallable(
+            () -> {
+              if (filterPattern != null && !filterPattern.isBlank()) {
+                try {
+                  Pattern.compile(filterPattern);
+                } catch (final PatternSyntaxException e) {
+                  throw new IllegalArgumentException("Invalid regex pattern: " + e.getMessage(), e);
+                }
+              }
+              return trackerService.getHistory(sessionId);
+            })
+        .flatMapIterable(
+            history ->
+                history.stream()
+                    .filter(
+                        exec ->
+                            (workflowId == null || exec.workflowId().equals(workflowId))
+                                && (executionId == null || exec.executionId().equals(executionId)))
+                    .map(
+                        exec ->
+                            String.format(
+                                "Execution: %s | Workflow: %s | Status: %s | Start: %s | End: %s",
+                                exec.executionId(),
+                                exec.workflowId(),
+                                exec.status(),
+                                exec.startTime(),
+                                exec.endTime()))
+                    .filter(line -> filterPattern == null || matchesPattern(line, filterPattern))
+                    .toList());
+  }
+
+  /**
+   * Check if text matches the given regex pattern.
+   *
+   * @param text the text to match
+   * @param pattern the regex pattern
+   * @return true if matches, false otherwise
+   */
+  private boolean matchesPattern(final String text, final String pattern) {
+    try {
+      return Pattern.compile(pattern).matcher(text).find();
+    } catch (final PatternSyntaxException e) {
+      throw new IllegalArgumentException("Invalid regex pattern: " + e.getMessage(), e);
+    }
   }
 
   /**
