@@ -23,6 +23,7 @@ import com.infenia.yukta.service.join.JoinStore.JoinConfig;
 import com.infenia.yukta.service.join.JoinStore.JoinResult;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -421,24 +422,23 @@ class InMemoryJoinStoreTest {
     InMemoryJoinStore testStore = new InMemoryJoinStore();
     testStore.init();
 
-    // Use reflection to get the private scheduler and submit a long-running task
     java.lang.reflect.Field field = InMemoryJoinStore.class.getDeclaredField("scheduler");
     field.setAccessible(true);
     java.util.concurrent.ScheduledExecutorService scheduler =
         (java.util.concurrent.ScheduledExecutorService) field.get(testStore);
 
+    java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
     scheduler.submit(
         () -> {
+          latch.countDown();
           try {
-            Thread.sleep(7000); // Longer than CLEANUP_DELAY (5s)
+            Thread.sleep(10000);
           } catch (InterruptedException e) {
-            // Expected during shutdownNow()
+            // Expected
           }
         });
 
-    // This should trigger the timeout branch in shutdown()
-    // We reduce the wait time in the test by potentially mocking or just waiting
-    // But since it's only 5 seconds, it's acceptable for a thorough test.
+    assertTrue(latch.await(2, TimeUnit.SECONDS)); // Ensure task started
     testStore.shutdown();
   }
 
