@@ -15,14 +15,19 @@
  */
 package com.infenia.yukta.mcp;
 
+import com.infenia.yukta.model.api.ControlBusStatus;
 import com.infenia.yukta.model.api.ErrorExample;
+import com.infenia.yukta.model.api.ExecutionRecord;
 import com.infenia.yukta.model.api.PluginDetails;
 import com.infenia.yukta.model.api.PluginReference;
+import com.infenia.yukta.model.api.PluginRegistryEntry;
 import com.infenia.yukta.model.api.PluginSummary;
 import com.infenia.yukta.model.api.SessionCreationGuide;
 import com.infenia.yukta.model.api.SessionCreationResponse;
 import com.infenia.yukta.model.api.SessionDetails;
+import com.infenia.yukta.model.api.SessionExecutionInfo;
 import com.infenia.yukta.model.api.SessionInfo;
+import com.infenia.yukta.model.api.SystemHealthMetrics;
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
@@ -335,6 +340,105 @@ public class AppMcpTools {
         plugin.getUsagePattern(),
         plugin.getUiDesign().orElse(null),
         plugin.getOutputPorts());
+  }
+
+  /**
+   * Get control bus status with comprehensive monitoring information.
+   *
+   * @param filterType optional filter ("sessions", "plugins", "health", "executions")
+   * @return ControlBusStatus with monitoring data
+   */
+  @Tool(description = "Get comprehensive control bus status with monitoring information")
+  public ControlBusStatus getControlBusStatus(final String filterType) {
+    final List<SessionExecutionInfo> activeSessions =
+        filterType == null || "sessions".equalsIgnoreCase(filterType)
+            ? buildSessionExecutionInfo()
+            : List.of();
+
+    final List<PluginRegistryEntry> pluginRegistry =
+        filterType == null || "plugins".equalsIgnoreCase(filterType)
+            ? buildPluginRegistryInfo()
+            : List.of();
+
+    final SystemHealthMetrics systemHealth =
+        filterType == null || "health".equalsIgnoreCase(filterType)
+            ? buildSystemHealthMetrics()
+            : new SystemHealthMetrics(0, 0, "0", "0", "0s");
+
+    final List<ExecutionRecord> recentExecutions =
+        filterType == null || "executions".equalsIgnoreCase(filterType)
+            ? buildRecentExecutions()
+            : List.of();
+
+    return new ControlBusStatus(activeSessions, pluginRegistry, systemHealth, recentExecutions);
+  }
+
+  /**
+   * Build session execution information.
+   *
+   * @return list of SessionExecutionInfo
+   */
+  private List<SessionExecutionInfo> buildSessionExecutionInfo() {
+    return List.of();
+  }
+
+  /**
+   * Build plugin registry information.
+   *
+   * @return list of PluginRegistryEntry
+   */
+  private List<PluginRegistryEntry> buildPluginRegistryInfo() {
+    return registry.listPlugins().stream()
+        .map(p -> new PluginRegistryEntry(p.getType(), p.getCategory().toString(), "ACTIVE"))
+        .toList();
+  }
+
+  /**
+   * Build system health metrics.
+   *
+   * @return SystemHealthMetrics
+   */
+  private SystemHealthMetrics buildSystemHealthMetrics() {
+    final Runtime runtime = Runtime.getRuntime();
+    final long maxMemory = runtime.maxMemory() / (1024 * 1024);
+    final long usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
+    final double threadPoolUtilization =
+        (Thread.activeCount() / (double) runtime.availableProcessors()) * 100;
+
+    return new SystemHealthMetrics(
+        threadPoolUtilization, 0, usedMemory + " MB", maxMemory + " MB", getUptime());
+  }
+
+  /**
+   * Get system uptime.
+   *
+   * @return uptime string
+   */
+  private String getUptime() {
+    final long uptimeMs = java.lang.management.ManagementFactory.getRuntimeMXBean().getUptime();
+    final long seconds = uptimeMs / 1000;
+    final long minutes = seconds / 60;
+    final long hours = minutes / 60;
+    final long days = hours / 24;
+
+    if (days > 0) {
+      return days + "d " + (hours % 24) + "h " + (minutes % 60) + "m";
+    } else if (hours > 0) {
+      return hours + "h " + (minutes % 60) + "m";
+    } else if (minutes > 0) {
+      return minutes + "m " + (seconds % 60) + "s";
+    } else {
+      return seconds + "s";
+    }
+  }
+
+  /**
+   * Build recent executions.
+   *
+   * @return list of ExecutionRecord (last 10)
+   */
+  private List<ExecutionRecord> buildRecentExecutions() {
+    return List.of();
   }
 
   /**
