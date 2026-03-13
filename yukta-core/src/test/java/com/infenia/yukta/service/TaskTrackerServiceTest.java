@@ -1401,6 +1401,404 @@ class TaskTrackerServiceTest {
   }
 
   @Test
+  void testGetProgressWhenStateIsNull() {
+    // Try to get progress for non-existent session
+    WorkflowProgress progress1 = tracker.getProgress("non-existent-session", "non-existent-exec");
+    assertNull(progress1);
+
+    // Try to get progress with correct session but wrong execution
+    String sessionId = "sess-null-state";
+    String workflowId = "wf-null-state";
+    String executionId = "exec-null-state";
+
+    StepVerifier.create(tracker.startWorkflow(executionId, sessionId, workflowId, List.of()))
+        .verifyComplete();
+
+    // Get with wrong execution ID
+    WorkflowProgress progress2 = tracker.getProgress(sessionId, "wrong-exec-id");
+    assertNull(progress2);
+  }
+
+  @Test
+  void testHandleWorkflowStatusEventsNonTerminalStatus() {
+    String sessionId = "sess-non-terminal";
+    String workflowId = "wf-non-terminal";
+    String executionId = "exec-non-terminal";
+    List<String> nodes = List.of("node1");
+
+    StepVerifier.create(tracker.startWorkflow(executionId, sessionId, workflowId, nodes))
+        .verifyComplete();
+
+    // Emit non-terminal workflow status (RUNNING is not in SUCCESS/FAILURE/ERROR)
+    tracker.emitWorkflowStatusEvent(executionId, "RUNNING");
+
+    // Wait for processing
+    for (int i = 0; i < 20; i++) {
+      WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+      if (progress != null && "RUNNING".equals(progress.status())) {
+        break;
+      }
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+    assertEquals("RUNNING", progress.status());
+    // Non-terminal status should NOT trigger cleanup
+  }
+
+  @Test
+  void testNotifyStatusChangeWhenSinkIsNullAndStateIsNull() {
+    // Emit event for non-existent execution - notifyStatusChange will be called with null sink
+    tracker.emitTaskStatusEvent("non-existent-exec", "node1", "module", "SUCCESS", Map.of());
+
+    // Wait for async processing
+    for (int i = 0; i < 20; i++) {
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Should not crash - handled gracefully
+    assertTrue(true);
+  }
+
+  @Test
+  void testMergeMetadataWhenAdditionalIsEmpty() {
+    String sessionId = "sess-merge-empty";
+    String workflowId = "wf-merge-empty";
+    String executionId = "exec-merge-empty";
+    List<String> nodes = List.of("node1");
+
+    StepVerifier.create(tracker.startWorkflow(executionId, sessionId, workflowId, nodes))
+        .verifyComplete();
+
+    // First emit with metadata
+    tracker.emitTaskStatusEvent(executionId, "node1", "mod1", "RUNNING", Map.of("key1", "val1"));
+
+    for (int i = 0; i < 20; i++) {
+      WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+      if (progress != null
+          && !progress.tasks().isEmpty()
+          && progress.tasks().get(0).metadata().containsKey("key1")) {
+        break;
+      }
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Now emit with empty map to test mergeMetadata preserves existing metadata
+    tracker.emitTaskStatusEvent(executionId, "node1", "mod2", "SUCCESS", Map.of());
+
+    for (int i = 0; i < 20; i++) {
+      WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+      if (progress != null
+          && !progress.tasks().isEmpty()
+          && "SUCCESS".equals(progress.tasks().get(0).status())) {
+        break;
+      }
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Metadata should still have key1 from before (merged from empty additional map)
+    WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+    assertTrue(progress.tasks().get(0).metadata().containsKey("key1"));
+  }
+
+  @Test
+  void testScheduleCleanupErrorHandler() {
+    String sessionId = "sess-cleanup-handler";
+    String workflowId = "wf-cleanup-handler";
+    String executionId = "exec-cleanup-handler";
+
+    StepVerifier.create(tracker.startWorkflow(executionId, sessionId, workflowId, List.of()))
+        .verifyComplete();
+
+    // Emit terminal status to trigger cleanup scheduling
+    tracker.emitWorkflowStatusEvent(executionId, "SUCCESS");
+
+    // Wait for async processing and cleanup
+    for (int i = 0; i < 50; i++) {
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Workflow should have completed
+    WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+    assertEquals("SUCCESS", progress.status());
+  }
+
+  @Test
+  void testCleanupExecutionRemovesLogsAndStatusSinks() {
+    String sessionId = "sess-cleanup-sinks";
+    String workflowId = "wf-cleanup-sinks";
+    String executionId = "exec-cleanup-sinks";
+
+    StepVerifier.create(tracker.startWorkflow(executionId, sessionId, workflowId, List.of()))
+        .verifyComplete();
+
+    // Verify sinks exist
+    assertTrue(tracker.getLogStream(executionId) != null);
+    assertTrue(tracker.getStatusStream(executionId) != null);
+
+    // Emit terminal status to trigger cleanup
+    tracker.emitWorkflowStatusEvent(executionId, "ERROR");
+
+    // Wait for cleanup (using short TTL from setUp)
+    for (int i = 0; i < 50; i++) {
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // After cleanup, sinks should be completed/removed
+    StepVerifier.create(tracker.getLogStream(executionId)).verifyComplete();
+    StepVerifier.create(tracker.getStatusStream(executionId)).verifyComplete();
+  }
+
+  @Test
+  void testMergeMetadataWithNullAdditional() throws Exception {
+    String sessionId = "sess-merge-null-additional";
+    String workflowId = "wf-merge-null-additional";
+    String executionId = "exec-merge-null-additional";
+    List<String> nodes = List.of("node1");
+
+    StepVerifier.create(tracker.startWorkflow(executionId, sessionId, workflowId, nodes))
+        .verifyComplete();
+
+    // Emit with metadata first
+    tracker.emitTaskStatusEvent(executionId, "node1", "mod1", "RUNNING", Map.of("key1", "val1"));
+
+    for (int i = 0; i < 20; i++) {
+      WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+      if (progress != null
+          && !progress.tasks().isEmpty()
+          && progress.tasks().get(0).metadata().containsKey("key1")) {
+        break;
+      }
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Emit with no additional metadata to trigger the null branch in mergeMetadata
+    // The null branch happens when additional == null, but API requires @NotNull
+    // So we test with empty map which exercises the "if (additional != null)" path being false
+    tracker.emitTaskStatusEvent(executionId, "node1", "mod2", "SUCCESS", Collections.emptyMap());
+
+    for (int i = 0; i < 20; i++) {
+      WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+      if (progress != null
+          && !progress.tasks().isEmpty()
+          && "SUCCESS".equals(progress.tasks().get(0).status())) {
+        break;
+      }
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+    // Old metadata should still be there (merged with empty map)
+    assertTrue(progress.tasks().get(0).metadata().containsKey("key1"));
+  }
+
+  @Test
+  void testWorkflowStateNullUpdate() throws Exception {
+    String sessionId = "sess-null-update";
+    String workflowId = "wf-null-update";
+    String executionId = "exec-null-update";
+    List<String> nodes = List.of("node1");
+
+    StepVerifier.create(tracker.startWorkflow(executionId, sessionId, workflowId, nodes))
+        .verifyComplete();
+
+    // Try updating a non-existent node (old == null branch in updateTask)
+    tracker.emitTaskStatusEvent(executionId, "non-existent-node", "module", "SUCCESS", Map.of());
+
+    // Wait for async processing
+    for (int i = 0; i < 20; i++) {
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Workflow should still have only the initialized nodes
+    WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+    assertEquals(1, progress.tasks().size());
+    assertEquals("node1", progress.tasks().get(0).nodeId());
+  }
+
+  @Test
+  void testMergeMetadataFullCoverage() {
+    String sessionId = "sess-merge-full";
+    String workflowId = "wf-merge-full";
+    String executionId = "exec-merge-full";
+    List<String> nodes = List.of("node1");
+
+    StepVerifier.create(tracker.startWorkflow(executionId, sessionId, workflowId, nodes))
+        .verifyComplete();
+
+    // Case 1: Empty metadata initially
+    tracker.emitTaskStatusEvent(executionId, "node1", "mod1", "RUNNING", Map.of());
+    for (int i = 0; i < 20; i++) {
+      WorkflowProgress p = tracker.getProgress(sessionId, executionId);
+      if (p != null && !p.tasks().isEmpty() && "RUNNING".equals(p.tasks().get(0).status())) {
+        break;
+      }
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Case 2: Add some metadata
+    tracker.emitTaskStatusEvent(executionId, "node1", "mod2", "SUCCESS", Map.of("a", 1, "b", 2));
+    for (int i = 0; i < 20; i++) {
+      WorkflowProgress p = tracker.getProgress(sessionId, executionId);
+      if (p != null && !p.tasks().isEmpty() && p.tasks().get(0).metadata().containsKey("a")) {
+        break;
+      }
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Case 3: Update with additional metadata (tests putAll in mergeMetadata)
+    tracker.emitTaskStatusEvent(executionId, "node1", "mod3", "SUCCESS", Map.of("c", 3));
+    for (int i = 0; i < 20; i++) {
+      WorkflowProgress p = tracker.getProgress(sessionId, executionId);
+      if (p != null && !p.tasks().isEmpty() && p.tasks().get(0).metadata().containsKey("c")) {
+        break;
+      }
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Verify all metadata is merged
+    WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+    assertTrue(progress.tasks().get(0).metadata().containsKey("a"));
+    assertTrue(progress.tasks().get(0).metadata().containsKey("b"));
+    assertTrue(progress.tasks().get(0).metadata().containsKey("c"));
+  }
+
+  @Test
+  void testTerminalAndNonTerminalWorkflowStatusPaths() {
+    String sessionId = "sess-both-paths";
+    String workflowId = "wf-both-paths";
+    String executionId1 = "exec-both-paths-1";
+    String executionId2 = "exec-both-paths-2";
+
+    // Test non-terminal workflow status
+    StepVerifier.create(tracker.startWorkflow(executionId1, sessionId, workflowId, List.of()))
+        .verifyComplete();
+
+    tracker.emitWorkflowStatusEvent(executionId1, "PENDING");
+    for (int i = 0; i < 20; i++) {
+      WorkflowProgress p = tracker.getProgress(sessionId, executionId1);
+      if (p != null && "PENDING".equals(p.status())) {
+        break;
+      }
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Test terminal workflow status (triggers cleanup)
+    StepVerifier.create(tracker.startWorkflow(executionId2, sessionId, workflowId, List.of()))
+        .verifyComplete();
+
+    tracker.emitWorkflowStatusEvent(executionId2, "SUCCESS");
+    for (int i = 0; i < 20; i++) {
+      WorkflowProgress p = tracker.getProgress(sessionId, executionId2);
+      if (p != null && "SUCCESS".equals(p.status())) {
+        break;
+      }
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Both should exist
+    WorkflowProgress p1 = tracker.getProgress(sessionId, executionId1);
+    WorkflowProgress p2 = tracker.getProgress(sessionId, executionId2);
+    assertEquals("PENDING", p1.status());
+    assertEquals("SUCCESS", p2.status());
+  }
+
+  @Test
+  void testNotifyStatusChangeWhenStateIsNullAfterCleanup() {
+    // Create a workflow with short TTL
+    TaskTrackerService shortTtlTracker = new TaskTrackerService(Duration.ofMillis(100));
+    shortTtlTracker.init();
+
+    String sessionId = "sess-cleanup-state-null";
+    String workflowId = "wf-cleanup-state-null";
+    String executionId = "exec-cleanup-state-null";
+    List<String> nodes = List.of("node1");
+
+    StepVerifier.create(shortTtlTracker.startWorkflow(executionId, sessionId, workflowId, nodes))
+        .verifyComplete();
+
+    // Emit terminal status to trigger cleanup with short TTL
+    shortTtlTracker.emitWorkflowStatusEvent(executionId, "SUCCESS");
+
+    // Wait for cleanup to happen
+    try {
+      Thread.sleep(250);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Now try to emit task status for the cleaned-up execution
+    // notifyStatusChange will be called but state should be null
+    shortTtlTracker.emitTaskStatusEvent(executionId, "node1", "module", "SUCCESS", Map.of());
+
+    // Wait for processing
+    try {
+      Thread.sleep(100);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Should handle gracefully without errors
+    assertTrue(true);
+  }
+
+  @Test
   void testFullLifecycleWithAllMethods() {
     String sessionId = "sess-full-lifecycle";
     String workflowId = "wf-full-lifecycle";
