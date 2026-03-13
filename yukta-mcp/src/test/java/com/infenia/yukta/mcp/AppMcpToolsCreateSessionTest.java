@@ -140,7 +140,8 @@ class AppMcpToolsCreateSessionTest {
                 !response.success()
                     && !response.warnings().isEmpty()
                     && response.warnings().stream()
-                        .anyMatch(w -> w.contains("Invalid JSON") || w.contains("JSON")))
+                        .anyMatch(
+                            w -> w.contains("Invalid JSON format or missing required fields")))
         .verifyComplete();
   }
 
@@ -211,7 +212,10 @@ class AppMcpToolsCreateSessionTest {
                 !response.success()
                     && !response.warnings().isEmpty()
                     && response.warnings().stream()
-                        .anyMatch(w -> w.contains("Database") || w.contains("connection")))
+                        .anyMatch(
+                            w ->
+                                w.startsWith("Error creating session:")
+                                    && w.contains("Database connection failed")))
         .verifyComplete();
   }
 
