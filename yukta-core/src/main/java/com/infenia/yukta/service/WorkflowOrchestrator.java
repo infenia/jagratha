@@ -33,6 +33,8 @@ import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
+import com.infenia.yukta.service.orchestrator.StreamBuilder;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
@@ -624,58 +626,26 @@ public class WorkflowOrchestrator {
       if (trigger.isBlocking()) {
         stream = stream.subscribeOn(virtualThreadScheduler);
       }
-      stream =
-          stream
-              .flatMap(
-                  msg ->
-                      Mono.<Message<?>>just(msg)
-                          .timeout(timeout, virtualThreadScheduler)
-                          .onErrorMap(TimeoutException.class, e -> e),
-                  bufferSize)
-              .doOnSubscribe(
-                  s ->
-                      tracker.emitTaskStatusEvent(
-                          execId,
-                          node.nodeId(),
-                          DEFAULT_TASK_ID,
-                          STATUS_RUNNING,
-                          Collections.emptyMap()))
-              .doOnComplete(
-                  () ->
-                      tracker.emitTaskStatusEvent(
-                          execId,
-                          node.nodeId(),
-                          DEFAULT_TASK_ID,
-                          STATUS_SUCCESS,
-                          Collections.emptyMap()))
-              .doOnError(
-                  e -> {
-                    tracker.emitTaskStatusEvent(
-                        execId,
-                        node.nodeId(),
-                        DEFAULT_TASK_ID,
-                        STATUS_FAILURE,
-                        Collections.emptyMap());
-                    controlBusGateway
-                        .emit(
-                            DefaultMessage.create(
-                                    null,
-                                    new ControlError(
-                                        node.nodeId(), execId, "Node Failure", e.getMessage()))
-                                .withSourceNodeId(node.nodeId())
-                                .withControl(true)
-                                .withPriority(10))
-                        .subscribe();
-                  })
-              .contextWrite(
-                  ctx ->
-                      ctx.put(CTX_NODE_ID, node.nodeId())
-                          .put(CTX_PAYLOAD, pld)
-                          .put(CTX_SESSION_ID, sessId)
-                          .put(CTX_WORKFLOW_ID, wfId)
-                          .put(CTX_EXECUTION_ID, execId));
+
+      final ExecutionContextBuilder contextBuilder =
+          new ExecutionContextBuilder()
+              .sessionId(sessId)
+              .workflowId(wfId)
+              .executionId(execId)
+              .nodeId(node.nodeId())
+              .payload(pld);
+
+      Flux<Message<?>> built =
+          new StreamBuilder(node, trigger, timeout, bufferSize, tracker, controlBusGateway)
+              .withSource(stream)
+              .withTimeout()
+              .withTaskTracking(execId, sessId)
+              .withErrorHandling(execId)
+              .build();
+
+      built = contextBuilder.applyContextTo(built);
       strms[index] =
-          applyLoggingAndBroadcasting(execId, node.nodeId(), stream, bufferSize, disps, conns);
+          applyLoggingAndBroadcasting(execId, node.nodeId(), built, bufferSize, disps, conns);
     };
   }
 
@@ -695,58 +665,25 @@ public class WorkflowOrchestrator {
         stream = stream.subscribeOn(virtualThreadScheduler);
       }
 
-      stream =
-          stream
-              .<Message<?>>flatMap(
-                  msg ->
-                      Mono.<Message<?>>just(msg)
-                          .timeout(timeout, virtualThreadScheduler)
-                          .onErrorMap(TimeoutException.class, e -> e),
-                  bufferSize)
-              .doOnSubscribe(
-                  s ->
-                      tracker.emitTaskStatusEvent(
-                          execId,
-                          node.nodeId(),
-                          DEFAULT_TASK_ID,
-                          STATUS_RUNNING,
-                          Collections.emptyMap()))
-              .doOnComplete(
-                  () ->
-                      tracker.emitTaskStatusEvent(
-                          execId,
-                          node.nodeId(),
-                          DEFAULT_TASK_ID,
-                          STATUS_SUCCESS,
-                          Collections.emptyMap()))
-              .contextWrite(
-                  ctx ->
-                      ctx.put(CTX_NODE_ID, node.nodeId())
-                          .put(CTX_PAYLOAD, pld)
-                          .put(CTX_SESSION_ID, sessId)
-                          .put(CTX_WORKFLOW_ID, wfId)
-                          .put(CTX_EXECUTION_ID, execId))
-              .doOnError(
-                  e -> {
-                    tracker.emitTaskStatusEvent(
-                        execId,
-                        node.nodeId(),
-                        DEFAULT_TASK_ID,
-                        STATUS_FAILURE,
-                        Collections.emptyMap());
-                    controlBusGateway
-                        .emit(
-                            DefaultMessage.create(
-                                    null,
-                                    new ControlError(
-                                        node.nodeId(), execId, "Node Failure", e.getMessage()))
-                                .withSourceNodeId(node.nodeId())
-                                .withControl(true)
-                                .withPriority(10))
-                        .subscribe();
-                  });
+      final ExecutionContextBuilder contextBuilder =
+          new ExecutionContextBuilder()
+              .sessionId(sessId)
+              .workflowId(wfId)
+              .executionId(execId)
+              .nodeId(node.nodeId())
+              .payload(pld);
+
+      Flux<Message<?>> built =
+          new StreamBuilder(node, processor, timeout, bufferSize, tracker, controlBusGateway)
+              .withSource(stream)
+              .withTimeout()
+              .withTaskTracking(execId, sessId)
+              .withErrorHandling(execId)
+              .build();
+
+      built = contextBuilder.applyContextTo(built);
       strms[index] =
-          applyLoggingAndBroadcasting(execId, node.nodeId(), stream, bufferSize, disps, conns);
+          applyLoggingAndBroadcasting(execId, node.nodeId(), built, bufferSize, disps, conns);
     };
   }
 
@@ -761,7 +698,7 @@ public class WorkflowOrchestrator {
       final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
       final Flux<Message<?>> inputToTerminal =
           mergedInput
-              .<Message<?>>flatMap(
+              .flatMap(
                   msg ->
                       Mono.<Message<?>>just(msg)
                           .timeout(timeout, virtualThreadScheduler)
@@ -772,6 +709,15 @@ public class WorkflowOrchestrator {
                     final ResultCollector collector = ctx.getOrDefault("resultCollector", null);
                     return collector != null ? flux.doOnNext(collector::add) : flux;
                   });
+
+      final ExecutionContextBuilder contextBuilder =
+          new ExecutionContextBuilder()
+              .sessionId(sessId)
+              .workflowId(wfId)
+              .executionId(execId)
+              .nodeId(node.nodeId())
+              .payload(pld);
+
       Mono<Void> completion = terminal.consume(inputToTerminal, node.config());
       if (terminal.isBlocking()) {
         completion = completion.subscribeOn(virtualThreadScheduler);
@@ -795,13 +741,6 @@ public class WorkflowOrchestrator {
                           DEFAULT_TASK_ID,
                           STATUS_SUCCESS,
                           Collections.emptyMap()))
-              .contextWrite(
-                  ctx ->
-                      ctx.put(CTX_NODE_ID, node.nodeId())
-                          .put(CTX_PAYLOAD, pld)
-                          .put(CTX_SESSION_ID, sessId)
-                          .put(CTX_WORKFLOW_ID, wfId)
-                          .put(CTX_EXECUTION_ID, execId))
               .doOnError(
                   e -> {
                     tracker.emitTaskStatusEvent(
@@ -822,6 +761,8 @@ public class WorkflowOrchestrator {
                         .subscribe();
                   })
               .then();
+
+      completion = contextBuilder.applyContextTo(completion);
       terms.add(completion);
     };
   }
