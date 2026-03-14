@@ -66,7 +66,7 @@ public class ResourceManagementBuilder {
 
   private final Scheduler scheduler;
 
-  @Nullable private List<Disposable> disposables;
+  private List<Disposable> disposables = new ArrayList<>();
 
   @Nullable private List<Mono<Void>> terminals;
 
@@ -95,7 +95,7 @@ public class ResourceManagementBuilder {
   /**
    * Sets the list of disposables to manage.
    *
-   * @param disposableList the list of disposables
+   * @param disposableList the list of disposables, or null to skip setting
    * @return this builder for fluent chaining
    */
   public ResourceManagementBuilder withDisposables(final List<Disposable> disposableList) {
@@ -108,7 +108,7 @@ public class ResourceManagementBuilder {
   /**
    * Sets the list of terminal monos to execute.
    *
-   * @param terminalList the list of terminal monos
+   * @param terminalList the list of terminal monos, or null to skip setting
    * @return this builder for fluent chaining
    */
   public ResourceManagementBuilder withTerminals(final List<Mono<Void>> terminalList) {
@@ -121,7 +121,7 @@ public class ResourceManagementBuilder {
   /**
    * Sets the list of connector runnables to execute on subscription.
    *
-   * @param connectorList the list of runnables
+   * @param connectorList the list of runnables, or null to skip setting
    * @return this builder for fluent chaining
    */
   public ResourceManagementBuilder withConnectors(final List<Runnable> connectorList) {
@@ -240,14 +240,11 @@ public class ResourceManagementBuilder {
    */
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
   private void cleanup(final List<Disposable> resource) {
-    // Dispose all resources
-    if (resource != null) {
-      for (final Disposable disposable : resource) {
-        try {
-          disposable.dispose();
-        } catch (final Exception e) {
-          log.error("Error disposing resource", e);
-        }
+    for (final Disposable disposable : resource) {
+      try {
+        disposable.dispose();
+      } catch (final Exception e) {
+        log.error("Error disposing resource", e);
       }
     }
   }
