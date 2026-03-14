@@ -149,18 +149,7 @@ class PluginInterfaceTest {
 
   @Test
   void testDefaultWorkflowPluginMethods() {
-    WorkflowPlugin plugin =
-        new WorkflowPlugin() {
-          @Override
-          public String getType() {
-            return "test";
-          }
-
-          @Override
-          public PluginCategory getCategory() {
-            return PluginCategory.TRIGGER;
-          }
-        };
+    WorkflowPlugin plugin = new MockWorkflowPlugin();
 
     // Lifecycle methods
     StepVerifier.create(plugin.initialize(Map.of())).verifyComplete();
@@ -279,5 +268,17 @@ class PluginInterfaceTest {
 
     collector.clear();
     assertEquals(0, collector.getResults().size());
+  }
+
+  private static class MockWorkflowPlugin implements WorkflowPlugin {
+    @Override
+    public String getType() {
+      return "test";
+    }
+
+    @Override
+    public PluginCategory getCategory() {
+      return PluginCategory.TRIGGER;
+    }
   }
 }

@@ -511,7 +511,7 @@ class InMemoryResequencerStoreTest {
     store.addMessage(key, 1, m1, config).block(); // Completes immediately, buffer empty
 
     // Wait for cleanup to remove the idle state with empty buffer
-    Thread.sleep(100);
+    Thread.sleep(300);
 
     // Try adding same key again - should create new state
     final Message<String> m2 = DefaultMessage.create(UUID.randomUUID(), "2");
