@@ -1493,6 +1493,7 @@ class WorkflowOrchestratorTest {
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.isBlocking()).thenReturn(false);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
@@ -1502,6 +1503,7 @@ class WorkflowOrchestratorTest {
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.isBlocking()).thenReturn(false);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
