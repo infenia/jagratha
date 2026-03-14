@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,17 +36,25 @@ import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
+import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
+import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
+import com.infenia.yukta.service.orchestrator.StreamBuilder;
 import com.infenia.yukta.service.session.SessionConfigStore;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
+import reactor.util.context.Context;
 
 class WorkflowOrchestratorTest {
 
@@ -831,5 +841,136 @@ class WorkflowOrchestratorTest {
 
     Thread.sleep(200);
     verify(controlBusGateway, atLeastOnce()).emit(any());
+  }
+
+  @Test
+  void testTriggerAssemblerStreamBuilderIntegration() {
+    String sessionId = "sess-stream";
+    UUID traceId = UUID.randomUUID();
+    Message<String> msg = DefaultMessage.create(traceId, "payload");
+
+    WorkflowDefinition.Node triggerNode = new WorkflowDefinition.Node("t", "trigger", Map.of());
+    WorkflowDefinition.Node terminalNode =
+        new WorkflowDefinition.Node("term", "terminal", Map.of());
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "desc", List.of(triggerNode, terminalNode), List.of(new Edge("t", "term")));
+
+    TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.prepare(any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.just(msg));
+
+    TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.prepare(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    String executionId = "exec-stream";
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(
+                    pw -> orchestrator.execute(sessionId, "test-wf", executionId, pw, Map.of())))
+        .verifyComplete();
+
+    verify(trigger).start(any());
+    verify(terminal).consume(any(), any());
+    verify(tracker, atLeastOnce()).emitTaskStatusEvent(any(), any(), any(), any(), any());
+  }
+
+  @Test
+  void testHeartbeatBuilderIntegration() {
+    HeartbeatBuilder heartbeatBuilder =
+        new HeartbeatBuilder(
+            controlBusGateway, Duration.ofMillis(100), Schedulers.boundedElastic());
+    List<Disposable> disposables =
+        heartbeatBuilder
+            .forNodes(List.of("node-1", "node-2"))
+            .withHeartbeatInterval(Duration.ofMillis(100))
+            .build();
+
+    assertNotNull(disposables);
+    assert !disposables.isEmpty();
+    disposables.forEach(Disposable::dispose);
+  }
+
+  @Test
+  void testResourceManagementBuilderIntegration() {
+    when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(60L));
+
+    ResourceManagementBuilder resourceMgr =
+        new ResourceManagementBuilder(tracker, configService, Schedulers.boundedElastic());
+
+    Mono<Void> execution =
+        resourceMgr
+            .withDisposables(new ArrayList<>())
+            .withTerminals(List.of(Mono.empty()))
+            .withConnectors(new ArrayList<>())
+            .withExecutionTimeout("session-001", "exec-001")
+            .build();
+
+    StepVerifier.create(execution).verifyComplete();
+
+    verify(tracker).emitWorkflowStatusEvent("exec-001", "SUCCESS");
+  }
+
+  @Test
+  void testExecutionContextBuilderIntegration() {
+    ExecutionContextBuilder contextBuilder =
+        new ExecutionContextBuilder()
+            .sessionId("session-001")
+            .workflowId("workflow-001")
+            .executionId("exec-001")
+            .nodeId("node-001")
+            .payload(Map.of("data", "test"));
+
+    Context context = contextBuilder.build();
+
+    assertEquals("session-001", context.get(ExecutionContextBuilder.CTX_SESSION_ID));
+    assertEquals("workflow-001", context.get(ExecutionContextBuilder.CTX_WORKFLOW_ID));
+    assertEquals("exec-001", context.get(ExecutionContextBuilder.CTX_EXECUTION_ID));
+    assertEquals("node-001", context.get(ExecutionContextBuilder.CTX_NODE_ID));
+  }
+
+  @Test
+  void testStreamBuilderIntegration() {
+    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
+
+    Node mockNode = mock(Node.class);
+    when(mockNode.nodeId()).thenReturn("test-node");
+
+    WorkflowPlugin mockPlugin = mock(WorkflowPlugin.class);
+    when(mockPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+
+    UUID traceId = UUID.randomUUID();
+    Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(traceId, "test-payload"));
+
+    StreamBuilder builder =
+        new StreamBuilder(
+            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, tracker, controlBusGateway);
+
+    Flux<Message<?>> built =
+        builder
+            .withSource(sourceStream)
+            .withTimeout()
+            .withTaskTracking("exec-001", "session-001")
+            .build();
+
+    StepVerifier.create(built).expectNextCount(1).verifyComplete();
+
+    verify(tracker, atLeastOnce()).emitTaskStatusEvent(any(), any(), any(), any(), any());
   }
 }
