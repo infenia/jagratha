@@ -25,6 +25,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Edge;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
@@ -1508,6 +1512,107 @@ class WorkflowOrchestratorTest {
         .verifyComplete();
 
     assertEquals(1, collector.getResults().size());
+  }
+
+  @Test
+  void testDebugLoggingBranchAppliesReactorLogOperator() {
+    final String sessionId = "sess-debug";
+    final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition("desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.prepare(any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.just(msg));
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.prepare(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    // Set logger to DEBUG level to trigger the debug logging branch
+    final Logger logger = (Logger) LoggerFactory.getLogger(WorkflowOrchestrator.class);
+    final Level originalLevel = logger.getLevel();
+    try {
+      logger.setLevel(Level.DEBUG);
+
+      StepVerifier.create(
+              orchestrator
+                  .prepareWorkflow(def)
+                  .flatMap(pw -> orchestrator.execute(sessionId, "wf", "exec-dbg", pw, Map.of())))
+          .verifyComplete();
+
+      verify(terminal).consume(any(), any());
+    } finally {
+      logger.setLevel(originalLevel);
+    }
+  }
+
+  @Test
+  void testTraceLoggingBranchCallsEmitLogEvent() {
+    final String sessionId = "sess-trace";
+    final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition("desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.prepare(any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.just(msg));
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.prepare(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    // Set logger to TRACE level to trigger the trace logging branch
+    final Logger logger = (Logger) LoggerFactory.getLogger(WorkflowOrchestrator.class);
+    final Level originalLevel = logger.getLevel();
+    try {
+      logger.setLevel(Level.TRACE);
+
+      StepVerifier.create(
+              orchestrator
+                  .prepareWorkflow(def)
+                  .flatMap(pw -> orchestrator.execute(sessionId, "wf", "exec-trc", pw, Map.of())))
+          .verifyComplete();
+
+      // tracker.emitLogEvent should have been called at TRACE level
+      verify(tracker, atLeastOnce()).emitLogEvent(anyString(), anyString());
+    } finally {
+      logger.setLevel(originalLevel);
+    }
   }
 
 }

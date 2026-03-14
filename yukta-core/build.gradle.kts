@@ -101,7 +101,7 @@ coverageConfig {
     exceptions.put("com.infenia.yukta.service.WorkflowValidator", baselineCoverage)
     exceptions.put("com.infenia.yukta.service.ControlBusService", baselineCoverage)
     exceptions.put("com.infenia.yukta.service.DefaultControlBusGateway", lowCoverage)
-    exceptions.put("com.infenia.yukta.service.WorkflowOrchestrator", mapOf("LINE" to 0.9, "BRANCH" to 0.81, "INSTRUCTION" to 0.9, "METHOD" to 0.8))
+    exceptions.put("com.infenia.yukta.service.WorkflowOrchestrator", mapOf("LINE" to 0.9, "BRANCH" to 0.85, "INSTRUCTION" to 0.9, "METHOD" to 0.8))
     exceptions.put("com.infenia.yukta.service.join.InMemoryJoinStore", mapOf("LINE" to 0.9, "INSTRUCTION" to 0.9))
     exceptions.put("com.infenia.yukta.service.join.InMemoryJoinStore*", lowCoverage)
     exceptions.put("com.infenia.yukta.service.join.JoinStore*", baselineCoverage)
