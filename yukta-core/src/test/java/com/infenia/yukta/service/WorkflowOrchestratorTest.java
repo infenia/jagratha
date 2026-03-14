@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,6 +28,8 @@ import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Edge;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
@@ -1786,5 +1789,102 @@ class WorkflowOrchestratorTest {
 
     verify(terminal).isBlocking();
     verify(terminal).consume(any(), any());
+  }
+
+  @Test
+  void testUnknownPluginTypeLogsWarning() {
+    // This test covers the else branch at lines 526-531 in WorkflowOrchestrator
+    // where an unknown plugin type (not instanceof ProcessorPlugin or TerminalPlugin)
+    // logs a warning and creates a no-op assembler.
+    //
+    // Rather than execute a full workflow (which would fail due to missing streams),
+    // we verify the warning log is emitted by checking the logger output.
+    // The unknown plugin satisfies validator (getCategory()==PROCESSOR) but is
+    // not instanceof ProcessorPlugin, triggering the unknown type path.
+
+    final Logger logger = (Logger) LoggerFactory.getLogger(WorkflowOrchestrator.class);
+    final ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+    listAppender.start();
+    logger.addAppender(listAppender);
+    logger.setLevel(Level.WARN);
+
+    final String sessionId = "sess-unknown-warn";
+    final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node unknownNode = new Node("u", "unknown", Map.of());
+    final Node processorNode = new Node("p", "processor", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "desc",
+            List.of(triggerNode, unknownNode, processorNode, termNode),
+            List.of(new Edge("t", "u"), new Edge("u", "p"), new Edge("p", "term")));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.prepare(any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.just(msg));
+    when(trigger.isBlocking()).thenReturn(false);
+
+    // Unknown plugin: plain WorkflowPlugin mock (not instanceof ProcessorPlugin or
+    // TerminalPlugin).
+    // This will hit the else branch at lines 526-531, creating a no-op assembler.
+    final WorkflowPlugin unknownPlugin = mock(WorkflowPlugin.class);
+    when(unknownPlugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(unknownPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(unknownPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(unknownPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(unknownPlugin.initialize(any())).thenReturn(Mono.empty());
+    when(unknownPlugin.prepare(any())).thenReturn(Mono.empty());
+    when(unknownPlugin.shutdown(any())).thenReturn(Mono.empty());
+
+    final ProcessorPlugin processor = mock(ProcessorPlugin.class);
+    when(processor.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processor.validateConfig(any())).thenReturn(Mono.empty());
+    when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(processor.initialize(any())).thenReturn(Mono.empty());
+    when(processor.prepare(any())).thenReturn(Mono.empty());
+    when(processor.process(any(), any())).thenReturn(Flux.just(msg));
+    when(processor.isBlocking()).thenReturn(false);
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.prepare(any())).thenReturn(Mono.empty());
+    when(terminal.shutdown(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
+    when(terminal.isBlocking()).thenReturn(false);
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("unknown")).thenReturn(unknownPlugin);
+    when(registry.get("processor")).thenReturn(processor);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    // Prepare workflow - should log warning for unknown plugin type
+    StepVerifier.create(orchestrator.prepareWorkflow(def))
+        .expectNextMatches(pw -> pw != null)
+        .verifyComplete();
+
+    // Verify the warning was logged
+    final boolean foundWarning =
+        listAppender.list.stream()
+            .anyMatch(
+                e ->
+                    e.getLevel() == Level.WARN
+                        && e.getFormattedMessage().contains("Unknown plugin type"));
+    assertThat(foundWarning).as("Should log warning for unknown plugin type").isTrue();
+
+    logger.detachAppender(listAppender);
+    listAppender.stop();
   }
 }
