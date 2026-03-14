@@ -79,9 +79,45 @@ class MessagingGatewayTest {
     assertEquals("fire", gateway.lastRequest.getPayload());
   }
 
+  @Test
+  void testAbstractMessagingGatewayErrorMapping() {
+    final MockGateway gateway = new MockGateway();
+    gateway.shouldFail = true;
+    final Message<String> request = DefaultMessage.create(UUID.randomUUID(), "fail");
+
+    StepVerifier.create(gateway.sendAndReceive(request))
+        .expectError(com.infenia.yukta.plugin.exception.WorkflowExecutionException.class)
+        .verify();
+  }
+
+  @Test
+  void testAbstractMessagingGatewayResponseMissingCorrelation() {
+    final MockGateway gateway = new MockGateway();
+    final Message<String> response = DefaultMessage.create(UUID.randomUUID(), "pong");
+    // correlationId is null
+    gateway.handleResponse(response);
+    // Should just log and return
+  }
+
+  @Test
+  void testAbstractMessagingGatewayResponseUnknownCorrelation() {
+    final MockGateway gateway = new MockGateway();
+    final Message<String> response =
+        DefaultMessage.create(UUID.randomUUID(), "pong").withCorrelationId("unknown");
+    gateway.handleResponse(response);
+    // Should just log and return
+  }
+
+  @Test
+  void testAbstractMessagingGatewayShutdown() {
+    final MockGateway gateway = new MockGateway();
+    gateway.shutdown();
+  }
+
   private static class MockGateway
       extends AbstractMessagingGateway<String, String, String, String> {
     Message<?> lastRequest;
+    boolean shouldFail;
 
     MockGateway() {
       super(new StringMessageMapper(), new StringMessageMapper());
@@ -89,6 +125,9 @@ class MessagingGatewayTest {
 
     @Override
     protected <T1> Mono<Void> dispatch(Message<T1> message) {
+      if (shouldFail) {
+        return Mono.error(new RuntimeException("dispatch failed"));
+      }
       this.lastRequest = message;
       return Mono.empty();
     }
