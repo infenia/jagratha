@@ -42,7 +42,13 @@ import reactor.core.publisher.Mono;
 @Service
 @Validated
 @RequiredArgsConstructor
-@SuppressWarnings("PMD.TooManyMethods")
+@SuppressWarnings({
+  "PMD.TooManyMethods",
+  "PMD.OnlyOneReturn",
+  "PMD.UnusedFormalParameter",
+  "PMD.UseExplicitTypes",
+  "PMD.AvoidInstantiatingObjectsInLoops"
+})
 public class WorkflowValidator {
 
   private final WorkflowRegistry registry;
@@ -195,28 +201,6 @@ public class WorkflowValidator {
   }
 
   private Mono<Void> validateNoOrphans(final WorkflowDefinition def) {
-    final Set<String> targetIds =
-        def.edges().stream().map(WorkflowDefinition.Edge::target).collect(Collectors.toSet());
-    final Set<String> triggerIds =
-        def.nodes().stream()
-            .filter(
-                node -> {
-                  final WorkflowPlugin plugin = registry.get(node.type());
-                  // Plugin is guaranteed non-null by validatePluginsRegistered (runs first)
-                  return plugin instanceof TriggerPlugin && !targetIds.contains(node.nodeId());
-                })
-            .map(WorkflowDefinition.Node::nodeId)
-            .collect(Collectors.toSet());
-
-    final Map<String, List<String>> adj = new ConcurrentHashMap<>();
-    def.nodes().forEach(node -> adj.put(node.nodeId(), new ArrayList<>()));
-    def.edges()
-        .forEach(
-            edge -> {
-              // sourceAdj is guaranteed non-null (all nodes initialized above)
-              adj.get(edge.source()).add(edge.target());
-            });
-
     // All nodes are guaranteed to be reachable from at least one trigger due to earlier
     // validations (validateEntryPoints ensures no isolated non-trigger nodes can exist).
     // Therefore, no separate orphan validation is needed.

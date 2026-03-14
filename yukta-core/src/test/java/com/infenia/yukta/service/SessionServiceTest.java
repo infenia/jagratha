@@ -16,6 +16,7 @@
 package com.infenia.yukta.service;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.session.SessionConfigData;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.ObjectMapper;
@@ -114,6 +116,45 @@ class SessionServiceTest {
 
     StepVerifier.create(sessionService.getSessionConfig(sessionId))
         .expectNextMatches(m -> "v".equals(m.get("k")))
+        .verifyComplete();
+  }
+
+  @Test
+  void testGetSessionIds() {
+    when(configService.getSessionIds()).thenReturn(Flux.just("s1", "s2"));
+    StepVerifier.create(sessionService.getSessionIds()).expectNext("s1", "s2").verifyComplete();
+  }
+
+  @Test
+  void testParseWorkflowError() throws Exception {
+    String sessionId = "sess-err";
+    ObjectMapper mockMapper = mock(ObjectMapper.class);
+    when(mockMapper.writeValueAsString(any())).thenThrow(new RuntimeException("json fail"));
+
+    SessionService errService = new SessionService(configService, mockMapper, orchestrator);
+
+    WorkflowDefinition workflow = new WorkflowDefinition("desc", List.of(), List.of());
+    Map<String, Object> configMap = Map.of("workflows", Map.of("w1", workflow));
+    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
+
+    StepVerifier.create(errService.getSessionWorkflow(sessionId, "w1")).verifyComplete();
+  }
+
+  @Test
+  void testGetSessionWorkflowNotFoundInMap() {
+    String sessionId = "sess-notfound";
+    WorkflowDefinition fallbackWorkflow = new WorkflowDefinition("fallback", List.of(), List.of());
+
+    Map<String, Object> configMap =
+        Map.of(
+            "workflows", Map.of("other-wf", new WorkflowDefinition("other", List.of(), List.of())));
+
+    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
+    when(configService.getWorkflow(sessionId, "missing-wf"))
+        .thenReturn(Mono.just(fallbackWorkflow));
+
+    StepVerifier.create(sessionService.getSessionWorkflow(sessionId, "missing-wf"))
+        .expectNext(fallbackWorkflow)
         .verifyComplete();
   }
 }

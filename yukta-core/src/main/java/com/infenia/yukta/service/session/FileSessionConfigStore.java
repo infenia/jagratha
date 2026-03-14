@@ -48,7 +48,13 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.TooManyMethods", "PMD.LinguisticNaming"})
+@SuppressWarnings({
+  "PMD.OnlyOneReturn",
+  "PMD.DataClass",
+  "PMD.VariableCanBeInlined",
+  "PMD.UseConcurrentHashMap",
+  "PMD.UseExplicitTypes"
+})
 public class FileSessionConfigStore implements SessionConfigStore {
 
   private final SessionConfigProperties props;

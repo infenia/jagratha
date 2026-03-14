@@ -16,6 +16,8 @@
 package com.infenia.yukta.model.api;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -31,4 +33,11 @@ public record SessionCreationResponse(
     @Schema(description = "The ID of the created session") String sessionId,
     @Schema(description = "List of created workflow IDs") List<String> createdWorkflows,
     @Schema(description = "List of warnings from session creation") List<String> warnings,
-    @Schema(description = "Whether the session creation was successful") boolean success) {}
+    @Schema(description = "Whether the session creation was successful") boolean success) {
+
+  /** Compact constructor that wraps mutable lists with immutable views. */
+  public SessionCreationResponse {
+    createdWorkflows = Collections.unmodifiableList(new ArrayList<>(createdWorkflows));
+    warnings = Collections.unmodifiableList(new ArrayList<>(warnings));
+  }
+}

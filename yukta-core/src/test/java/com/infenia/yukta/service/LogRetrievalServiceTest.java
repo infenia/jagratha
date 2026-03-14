@@ -156,4 +156,113 @@ class LogRetrievalServiceTest {
 
     StepVerifier.create(service.getLogContent(sessionId, "log.txt")).verifyError(IOException.class);
   }
+
+  @Test
+  void testListLogsDuplicateFilesAcrossDirectories() throws IOException {
+    String sessionId = "s1";
+    Path resultsDir = tempDir.resolve("results");
+    Path fileDir = tempDir.resolve("files");
+
+    Files.createDirectories(resultsDir.resolve(sessionId));
+    Files.createDirectories(fileDir.resolve(sessionId));
+
+    Files.createFile(resultsDir.resolve(sessionId).resolve("log1.txt"));
+    Files.createFile(fileDir.resolve(sessionId).resolve("log1.txt"));
+    Files.createFile(fileDir.resolve(sessionId).resolve("log2.txt"));
+
+    when(configService.getResultLogDir(sessionId)).thenReturn(Mono.just(resultsDir.toString()));
+    when(configService.getFileLogDir(sessionId)).thenReturn(Mono.just(fileDir.toString()));
+
+    StepVerifier.create(service.listLogs(sessionId))
+        .assertNext(
+            logs -> {
+              assert logs.size() == 2 : "Expected 2 unique logs, got " + logs.size();
+              assert logs.contains("log1.txt") : "Missing log1.txt";
+              assert logs.contains("log2.txt") : "Missing log2.txt";
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void testListLogsSortedOrder() throws IOException {
+    String sessionId = "s1";
+    Path resultsDir = tempDir.resolve("results");
+
+    Files.createDirectories(resultsDir.resolve(sessionId));
+    Files.createFile(resultsDir.resolve(sessionId).resolve("z-log.txt"));
+    Files.createFile(resultsDir.resolve(sessionId).resolve("a-log.txt"));
+    Files.createFile(resultsDir.resolve(sessionId).resolve("m-log.txt"));
+
+    when(configService.getResultLogDir(sessionId)).thenReturn(Mono.just(resultsDir.toString()));
+    when(configService.getFileLogDir(sessionId)).thenReturn(Mono.just(""));
+
+    StepVerifier.create(service.listLogs(sessionId))
+        .expectNext(List.of("a-log.txt", "m-log.txt", "z-log.txt"))
+        .verifyComplete();
+  }
+
+  @Test
+  void testGetLogContentFoundInResultsDir() throws IOException {
+    String sessionId = "s1";
+    Path resultsDir = tempDir.resolve("results");
+    Path fileDir = tempDir.resolve("files");
+
+    Files.createDirectories(resultsDir.resolve(sessionId));
+    Files.createDirectories(fileDir.resolve(sessionId));
+
+    Path logFile = resultsDir.resolve(sessionId).resolve("log1.txt");
+    Files.writeString(logFile, "results-content");
+
+    when(configService.getResultLogDir(sessionId)).thenReturn(Mono.just(resultsDir.toString()));
+    when(configService.getFileLogDir(sessionId)).thenReturn(Mono.just(fileDir.toString()));
+
+    StepVerifier.create(service.getLogContent(sessionId, "log1.txt"))
+        .expectNext("results-content")
+        .verifyComplete();
+  }
+
+  @Test
+  void testGetLogContentFoundInFileLogDirOnly() throws IOException {
+    String sessionId = "s1";
+    Path resultsDir = tempDir.resolve("results");
+    Path fileDir = tempDir.resolve("files");
+
+    Files.createDirectories(resultsDir.resolve(sessionId));
+    Files.createDirectories(fileDir.resolve(sessionId));
+
+    Path logFile = fileDir.resolve(sessionId).resolve("log2.txt");
+    Files.writeString(logFile, "files-content");
+
+    when(configService.getResultLogDir(sessionId)).thenReturn(Mono.just(resultsDir.toString()));
+    when(configService.getFileLogDir(sessionId)).thenReturn(Mono.just(fileDir.toString()));
+
+    StepVerifier.create(service.getLogContent(sessionId, "log2.txt"))
+        .expectNext("files-content")
+        .verifyComplete();
+  }
+
+  @Test
+  void testGetLogContentEmptyDirStrings() {
+    String sessionId = "s1";
+    when(configService.getResultLogDir(sessionId)).thenReturn(Mono.just(""));
+    when(configService.getFileLogDir(sessionId)).thenReturn(Mono.just(""));
+
+    StepVerifier.create(service.getLogContent(sessionId, "log.txt")).verifyError(IOException.class);
+  }
+
+  @Test
+  void testListLogsOneDirNull() throws IOException {
+    String sessionId = "s1";
+    Path resultsDir = tempDir.resolve("results");
+
+    Files.createDirectories(resultsDir.resolve(sessionId));
+    Files.createFile(resultsDir.resolve(sessionId).resolve("log1.txt"));
+
+    when(configService.getResultLogDir(sessionId)).thenReturn(Mono.just(resultsDir.toString()));
+    when(configService.getFileLogDir(sessionId)).thenReturn(Mono.fromSupplier(() -> null));
+
+    StepVerifier.create(service.listLogs(sessionId))
+        .expectNext(List.of("log1.txt"))
+        .verifyComplete();
+  }
 }

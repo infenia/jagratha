@@ -27,6 +27,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param uptime the system uptime
  */
 @Schema(description = "Record representing system health metrics")
+@SuppressWarnings("PMD.LongVariable")
 public record SystemHealthMetrics(
     @Schema(description = "The thread pool utilization percentage", example = "75.5")
         double threadPoolUtilization,

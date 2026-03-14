@@ -50,7 +50,8 @@ public class LogRetrievalService {
    */
   public Mono<List<String>> listLogs(@SessionId final String sessionId) {
     return Mono.zip(
-            configService.getResultLogDir(sessionId), configService.getFileLogDir(sessionId))
+            configService.getResultLogDir(sessionId).defaultIfEmpty(""),
+            configService.getFileLogDir(sessionId).defaultIfEmpty(""))
         .flatMap(
             tuple ->
                 Mono.fromCallable(
@@ -69,7 +70,7 @@ public class LogRetrievalService {
 
   private void addLogsFromDir(
       final List<String> logFiles, final String baseDir, final String sessionId) {
-    if (baseDir == null || baseDir.isEmpty()) {
+    if (baseDir.isEmpty()) {
       return;
     }
     try {
@@ -101,7 +102,8 @@ public class LogRetrievalService {
 
   private Mono<String> fetchLogContent(final String sessionId, final String fileName) {
     return Mono.zip(
-            configService.getResultLogDir(sessionId), configService.getFileLogDir(sessionId))
+            configService.getResultLogDir(sessionId).defaultIfEmpty(""),
+            configService.getFileLogDir(sessionId).defaultIfEmpty(""))
         .flatMap(
             tuple ->
                 Mono.fromCallable(
@@ -114,7 +116,7 @@ public class LogRetrievalService {
                         logFile = findLogFile(fileLogDir, sessionId, fileName);
                       }
 
-                      if (logFile == null || !Files.exists(logFile)) {
+                      if (logFile == null) {
                         throw new IOException("Log file not found: " + fileName);
                       }
                       return Files.readString(logFile, StandardCharsets.UTF_8);
@@ -122,7 +124,7 @@ public class LogRetrievalService {
   }
 
   private Path findLogFile(final String baseDir, final String sessionId, final String fileName) {
-    if (baseDir != null && !baseDir.isEmpty()) {
+    if (!baseDir.isEmpty()) {
       final Path path = Path.of(baseDir).resolve(sessionId).resolve(fileName);
       if (Files.exists(path)) {
         return path;

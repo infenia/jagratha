@@ -418,45 +418,57 @@ class InMemoryJoinStoreTest {
   }
 
   @Test
-  void testShutdownTimeout() throws Exception {
+  void testShutdownBranches() throws Exception {
     InMemoryJoinStore testStore = new InMemoryJoinStore();
     testStore.init();
 
-    java.lang.reflect.Field field = InMemoryJoinStore.class.getDeclaredField("scheduler");
-    field.setAccessible(true);
-    java.util.concurrent.ScheduledExecutorService scheduler =
-        (java.util.concurrent.ScheduledExecutorService) field.get(testStore);
+    java.lang.reflect.Field schedulerField = InMemoryJoinStore.class.getDeclaredField("scheduler");
+    schedulerField.setAccessible(true);
+    java.util.concurrent.ScheduledExecutorService originalScheduler =
+        (java.util.concurrent.ScheduledExecutorService) schedulerField.get(testStore);
 
     java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
-    scheduler.submit(
+    originalScheduler.submit(
         () -> {
           latch.countDown();
           try {
-            Thread.sleep(10000);
+            Thread.sleep(2000);
           } catch (InterruptedException e) {
             // Expected
           }
         });
 
-    assertTrue(latch.await(2, TimeUnit.SECONDS)); // Ensure task started
+    assertTrue(latch.await(2, TimeUnit.SECONDS));
     testStore.shutdown();
-  }
 
-  @Test
-  void testShutdownInterrupted() throws Exception {
-    InMemoryJoinStore testStore = new InMemoryJoinStore();
-    testStore.init();
+    // Test InterruptedException
+    InMemoryJoinStore interruptStore = new InMemoryJoinStore();
+    interruptStore.init();
 
-    Thread testThread =
+    java.util.concurrent.ScheduledExecutorService interruptScheduler =
+        (java.util.concurrent.ScheduledExecutorService) schedulerField.get(interruptStore);
+
+    java.util.concurrent.CountDownLatch latch2 = new java.util.concurrent.CountDownLatch(1);
+    interruptScheduler.submit(
+        () -> {
+          latch2.countDown();
+          try {
+            Thread.sleep(2000);
+          } catch (InterruptedException e) {
+            // Expected
+          }
+        });
+
+    assertTrue(latch2.await(2, TimeUnit.SECONDS));
+
+    Thread t =
         new Thread(
             () -> {
-              Thread.currentThread().interrupt(); // Set interrupt flag
-              testStore.shutdown();
+              Thread.currentThread().interrupt();
+              interruptStore.shutdown();
             });
-
-    testThread.start();
-    testThread.join();
-    // Verification is implicit as we're covering the catch block
+    t.start();
+    t.join();
   }
 
   @Test
@@ -538,6 +550,35 @@ class InMemoryJoinStoreTest {
         state.getClass().getDeclaredMethod("getExpirationTime");
     getExpirationTime.setAccessible(true);
     assertTrue((long) getExpirationTime.invoke(state) > System.currentTimeMillis());
+  }
+
+  @Test
+  void testShutdownTimeoutBranch() throws Exception {
+    InMemoryJoinStore testStore = new InMemoryJoinStore();
+    testStore.init();
+
+    java.lang.reflect.Field schedulerField = InMemoryJoinStore.class.getDeclaredField("scheduler");
+    schedulerField.setAccessible(true);
+    java.util.concurrent.ScheduledExecutorService originalScheduler =
+        (java.util.concurrent.ScheduledExecutorService) schedulerField.get(testStore);
+
+    // Submit a task that will keep running, preventing graceful shutdown
+    java.util.concurrent.CountDownLatch taskStarted = new java.util.concurrent.CountDownLatch(1);
+    originalScheduler.submit(
+        () -> {
+          taskStarted.countDown();
+          try {
+            Thread.sleep(10000); // Long sleep to ensure timeout
+          } catch (InterruptedException e) {
+            // Expected when shutdownNow is called
+          }
+        });
+
+    // Ensure the task has started
+    assertTrue(taskStarted.await(2, TimeUnit.SECONDS));
+
+    // Now call shutdown - awaitTermination will timeout and trigger shutdownNow()
+    testStore.shutdown();
   }
 
   @Test

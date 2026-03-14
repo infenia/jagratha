@@ -100,6 +100,27 @@ public class WorkflowOrchestrator {
   private static final String CTX_PAYLOAD = "payload";
   private static final String CTX_NODE_ID = "nodeId";
 
+  // Logging key constants
+  private static final String LOG_KEY_SESSION_ID = "sessionId";
+  private static final String LOG_KEY_WORKFLOW_ID = "workflowId";
+  private static final String LOG_KEY_EXECUTION_ID = "executionId";
+  private static final String LOG_KEY_NODE_ID = "nodeId";
+  private static final String LOG_KEY_PLUGIN_TYPE = "pluginType";
+  private static final String LOG_KEY_NUM_NODES = "numNodes";
+  private static final String LOG_KEY_NODE_IDS = "nodeIds";
+  private static final String LOG_KEY_SOURCE = "source";
+  private static final String LOG_KEY_TARGET = "target";
+  private static final String LOG_KEY_PORT = "port";
+  private static final String LOG_KEY_PLUGIN_COUNT = "pluginCount";
+  private static final String LOG_KEY_NODE_CATEGORY = "nodeCategory";
+  private static final String LOG_KEY_PARENT_EDGE_COUNT = "parentEdgeCount";
+  private static final String LOG_KEY_NODE_COUNT = "nodeCount";
+  private static final String LOG_KEY_TIMEOUT_SECONDS = "timeoutSeconds";
+  private static final String LOG_KEY_TERMINAL_COUNT = "terminalCount";
+  private static final String LOG_KEY_HEARTBEAT_INTERVAL = "heartbeatInterval";
+  private static final String LOG_KEY_CONNECTOR_COUNT = "connectorCount";
+  private static final String LOG_KEY_DISPOSABLE_COUNT = "disposableCount";
+
   private final WorkflowRegistry registry;
   private final TaskTrackerService tracker;
   private final WorkflowValidator validator;
@@ -154,6 +175,11 @@ public class WorkflowOrchestrator {
    */
   public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
     final int numNodes = def.nodes().size();
+    log.atDebug()
+        .addKeyValue(LOG_KEY_NUM_NODES, numNodes)
+        .addKeyValue(LOG_KEY_NODE_IDS, def.nodes().stream().map(Node::nodeId).toList())
+        .log("Preparing workflow with {} nodes", numNodes);
+
     final Map<String, List<Node>> adjacencyList = new ConcurrentHashMap<>(numNodes);
     final Map<String, List<Node>> parentsList = new ConcurrentHashMap<>(numNodes);
     final Map<String, WorkflowPlugin> pluginCache = new ConcurrentHashMap<>(numNodes);
@@ -168,6 +194,15 @@ public class WorkflowOrchestrator {
               final WorkflowPlugin plugin = registry.get(node.type());
               if (plugin != null) {
                 pluginCache.put(node.nodeId(), plugin);
+                log.atTrace()
+                    .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                    .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+                    .log("Cached plugin for node");
+              } else {
+                log.atWarn()
+                    .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                    .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+                    .log("Plugin not found for node type");
               }
             });
 
@@ -176,22 +211,39 @@ public class WorkflowOrchestrator {
             edge -> {
               adjacencyList.get(edge.source()).add(nodeMap.get(edge.target()));
               parentsList.get(edge.target()).add(nodeMap.get(edge.source()));
+              log.atTrace()
+                  .addKeyValue(LOG_KEY_SOURCE, edge.source())
+                  .addKeyValue(LOG_KEY_TARGET, edge.target())
+                  .addKeyValue(LOG_KEY_PORT, edge.sourcePort())
+                  .log("Added workflow edge");
             });
 
     return validator
         .validate(def)
+        .doOnError(e -> log.atError().setCause(e).log("Workflow validation failed"))
         .then(
             Flux.fromIterable(def.nodes())
                 .flatMap(
                     node -> {
                       final WorkflowPlugin plugin = pluginCache.get(node.nodeId());
                       if (plugin == null) {
+                        log.atError()
+                            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+                            .log("Plugin not found during initialization");
                         return Mono.error(
                             new IllegalArgumentException("Plugin not found: " + node.type()));
                       }
                       return plugin
                           .initialize(node.config())
-                          .doOnSuccess(v -> controlBusGateway.registerPlugin(node.nodeId(), plugin))
+                          .doOnSuccess(
+                              v -> {
+                                log.atDebug()
+                                    .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                                    .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+                                    .log("Plugin initialized successfully");
+                                controlBusGateway.registerPlugin(node.nodeId(), plugin);
+                              })
                           .then(
                               controlBusGateway.emit(
                                   DefaultMessage.create(null, "Node Online")
@@ -211,22 +263,37 @@ public class WorkflowOrchestrator {
                       def, adjacencyList, parentsList, pluginCache, topologicalOrder, template);
                 }))
         .onErrorResume(
-            e ->
-                Flux.fromIterable(pluginCache.entrySet())
-                    .flatMap(
-                        entry -> {
-                          final String nodeId = entry.getKey();
-                          final WorkflowPlugin plugin = entry.getValue();
+            e -> {
+              log.atError()
+                  .setCause(e)
+                  .addKeyValue(LOG_KEY_PLUGIN_COUNT, pluginCache.size())
+                  .log("Workflow preparation failed, shutting down plugins");
+              return Flux.fromIterable(pluginCache.entrySet())
+                  .flatMap(
+                      entry -> {
+                        final String nodeId = entry.getKey();
+                        final WorkflowPlugin plugin = entry.getValue();
 
-                          controlBusGateway.unregisterPlugin(nodeId);
+                        log.atDebug()
+                            .addKeyValue(LOG_KEY_NODE_ID, nodeId)
+                            .log("Unregistering and shutting down plugin");
+                        controlBusGateway.unregisterPlugin(nodeId);
 
-                          final Node node = nodeMap.get(nodeId);
-                          final Mono<Void> shutdown = plugin.shutdown(node.config());
+                        final Node node = nodeMap.get(nodeId);
+                        final Mono<Void> shutdown = plugin.shutdown(node.config());
 
-                          return (shutdown != null ? shutdown : Mono.<Void>empty())
-                              .onErrorResume(ex -> Mono.empty());
-                        })
-                    .then(Mono.error(e)));
+                        return (shutdown != null ? shutdown : Mono.<Void>empty())
+                            .onErrorResume(
+                                ex -> {
+                                  log.atWarn()
+                                      .setCause(ex)
+                                      .addKeyValue(LOG_KEY_NODE_ID, nodeId)
+                                      .log("Error during plugin shutdown");
+                                  return Mono.empty();
+                                });
+                      })
+                  .then(Mono.error(e));
+            });
   }
 
   /**
@@ -246,9 +313,31 @@ public class WorkflowOrchestrator {
       @NotNull @Valid final PreparedWorkflow prepared,
       @NotEmpty final Map<String, Object> payload) {
 
+    log.atInfo()
+        .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+        .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+        .addKeyValue(LOG_KEY_NODE_COUNT, prepared.topologicalOrder().size())
+        .log("Starting workflow execution");
+
     return prepared
         .template()
         .instantiate(executionId, payload)
+        .doOnSuccess(
+            v ->
+                log.atInfo()
+                    .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+                    .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+                    .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+                    .log("Workflow execution completed successfully"))
+        .doOnError(
+            e ->
+                log.atError()
+                    .setCause(e)
+                    .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+                    .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+                    .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+                    .log("Workflow execution failed"))
         .contextWrite(
             Context.of(
                 CTX_SESSION_ID, sessionId,
@@ -326,6 +415,12 @@ public class WorkflowOrchestrator {
       final String workflowId,
       final List<String> nodeIds) {
 
+    log.atDebug()
+        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+        .addKeyValue(LOG_KEY_NODE_COUNT, nodeCount)
+        .addKeyValue(LOG_KEY_NODE_IDS, nodeIds)
+        .log("Executing workflow template with {} nodes", nodeCount);
+
     @SuppressWarnings("unchecked")
     final Flux<Message<?>>[] streams = new Flux[nodeCount];
     final List<Mono<Void>> terminals = new ArrayList<>(nodeCount);
@@ -337,12 +432,30 @@ public class WorkflowOrchestrator {
           executionId, sessionId, workflowId, payload, streams, terminals, disposables, connectors);
     }
 
+    log.atTrace()
+        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+        .addKeyValue(LOG_KEY_TERMINAL_COUNT, terminals.size())
+        .log("Node assembly complete");
+
     // Add Heartbeat and Statistics emission
+    log.atDebug()
+        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+        .addKeyValue(LOG_KEY_NODE_COUNT, nodeIds.size())
+        .addKeyValue(LOG_KEY_HEARTBEAT_INTERVAL, heartbeatInterval.toMillis())
+        .log("Starting heartbeat and statistics emission for {} nodes", nodeIds.size());
+
     for (final String nodeId : nodeIds) {
       final long startTime = System.currentTimeMillis();
 
       disposables.add(
           Flux.interval(heartbeatInterval, virtualThreadScheduler)
+              .doOnError(
+                  e ->
+                      log.atWarn()
+                          .setCause(e)
+                          .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+                          .addKeyValue(LOG_KEY_NODE_ID, nodeId)
+                          .log("Heartbeat emission error"))
               .flatMap(
                   tick ->
                       controlBusGateway.emit(
@@ -357,6 +470,13 @@ public class WorkflowOrchestrator {
       // Simple statistics emission
       disposables.add(
           Flux.interval(heartbeatInterval.multipliedBy(2), virtualThreadScheduler)
+              .doOnError(
+                  e ->
+                      log.atWarn()
+                          .setCause(e)
+                          .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+                          .addKeyValue(LOG_KEY_NODE_ID, nodeId)
+                          .log("Statistics emission error"))
               .flatMap(
                   tick ->
                       controlBusGateway.emit(
@@ -374,6 +494,11 @@ public class WorkflowOrchestrator {
         d ->
             timeoutMono.flatMap(
                 wfTimeout -> {
+                  log.atDebug()
+                      .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+                      .addKeyValue(LOG_KEY_TIMEOUT_SECONDS, wfTimeout)
+                      .log("Configuring workflow timeout: {} seconds", wfTimeout);
+
                   Mono<Void> terminalMono = Mono.whenDelayError(terminals);
                   if (wfTimeout > 0) {
                     terminalMono =
@@ -382,19 +507,36 @@ public class WorkflowOrchestrator {
                   return terminalMono
                       .doOnSubscribe(
                           s -> {
+                            log.atTrace()
+                                .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+                                .addKeyValue(LOG_KEY_CONNECTOR_COUNT, connectors.size())
+                                .log("Connecting upstreams to sinks");
                             for (int i = connectors.size() - 1; i >= 0; i--) {
                               connectors.get(i).run();
                             }
                           })
                       .doOnSuccess(
-                          v -> tracker.emitWorkflowStatusEvent(executionId, STATUS_SUCCESS))
+                          v -> {
+                            log.atInfo()
+                                .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+                                .log("All workflow terminals completed successfully");
+                            tracker.emitWorkflowStatusEvent(executionId, STATUS_SUCCESS);
+                          })
                       .onErrorResume(
                           e -> {
+                            log.atError()
+                                .setCause(e)
+                                .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+                                .log("Workflow terminal execution failed");
                             tracker.emitWorkflowStatusEvent(executionId, STATUS_ERROR);
                             return Mono.error(e);
                           });
                 }),
         d -> {
+          log.atTrace()
+              .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+              .addKeyValue(LOG_KEY_DISPOSABLE_COUNT, d.size())
+              .log("Disposing {} resources", d.size());
           for (final Disposable disposable : d) {
             disposable.dispose();
           }
@@ -427,6 +569,11 @@ public class WorkflowOrchestrator {
     final NodeAssembler result;
     if (plugin instanceof TriggerPlugin trigger
         && (plugin.getCategory() == PluginCategory.TRIGGER || !hasParents)) {
+      log.atTrace()
+          .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+          .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+          .addKeyValue(LOG_KEY_NODE_CATEGORY, "TRIGGER")
+          .log("Creating trigger node assembler");
       result = createTriggerAssembler(node, trigger, nodeTimeout, nodeIndex, bufferSize);
     } else {
       final ParentEdgeInfo[] parentEdges =
@@ -436,12 +583,28 @@ public class WorkflowOrchestrator {
               .toArray(ParentEdgeInfo[]::new);
 
       if (plugin instanceof ProcessorPlugin processor) {
+        log.atTrace()
+            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+            .addKeyValue(LOG_KEY_NODE_CATEGORY, "PROCESSOR")
+            .addKeyValue(LOG_KEY_PARENT_EDGE_COUNT, parentEdges.length)
+            .log("Creating processor node assembler");
         result =
             createProcessorAssembler(
                 node, processor, nodeTimeout, nodeIndex, bufferSize, parentEdges);
       } else if (plugin instanceof TerminalPlugin terminal) {
+        log.atTrace()
+            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+            .addKeyValue(LOG_KEY_NODE_CATEGORY, "TERMINAL")
+            .addKeyValue(LOG_KEY_PARENT_EDGE_COUNT, parentEdges.length)
+            .log("Creating terminal node assembler");
         result = createTerminalAssembler(node, terminal, nodeTimeout, parentEdges);
       } else {
+        log.atWarn()
+            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+            .log("Unknown plugin type, creating no-op assembler");
         result = (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {};
       }
     }

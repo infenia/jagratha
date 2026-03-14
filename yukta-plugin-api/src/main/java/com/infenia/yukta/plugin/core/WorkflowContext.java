@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.plugin.core;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -24,6 +25,22 @@ import java.util.List;
  */
 public record WorkflowContext(
     String nodeId, List<WorkflowEdge> outgoingEdges, List<WorkflowEdge> incomingEdges) {
+
+  /**
+   * Compact constructor that wraps mutable lists with immutable views.
+   *
+   * @param nodeId the node ID
+   * @param outgoingEdges the outgoing edges (will be wrapped as immutable)
+   * @param incomingEdges the incoming edges (will be wrapped as immutable)
+   */
+  public WorkflowContext(
+      final String nodeId,
+      final List<WorkflowEdge> outgoingEdges,
+      final List<WorkflowEdge> incomingEdges) {
+    this.nodeId = nodeId;
+    this.outgoingEdges = Collections.unmodifiableList(outgoingEdges);
+    this.incomingEdges = Collections.unmodifiableList(incomingEdges);
+  }
 
   /**
    * Represents a single edge in the workflow graph.

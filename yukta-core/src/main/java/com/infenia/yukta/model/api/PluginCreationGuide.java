@@ -30,6 +30,7 @@ import java.util.Map;
  * @param deploymentGuide deployment guide
  */
 @Schema(description = "Comprehensive guide for creating Yukta plugins")
+@SuppressWarnings("PMD.LongVariable")
 public record PluginCreationGuide(
     @Schema(description = "Overview of plugin architecture") String architectureOverview,
     @Schema(description = "Template code for each plugin type") Map<String, String> templateCode,

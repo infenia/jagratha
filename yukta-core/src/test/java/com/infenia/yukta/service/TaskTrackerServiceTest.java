@@ -2024,4 +2024,41 @@ class TaskTrackerServiceTest {
       }
     }
   }
+
+  @Test
+  void testWorkflowStateBranchesExhaustive() throws Exception {
+    String sessionId = "sess-branches";
+    String workflowId = "wf-branches";
+    String executionId = "exec-branches";
+    List<String> nodes = List.of("node1");
+
+    StepVerifier.create(tracker.startWorkflow(executionId, sessionId, workflowId, nodes))
+        .verifyComplete();
+
+    // 1. status == "RUNNING", current != null (already set)
+    tracker.emitTaskStatusEvent(executionId, "node1", "mod", "RUNNING", Map.of());
+    Thread.sleep(100);
+    java.time.LocalDateTime firstStart =
+        tracker.getProgress(sessionId, executionId).tasks().get(0).startTime();
+    tracker.emitTaskStatusEvent(executionId, "node1", "mod", "RUNNING", Map.of());
+    Thread.sleep(100);
+    assertEquals(
+        firstStart, tracker.getProgress(sessionId, executionId).tasks().get(0).startTime());
+
+    // 2. Terminal status, current != null (already terminal)
+    tracker.emitTaskStatusEvent(executionId, "node1", "mod", "SUCCESS", Map.of());
+    Thread.sleep(100);
+    java.time.LocalDateTime firstEnd =
+        tracker.getProgress(sessionId, executionId).tasks().get(0).endTime();
+    tracker.emitTaskStatusEvent(executionId, "node1", "mod", "FAILURE", Map.of());
+    Thread.sleep(100);
+    assertEquals(firstEnd, tracker.getProgress(sessionId, executionId).tasks().get(0).endTime());
+  }
+
+  @Test
+  void testEventHandlerErrorLogging() throws Exception {
+    testInitTaskStatusErrorHandler();
+    testInitWorkflowStatusErrorHandler();
+    testInitLogErrorHandler();
+  }
 }

@@ -660,4 +660,176 @@ class WorkflowOrchestratorTest {
     verify(processor).process(any(), any());
     verify(terminal, atLeastOnce()).consume(any(), any());
   }
+
+  @Test
+  void testPrepareWorkflowErrorCleanup() {
+    WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "trigger", Map.of());
+    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(node), List.of());
+
+    TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    // Force error during sort or preparation
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(configService.getWorkflow(any(), any()))
+        .thenReturn(Mono.error(new RuntimeException("fail")));
+
+    StepVerifier.create(orchestrator.prepareWorkflow(def)).expectError().verify();
+
+    verify(controlBusGateway).unregisterPlugin("n1");
+  }
+
+  @Test
+  void testExecuteWithTimeout() {
+    String sessionId = "sess-timeout";
+    when(configService.getExecutionTimeout(sessionId)).thenReturn(Mono.just(1L));
+
+    WorkflowDefinition.Node t = new WorkflowDefinition.Node("t", "trigger", Map.of());
+    WorkflowDefinition.Node term = new WorkflowDefinition.Node("term", "terminal", Map.of());
+    WorkflowDefinition def =
+        new WorkflowDefinition("desc", List.of(t, term), List.of(new Edge("t", "term")));
+
+    TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.prepare(any())).thenReturn(Mono.empty());
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.never());
+
+    TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.prepare(any())).thenReturn(Mono.empty());
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any())).thenReturn(Mono.never());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(pw -> orchestrator.execute(sessionId, "wf", "exec-t", pw, Map.of())))
+        .verifyError(java.util.concurrent.TimeoutException.class);
+
+    verify(tracker).emitWorkflowStatusEvent(eq("exec-t"), eq("ERROR"));
+  }
+
+  @Test
+  void testExecuteWithNoTimeout() {
+    String sessionId = "sess-no-timeout";
+    when(configService.getExecutionTimeout(sessionId)).thenReturn(Mono.just(0L));
+
+    WorkflowDefinition.Node t = new Node("t", "trigger", Map.of());
+    WorkflowDefinition.Node term = new Node("term", "terminal", Map.of());
+    WorkflowDefinition def =
+        new WorkflowDefinition("d", List.of(t, term), List.of(new Edge("t", "term")));
+
+    TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.prepare(any())).thenReturn(Mono.empty());
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.empty());
+
+    TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.prepare(any())).thenReturn(Mono.empty());
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any())).thenReturn(Mono.empty());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(pw -> orchestrator.execute(sessionId, "wf", "exec-nt", pw, Map.of())))
+        .verifyComplete();
+  }
+
+  @Test
+  void testBufferSizeAndTimeoutConfig() {
+    WorkflowDefinition.Node node =
+        new WorkflowDefinition.Node(
+            "n1", "trigger", Map.of("bufferSize", 500, "timeoutSeconds", 10));
+    WorkflowDefinition.Node terminalNode = new WorkflowDefinition.Node("n2", "terminal", Map.of());
+    WorkflowDefinition def =
+        new WorkflowDefinition("desc", List.of(node, terminalNode), List.of(new Edge("n1", "n2")));
+
+    TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.prepare(any())).thenReturn(Mono.empty());
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.empty());
+    when(registry.get("trigger")).thenReturn(trigger);
+
+    TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.prepare(any())).thenReturn(Mono.empty());
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    StepVerifier.create(orchestrator.prepareWorkflow(def)).expectNextCount(1).verifyComplete();
+  }
+
+  @Test
+  void testHeartbeatAndStatsEmission() throws Exception {
+    String sessionId = "sess-hb";
+    when(configService.getExecutionTimeout(sessionId)).thenReturn(Mono.just(1L));
+
+    WorkflowDefinition.Node t = new Node("t", "trigger", Map.of());
+    WorkflowDefinition.Node term = new Node("term", "terminal", Map.of());
+    WorkflowDefinition def =
+        new WorkflowDefinition("d", List.of(t, term), List.of(new Edge("t", "term")));
+
+    TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.prepare(any())).thenReturn(Mono.empty());
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.empty());
+
+    TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.prepare(any())).thenReturn(Mono.empty());
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any())).thenReturn(Mono.empty());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    WorkflowOrchestrator fastOrchestrator =
+        new WorkflowOrchestrator(
+            registry,
+            tracker,
+            validator,
+            new TopologicalSortService(),
+            configService,
+            null,
+            controlBusGateway,
+            java.time.Duration.ofMillis(10),
+            Schedulers.parallel());
+
+    StepVerifier.create(
+            fastOrchestrator
+                .prepareWorkflow(def)
+                .flatMap(pw -> fastOrchestrator.execute(sessionId, "wf", "exec-hb", pw, Map.of())))
+        .verifyComplete();
+
+    Thread.sleep(200);
+    verify(controlBusGateway, atLeastOnce()).emit(any());
+  }
 }

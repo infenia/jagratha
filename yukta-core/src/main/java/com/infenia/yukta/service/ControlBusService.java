@@ -72,13 +72,13 @@ public class ControlBusService {
     this.batchSize = batchSize;
     this.batchTimeout = Duration.ofMillis(batchTimeoutMs);
     this.bufferSize = Math.max(bufferSize, Queues.SMALL_BUFFER_SIZE);
-    this.handlers = handlers;
+    this.handlers = List.copyOf(handlers);
   }
 
   /** Initialize the control sink and background event consumer. */
   @PostConstruct
   public void init() {
-    if (bufferSize > 0 && bufferSize != 256) {
+    if (bufferSize != Queues.SMALL_BUFFER_SIZE) {
       controlSink = Sinks.many().multicast().onBackpressureBuffer(bufferSize, false);
     }
 
@@ -103,7 +103,7 @@ public class ControlBusService {
    * @param signal the control signal message
    * @return a Mono that completes when the signal is emitted
    */
-  @SuppressWarnings("PMD.AvoidCatchingGenericException")
+  @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.GuardLogStatement"})
   public Mono<Void> emit(final Message<?> signal) {
     return Mono.create(
         sink -> {

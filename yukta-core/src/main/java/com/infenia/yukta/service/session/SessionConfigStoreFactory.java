@@ -16,6 +16,7 @@
 package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.config.SessionConfigProperties;
+import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -29,8 +30,12 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class SessionConfigStoreFactory {
 
+  @SuppressWarnings("EI_EXPOSE_REP2")
   private final InMemorySessionConfigStore inMemoryStore;
+
   private final FileSessionConfigStore fileStore;
+
+  @SuppressWarnings("EI_EXPOSE_REP2")
   private final SessionConfigProperties props;
 
   /**

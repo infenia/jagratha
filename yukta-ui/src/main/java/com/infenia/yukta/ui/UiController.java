@@ -46,6 +46,8 @@ import reactor.core.scheduler.Schedulers;
 @RequiredArgsConstructor
 public class UiController {
 
+  private static final String SESSION_ID_KEY = "sessionId";
+
   private final SessionService sessionService;
   private final LogRetrievalService retrievalService;
   private final TaskTrackerService tracker;
@@ -71,7 +73,7 @@ public class UiController {
                     .map(
                         config -> {
                           final Map<String, Object> map = new ConcurrentHashMap<>(config);
-                          map.put("sessionId", id);
+                          map.put(SESSION_ID_KEY, id);
                           return map;
                         }))
         .collectList()
@@ -106,7 +108,7 @@ public class UiController {
                     .map(
                         config -> {
                           final Map<String, Object> map = new ConcurrentHashMap<>(config);
-                          map.put("sessionId", id);
+                          map.put(SESSION_ID_KEY, id);
                           return map;
                         }))
         .collectList()
