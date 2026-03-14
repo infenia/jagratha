@@ -27,8 +27,6 @@ import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Edge;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
@@ -53,6 +51,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -1522,7 +1521,8 @@ class WorkflowOrchestratorTest {
     final Node triggerNode = new Node("t", "trigger", Map.of());
     final Node termNode = new Node("term", "terminal", Map.of());
     final WorkflowDefinition def =
-        new WorkflowDefinition("desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+        new WorkflowDefinition(
+            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
@@ -1572,7 +1572,8 @@ class WorkflowOrchestratorTest {
     final Node triggerNode = new Node("t", "trigger", Map.of());
     final Node termNode = new Node("term", "terminal", Map.of());
     final WorkflowDefinition def =
-        new WorkflowDefinition("desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+        new WorkflowDefinition(
+            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
@@ -1615,4 +1616,156 @@ class WorkflowOrchestratorTest {
     }
   }
 
+  @Test
+  void testBlockingTriggerSubscribesOnVirtualThreadScheduler() {
+    final String sessionId = "sess-blocking-trigger";
+    final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.prepare(any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.just(msg));
+    when(trigger.isBlocking()).thenReturn(true);
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.prepare(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
+    when(terminal.isBlocking()).thenReturn(false);
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(
+                    pw -> orchestrator.execute(sessionId, "wf", "exec-block-trig", pw, Map.of())))
+        .verifyComplete();
+
+    verify(trigger).isBlocking();
+    verify(terminal).consume(any(), any());
+  }
+
+  @Test
+  void testBlockingProcessorSubscribesOnVirtualThreadScheduler() {
+    final String sessionId = "sess-blocking-processor";
+    final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node procNode = new Node("p", "processor", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "desc",
+            List.of(triggerNode, procNode, termNode),
+            List.of(new Edge("t", "p"), new Edge("p", "term")));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.prepare(any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.just(msg));
+    when(trigger.isBlocking()).thenReturn(false);
+
+    final ProcessorPlugin processor = mock(ProcessorPlugin.class);
+    when(processor.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processor.validateConfig(any())).thenReturn(Mono.empty());
+    when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(processor.initialize(any())).thenReturn(Mono.empty());
+    when(processor.prepare(any())).thenReturn(Mono.empty());
+    when(processor.process(any(), any())).thenReturn(Flux.just(msg));
+    when(processor.isBlocking()).thenReturn(true);
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.prepare(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
+    when(terminal.isBlocking()).thenReturn(false);
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("processor")).thenReturn(processor);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(
+                    pw -> orchestrator.execute(sessionId, "wf", "exec-block-proc", pw, Map.of())))
+        .verifyComplete();
+
+    verify(processor).isBlocking();
+    verify(processor).process(any(), any());
+    verify(terminal).consume(any(), any());
+  }
+
+  @Test
+  void testBlockingTerminalSubscribesOnVirtualThreadScheduler() {
+    final String sessionId = "sess-blocking-terminal";
+    final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.prepare(any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.just(msg));
+    when(trigger.isBlocking()).thenReturn(false);
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.prepare(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
+    when(terminal.isBlocking()).thenReturn(true);
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(
+                    pw -> orchestrator.execute(sessionId, "wf", "exec-block-term", pw, Map.of())))
+        .verifyComplete();
+
+    verify(terminal).isBlocking();
+    verify(terminal).consume(any(), any());
+  }
 }
