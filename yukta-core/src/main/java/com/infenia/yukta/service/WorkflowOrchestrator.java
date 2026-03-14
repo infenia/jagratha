@@ -27,13 +27,13 @@ import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlError;
-import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
-import com.infenia.yukta.plugin.message.control.ControlStatistics;
 import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
+import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
+import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
 import com.infenia.yukta.service.orchestrator.StreamBuilder;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.SessionId;
@@ -406,6 +406,7 @@ public class WorkflowOrchestrator {
    * @param assemblers the node assemblers
    * @param sessionId the session ID
    * @param workflowId the workflow ID
+   * @param nodeIds the list of node IDs
    * @return a Mono that completes when execution is finished
    */
   private Mono<Void> executeTemplate(
@@ -439,110 +440,30 @@ public class WorkflowOrchestrator {
         .addKeyValue(LOG_KEY_TERMINAL_COUNT, terminals.size())
         .log("Node assembly complete");
 
-    // Add Heartbeat and Statistics emission
+    // Setup heartbeats and statistics
     log.atDebug()
         .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
         .addKeyValue(LOG_KEY_NODE_COUNT, nodeIds.size())
         .addKeyValue(LOG_KEY_HEARTBEAT_INTERVAL, heartbeatInterval.toMillis())
         .log("Starting heartbeat and statistics emission for {} nodes", nodeIds.size());
 
-    for (final String nodeId : nodeIds) {
-      final long startTime = System.currentTimeMillis();
+    final HeartbeatBuilder heartbeatBuilder =
+        new HeartbeatBuilder(controlBusGateway, heartbeatInterval, virtualThreadScheduler);
+    final List<Disposable> heartbeatDisposables =
+        heartbeatBuilder
+            .forNodes(nodeIds)
+            .withHeartbeatInterval(heartbeatInterval)
+            .withStatisticsInterval(heartbeatInterval.multipliedBy(2))
+            .build();
+    disposables.addAll(heartbeatDisposables);
 
-      disposables.add(
-          Flux.interval(heartbeatInterval, virtualThreadScheduler)
-              .doOnError(
-                  e ->
-                      log.atWarn()
-                          .setCause(e)
-                          .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                          .addKeyValue(LOG_KEY_NODE_ID, nodeId)
-                          .log("Heartbeat emission error"))
-              .flatMap(
-                  tick ->
-                      controlBusGateway.emit(
-                          DefaultMessage.create(
-                                  null,
-                                  new ControlHeartbeat(
-                                      nodeId, System.currentTimeMillis() - startTime))
-                              .withSourceNodeId(nodeId)
-                              .withControl(true)))
-              .subscribe());
-
-      // Simple statistics emission
-      disposables.add(
-          Flux.interval(heartbeatInterval.multipliedBy(2), virtualThreadScheduler)
-              .doOnError(
-                  e ->
-                      log.atWarn()
-                          .setCause(e)
-                          .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                          .addKeyValue(LOG_KEY_NODE_ID, nodeId)
-                          .log("Statistics emission error"))
-              .flatMap(
-                  tick ->
-                      controlBusGateway.emit(
-                          DefaultMessage.create(null, new ControlStatistics(nodeId, 0.0, 0.0))
-                              .withSourceNodeId(nodeId)
-                              .withControl(true)))
-              .subscribe());
-    }
-
-    final Mono<Long> timeoutMono =
-        configService.getExecutionTimeout(sessionId).defaultIfEmpty(GLOBAL_TIMEOUT);
-
-    return Mono.using(
-        () -> disposables,
-        d ->
-            timeoutMono.flatMap(
-                wfTimeout -> {
-                  log.atDebug()
-                      .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                      .addKeyValue(LOG_KEY_TIMEOUT_SECONDS, wfTimeout)
-                      .log("Configuring workflow timeout: {} seconds", wfTimeout);
-
-                  Mono<Void> terminalMono = Mono.whenDelayError(terminals);
-                  if (wfTimeout > 0) {
-                    terminalMono =
-                        terminalMono.timeout(Duration.ofSeconds(wfTimeout), virtualThreadScheduler);
-                  }
-                  return terminalMono
-                      .doOnSubscribe(
-                          s -> {
-                            log.atTrace()
-                                .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                                .addKeyValue(LOG_KEY_CONNECTOR_COUNT, connectors.size())
-                                .log("Connecting upstreams to sinks");
-                            for (int i = connectors.size() - 1; i >= 0; i--) {
-                              connectors.get(i).run();
-                            }
-                          })
-                      .doOnSuccess(
-                          v -> {
-                            log.atInfo()
-                                .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                                .log("All workflow terminals completed successfully");
-                            tracker.emitWorkflowStatusEvent(executionId, STATUS_SUCCESS);
-                          })
-                      .onErrorResume(
-                          e -> {
-                            log.atError()
-                                .setCause(e)
-                                .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                                .log("Workflow terminal execution failed");
-                            tracker.emitWorkflowStatusEvent(executionId, STATUS_ERROR);
-                            return Mono.error(e);
-                          });
-                }),
-        d -> {
-          log.atTrace()
-              .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-              .addKeyValue(LOG_KEY_DISPOSABLE_COUNT, d.size())
-              .log("Disposing {} resources", d.size());
-          for (final Disposable disposable : d) {
-            disposable.dispose();
-          }
-        });
+    // Execute with resource management
+    return new ResourceManagementBuilder(tracker, configService, virtualThreadScheduler)
+        .withDisposables(disposables)
+        .withTerminals(terminals)
+        .withConnectors(connectors)
+        .withExecutionTimeout(sessionId, executionId)
+        .build();
   }
 
   /**
