@@ -43,6 +43,7 @@ import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
 import com.infenia.yukta.service.orchestrator.StreamBuilder;
 import com.infenia.yukta.service.session.SessionConfigStore;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -1236,6 +1237,22 @@ class WorkflowOrchestratorTest {
                 .prepareWorkflow(def)
                 .flatMap(pw -> orchestrator.execute(sessionId, "wf", "exec-nd", pw, Map.of())))
         .verifyComplete();
+  }
+
+  @Test
+  void testTimeoutFallsToConstantWhenPluginIsNull() throws Exception {
+    final Node node = new Node("n1", "test", Map.of());
+    final Duration result = invokeGetNodeTimeout(node, null);
+    assertEquals(Duration.ofSeconds(30), result);
+  }
+
+  private Duration invokeGetNodeTimeout(final Node node, final WorkflowPlugin plugin)
+      throws Exception {
+    final Method method =
+        WorkflowOrchestrator.class.getDeclaredMethod(
+            "getNodeTimeout", Node.class, WorkflowPlugin.class);
+    method.setAccessible(true);
+    return (Duration) method.invoke(orchestrator, node, plugin);
   }
 
   @Test
