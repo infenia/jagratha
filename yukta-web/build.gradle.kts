@@ -14,51 +14,47 @@
  * limitations under the License.
  */
 plugins {
+    `java-library`
     id("com.infenia.yukta.java-conventions")
     id("com.infenia.yukta.quality-conventions")
     id("com.infenia.yukta.jacoco-conventions")
-    alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
-    alias(libs.plugins.graalvm.buildtools.native)
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:${libs.versions.springBoot.get()}")
+    }
 }
 
 dependencies {
-    implementation(project(":yukta-core"))
-    implementation(project(":yukta-web"))
-    implementation(project(":yukta-mcp"))
-    implementation(project(":yukta-ui"))
-    implementation(project(":plugins:processors:internal:core"))
-    implementation(project(":plugins:triggers:api-trigger"))
-    implementation(project(":plugins:triggers:constant-source"))
-    implementation(project(":plugins:terminals:console-terminal"))
+    api(project(":yukta-core"))
 
     implementation(libs.spring.boot.starter.webflux)
     implementation(libs.spring.boot.starter.validation)
-    implementation(libs.spring.boot.starter.actuator)
-
-    developmentOnly(libs.spring.boot.devtools)
-    developmentOnly(libs.spring.boot.docker.compose)
+    implementation(libs.springdoc.openapi)
 
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
     annotationProcessor(libs.spring.boot.configuration.processor)
 
-    testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.boot.starter.webflux.test)
     testImplementation(libs.spring.boot.starter.validation.test)
-    testImplementation(libs.spring.boot.starter.actuator.test)
     testImplementation(libs.reactor.test)
 }
 
-graalvmNative {
-    binaries {
-        named("main") {
-            imageName.set("yukta")
-            mainClass.set("com.infenia.yukta.YuktaApplication")
-            buildArgs.add("--no-fallback")
+coverageConfig {
+    val baselineCoverage = mapOf(
+        "LINE" to 0.8,
+        "BRANCH" to 0.5,
+        "CLASS" to 0.8,
+        "INSTRUCTION" to 0.8,
+        "METHOD" to 0.8
+    )
 
-            // 🔥 Force prod profile inside native image
-            buildArgs.add("-Dspring.profiles.active=prod")
-        }
-    }
+    exceptions.put("com.infenia.yukta.controller.SessionController", baselineCoverage)
+    exceptions.put("com.infenia.yukta.controller.ConfigController", baselineCoverage)
+    exceptions.put("com.infenia.yukta.controller.AppController", baselineCoverage)
+    exceptions.put("com.infenia.yukta.controller.PluginController", baselineCoverage)
+    exceptions.put("com.infenia.yukta.controller.ControlBusController", baselineCoverage)
 }
