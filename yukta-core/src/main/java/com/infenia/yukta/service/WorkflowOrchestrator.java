@@ -557,10 +557,10 @@ public class WorkflowOrchestrator {
               .payload(pld);
 
       Flux<Message<?>> built =
-          new StreamBuilder(node, trigger, timeout, bufferSize, tracker, controlBusGateway)
+          new StreamBuilder(node, timeout, tracker, controlBusGateway)
               .withSource(stream)
               .withTimeout()
-              .withTaskTracking(execId, sessId)
+              .withTaskTracking(execId)
               .withErrorHandling(execId)
               .build();
 
@@ -595,10 +595,10 @@ public class WorkflowOrchestrator {
               .payload(pld);
 
       Flux<Message<?>> built =
-          new StreamBuilder(node, processor, timeout, bufferSize, tracker, controlBusGateway)
+          new StreamBuilder(node, timeout, tracker, controlBusGateway)
               .withSource(stream)
               .withTimeout()
-              .withTaskTracking(execId, sessId)
+              .withTaskTracking(execId)
               .withErrorHandling(execId)
               .build();
 

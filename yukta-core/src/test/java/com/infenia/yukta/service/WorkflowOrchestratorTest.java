@@ -959,15 +959,10 @@ class WorkflowOrchestratorTest {
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(traceId, "test-payload"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, tracker, controlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), tracker, controlBusGateway);
 
     Flux<Message<?>> built =
-        builder
-            .withSource(sourceStream)
-            .withTimeout()
-            .withTaskTracking("exec-001", "session-001")
-            .build();
+        builder.withSource(sourceStream).withTimeout().withTaskTracking("exec-001").build();
 
     StepVerifier.create(built).expectNextCount(1).verifyComplete();
 

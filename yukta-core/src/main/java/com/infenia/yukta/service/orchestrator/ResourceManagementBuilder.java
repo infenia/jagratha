@@ -22,7 +22,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -39,8 +39,8 @@ import reactor.core.scheduler.Scheduler;
  *
  * <pre>{@code
  * ResourceManagementBuilder builder = new ResourceManagementBuilder(
- *     taskTrackerService,
- *     sessionConfigStore,
+ *     tracker,
+ *     configStore,
  *     Schedulers.boundedElastic());
  *
  * Mono<Void> execution = builder
@@ -59,12 +59,10 @@ public class ResourceManagementBuilder {
   private static final long DEFAULT_TIMEOUT = 3600L;
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
-  @SuppressWarnings("PMD.LongVariable")
-  private final TaskTrackerService taskTrackerService;
+  private final TaskTrackerService tracker;
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
-  @SuppressWarnings("PMD.LongVariable")
-  private final SessionConfigStore sessionConfigStore;
+  private final SessionConfigStore configStore;
 
   private final Scheduler scheduler;
 
@@ -81,17 +79,16 @@ public class ResourceManagementBuilder {
   /**
    * Creates a new ResourceManagementBuilder instance.
    *
-   * @param taskTrackerService the task tracker service for emitting workflow status events
-   * @param sessionConfigStore the session config store for retrieving execution timeouts
+   * @param tracker the task tracker service for emitting workflow status events
+   * @param configStore the session config store for retrieving execution timeouts
    * @param scheduler the scheduler for timeout operations
    */
-  @SuppressWarnings("PMD.LongVariable")
   public ResourceManagementBuilder(
-      final TaskTrackerService taskTrackerService,
-      final SessionConfigStore sessionConfigStore,
+      final TaskTrackerService tracker,
+      final SessionConfigStore configStore,
       final Scheduler scheduler) {
-    this.taskTrackerService = taskTrackerService;
-    this.sessionConfigStore = sessionConfigStore;
+    this.tracker = tracker;
+    this.configStore = configStore;
     this.scheduler = scheduler;
   }
 
@@ -170,7 +167,7 @@ public class ResourceManagementBuilder {
     // Retrieve the execution timeout from the session config store
     final Mono<Long> timeoutMono =
         (sessionId != null)
-            ? sessionConfigStore.getExecutionTimeout(sessionId)
+            ? configStore.getExecutionTimeout(sessionId)
             : Mono.just(DEFAULT_TIMEOUT);
 
     return timeoutMono.flatMap(
@@ -232,7 +229,7 @@ public class ResourceManagementBuilder {
    */
   private void emitStatus(final String status) {
     if (executionId != null) {
-      taskTrackerService.emitWorkflowStatusEvent(executionId, status);
+      tracker.emitWorkflowStatusEvent(executionId, status);
     }
   }
 

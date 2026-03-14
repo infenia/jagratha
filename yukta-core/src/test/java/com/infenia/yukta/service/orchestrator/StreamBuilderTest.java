@@ -53,8 +53,7 @@ class StreamBuilderTest {
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "test-payload"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
     Flux<Message<?>> built = builder.withSource(sourceStream).withTimeout().build();
 
@@ -68,11 +67,9 @@ class StreamBuilderTest {
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "test"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
-    Flux<Message<?>> built =
-        builder.withSource(sourceStream).withTaskTracking("exec-001", "session-001").build();
+    Flux<Message<?>> built = builder.withSource(sourceStream).withTaskTracking("exec-001").build();
 
     StepVerifier.create(built).expectNextCount(1).verifyComplete();
 
@@ -87,15 +84,10 @@ class StreamBuilderTest {
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "test"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
     Flux<Message<?>> built =
-        builder
-            .withSource(sourceStream)
-            .withTimeout()
-            .withTaskTracking("exec-001", "session-001")
-            .build();
+        builder.withSource(sourceStream).withTimeout().withTaskTracking("exec-001").build();
 
     assert built != null;
     StepVerifier.create(built).expectNextCount(1).verifyComplete();
@@ -106,8 +98,7 @@ class StreamBuilderTest {
     Flux<Message<?>> sourceStream = Flux.error(new RuntimeException("Test error"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
     Flux<Message<?>> built = builder.withSource(sourceStream).withErrorHandling("exec-001").build();
 
@@ -120,8 +111,7 @@ class StreamBuilderTest {
   @Test
   void testStreamBuilderWithoutSource() {
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
     Flux<Message<?>> built = builder.build();
 
@@ -133,15 +123,10 @@ class StreamBuilderTest {
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "test"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
     Flux<Message<?>> built =
-        builder
-            .withSource(sourceStream)
-            .withTimeout()
-            .withTaskTracking("exec-001", "session-001")
-            .build();
+        builder.withSource(sourceStream).withTimeout().withTaskTracking("exec-001").build();
 
     StepVerifier.create(built).expectNextCount(1).verifyComplete();
 
@@ -156,8 +141,7 @@ class StreamBuilderTest {
     Flux<Message<?>> sourceStream = Flux.error(new IllegalArgumentException("Invalid arg"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
     Flux<Message<?>> built = builder.withSource(sourceStream).withErrorHandling("exec-002").build();
 
@@ -173,14 +157,13 @@ class StreamBuilderTest {
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "test"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
     Flux<Message<?>> built =
         builder
             .withSource(sourceStream)
             .withTimeout()
-            .withTaskTracking("exec-003", "session-003")
+            .withTaskTracking("exec-003")
             .withErrorHandling("exec-003")
             .build();
 
@@ -197,11 +180,9 @@ class StreamBuilderTest {
     Flux<Message<?>> sourceStream = Flux.error(new NullPointerException("Null error"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
-    Flux<Message<?>> built =
-        builder.withSource(sourceStream).withTaskTracking("exec-004", "session-004").build();
+    Flux<Message<?>> built = builder.withSource(sourceStream).withTaskTracking("exec-004").build();
 
     StepVerifier.create(built).expectError(NullPointerException.class).verify();
 
@@ -216,8 +197,7 @@ class StreamBuilderTest {
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "msg1"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
     Flux<Message<?>> built = builder.withSource(sourceStream).withTimeout().build();
 
@@ -229,8 +209,7 @@ class StreamBuilderTest {
     Flux<Message<?>> sourceStream = Flux.error(new Exception("Test exception"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
     Flux<Message<?>> built = builder.withSource(sourceStream).withErrorHandling("exec-005").build();
 
@@ -250,11 +229,9 @@ class StreamBuilderTest {
             DefaultMessage.create(null, "msg3"));
 
     StreamBuilder builder =
-        new StreamBuilder(
-            mockNode, mockPlugin, Duration.ofSeconds(5), 1024, mockTracker, mockControlBusGateway);
+        new StreamBuilder(mockNode, Duration.ofSeconds(5), mockTracker, mockControlBusGateway);
 
-    Flux<Message<?>> built =
-        builder.withSource(sourceStream).withTaskTracking("exec-006", "session-006").build();
+    Flux<Message<?>> built = builder.withSource(sourceStream).withTaskTracking("exec-006").build();
 
     StepVerifier.create(built).expectNextCount(3).verifyComplete();
 

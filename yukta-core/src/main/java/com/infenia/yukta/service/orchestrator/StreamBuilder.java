@@ -16,7 +16,6 @@
 package com.infenia.yukta.service.orchestrator;
 
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
@@ -26,7 +25,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeoutException;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 
 /**
@@ -42,9 +41,7 @@ import reactor.core.publisher.Flux;
  * <pre>{@code
  * Flux<Message<?>> stream = new StreamBuilder(
  *     node,
- *     plugin,
  *     Duration.ofSeconds(10),
- *     1024,
  *     taskTracker,
  *     controlBus)
  *   .withSource(sourceFlux)
@@ -86,17 +83,13 @@ public class StreamBuilder {
    * Creates a new StreamBuilder instance.
    *
    * @param node the workflow node
-   * @param plugin the workflow plugin
    * @param timeout the operation timeout duration
-   * @param maxConcurrency maximum number of concurrent operations
    * @param taskTracker the task tracker service for status events
    * @param controlBusGateway the control bus gateway for error emission
    */
   public StreamBuilder(
       final Node node,
-      final WorkflowPlugin plugin,
       final Duration timeout,
-      final int maxConcurrency,
       final TaskTrackerService taskTracker,
       final ControlBusGateway controlBusGateway) {
     this.node = node;
@@ -130,10 +123,9 @@ public class StreamBuilder {
    * Enables task status tracking with RUNNING, SUCCESS, and FAILURE events.
    *
    * @param execId the execution identifier
-   * @param sessionId the session identifier (reserved for future use)
    * @return this builder for fluent chaining
    */
-  public StreamBuilder withTaskTracking(final String execId, final String sessionId) {
+  public StreamBuilder withTaskTracking(final String execId) {
     this.applyTaskTracking = true;
     this.executionId = execId;
     return this;
