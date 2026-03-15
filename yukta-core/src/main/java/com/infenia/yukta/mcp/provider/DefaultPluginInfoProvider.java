@@ -31,6 +31,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.LongVariable")
 public class DefaultPluginInfoProvider implements PluginInfoProvider {
 
   private final WorkflowRegistry registry;
@@ -59,18 +60,7 @@ public class DefaultPluginInfoProvider implements PluginInfoProvider {
 
   @Override
   public PluginCreationGuide getPluginCreationGuide(final String templateType) {
-    return new PluginCreationGuide(
-        buildArchitectureOverview(),
-        PluginTemplateBuilder.buildTemplates(templateType),
-        buildIntegrationExamples(),
-        buildConfigurationReference(),
-        buildValidationChecklist(),
-        buildTestingStrategy(),
-        buildDeploymentGuide());
-  }
-
-  private String buildArchitectureOverview() {
-    final String overview =
+    final String architectureOverview =
         """
         Yukta plugins follow a reactive, plugin-based architecture where each plugin implements
         one of three interfaces: TriggerPlugin (initiates workflows), ProcessorPlugin
@@ -79,11 +69,8 @@ public class DefaultPluginInfoProvider implements PluginInfoProvider {
         nodes in a Directed Acyclic Graph (DAG). All plugins use reactive streams
         (Project Reactor Mono/Flux) for non-blocking operations.
         """;
-    return overview;
-  }
 
-  private String buildIntegrationExamples() {
-    final String examples =
+    final String integrationExamples =
         """
         Example 1: Register plugin in WorkflowRegistry during Spring initialization.
         Example 2: Define workflow with nodes of your plugin type.
@@ -91,11 +78,8 @@ public class DefaultPluginInfoProvider implements PluginInfoProvider {
         Example 4: Trigger workflow execution with optional payload data.
         Example 5: Monitor execution status and logs via MCP tools.
         """;
-    return examples;
-  }
 
-  private String buildConfigurationReference() {
-    final String reference =
+    final String configurationReference =
         """
         Each plugin node requires: id (unique identifier), type (registered plugin type),
         config (plugin-specific parameters). Plugin configuration is JSON-serialized and
@@ -103,11 +87,8 @@ public class DefaultPluginInfoProvider implements PluginInfoProvider {
         validators to enforce configuration requirements. Configuration validation errors
         should throw IllegalArgumentException with descriptive messages.
         """;
-    return reference;
-  }
 
-  private String buildValidationChecklist() {
-    final String checklist =
+    final String validationChecklist =
         """
         1. Ensure plugin type is unique and matches class naming convention.
         2. Implement required execute() method returning Mono/Flux.
@@ -118,11 +99,8 @@ public class DefaultPluginInfoProvider implements PluginInfoProvider {
         7. Add comprehensive JavaDoc comments to plugin class.
         8. Test plugin with both valid and invalid inputs.
         """;
-    return checklist;
-  }
 
-  private String buildTestingStrategy() {
-    final String strategy =
+    final String testingStrategy =
         """
         Use JUnit 5 with Reactor Test for testing plugins.
         Use StepVerifier for reactive stream testing.
@@ -133,11 +111,8 @@ public class DefaultPluginInfoProvider implements PluginInfoProvider {
         Ensure code coverage above 80% for plugin logic.
         Test integration with WorkflowOrchestrator in integration tests.
         """;
-    return strategy;
-  }
 
-  private String buildDeploymentGuide() {
-    final String guide =
+    final String deploymentGuide =
         """
         1. Create plugin module in plugins/<category>/<plugin-name> directory.
         2. Add plugin as dependency in build.gradle of consuming module.
@@ -148,6 +123,14 @@ public class DefaultPluginInfoProvider implements PluginInfoProvider {
         7. Trigger workflow and monitor execution via MCP tools.
         8. Monitor logs and metrics for plugin performance.
         """;
-    return guide;
+
+    return new PluginCreationGuide(
+        architectureOverview,
+        PluginTemplateBuilder.buildTemplates(templateType),
+        integrationExamples,
+        configurationReference,
+        validationChecklist,
+        testingStrategy,
+        deploymentGuide);
   }
 }
