@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.config.AppConfigService;
 import com.infenia.yukta.validation.FileName;
 import com.infenia.yukta.validation.SessionId;
 import java.io.IOException;
@@ -40,7 +40,7 @@ import reactor.core.scheduler.Schedulers;
 @SuppressWarnings("PMD.OnlyOneReturn")
 public class LogRetrievalService {
 
-  private final SessionConfigStore configService;
+  private final AppConfigService configService;
 
   /**
    * List all log files for a given session.
@@ -50,8 +50,7 @@ public class LogRetrievalService {
    */
   public Mono<List<String>> listLogs(@SessionId final String sessionId) {
     return Mono.zip(
-            configService.getResultLogDir(sessionId).defaultIfEmpty(""),
-            configService.getFileLogDir(sessionId).defaultIfEmpty(""))
+            configService.getResultLogDir(sessionId), configService.getFileLogDir(sessionId))
         .flatMap(
             tuple ->
                 Mono.fromCallable(
@@ -70,7 +69,7 @@ public class LogRetrievalService {
 
   private void addLogsFromDir(
       final List<String> logFiles, final String baseDir, final String sessionId) {
-    if (baseDir.isEmpty()) {
+    if (baseDir == null || baseDir.isEmpty()) {
       return;
     }
     try {
@@ -84,7 +83,7 @@ public class LogRetrievalService {
         }
       }
     } catch (IOException e) {
-      log.atWarn().setCause(e).log("Failed to list logs from directory: {}", baseDir);
+      log.warn("Failed to list logs from directory: {}", baseDir, e);
     }
   }
 
@@ -102,8 +101,7 @@ public class LogRetrievalService {
 
   private Mono<String> fetchLogContent(final String sessionId, final String fileName) {
     return Mono.zip(
-            configService.getResultLogDir(sessionId).defaultIfEmpty(""),
-            configService.getFileLogDir(sessionId).defaultIfEmpty(""))
+            configService.getResultLogDir(sessionId), configService.getFileLogDir(sessionId))
         .flatMap(
             tuple ->
                 Mono.fromCallable(
@@ -116,7 +114,7 @@ public class LogRetrievalService {
                         logFile = findLogFile(fileLogDir, sessionId, fileName);
                       }
 
-                      if (logFile == null) {
+                      if (logFile == null || !Files.exists(logFile)) {
                         throw new IOException("Log file not found: " + fileName);
                       }
                       return Files.readString(logFile, StandardCharsets.UTF_8);
@@ -124,7 +122,7 @@ public class LogRetrievalService {
   }
 
   private Path findLogFile(final String baseDir, final String sessionId, final String fileName) {
-    if (!baseDir.isEmpty()) {
+    if (baseDir != null && !baseDir.isEmpty()) {
       final Path path = Path.of(baseDir).resolve(sessionId).resolve(fileName);
       if (Files.exists(path)) {
         return path;

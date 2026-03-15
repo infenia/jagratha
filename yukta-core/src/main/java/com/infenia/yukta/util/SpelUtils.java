@@ -17,7 +17,6 @@ package com.infenia.yukta.util;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import lombok.experimental.UtilityClass;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -27,7 +26,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 /** Utility for SpEL expression evaluation and caching. */
-@UtilityClass
 public final class SpelUtils {
   private static final ExpressionParser PARSER = new SpelExpressionParser();
   private static final Map<String, Expression> CACHE = new ConcurrentHashMap<>();
@@ -38,6 +36,10 @@ public final class SpelUtils {
             context.addPropertyAccessor(new MapAccessor());
             return context;
           });
+
+  private SpelUtils() {
+    // Utility class
+  }
 
   /**
    * Evaluate a SpEL expression against a message.
@@ -74,6 +76,7 @@ public final class SpelUtils {
    * @param <T> the result type
    * @return the evaluation result
    */
+  @SuppressWarnings("unchecked")
   public static <T> T evaluateSync(final String expressionStr, final Object root) {
     return evaluateSync(expressionStr, root, null);
   }

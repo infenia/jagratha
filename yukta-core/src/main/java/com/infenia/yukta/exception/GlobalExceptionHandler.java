@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.exception;
 
-import com.infenia.yukta.model.api.ApiResponse;
+import com.infenia.yukta.model.ApiResponse;
 import jakarta.annotation.Nullable;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -159,7 +159,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Object>> handleGenericException(
       final Exception exception, final ServerHttpRequest request) {
-    log.atError().setCause(exception).log("Unhandled exception occurred");
+    if (log.isErrorEnabled()) {
+      log.error("Unhandled exception occurred", exception);
+    }
     return buildErrorResponse(
         HttpStatus.INTERNAL_SERVER_ERROR,
         "An unexpected error occurred: " + exception.getMessage(),

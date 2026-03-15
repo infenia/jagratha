@@ -23,15 +23,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.model.workflow.WorkflowDefinition.Edge;
-import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
+import com.infenia.yukta.config.AppConfigService;
+import com.infenia.yukta.model.WorkflowDefinition;
+import com.infenia.yukta.model.WorkflowDefinition.Edge;
+import com.infenia.yukta.model.WorkflowDefinition.Node;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
-import com.infenia.yukta.service.session.SessionConfigStore;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +48,7 @@ class WorkflowOrchestratorImprovementsTest {
   private WorkflowRegistry registry;
   private TaskTrackerService tracker;
   private WorkflowValidator validator;
-  private SessionConfigStore configService;
+  private AppConfigService configService;
   private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
   private WorkflowOrchestrator orchestrator;
 
@@ -56,9 +56,14 @@ class WorkflowOrchestratorImprovementsTest {
   void setUp() {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
-    configService = mock(SessionConfigStore.class);
-    controlBusGateway = mock(com.infenia.yukta.plugin.gateway.ControlBusGateway.class);
+    configService = mock(AppConfigService.class);
+    controlBusGateway = mock(com.infenia.yukta.service.DefaultControlBusGateway.class);
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
+    com.infenia.yukta.service.ControlBusService controlBusService =
+        mock(com.infenia.yukta.service.ControlBusService.class);
+    when(((com.infenia.yukta.service.DefaultControlBusGateway) controlBusGateway)
+            .getControlBusService())
+        .thenReturn(controlBusService);
     validator = new WorkflowValidator(registry);
     when(tracker.startWorkflow(any(), any(), any(), any())).thenReturn(Mono.empty());
     when(configService.getExecutionTimeout(anyString())).thenReturn(Mono.just(3600L));
@@ -68,7 +73,6 @@ class WorkflowOrchestratorImprovementsTest {
             registry,
             tracker,
             validator,
-            new TopologicalSortService(),
             configService,
             null,
             controlBusGateway,
@@ -87,7 +91,6 @@ class WorkflowOrchestratorImprovementsTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
-    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.shutdown(any())).thenReturn(Mono.empty());
 
@@ -95,7 +98,6 @@ class WorkflowOrchestratorImprovementsTest {
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
-    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     // Fail initialization for terminal
     when(terminal.initialize(any())).thenReturn(Mono.error(new RuntimeException("Init failed")));
     when(terminal.shutdown(any())).thenReturn(Mono.empty());
@@ -125,7 +127,6 @@ class WorkflowOrchestratorImprovementsTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
-    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.start(any()))
         .thenReturn(Flux.just(DefaultMessage.create(UUID.randomUUID(), "data")));
@@ -134,7 +135,6 @@ class WorkflowOrchestratorImprovementsTest {
     when(term1Plugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(term1Plugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(term1Plugin.validateConfig(any())).thenReturn(Mono.empty());
-    when(term1Plugin.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(term1Plugin.initialize(any())).thenReturn(Mono.empty());
     // term1 fails AFTER subscribing
     when(term1Plugin.consume(any(), any()))
@@ -147,7 +147,6 @@ class WorkflowOrchestratorImprovementsTest {
     when(term2Plugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(term2Plugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(term2Plugin.validateConfig(any())).thenReturn(Mono.empty());
-    when(term2Plugin.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(term2Plugin.initialize(any())).thenReturn(Mono.empty());
     // term2 succeeds
     when(term2Plugin.consume(any(), any()))
@@ -189,7 +188,6 @@ class WorkflowOrchestratorImprovementsTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
-    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.never());
 
@@ -197,7 +195,6 @@ class WorkflowOrchestratorImprovementsTest {
     when(term1Plugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(term1Plugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(term1Plugin.validateConfig(any())).thenReturn(Mono.empty());
-    when(term1Plugin.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(term1Plugin.initialize(any())).thenReturn(Mono.empty());
     // This one subscribes and waits
     when(term1Plugin.consume(any(), any()))
@@ -211,7 +208,6 @@ class WorkflowOrchestratorImprovementsTest {
     when(term2Plugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(term2Plugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(term2Plugin.validateConfig(any())).thenReturn(Mono.empty());
-    when(term2Plugin.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(term2Plugin.initialize(any())).thenReturn(Mono.empty());
     // This one DOES NOT subscribe to the stream
     when(term2Plugin.consume(any(), any())).thenReturn(Mono.empty());
@@ -230,7 +226,6 @@ class WorkflowOrchestratorImprovementsTest {
                       registry,
                       tracker,
                       validator,
-                      new TopologicalSortService(),
                       configService,
                       null,
                       controlBusGateway,
@@ -260,7 +255,6 @@ class WorkflowOrchestratorImprovementsTest {
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
-    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
     when(trigger.start(any()))
         .thenReturn(Flux.just(DefaultMessage.create(UUID.randomUUID(), "data")));
@@ -269,7 +263,6 @@ class WorkflowOrchestratorImprovementsTest {
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
-    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());

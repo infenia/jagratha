@@ -16,9 +16,9 @@
 package com.infenia.yukta.controller;
 
 import com.infenia.yukta.mapper.AppConfigMapper;
-import com.infenia.yukta.model.api.ApiResponse;
-import com.infenia.yukta.model.api.ConfigRequest;
-import com.infenia.yukta.model.session.SessionConfigData;
+import com.infenia.yukta.model.ApiResponse;
+import com.infenia.yukta.model.AppConfigData;
+import com.infenia.yukta.model.ConfigRequest;
 import com.infenia.yukta.service.SessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,52 +31,39 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-/**
- * Controller for managing session and application configurations.
- *
- * <p>Provides endpoints to initialize new sessions or update configurations for existing ones at
- * runtime.
- */
+/** Controller for application configuration. */
 @RestController
 @RequestMapping("/api/config")
 @RequiredArgsConstructor
-@Tag(
-    name = "Config API",
-    description = "Endpoints for session initialization and runtime configuration management")
+@Tag(name = "Config API", description = "Endpoints for runtime configuration")
 public class ConfigController {
 
   private final SessionService sessionService;
   private final AppConfigMapper configMapper;
 
   /**
-   * Initialize a new session or update an existing one with the provided configuration.
+   * Update configuration at runtime.
    *
-   * <p>This endpoint allows callers to dynamically configure project paths, workflows, and session
-   * metadata. If the session ID already exists, it overrides the current configuration; otherwise,
-   * it creates a new session context.
-   *
-   * @param request the config request containing session identifiers and configuration values
-   * @return response entity with success message indicating the configuration has been applied
+   * @param request the config request containing new configuration values
+   * @return response entity with success message
    */
   @PostMapping
   @Operation(
-      summary = "Apply session configuration",
-      description =
-          "Initializes a new session or updates an existing session's configuration at runtime. "
-              + "Configures project paths, workflow definitions, and session metadata.")
+      summary = "Update configuration",
+      description = "Updates the application configuration at runtime for a session")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "200",
-      description = "Session configuration applied successfully")
+      description = "Configuration updated successfully")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "400",
-      description = "Invalid configuration data provided in the request")
-  public Mono<ResponseEntity<ApiResponse<Void>>> applyConfig(
+      description = "Invalid configuration data")
+  public Mono<ResponseEntity<ApiResponse<Void>>> updateConfig(
       @Valid @RequestBody final ConfigRequest request) {
-    final SessionConfigData configData = configMapper.toData(request);
+    final AppConfigData configData = configMapper.toData(request);
     return sessionService
-        .applyConfig(configData)
+        .applyConfigOverrides(configData)
         .thenReturn(
             ResponseEntity.ok(
-                ApiResponse.success(200, "Configuration applied successfully", null)));
+                ApiResponse.success(200, "Configuration updated successfully", null)));
   }
 }

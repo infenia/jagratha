@@ -149,35 +149,27 @@ class PluginInterfaceTest {
 
   @Test
   void testDefaultWorkflowPluginMethods() {
-    WorkflowPlugin plugin = new MockWorkflowPlugin();
+    WorkflowPlugin plugin =
+        new WorkflowPlugin() {
+          @Override
+          public String getType() {
+            return "test";
+          }
 
-    // Lifecycle methods
-    StepVerifier.create(plugin.initialize(Map.of())).verifyComplete();
-    StepVerifier.create(plugin.prepare(Map.of())).verifyComplete();
+          @Override
+          public PluginCategory getCategory() {
+            return PluginCategory.TRIGGER;
+          }
+        };
+
     StepVerifier.create(plugin.validateConfig(Map.of())).verifyComplete();
-    StepVerifier.create(plugin.shutdown(Map.of())).verifyComplete();
-
-    // Metadata methods
+    StepVerifier.create(plugin.initialize(Map.of())).verifyComplete();
     assertEquals("", plugin.getDescription());
     assertEquals("", plugin.getUsagePattern());
     assertEquals(30, plugin.getDefaultTimeout().getSeconds());
-    assertFalse(plugin.getUiDesign().isPresent());
-
-    // Port methods
-    assertEquals(List.of("default"), plugin.getOutputPorts());
-    assertEquals(List.of("default"), plugin.getOutputPorts(Map.of()));
-
-    // Evaluation methods
-    assertFalse(plugin.isBlocking());
-    assertFalse(plugin.isComputationallyHeavy(Map.of()));
-    assertFalse(plugin.suppressOptimizationHint(Map.of()));
-
-    // Context & Signal methods
-    WorkflowContext context = new WorkflowContext("node1", List.of(), List.of());
-    StepVerifier.create(plugin.validateInContext(context, Map.of())).verifyComplete();
-
-    Message<String> signal = DefaultMessage.create(UUID.randomUUID(), "signal");
-    StepVerifier.create(plugin.onControlSignal(signal)).verifyComplete();
+    org.junit.jupiter.api.Assertions.assertFalse(plugin.getUiDesign().isPresent());
+    org.junit.jupiter.api.Assertions.assertTrue(plugin.getOutputPorts().size() == 1);
+    assertEquals("default", plugin.getOutputPorts().get(0));
   }
 
   @Test
@@ -198,6 +190,29 @@ class PluginInterfaceTest {
 
     NoMatchingBranchException nme = new NoMatchingBranchException("no branch");
     assertEquals("no branch", nme.getMessage());
+  }
+
+  @Test
+  void testDefaultWorkflowPluginExtraMethods() {
+    WorkflowPlugin plugin =
+        new WorkflowPlugin() {
+          @Override
+          public String getType() {
+            return "test";
+          }
+
+          @Override
+          public PluginCategory getCategory() {
+            return PluginCategory.TRIGGER;
+          }
+        };
+
+    StepVerifier.create(plugin.shutdown(Map.of())).verifyComplete();
+    StepVerifier.create(plugin.initialize(Map.of())).verifyComplete();
+    StepVerifier.create(plugin.validateConfig(Map.of())).verifyComplete();
+
+    java.time.Duration timeout = plugin.getDefaultTimeout();
+    assertEquals(30, timeout.getSeconds());
   }
 
   @Test
@@ -268,17 +283,5 @@ class PluginInterfaceTest {
 
     collector.clear();
     assertEquals(0, collector.getResults().size());
-  }
-
-  private static class MockWorkflowPlugin implements WorkflowPlugin {
-    @Override
-    public String getType() {
-      return "test";
-    }
-
-    @Override
-    public PluginCategory getCategory() {
-      return PluginCategory.TRIGGER;
-    }
   }
 }

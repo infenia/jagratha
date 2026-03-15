@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -31,8 +30,7 @@ import reactor.core.publisher.Mono;
 /** In-memory implementation of JoinStore using ConcurrentHashMap. */
 @Slf4j
 @Component
-@NoArgsConstructor
-@SuppressWarnings({"PMD.DoNotUseThreads", "PMD.OnlyOneReturn"})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.DoNotUseThreads"})
 public class InMemoryJoinStore implements JoinStore {
 
   private static final int CLEANUP_DELAY = 5;
@@ -45,6 +43,11 @@ public class InMemoryJoinStore implements JoinStore {
             thread.setDaemon(true);
             return thread;
           });
+
+  /** Default constructor. */
+  public InMemoryJoinStore() {
+    super();
+  }
 
   /** Initialize the cleanup scheduler. */
   @PostConstruct
@@ -146,8 +149,8 @@ public class InMemoryJoinStore implements JoinStore {
     final int before = store.size();
     store.entrySet().removeIf(entry -> entry.getValue().getExpirationTime() < now);
     final int after = store.size();
-    if (before != after) {
-      log.atDebug().log("Cleaned up {} expired join entries", before - after);
+    if (before != after && log.isDebugEnabled()) {
+      log.debug("Cleaned up {} expired join entries", before - after);
     }
   }
 

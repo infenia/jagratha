@@ -15,7 +15,11 @@
  */
 package com.infenia.yukta.util;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,11 +34,11 @@ class MapUtilsTest {
     MapUtils.setNestedValue(map, "a.b.c", "value");
 
     assertNotNull(map.get("a"));
-    assertInstanceOf(Map.class, map.get("a"));
+    assertTrue(map.get("a") instanceof Map);
     Map<String, Object> a = (Map<String, Object>) map.get("a");
 
     assertNotNull(a.get("b"));
-    assertInstanceOf(Map.class, a.get("b"));
+    assertTrue(a.get("b") instanceof Map);
     Map<String, Object> b = (Map<String, Object>) a.get("b");
 
     assertEquals("value", b.get("c"));

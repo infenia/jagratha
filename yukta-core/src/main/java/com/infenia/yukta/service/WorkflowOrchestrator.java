@@ -15,11 +15,12 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.model.workflow.NodeAssembler;
-import com.infenia.yukta.model.workflow.PreparedWorkflow;
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
-import com.infenia.yukta.model.workflow.WorkflowTemplate;
+import com.infenia.yukta.config.AppConfigService;
+import com.infenia.yukta.model.NodeAssembler;
+import com.infenia.yukta.model.PreparedWorkflow;
+import com.infenia.yukta.model.WorkflowDefinition;
+import com.infenia.yukta.model.WorkflowDefinition.Node;
+import com.infenia.yukta.model.WorkflowTemplate;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
@@ -27,18 +28,14 @@ import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlError;
+import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
+import com.infenia.yukta.plugin.message.control.ControlStatistics;
 import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
-import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
-import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
-import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
-import com.infenia.yukta.service.orchestrator.StreamBuilder;
-import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -50,7 +47,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 import lombok.extern.slf4j.Slf4j;
@@ -102,32 +98,10 @@ public class WorkflowOrchestrator {
   private static final String CTX_PAYLOAD = "payload";
   private static final String CTX_NODE_ID = "nodeId";
 
-  // Logging key constants
-  private static final String LOG_KEY_SESSION_ID = "sessionId";
-  private static final String LOG_KEY_WORKFLOW_ID = "workflowId";
-  private static final String LOG_KEY_EXECUTION_ID = "executionId";
-  private static final String LOG_KEY_NODE_ID = "nodeId";
-  private static final String LOG_KEY_PLUGIN_TYPE = "pluginType";
-  private static final String LOG_KEY_NUM_NODES = "numNodes";
-  private static final String LOG_KEY_NODE_IDS = "nodeIds";
-  private static final String LOG_KEY_SOURCE = "source";
-  private static final String LOG_KEY_TARGET = "target";
-  private static final String LOG_KEY_PORT = "port";
-  private static final String LOG_KEY_PLUGIN_COUNT = "pluginCount";
-  private static final String LOG_KEY_NODE_CATEGORY = "nodeCategory";
-  private static final String LOG_KEY_PARENT_EDGE_COUNT = "parentEdgeCount";
-  private static final String LOG_KEY_NODE_COUNT = "nodeCount";
-  private static final String LOG_KEY_TIMEOUT_SECONDS = "timeoutSeconds";
-  private static final String LOG_KEY_TERMINAL_COUNT = "terminalCount";
-  private static final String LOG_KEY_HEARTBEAT_INTERVAL = "heartbeatInterval";
-  private static final String LOG_KEY_CONNECTOR_COUNT = "connectorCount";
-  private static final String LOG_KEY_DISPOSABLE_COUNT = "disposableCount";
-
   private final WorkflowRegistry registry;
   private final TaskTrackerService tracker;
   private final WorkflowValidator validator;
-  private final TopologicalSortService topologicalSortService;
-  private final SessionConfigStore configService;
+  private final AppConfigService configService;
   private final MessageStore messageStore;
   private final ControlBusGateway controlBusGateway;
   private final Duration heartbeatInterval;
@@ -139,21 +113,19 @@ public class WorkflowOrchestrator {
    * @param registry the workflow registry
    * @param tracker the task tracker service
    * @param validator the workflow validator
-   * @param topologicalSortService the topological sort service
-   * @param configService the session config store
+   * @param configService the app config service
    * @param messageStore the message store for auditing
    * @param controlBusGateway the control bus gateway
    * @param heartbeatInterval the heartbeat interval duration
    * @param virtualThreadScheduler the scheduler for virtual threads
    */
   @Autowired
-  @SuppressFBWarnings("EI_EXPOSE_REP2")
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("EI_EXPOSE_REP2")
   public WorkflowOrchestrator(
       final WorkflowRegistry registry,
       final TaskTrackerService tracker,
       final WorkflowValidator validator,
-      final TopologicalSortService topologicalSortService,
-      final SessionConfigStore configService,
+      final AppConfigService configService,
       @Nullable final MessageStore messageStore,
       final ControlBusGateway controlBusGateway,
       final Duration heartbeatInterval,
@@ -161,7 +133,6 @@ public class WorkflowOrchestrator {
     this.registry = registry;
     this.tracker = tracker;
     this.validator = validator;
-    this.topologicalSortService = topologicalSortService;
     this.configService = configService;
     this.messageStore = messageStore;
     this.controlBusGateway = controlBusGateway;
@@ -175,36 +146,22 @@ public class WorkflowOrchestrator {
    * @param def the workflow definition
    * @return a Mono containing the prepared workflow
    */
+  @SuppressWarnings("PMD.UseConcurrentHashMap")
   public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
-    final int numNodes = def.nodes().size();
-    log.atDebug()
-        .addKeyValue(LOG_KEY_NUM_NODES, numNodes)
-        .addKeyValue(LOG_KEY_NODE_IDS, def.nodes().stream().map(Node::nodeId).toList())
-        .log("Preparing workflow with {} nodes", numNodes);
+    final Map<String, List<Node>> adjacencyList = new HashMap<>();
+    final Map<String, List<Node>> parentsList = new HashMap<>();
+    final Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+    final Map<String, Node> nodeMap = new HashMap<>();
 
-    final Map<String, List<Node>> adjacencyList = new ConcurrentHashMap<>(numNodes);
-    final Map<String, List<Node>> parentsList = new ConcurrentHashMap<>(numNodes);
-    final Map<String, WorkflowPlugin> pluginCache = new ConcurrentHashMap<>(numNodes);
-    final Map<String, Node> nodeMap = new ConcurrentHashMap<>(numNodes);
-
+    def.nodes().forEach(node -> nodeMap.put(node.nodeId(), node));
     def.nodes()
         .forEach(
             node -> {
-              nodeMap.put(node.nodeId(), node);
               adjacencyList.put(node.nodeId(), new ArrayList<>());
               parentsList.put(node.nodeId(), new ArrayList<>());
               final WorkflowPlugin plugin = registry.get(node.type());
               if (plugin != null) {
                 pluginCache.put(node.nodeId(), plugin);
-                log.atTrace()
-                    .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-                    .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-                    .log("Cached plugin for node");
-              } else {
-                log.atWarn()
-                    .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-                    .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-                    .log("Plugin not found for node type");
               }
             });
 
@@ -213,39 +170,26 @@ public class WorkflowOrchestrator {
             edge -> {
               adjacencyList.get(edge.source()).add(nodeMap.get(edge.target()));
               parentsList.get(edge.target()).add(nodeMap.get(edge.source()));
-              log.atTrace()
-                  .addKeyValue(LOG_KEY_SOURCE, edge.source())
-                  .addKeyValue(LOG_KEY_TARGET, edge.target())
-                  .addKeyValue(LOG_KEY_PORT, edge.sourcePort())
-                  .log("Added workflow edge");
             });
 
     return validator
         .validate(def)
-        .doOnError(e -> log.atError().setCause(e).log("Workflow validation failed"))
         .then(
             Flux.fromIterable(def.nodes())
                 .flatMap(
                     node -> {
                       final WorkflowPlugin plugin = pluginCache.get(node.nodeId());
                       if (plugin == null) {
-                        log.atError()
-                            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-                            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-                            .log("Plugin not found during initialization");
                         return Mono.error(
                             new IllegalArgumentException("Plugin not found: " + node.type()));
                       }
                       return plugin
                           .initialize(node.config())
                           .doOnSuccess(
-                              v -> {
-                                log.atDebug()
-                                    .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-                                    .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-                                    .log("Plugin initialized successfully");
-                                controlBusGateway.registerPlugin(node.nodeId(), plugin);
-                              })
+                              v ->
+                                  ((DefaultControlBusGateway) controlBusGateway)
+                                      .getControlBusService()
+                                      .registerPlugin(node.nodeId(), plugin))
                           .then(
                               controlBusGateway.emit(
                                   DefaultMessage.create(null, "Node Online")
@@ -257,45 +201,29 @@ public class WorkflowOrchestrator {
             Mono.fromCallable(
                 () -> {
                   final List<Node> topologicalOrder =
-                      topologicalSortService.computeTopologicalOrder(
-                          def, adjacencyList, parentsList);
+                      PreparedWorkflow.computeTopologicalOrder(def, adjacencyList, parentsList);
                   final WorkflowTemplate template =
                       compileTemplate(def, parentsList, pluginCache, topologicalOrder);
                   return new PreparedWorkflow(
                       def, adjacencyList, parentsList, pluginCache, topologicalOrder, template);
                 }))
         .onErrorResume(
-            e -> {
-              log.atError()
-                  .setCause(e)
-                  .addKeyValue(LOG_KEY_PLUGIN_COUNT, pluginCache.size())
-                  .log("Workflow preparation failed, shutting down plugins");
-              return Flux.fromIterable(pluginCache.entrySet())
-                  .flatMap(
-                      entry -> {
-                        final String nodeId = entry.getKey();
-                        final WorkflowPlugin plugin = entry.getValue();
-
-                        log.atDebug()
-                            .addKeyValue(LOG_KEY_NODE_ID, nodeId)
-                            .log("Unregistering and shutting down plugin");
-                        controlBusGateway.unregisterPlugin(nodeId);
-
-                        final Node node = nodeMap.get(nodeId);
-                        final Mono<Void> shutdown = plugin.shutdown(node.config());
-
-                        return (shutdown != null ? shutdown : Mono.<Void>empty())
-                            .onErrorResume(
-                                ex -> {
-                                  log.atWarn()
-                                      .setCause(ex)
-                                      .addKeyValue(LOG_KEY_NODE_ID, nodeId)
-                                      .log("Error during plugin shutdown");
-                                  return Mono.empty();
-                                });
-                      })
-                  .then(Mono.error(e));
-            });
+            e ->
+                Flux.fromIterable(def.nodes())
+                    .flatMap(
+                        node -> {
+                          final WorkflowPlugin plugin = pluginCache.get(node.nodeId());
+                          if (plugin != null) {
+                            ((DefaultControlBusGateway) controlBusGateway)
+                                .getControlBusService()
+                                .unregisterPlugin(node.nodeId());
+                            final Mono<Void> shutdown = plugin.shutdown(node.config());
+                            return (shutdown != null ? shutdown : Mono.<Void>empty())
+                                .onErrorResume(ex -> Mono.empty());
+                          }
+                          return Mono.empty();
+                        })
+                    .then(Mono.error(e)));
   }
 
   /**
@@ -315,31 +243,9 @@ public class WorkflowOrchestrator {
       @NotNull @Valid final PreparedWorkflow prepared,
       @NotEmpty final Map<String, Object> payload) {
 
-    log.atInfo()
-        .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
-        .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-        .addKeyValue(LOG_KEY_NODE_COUNT, prepared.topologicalOrder().size())
-        .log("Starting workflow execution");
-
     return prepared
         .template()
         .instantiate(executionId, payload)
-        .doOnSuccess(
-            v ->
-                log.atInfo()
-                    .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
-                    .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-                    .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                    .log("Workflow execution completed successfully"))
-        .doOnError(
-            e ->
-                log.atError()
-                    .setCause(e)
-                    .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
-                    .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-                    .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                    .log("Workflow execution failed"))
         .contextWrite(
             Context.of(
                 CTX_SESSION_ID, sessionId,
@@ -364,7 +270,7 @@ public class WorkflowOrchestrator {
       final List<Node> topologicalOrder) {
 
     final int nodeCount = topologicalOrder.size();
-    final Map<String, Integer> nodeToIndex = new HashMap<>(nodeCount);
+    final Map<String, Integer> nodeToIndex = new HashMap<>();
     for (int i = 0; i < nodeCount; i++) {
       nodeToIndex.put(topologicalOrder.get(i).nodeId(), i);
     }
@@ -406,7 +312,6 @@ public class WorkflowOrchestrator {
    * @param assemblers the node assemblers
    * @param sessionId the session ID
    * @param workflowId the workflow ID
-   * @param nodeIds the list of node IDs
    * @return a Mono that completes when execution is finished
    */
   private Mono<Void> executeTemplate(
@@ -417,12 +322,6 @@ public class WorkflowOrchestrator {
       final String sessionId,
       final String workflowId,
       final List<String> nodeIds) {
-
-    log.atDebug()
-        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-        .addKeyValue(LOG_KEY_NODE_COUNT, nodeCount)
-        .addKeyValue(LOG_KEY_NODE_IDS, nodeIds)
-        .log("Executing workflow template with {} nodes", nodeCount);
 
     @SuppressWarnings("unchecked")
     final Flux<Message<?>>[] streams = new Flux[nodeCount];
@@ -435,35 +334,68 @@ public class WorkflowOrchestrator {
           executionId, sessionId, workflowId, payload, streams, terminals, disposables, connectors);
     }
 
-    log.atTrace()
-        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-        .addKeyValue(LOG_KEY_TERMINAL_COUNT, terminals.size())
-        .log("Node assembly complete");
+    // Add Heartbeat and Statistics emission
+    for (final String nodeId : nodeIds) {
+      final long startTime = System.currentTimeMillis();
 
-    // Setup heartbeats and statistics
-    log.atDebug()
-        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-        .addKeyValue(LOG_KEY_NODE_COUNT, nodeIds.size())
-        .addKeyValue(LOG_KEY_HEARTBEAT_INTERVAL, heartbeatInterval.toMillis())
-        .log("Starting heartbeat and statistics emission for {} nodes", nodeIds.size());
+      disposables.add(
+          Flux.interval(heartbeatInterval, virtualThreadScheduler)
+              .flatMap(
+                  tick ->
+                      controlBusGateway.emit(
+                          DefaultMessage.create(
+                                  null,
+                                  new ControlHeartbeat(
+                                      nodeId, System.currentTimeMillis() - startTime))
+                              .withSourceNodeId(nodeId)
+                              .withControl(true)))
+              .subscribe());
 
-    final HeartbeatBuilder heartbeatBuilder =
-        new HeartbeatBuilder(controlBusGateway, heartbeatInterval, virtualThreadScheduler);
-    final List<Disposable> heartbeatDisposables =
-        heartbeatBuilder
-            .forNodes(nodeIds)
-            .withHeartbeatInterval(heartbeatInterval)
-            .withStatisticsInterval(heartbeatInterval.multipliedBy(2))
-            .build();
-    disposables.addAll(heartbeatDisposables);
+      // Simple statistics emission
+      disposables.add(
+          Flux.interval(heartbeatInterval.multipliedBy(2), virtualThreadScheduler)
+              .flatMap(
+                  tick ->
+                      controlBusGateway.emit(
+                          DefaultMessage.create(null, new ControlStatistics(nodeId, 0.0, 0.0))
+                              .withSourceNodeId(nodeId)
+                              .withControl(true)))
+              .subscribe());
+    }
 
-    // Execute with resource management
-    return new ResourceManagementBuilder(tracker, configService, virtualThreadScheduler)
-        .withDisposables(disposables)
-        .withTerminals(terminals)
-        .withConnectors(connectors)
-        .withExecutionTimeout(sessionId, executionId)
-        .build();
+    final Mono<Long> timeoutMono =
+        configService.getExecutionTimeout(sessionId).defaultIfEmpty(GLOBAL_TIMEOUT);
+
+    return Mono.using(
+        () -> disposables,
+        d ->
+            timeoutMono.flatMap(
+                wfTimeout -> {
+                  Mono<Void> terminalMono = Mono.whenDelayError(terminals);
+                  if (wfTimeout > 0) {
+                    terminalMono =
+                        terminalMono.timeout(Duration.ofSeconds(wfTimeout), virtualThreadScheduler);
+                  }
+                  return terminalMono
+                      .doOnSubscribe(
+                          s -> {
+                            for (int i = connectors.size() - 1; i >= 0; i--) {
+                              connectors.get(i).run();
+                            }
+                          })
+                      .doOnSuccess(
+                          v -> tracker.emitWorkflowStatusEvent(executionId, STATUS_SUCCESS))
+                      .onErrorResume(
+                          e -> {
+                            tracker.emitWorkflowStatusEvent(executionId, STATUS_ERROR);
+                            return Mono.error(e);
+                          });
+                }),
+        d -> {
+          for (final Disposable disposable : d) {
+            disposable.dispose();
+          }
+        });
   }
 
   /**
@@ -492,11 +424,6 @@ public class WorkflowOrchestrator {
     final NodeAssembler result;
     if (plugin instanceof TriggerPlugin trigger
         && (plugin.getCategory() == PluginCategory.TRIGGER || !hasParents)) {
-      log.atTrace()
-          .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-          .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-          .addKeyValue(LOG_KEY_NODE_CATEGORY, "TRIGGER")
-          .log("Creating trigger node assembler");
       result = createTriggerAssembler(node, trigger, nodeTimeout, nodeIndex, bufferSize);
     } else {
       final ParentEdgeInfo[] parentEdges =
@@ -506,28 +433,12 @@ public class WorkflowOrchestrator {
               .toArray(ParentEdgeInfo[]::new);
 
       if (plugin instanceof ProcessorPlugin processor) {
-        log.atTrace()
-            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-            .addKeyValue(LOG_KEY_NODE_CATEGORY, "PROCESSOR")
-            .addKeyValue(LOG_KEY_PARENT_EDGE_COUNT, parentEdges.length)
-            .log("Creating processor node assembler");
         result =
             createProcessorAssembler(
                 node, processor, nodeTimeout, nodeIndex, bufferSize, parentEdges);
       } else if (plugin instanceof TerminalPlugin terminal) {
-        log.atTrace()
-            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-            .addKeyValue(LOG_KEY_NODE_CATEGORY, "TERMINAL")
-            .addKeyValue(LOG_KEY_PARENT_EDGE_COUNT, parentEdges.length)
-            .log("Creating terminal node assembler");
         result = createTerminalAssembler(node, terminal, nodeTimeout, parentEdges);
       } else {
-        log.atWarn()
-            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-            .log("Unknown plugin type, creating no-op assembler");
         result = (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {};
       }
     }
@@ -547,105 +458,14 @@ public class WorkflowOrchestrator {
       if (trigger.isBlocking()) {
         stream = stream.subscribeOn(virtualThreadScheduler);
       }
-
-      final ExecutionContextBuilder contextBuilder =
-          new ExecutionContextBuilder()
-              .sessionId(sessId)
-              .workflowId(wfId)
-              .executionId(execId)
-              .nodeId(node.nodeId())
-              .payload(pld);
-
-      Flux<Message<?>> built =
-          new StreamBuilder(node, timeout, tracker, controlBusGateway)
-              .withSource(stream)
-              .withTimeout()
-              .withTaskTracking(execId)
-              .withErrorHandling(execId)
-              .build();
-
-      built = contextBuilder.applyContextTo(built);
-      strms[index] =
-          applyLoggingAndBroadcasting(execId, node.nodeId(), built, bufferSize, disps, conns);
-    };
-  }
-
-  @SuppressWarnings("PMD.UseVarargs")
-  private NodeAssembler createProcessorAssembler(
-      final Node node,
-      final ProcessorPlugin processor,
-      final Duration timeout,
-      final int index,
-      final int bufferSize,
-      final ParentEdgeInfo[] parentEdges) {
-
-    return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
-      final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
-      Flux<Message<?>> stream = processor.process(mergedInput, node.config());
-      if (processor.isBlocking()) {
-        stream = stream.subscribeOn(virtualThreadScheduler);
-      }
-
-      final ExecutionContextBuilder contextBuilder =
-          new ExecutionContextBuilder()
-              .sessionId(sessId)
-              .workflowId(wfId)
-              .executionId(execId)
-              .nodeId(node.nodeId())
-              .payload(pld);
-
-      Flux<Message<?>> built =
-          new StreamBuilder(node, timeout, tracker, controlBusGateway)
-              .withSource(stream)
-              .withTimeout()
-              .withTaskTracking(execId)
-              .withErrorHandling(execId)
-              .build();
-
-      built = contextBuilder.applyContextTo(built);
-      strms[index] =
-          applyLoggingAndBroadcasting(execId, node.nodeId(), built, bufferSize, disps, conns);
-    };
-  }
-
-  @SuppressWarnings("PMD.UseVarargs")
-  private NodeAssembler createTerminalAssembler(
-      final Node node,
-      final TerminalPlugin terminal,
-      final Duration timeout,
-      final ParentEdgeInfo[] parentEdges) {
-
-    return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
-      final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
-      final Flux<Message<?>> inputToTerminal =
-          mergedInput
-              .flatMap(
+      stream =
+          stream
+              .<Message<?>>flatMap(
                   msg ->
                       Mono.<Message<?>>just(msg)
                           .timeout(timeout, virtualThreadScheduler)
                           .onErrorMap(TimeoutException.class, e -> e),
-                  BUFFER_SIZE)
-              .transformDeferredContextual(
-                  (flux, ctx) -> {
-                    final ResultCollector collector = ctx.getOrDefault("resultCollector", null);
-                    return collector != null ? flux.doOnNext(collector::add) : flux;
-                  });
-
-      final ExecutionContextBuilder contextBuilder =
-          new ExecutionContextBuilder()
-              .sessionId(sessId)
-              .workflowId(wfId)
-              .executionId(execId)
-              .nodeId(node.nodeId())
-              .payload(pld);
-
-      Mono<Void> completion = terminal.consume(inputToTerminal, node.config());
-      if (terminal.isBlocking()) {
-        completion = completion.subscribeOn(virtualThreadScheduler);
-      }
-
-      completion =
-          completion
+                  bufferSize)
               .doOnSubscribe(
                   s ->
                       tracker.emitTaskStatusEvent(
@@ -654,8 +474,8 @@ public class WorkflowOrchestrator {
                           DEFAULT_TASK_ID,
                           STATUS_RUNNING,
                           Collections.emptyMap()))
-              .doOnSuccess(
-                  v ->
+              .doOnComplete(
+                  () ->
                       tracker.emitTaskStatusEvent(
                           execId,
                           node.nodeId(),
@@ -681,9 +501,161 @@ public class WorkflowOrchestrator {
                                 .withPriority(10))
                         .subscribe();
                   })
-              .then();
+              .contextWrite(
+                  ctx ->
+                      ctx.put(CTX_NODE_ID, node.nodeId())
+                          .put(CTX_PAYLOAD, pld)
+                          .put(CTX_SESSION_ID, sessId)
+                          .put(CTX_WORKFLOW_ID, wfId)
+                          .put(CTX_EXECUTION_ID, execId));
+      strms[index] =
+          applyLoggingAndBroadcasting(execId, node.nodeId(), stream, bufferSize, disps, conns);
+    };
+  }
 
-      completion = contextBuilder.applyContextTo(completion);
+  @SuppressWarnings("PMD.UseVarargs")
+  private NodeAssembler createProcessorAssembler(
+      final Node node,
+      final ProcessorPlugin processor,
+      final Duration timeout,
+      final int index,
+      final int bufferSize,
+      final ParentEdgeInfo[] parentEdges) {
+
+    return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
+      final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
+      Flux<Message<?>> stream = processor.process(mergedInput, node.config());
+      if (processor.isBlocking()) {
+        stream = stream.subscribeOn(virtualThreadScheduler);
+      }
+
+      stream =
+          stream
+              .<Message<?>>flatMap(
+                  msg ->
+                      Mono.<Message<?>>just(msg)
+                          .timeout(timeout, virtualThreadScheduler)
+                          .onErrorMap(TimeoutException.class, e -> e),
+                  bufferSize)
+              .doOnSubscribe(
+                  s ->
+                      tracker.emitTaskStatusEvent(
+                          execId,
+                          node.nodeId(),
+                          DEFAULT_TASK_ID,
+                          STATUS_RUNNING,
+                          Collections.emptyMap()))
+              .doOnComplete(
+                  () ->
+                      tracker.emitTaskStatusEvent(
+                          execId,
+                          node.nodeId(),
+                          DEFAULT_TASK_ID,
+                          STATUS_SUCCESS,
+                          Collections.emptyMap()))
+              .contextWrite(
+                  ctx ->
+                      ctx.put(CTX_NODE_ID, node.nodeId())
+                          .put(CTX_PAYLOAD, pld)
+                          .put(CTX_SESSION_ID, sessId)
+                          .put(CTX_WORKFLOW_ID, wfId)
+                          .put(CTX_EXECUTION_ID, execId))
+              .doOnError(
+                  e -> {
+                    tracker.emitTaskStatusEvent(
+                        execId,
+                        node.nodeId(),
+                        DEFAULT_TASK_ID,
+                        STATUS_FAILURE,
+                        Collections.emptyMap());
+                    controlBusGateway
+                        .emit(
+                            DefaultMessage.create(
+                                    null,
+                                    new ControlError(
+                                        node.nodeId(), execId, "Node Failure", e.getMessage()))
+                                .withSourceNodeId(node.nodeId())
+                                .withControl(true)
+                                .withPriority(10))
+                        .subscribe();
+                  });
+      strms[index] =
+          applyLoggingAndBroadcasting(execId, node.nodeId(), stream, bufferSize, disps, conns);
+    };
+  }
+
+  @SuppressWarnings("PMD.UseVarargs")
+  private NodeAssembler createTerminalAssembler(
+      final Node node,
+      final TerminalPlugin terminal,
+      final Duration timeout,
+      final ParentEdgeInfo[] parentEdges) {
+
+    return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
+      final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
+      final Flux<Message<?>> inputToTerminal =
+          mergedInput
+              .<Message<?>>flatMap(
+                  msg ->
+                      Mono.<Message<?>>just(msg)
+                          .timeout(timeout, virtualThreadScheduler)
+                          .onErrorMap(TimeoutException.class, e -> e),
+                  BUFFER_SIZE)
+              .transformDeferredContextual(
+                  (flux, ctx) -> {
+                    final ResultCollector collector = ctx.getOrDefault("resultCollector", null);
+                    return collector != null ? flux.doOnNext(collector::add) : flux;
+                  });
+      Mono<Void> completion = terminal.consume(inputToTerminal, node.config());
+      if (terminal.isBlocking()) {
+        completion = completion.subscribeOn(virtualThreadScheduler);
+      }
+
+      completion =
+          completion
+              .doOnSubscribe(
+                  s ->
+                      tracker.emitTaskStatusEvent(
+                          execId,
+                          node.nodeId(),
+                          DEFAULT_TASK_ID,
+                          STATUS_RUNNING,
+                          Collections.emptyMap()))
+              .doOnSuccess(
+                  v ->
+                      tracker.emitTaskStatusEvent(
+                          execId,
+                          node.nodeId(),
+                          DEFAULT_TASK_ID,
+                          STATUS_SUCCESS,
+                          Collections.emptyMap()))
+              .contextWrite(
+                  ctx ->
+                      ctx.put(CTX_NODE_ID, node.nodeId())
+                          .put(CTX_PAYLOAD, pld)
+                          .put(CTX_SESSION_ID, sessId)
+                          .put(CTX_WORKFLOW_ID, wfId)
+                          .put(CTX_EXECUTION_ID, execId))
+              .doOnError(
+                  e -> {
+                    tracker.emitTaskStatusEvent(
+                        execId,
+                        node.nodeId(),
+                        DEFAULT_TASK_ID,
+                        STATUS_FAILURE,
+                        Collections.emptyMap());
+                    controlBusGateway
+                        .emit(
+                            DefaultMessage.create(
+                                    null,
+                                    new ControlError(
+                                        node.nodeId(), execId, "Node Failure", e.getMessage()))
+                                .withSourceNodeId(node.nodeId())
+                                .withControl(true)
+                                .withPriority(10))
+                        .subscribe();
+                  })
+              .then();
       terms.add(completion);
     };
   }

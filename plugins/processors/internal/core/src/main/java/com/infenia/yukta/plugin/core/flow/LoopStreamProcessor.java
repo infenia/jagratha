@@ -149,17 +149,11 @@ public class LoopStreamProcessor implements ProcessorPlugin {
 
               if (state.iteration() >= context.maxIterations()) {
                 return logAndTerminate(
-                    executionId,
-                    nodeId,
-                    "Max iterations (" + context.maxIterations() + ")",
-                    new LoopState(List.of(), state.lastMessage(), state.iteration(), false));
+                    executionId, nodeId, "Max iterations (" + context.maxIterations() + ")", state);
               }
               if (System.currentTimeMillis() - startTime > context.maxDuration().toMillis()) {
                 return logAndTerminate(
-                    executionId,
-                    nodeId,
-                    "Max duration (" + context.maxDuration() + ")",
-                    new LoopState(List.of(), state.lastMessage(), state.iteration(), false));
+                    executionId, nodeId, "Max duration (" + context.maxDuration() + ")", state);
               }
 
               return logIteration(executionId, nodeId, state.iteration() + 1)
@@ -170,7 +164,7 @@ public class LoopStreamProcessor implements ProcessorPlugin {
                   .collectList()
                   .flatMap(
                       messages -> {
-                        final Message<?> lastMsg =
+                        final Message lastMsg =
                             messages.isEmpty()
                                 ? state.lastMessage()
                                 : messages.get(messages.size() - 1);
@@ -185,7 +179,7 @@ public class LoopStreamProcessor implements ProcessorPlugin {
                                         nodeId,
                                         "Exit condition met",
                                         new LoopState(
-                                            messages, lastMsg, state.iteration() + 1, false));
+                                            messages, lastMsg, state.iteration() + 1, true));
                                   }
                                   return Mono.just(
                                           new LoopState(
