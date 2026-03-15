@@ -18,6 +18,7 @@ package com.infenia.yukta.mcp;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
 
 class AppMcpPromptsTest {
 
@@ -25,16 +26,24 @@ class AppMcpPromptsTest {
 
   @Test
   void testDebugWorkflow() {
-    String prompt = mcpPrompts.debugWorkflow("s1", "e1");
-    assertTrue(prompt.contains("s1"));
-    assertTrue(prompt.contains("e1"));
-    assertTrue(prompt.contains("debugging"));
+    StepVerifier.create(mcpPrompts.debugWorkflow("s1", "e1"))
+        .assertNext(
+            prompt -> {
+              assertTrue(prompt.contains("s1"));
+              assertTrue(prompt.contains("e1"));
+              assertTrue(prompt.contains("debugging"));
+            })
+        .verifyComplete();
   }
 
   @Test
   void testCreateSessionConfig() {
-    String prompt = mcpPrompts.createSessionConfig();
-    assertTrue(prompt.contains("JSON"));
-    assertTrue(prompt.contains("Yukta session"));
+    StepVerifier.create(mcpPrompts.createSessionConfig())
+        .assertNext(
+            prompt -> {
+              assertTrue(prompt.contains("JSON"));
+              assertTrue(prompt.contains("Yukta session"));
+            })
+        .verifyComplete();
   }
 }

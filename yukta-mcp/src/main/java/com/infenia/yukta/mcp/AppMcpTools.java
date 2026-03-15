@@ -46,6 +46,9 @@ import reactor.core.publisher.Mono;
 @SuppressWarnings({"PMD.LongVariable", "PMD.UseObjectForClearerAPI"})
 public class AppMcpTools {
 
+  /** Description for session ID parameter. */
+  private static final String SESSION_ID_DESC = "The unique identifier of the session";
+
   private final DefaultSessionInfoProvider sessionInfoProvider;
   private final DefaultLogProvider logProvider;
   private final DefaultWorkflowExecutionProvider workflowExecutionProvider;
@@ -62,7 +65,7 @@ public class AppMcpTools {
       name = "get_session_details",
       description = "Get details of a specific Yukta session including workflow IDs")
   public Mono<SessionDetails> getSessionDetails(
-      @McpArg(description = "The unique identifier of the session") final String sessionId) {
+      @McpArg(description = SESSION_ID_DESC) final String sessionId) {
     return sessionInfoProvider.getSessionDetails(sessionId);
   }
 
@@ -90,9 +93,10 @@ public class AppMcpTools {
       description =
           "Stream session logs with optional filtering by workflow, execution, or pattern")
   public Flux<String> streamSessionLogs(
-      @McpArg(description = "The unique identifier of the session") final String sessionId,
+      @McpArg(description = SESSION_ID_DESC) final String sessionId,
       @McpArg(description = "Optional workflow identifier to filter logs") final String workflowId,
-      @McpArg(description = "Optional execution identifier to filter logs") final String executionId,
+      @McpArg(description = "Optional execution identifier to filter logs")
+          final String executionId,
       @McpArg(description = "Optional regex pattern to filter log content")
           final String filterPattern) {
     return logProvider.streamSessionLogs(sessionId, workflowId, executionId, filterPattern);
@@ -110,7 +114,7 @@ public class AppMcpTools {
       name = "get_workflow_execution_logs",
       description = "Get all logs for a specific workflow execution with optional filtering")
   public Mono<String> getWorkflowExecutionLogs(
-      @McpArg(description = "The unique identifier of the session") final String sessionId,
+      @McpArg(description = SESSION_ID_DESC) final String sessionId,
       @McpArg(description = "The unique identifier of the workflow execution")
           final String executionId,
       @McpArg(description = "Optional regex pattern to filter log content")
@@ -129,7 +133,7 @@ public class AppMcpTools {
       name = "get_workflow_details",
       description = "Get the full DAG definition (nodes and edges) of a Yukta workflow")
   public Mono<WorkflowDefinition> getWorkflowDetails(
-      @McpArg(description = "The unique identifier of the session") final String sessionId,
+      @McpArg(description = SESSION_ID_DESC) final String sessionId,
       @McpArg(description = "The unique identifier of the workflow") final String workflowId) {
     return workflowExecutionProvider.getWorkflowDetails(sessionId, workflowId);
   }
@@ -142,9 +146,11 @@ public class AppMcpTools {
    * @param payloadJson optional JSON string for trigger payload
    * @return Mono containing the execution ID
    */
-  @McpTool(name = "trigger_workflow", description = "Trigger a Yukta workflow with an optional JSON payload")
+  @McpTool(
+      name = "trigger_workflow",
+      description = "Trigger a Yukta workflow with an optional JSON payload")
   public Mono<String> triggerWorkflow(
-      @McpArg(description = "The unique identifier of the session") final String sessionId,
+      @McpArg(description = SESSION_ID_DESC) final String sessionId,
       @McpArg(description = "The unique identifier of the workflow to trigger")
           final String workflowId,
       @McpArg(description = "Optional JSON payload to pass to the workflow trigger")
@@ -163,7 +169,7 @@ public class AppMcpTools {
       name = "get_workflow_status",
       description = "Get the current high-level status of a workflow execution")
   public Mono<WorkflowExecutionSummary> getWorkflowStatus(
-      @McpArg(description = "The unique identifier of the session") final String sessionId,
+      @McpArg(description = SESSION_ID_DESC) final String sessionId,
       @McpArg(description = "The unique identifier of the workflow execution")
           final String executionId) {
     return workflowExecutionProvider.getWorkflowStatus(sessionId, executionId);
@@ -217,7 +223,7 @@ public class AppMcpTools {
       name = "get_session_creation_instructions",
       description =
           "Get comprehensive instructions on how to create a new Yukta session with "
-               + "workflows and plugins")
+              + "workflows and plugins")
   public Mono<SessionCreationGuide> getSessionCreationInstructions() {
     return Mono.fromCallable(sessionInfoProvider::getSessionCreationInstructions);
   }
@@ -230,7 +236,9 @@ public class AppMcpTools {
    * @return Mono containing SessionCreationResponse with sessionId, created workflows, warnings,
    *     and success status
    */
-  @McpTool(name = "create_session", description = "Create a new Yukta session with the provided configuration JSON")
+  @McpTool(
+      name = "create_session",
+      description = "Create a new Yukta session with the provided configuration JSON")
   public Mono<SessionCreationResponse> createSession(
       @McpArg(
               description =

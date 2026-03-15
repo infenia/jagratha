@@ -15,8 +15,6 @@
  */
 package com.infenia.yukta.mcp;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -136,9 +134,7 @@ class AppMcpToolsTest {
     var summary = mock(PluginSummary.class);
     when(pluginInfoProvider.listPlugins()).thenReturn(List.of(summary));
 
-    StepVerifier.create(mcpTools.listPlugins())
-        .expectNext(summary)
-        .verifyComplete();
+    StepVerifier.create(mcpTools.listPlugins()).expectNext(summary).verifyComplete();
   }
 
   @Test
@@ -146,9 +142,7 @@ class AppMcpToolsTest {
     var details = mock(PluginDetails.class);
     when(pluginInfoProvider.getPluginDetails("test")).thenReturn(details);
 
-    StepVerifier.create(mcpTools.getPluginDetails("test"))
-        .expectNext(details)
-        .verifyComplete();
+    StepVerifier.create(mcpTools.getPluginDetails("test")).expectNext(details).verifyComplete();
   }
 
   @Test
@@ -156,9 +150,7 @@ class AppMcpToolsTest {
     var status = mock(ControlBusStatus.class);
     when(systemHealthProvider.getControlBusStatus(null)).thenReturn(status);
 
-    StepVerifier.create(mcpTools.getControlBusStatus(null))
-        .expectNext(status)
-        .verifyComplete();
+    StepVerifier.create(mcpTools.getControlBusStatus(null)).expectNext(status).verifyComplete();
   }
 
   @Test
@@ -184,8 +176,6 @@ class AppMcpToolsTest {
     var guide = mock(PluginCreationGuide.class);
     when(pluginInfoProvider.getPluginCreationGuide("all")).thenReturn(guide);
 
-    StepVerifier.create(mcpTools.getPluginCreationGuide("all"))
-        .expectNext(guide)
-        .verifyComplete();
+    StepVerifier.create(mcpTools.getPluginCreationGuide("all")).expectNext(guide).verifyComplete();
   }
 }
