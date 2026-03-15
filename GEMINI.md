@@ -1,10 +1,10 @@
-# Yukta (Vigilance) 🛡️
+# Yukta 🛡️
 
 High-performance orchestrator and server designed to enforce code quality gates for AI-driven development. It acts as a bridge between AI agents (via MCP or REST), build tools, and AI feedback models.
 
 ## 🏗️ Project Overview
 
-Yukta facilitates autonomous code validation by hosting a **Model Context Protocol (MCP)** server. It triggers quality checks (Spotless, Checkstyle, PMD), processes outputs into structured JSONL, and optionally invokes AI models for intelligent feedback on failures.
+Yukta (derived from the Sanskrit *yuj*, meaning "joined" or "skillfully yoked") facilitates autonomous code validation by hosting a **Model Context Protocol (MCP)** server. It triggers quality checks (Spotless, Checkstyle, PMD), processes outputs into structured JSONL, and optionally invokes AI models for intelligent feedback on failures.
 
 - **Primary Mission**: Ensure AI-generated code meets strict quality standards before merging.
 - **Key Architecture**: Plugin-based, build-tool agnostic, and session-aware.
