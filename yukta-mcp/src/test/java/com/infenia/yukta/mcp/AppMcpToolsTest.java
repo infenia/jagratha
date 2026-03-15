@@ -136,8 +136,9 @@ class AppMcpToolsTest {
     var summary = mock(PluginSummary.class);
     when(pluginInfoProvider.listPlugins()).thenReturn(List.of(summary));
 
-    var plugins = mcpTools.listPlugins();
-    assertEquals(1, plugins.size());
+    StepVerifier.create(mcpTools.listPlugins())
+        .expectNext(summary)
+        .verifyComplete();
   }
 
   @Test
@@ -145,8 +146,9 @@ class AppMcpToolsTest {
     var details = mock(PluginDetails.class);
     when(pluginInfoProvider.getPluginDetails("test")).thenReturn(details);
 
-    var result = mcpTools.getPluginDetails("test");
-    assertEquals(details, result);
+    StepVerifier.create(mcpTools.getPluginDetails("test"))
+        .expectNext(details)
+        .verifyComplete();
   }
 
   @Test
@@ -154,7 +156,9 @@ class AppMcpToolsTest {
     var status = mock(ControlBusStatus.class);
     when(systemHealthProvider.getControlBusStatus(null)).thenReturn(status);
 
-    assertNotNull(mcpTools.getControlBusStatus(null));
+    StepVerifier.create(mcpTools.getControlBusStatus(null))
+        .expectNext(status)
+        .verifyComplete();
   }
 
   @Test
@@ -162,7 +166,9 @@ class AppMcpToolsTest {
     var guide = mock(SessionCreationGuide.class);
     when(sessionInfoProvider.getSessionCreationInstructions()).thenReturn(guide);
 
-    assertNotNull(mcpTools.getSessionCreationInstructions());
+    StepVerifier.create(mcpTools.getSessionCreationInstructions())
+        .expectNext(guide)
+        .verifyComplete();
   }
 
   @Test
@@ -178,6 +184,8 @@ class AppMcpToolsTest {
     var guide = mock(PluginCreationGuide.class);
     when(pluginInfoProvider.getPluginCreationGuide("all")).thenReturn(guide);
 
-    assertNotNull(mcpTools.getPluginCreationGuide("all"));
+    StepVerifier.create(mcpTools.getPluginCreationGuide("all"))
+        .expectNext(guide)
+        .verifyComplete();
   }
 }

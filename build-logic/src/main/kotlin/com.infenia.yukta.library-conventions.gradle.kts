@@ -14,26 +14,6 @@
  * limitations under the License.
  */
 plugins {
-    id("com.infenia.yukta.library-conventions")
-}
-
-version = "1.0.0"
-
-dependencies {
-    implementation(project(":yukta-plugin-api"))
-    implementation(project(":yukta-core"))
-    implementation(libs.spring.boot.starter.webflux)
-    implementation(libs.jackson.databind)
-}
-
-coverageConfig {
-    val baselineCoverage = mapOf(
-        "LINE" to 0.5,
-        "BRANCH" to 0.5,
-        "CLASS" to 0.5,
-        "INSTRUCTION" to 0.5,
-        "METHOD" to 0.5
-    )
-
-    exceptions.put("com.infenia.yukta.plugin.trigger.ConstantSource", baselineCoverage)
+    `java-library`
+    id("com.infenia.yukta.spring-conventions")
 }
