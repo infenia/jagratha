@@ -46,8 +46,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = {"gg.jte.development-mode=true", "gg.jte.template-location=src/main/jte"})
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UiE2ETest {
 
   @LocalServerPort private int port;
