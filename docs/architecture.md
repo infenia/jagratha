@@ -2,118 +2,142 @@
 
 This document provides a detailed overview of Yukta's architecture, internal mechanisms, and design patterns.
 
-## High-Level Overview
+## 🌉 High-Level Overview
 
 Yukta is a vigilance server designed to enforce code quality gates for AI-driven development. It acts as an orchestrator between AI agents (via MCP or REST), build tools (like Gradle), and AI models (for feedback).
 
-## Core Components
+## 🔄 Data Flow
 
-- **AppController**: REST API entry point for file logging, task execution, and configuration.
-- **AppMcpTools**: Model Context Protocol (MCP) interface, allowing AI agents to interact with Yukta directly via standard AI tool calling.
-- **AppService**: The central orchestrator that manages sessions, triggers quality checks, and handles configuration.
-- **YuktaPlugin**: Abstraction for build tools (e.g., `GradlePlugin`).
-- **OutputProcessorPlugin**: Processes raw task output into structured formats (e.g., `CheckstyleXmlProcessor` converts XML to JSONL).
-- **AiPlugin**: Invokes AI models to provide feedback on quality check results (e.g., `QwenCodePlugin`).
-
-## Sequence Diagram: Quality Check Execution
-
-The following diagram illustrates the flow when a quality check is triggered (via `/api/workflow/trigger` or MCP).
+The following diagram illustrates how a request (e.g., a workflow trigger) travels through the system.
 
 ```mermaid
-sequenceDiagram
-    participant User as AI Agent / Client
-    participant Controller as AppController / McpTools
-    participant Service as AppService
-    participant Plugin as YuktaPlugin (Gradle)
-    participant Processor as OutputProcessorPlugin
-    participant AI as AiPlugin (Qwen)
-    participant FS as File System (Logs)
-
-    User->>Controller: Trigger Quality Checks
-    Controller->>Service: runQualityChecks(sessionId)
-    Service->>FS: Load modified files log
-    Service->>Plugin: execute(tasks, projectRoot)
-    loop For each task
-        Plugin->>FS: Save raw task output
-        alt Processor defined
-            Service->>Processor: process(output)
-            Processor->>Service: structuredOutput
-        end
-        alt AI Step defined
-            Service->>AI: generateFeedback(structuredOutput)
-            AI->>Service: aiFeedback
-        end
+graph TD
+    subgraph Clients
+        MCP[MCP Client / Claude]
+        REST[REST Client / Curl]
     end
-    Service->>FS: Update session log (SUCCESS/FAILURE)
-    Service->>Controller: TaskResponse
-    Controller->>User: JSON Response / Tool Result
+
+    subgraph "Web Layer (yukta-web / yukta-mcp)"
+        MCPServer[AppMcpTools]
+        Controllers[AppController / WorkflowController]
+    end
+
+    subgraph "Core Orchestration (yukta-core)"
+        Service[WorkflowService]
+        Orchestrator[WorkflowOrchestrator]
+        Registry[WorkflowRegistry]
+        Gateway[WorkflowGateway]
+    end
+
+    subgraph "Execution Layer (plugins)"
+        Trigger[TriggerPlugin]
+        Processor[ProcessorPlugin]
+        Terminal[TerminalPlugin]
+    end
+
+    MCP --> MCPServer
+    REST --> Controllers
+    MCPServer --> Service
+    Controllers --> Service
+    Service --> Orchestrator
+    Orchestrator --> Registry
+    Orchestrator --> Gateway
+    Gateway --> Trigger
+    Gateway --> Processor
+    Gateway --> Terminal
+
+    Processor -->|Result| Gateway
+    Terminal -->|Final Output| Orchestrator
+    Orchestrator -->|Response| Service
+    Service -->|JSON/ToolResult| MCPServer
+    Service -->|JSON| Controllers
 ```
 
-## Plugin System (Class Diagram)
+---
 
-Yukta uses a plugin-based architecture to remain extensible and build-tool agnostic.
+## 🧵 Threading Model
+
+Yukta utilizes a hybrid threading model to maximize throughput while handling both high-latency I/O and blocking process execution.
+
+### 1. Reactive Core (WebFlux / Reactor)
+The primary flow of the application is built on **Project Reactor**. All internal communication, event handling, and state management are non-blocking. This allows the server to handle thousands of concurrent sessions with a very small number of fixed platform threads.
+
+### 2. Virtual Threads (Project Loom)
+For operations that are inherently blocking—specifically executing external build tool processes (e.g., `./gradlew test`)—Yukta uses **Virtual Threads**.
+
+- **VirtualThreadScheduler**: A custom Reactor `Scheduler` backed by an executor that spawns virtual threads.
+- **Isolation**: Blocking tasks are offloaded to this scheduler, ensuring that the reactive "Event Loop" threads are never blocked.
+- **Performance**: Since virtual threads are lightweight, we can start a new thread for every external process execution without worrying about thread-exhaustion.
+
+```java
+// Example of how Yukta bridges Reactive and Virtual Threads
+public Mono<TaskResponse> runTask(Task task) {
+    return Mono.fromCallable(() -> {
+        // This runs in a Virtual Thread
+        return processExecutor.execute(task.getCommand());
+    }).subscribeOn(virtualThreadScheduler);
+}
+```
+
+---
+
+## 📦 Domain Model
+
+The core domain of Yukta is built around the following entities:
+
+- **Session**: Represents a unique interaction context (e.g., a single PR or a Claude Code session). It holds configuration, logs, and current state.
+- **Workflow**: A Directed Acyclic Graph (DAG) of nodes that define the quality gate logic.
+- **Message**: The unit of data that flows through a workflow. It contains a payload (e.g., a file modification event or task result) and technical headers (traceId, timestamp).
+- **Node**: A step in a workflow.
+    - **Trigger**: The entry point (e.g., an API call).
+    - **Processor**: A functional step (e.g., running Checkstyle, filtering files).
+    - **Terminal**: An exit point (e.g., sending results back to the console).
+- **Exchange**: Wraps the Message as it moves between nodes, providing context about the current execution path.
+
+---
+
+## 🔌 Plugin System
+
+Yukta uses a modular plugin architecture based on **Enterprise Integration Patterns (EIP)**.
 
 ```mermaid
 classDiagram
-    class YuktaPlugin {
+    class WorkflowPlugin {
         <<interface>>
-        +execute(List tasks, Path projectRoot) Mono~TaskResponse~
-        +isSupported(Path projectRoot) boolean
+        +getName() String
+        +getConfiguration() Map
     }
-    class GradlePlugin {
-        +execute(List tasks, Path projectRoot) Mono~TaskResponse~
-    }
-    class OutputProcessorPlugin {
+    class TriggerPlugin {
         <<interface>>
-        +process(String output, Map config) String
+        +start() Flux~Message~
     }
-    class CheckstyleXmlProcessor {
-        +process(String output, Map config) String
-    }
-    class AiPlugin {
+    class ProcessorPlugin {
         <<interface>>
-        +generateFeedback(String prompt, Map config) Mono~String~
+        +process(Message) Mono~Message~
     }
-    class QwenCodePlugin {
-        +generateFeedback(String prompt, Map config) Mono~String~
+    class TerminalPlugin {
+        <<interface>>
+        +consume(Message) Mono~Void~
     }
 
-    YuktaPlugin <|.. GradlePlugin
-    OutputProcessorPlugin <|.. CheckstyleXmlProcessor
-    AiPlugin <|.. QwenCodePlugin
+    WorkflowPlugin <|-- TriggerPlugin
+    WorkflowPlugin <|-- ProcessorPlugin
+    WorkflowPlugin <|-- TerminalPlugin
 ```
 
-## Internal File Logging Mechanism
+- **TriggerPlugin**: Sources of messages (e.g., `ApiTrigger`, `ConstantSource`).
+- **ProcessorPlugin**: Logic nodes (e.g., `Branch`, `Splitter`, `Mapper`, `Filter`).
+- **TerminalPlugin**: Sinks for messages (e.g., `ConsoleTerminal`).
+
+---
+
+## 📁 Internal File Logging
 
 Yukta maintains detailed logs for every session to track file modifications and task results.
 
-### 1. Modified Files Log
-Located at: `{fileLogDir}/{sessionId}/{sessionId.log}`
+### 1. Session Logs
+Located at: `logs/{sessionId}/`
 Format: **JSONL (JSON Lines)**
 
-Each line represents a file modification event:
-```json
-{"path": "src/main/java/App.java", "status": "PENDING", "timestamp": "2026-01-01T10:00:00"}
-```
-- `PENDING`: File has been modified but not yet cleared by a successful quality check.
-- `SUCCESS`: File has passed the most recent quality check.
-
 ### 2. Task Results
-Located at: `{resultLogDir}/{sessionId}/`
-
-- **Individual Task Logs**: `<submodule>-<task>-<datetime>.log`
-  Contains the raw stdout/stderr of the executed task.
-- **Summary Log**: `summary.log`
-  A high-level summary of all tasks executed in the session.
-
-### 3. Concurrency Handling
-Yukta uses session-specific `ReentrantLock` instances stored in a `ConcurrentHashMap` to ensure that logs for different sessions can be written concurrently without interference, while protecting individual session logs from race conditions.
-
-## Tech Stack
-
-- **Framework**: Spring Boot 4.0.2 (WebFlux)
-- **Language**: Java 25 (with Java 21 toolchain)
-- **Build Tool**: Gradle 9.0
-- **AI Integration**: Spring AI (MCP Server)
-- **Documentation**: Springdoc OpenAPI (Swagger)
-- **Quality Gates**: Spotless, Checkstyle, PMD, SpotBugs, JaCoCo
+Raw output from build tools is captured and stored in session-specific directories, allowing for historical auditing and AI-driven feedback generation.

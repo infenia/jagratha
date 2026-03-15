@@ -1,73 +1,40 @@
 # API Reference
 
-Yukta provides a comprehensive REST API for managing sessions, logging file changes, and executing build tasks.
+Yukta provides a comprehensive REST API and a native MCP interface.
 
-## Swagger UI
-
-When the application is running, you can access the interactive Swagger UI at:
-
+## 🌐 Swagger UI
+When the application is running, explore the interactive documentation at:
 [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 
-This interface allows you to:
-- Explore all available endpoints.
-- View detailed request/response schemas.
-- Execute API calls directly from your browser.
+## 📡 Key Endpoints
 
-## OpenAPI Specification
+### Session Management
+- `POST /api/config`: Initialize or update session configuration.
+- `GET /api/sessions`: List all active sessions.
 
-The raw OpenAPI 3.0 specification is available in JSON format at:
+### File Tracking
+- `POST /api/files`: Log a modified file path.
 
-[http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+### Workflow Execution
+- `POST /api/workflow/trigger`: Start the quality gate check.
 
-## Key Endpoints
+### Log Access
+- `GET /api/logs/{sessionId}`: List generated logs.
+- `GET /api/logs/{sessionId}/{filename}`: Retrieve log content in JSON format.
 
-### 1. Session Configuration (`POST /api/config`)
-Initializes or updates the configuration for a specific session.
+## 🤖 MCP Tools
+If connecting via MCP, the following tools are available:
+- `configure_session`
+- `log_file_change`
+- `trigger_workflow`
 
-### 2. File Logging (`POST /api/files`)
-Logs a file path that has been modified. Yukta will track these files and reset their status to `PENDING`.
-
-### 3. Task Execution (`POST /api/workflow/trigger`)
-Triggers the execution of build tasks (e.g., tests, checkstyle) for the current session. Returns a summary of success or failure.
-
-### 4. Log Retrieval (`GET /api/logs/{sessionId}`)
-Lists all log files generated for a specific session.
-
-### 5. Log Content (`GET /api/logs/{sessionId}/{filename}`)
-Retrieves the content of a specific log file in a unified JSON format.
-
-### 6. Raw Log Content (`GET /api/logs/{sessionId}/{filename}/raw`)
-Retrieves the raw text content of a specific log file.
-
-## Unified API Response
-
-Yukta uses a unified response format for both success and error responses.
-
-### Success Response Example
-
+## 📦 Unified Response Format
+All REST responses follow this structure:
 ```json
 {
-  "timestamp": "2026-01-01T10:00:00",
+  "timestamp": "ISO-8601",
   "status": 200,
-  "message": "Operation successful",
+  "message": "Descriptive message",
   "data": { ... }
-}
-```
-
-### Error Response Example
-
-```json
-{
-  "timestamp": "2026-01-01T10:00:00",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Validation failed",
-  "path": "/api/config",
-  "errors": [
-    {
-      "field": "sessionId",
-      "message": "Session ID is required"
-    }
-  ]
 }
 ```

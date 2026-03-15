@@ -25,15 +25,41 @@ It hosts a **Model Context Protocol (MCP)** server, accepts **Agent Client Proto
 - **GraalVM** (Native Image support)
 - **OpenAPI 3.0** (Springdoc Swagger UI)
 
+For more details on why these technologies were chosen, see **[TECHNOLOGY.md](docs/TECHNOLOGY.md)**.
+
 ---
 
 ## 📖 Documentation
 
+### 👤 For Users
 - **[Getting Started](docs/getting-started.md)** - Run your first quality check in 5 minutes.
-- **[Architecture & Design](docs/architecture.md)** - Detailed diagrams and internal mechanisms.
 - **[API Reference](docs/api-reference.md)** - Swagger UI and endpoint details.
-- **[Plugin Development](docs/plugin-development.md)** - Guide on extending Yukta with new tools and models.
+- **[MCP & ACP Integration](docs/integrations.md)** - How to use Yukta with AI agents.
+
+### 💻 For Developers
+- **[Architecture & Design](docs/architecture.md)** - Detailed diagrams and internal mechanisms.
+- **[Technology Stack & Decisions](docs/TECHNOLOGY.md)** - Deep dive into our choices.
+- **[Plugin Development](docs/plugin-development.md)** - Guide on extending Yukta with new tools.
 - **[Development Setup](docs/development-setup.md)** - Instructions for contributors.
+- **[API Javadoc](https://infenia.github.io/yukta/javadoc/)** - Technical API documentation.
+
+---
+
+## 🏗️ Project Structure
+
+- **[yukta-boot](yukta-boot/)**: Main application entry point and spring boot configuration.
+- **[yukta-web](yukta-web/)**: REST API controllers and web-layer logic.
+- **[yukta-mcp](yukta-mcp/)**: Model Context Protocol (MCP) server implementation.
+- **[yukta-core](yukta-core/)**: Core business logic, workflow orchestration, and state management.
+- **[yukta-plugin-api](yukta-plugin-api/)**: Common interfaces and models for Yukta extensions.
+- **[yukta-ui](yukta-ui/)**: Frontend dashboard for monitoring workflows (JTE, Tailwind, Alpine.js).
+- **[plugins](plugins/)**: Extension modules for various tools and patterns.
+    - **[triggers](plugins/triggers/)**: Event sources that start workflows (API, Constant).
+    - **[build-tools](plugins/build-tools/)**: Integration with build systems like Gradle.
+    - **[terminals](plugins/terminals/)**: Output destinations for workflow results (Console).
+    - **[processors](plugins/processors/)**: EIP-based message processors (Router, Filter, Transformer).
+- **[docs](docs/)**: Detailed documentation and architecture diagrams.
+- **[build-logic](build-logic/)**: Shared Gradle build conventions and plugins.
 
 ---
 

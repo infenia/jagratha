@@ -2,98 +2,57 @@
 
 This guide will walk you through setting up Yukta and running your first quality check.
 
-## Prerequisites
+## 📋 Prerequisites
 
-- **Java 25** (or Java 21 with a compatible toolchain).
-- **Gradle 9.0+**.
+- **Java 21/25**
+- **Gradle 9.0+**
 - An AI Agent or Client (e.g., **Claude Code**) to interact with the server.
 
 ---
 
-## 1. "Hello World" Walkthrough
+## 🏃 5-Minute Quick Start
 
-In this walkthrough, we will start the Yukta server and manually trigger a quality check using `curl`.
-
-### Step 1: Start the Yukta Server
-
-Clone the repository and run the application:
-
+### 1. Start the Yukta Server
+Clone the repository and run:
 ```bash
 ./gradlew bootRun
 ```
+The server starts on `http://localhost:8080`.
 
-The server will start on `http://localhost:8080`.
-
-### Step 2: Initialize a Session
-
-Send a configuration request to initialize a session for your project:
-
+### 2. Configure a Session
+Tell Yukta about your project and the tasks you want it to run:
 ```bash
 curl -X POST http://localhost:8080/api/config \
   -H "Content-Type: application/json" \
   -d '{
-    "sessionId": "hello-yukta",
-    "projectPath": "/path/to/your/project",
-    "pluginName": "gradle",
-    "pluginConfig": { "gradlePath": "./gradlew" },
-    "tasks": ["spotlessCheck", "checkstyleMain"],
-    "workflows": []
+    "sessionId": "demo",
+    "projectPath": "/path/to/my-project",
+    "tasks": ["test", "spotlessCheck"]
   }'
 ```
 
-### Step 3: Log a File Modification
-
-Tell Yukta that a file has been modified:
-
+### 3. Log a File Change
+Notify Yukta when you modify a file:
 ```bash
 curl -X POST http://localhost:8080/api/files \
   -H "Content-Type: application/json" \
-  -d '{
-    "sessionId": "hello-yukta",
-    "path": "src/main/java/com/example/App.java"
-  }'
+  -d '{ "sessionId": "demo", "path": "src/main/java/App.java" }'
 ```
 
-### Step 4: Trigger Quality Checks
-
-Run the tasks and see the results:
-
+### 4. Trigger the Quality Gate
+Run the checks and get feedback:
 ```bash
 curl -X POST http://localhost:8080/api/workflow/trigger \
   -H "Content-Type: application/json" \
-  -d '{ "sessionId": "hello-yukta" }'
+  -d '{ "sessionId": "demo" }'
 ```
-
-The server will return a `TaskResponse` containing the combined output of the executed tasks.
 
 ---
 
-## 2. Integrating with Claude Code
+## 🤖 AI Agent Integration
 
-Yukta is designed to work seamlessly with **Claude Code** (the CLI tool from Anthropic) using lifecycle hooks.
+Yukta is built to be used by AI agents. For detailed instructions on how to connect Claude or other agents, see **[MCP & ACP Integration](integrations.md)**.
 
-### Installation
+## 🛠️ Advanced Setup
 
-Copy the scripts from the `client/scripts` directory to your project's local tools folder (e.g., `.claude/hooks`).
-
-### Configuration
-
-Claude Code can be configured to call Yukta scripts at specific events in its lifecycle. Edit your `config.json` or equivalent for Claude Code:
-
-| Claude Event | Hook Script |
-| :--- | :--- |
-| **SessionStart** | `python3 init_session.py` |
-| **ToolUsage** | `python3 save_file.py` |
-| **Stop** | `python3 complete_task.py` |
-
-### How it Works
-
-1. **SessionStart**: Claude starts a session, and `init_session.py` sends the project configuration to Yukta.
-2. **ToolUsage**: Whenever Claude uses a tool to modify a file (like `write_file` or `replace_text`), `save_file.py` intercepts the event and logs the file path with Yukta.
-3. **Stop**: When Claude finishes its task, `complete_task.py` triggers Yukta to run the configured quality gates. Claude will wait for the results before finalizing.
-
-### Benefits
-
-- **Autonomous Verification**: Yukta ensures that the AI doesn't break your build or violate style rules before it commits the changes.
-- **Immediate Feedback**: If a check fails, Yukta provides the exact error log back to the AI, allowing it to self-correct immediately.
-- **Traceability**: All interactions and quality check results are logged in standard formats.
+For information on custom plugins and advanced workflow configurations, refer to the **[Architecture](architecture.md)** and **[Plugin Development](plugin-development.md)** guides.
