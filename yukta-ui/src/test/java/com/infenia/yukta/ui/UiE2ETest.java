@@ -19,7 +19,7 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.ControlBusService;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.SessionService;
@@ -82,7 +82,7 @@ class UiE2ETest {
 
   @BeforeEach
   void setUp() {
-    when(sessionService.getActiveSessions()).thenReturn(Flux.just("test-session"));
+    when(sessionService.getSessionIds()).thenReturn(Flux.just("test-session"));
     when(sessionService.getSessionConfig(anyString())).thenReturn(Mono.just(Map.of()));
     when(sessionService.getSessionWorkflow(anyString(), anyString()))
         .thenReturn(Mono.just(new WorkflowDefinition("test", List.of(), List.of())));
