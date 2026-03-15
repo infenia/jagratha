@@ -108,7 +108,7 @@ jobs:
           version: 10
 
       - name: Install Playwright runtime dependencies
-        run: npx playwright install --with-deps chromium
+        run: npx playwright@1.49.0 install --with-deps chromium
 
       - name: Full build (push to main / schedule / root change on PR)
         if: |
