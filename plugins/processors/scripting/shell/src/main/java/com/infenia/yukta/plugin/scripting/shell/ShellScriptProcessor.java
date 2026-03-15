@@ -20,9 +20,7 @@ import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
@@ -38,11 +36,12 @@ import reactor.core.scheduler.Schedulers;
  * A processor plugin that executes shell scripts (bash).
  *
  * <p>Configuration:
+ *
  * <ul>
- *   <li>script (required): The shell script content to execute.</li>
- *   <li>executable (optional): The shell executable to use. Default is /bin/bash.</li>
- *   <li>timeout (optional): Execution timeout in seconds. Default is 60.</li>
- *   <li>workingDir (optional): The working directory for the script.</li>
+ *   <li>script (required): The shell script content to execute.
+ *   <li>executable (optional): The shell executable to use. Default is /bin/bash.
+ *   <li>timeout (optional): Execution timeout in seconds. Default is 60.
+ *   <li>workingDir (optional): The working directory for the script.
  * </ul>
  */
 @Slf4j
@@ -81,14 +80,16 @@ public class ShellScriptProcessor implements ProcessorPlugin {
   public Flux<Message<?>> process(final Flux<Message<?>> input, final Map<String, Object> config) {
     final String script = (String) config.get(CONFIG_SCRIPT);
     final String executable = (String) config.getOrDefault(CONFIG_EXECUTABLE, DEFAULT_EXECUTABLE);
-    final long timeout = ((Number) config.getOrDefault(CONFIG_TIMEOUT, DEFAULT_TIMEOUT)).longValue();
+    final long timeout =
+        ((Number) config.getOrDefault(CONFIG_TIMEOUT, DEFAULT_TIMEOUT)).longValue();
     final String workingDir = (String) config.get(CONFIG_WORKING_DIR);
 
     if (script == null || script.isBlank()) {
       return Flux.error(new IllegalArgumentException("script configuration is mandatory"));
     }
 
-    return input.flatMap(message -> executeScript(message, script, executable, timeout, workingDir));
+    return input.flatMap(
+        message -> executeScript(message, script, executable, timeout, workingDir));
   }
 
   private Mono<Message<?>> executeScript(
@@ -133,24 +134,25 @@ public class ShellScriptProcessor implements ProcessorPlugin {
               final Mono<Integer> exitCodeMono =
                   Mono.fromFuture(process.onExit()).map(Process::exitValue);
 
-              final Mono<Message<?>> resultMono = outputFlux
-                  .collectList()
-                  .map(list -> String.join("", list))
-                  .zipWith(exitCodeMono)
-                  .flatMap(
-                      tuple -> {
-                        final String output = tuple.getT1();
-                        final int exitCode = tuple.getT2();
-                        if (exitCode != 0) {
-                          return Mono.error(
-                              new WorkflowExecutionException(
-                                  "Shell script failed with exit code "
-                                      + exitCode
-                                      + ". Output: "
-                                      + output));
-                        }
-                        return Mono.just((Message<?>) message.withPayload(output));
-                      });
+              final Mono<Message<?>> resultMono =
+                  outputFlux
+                      .collectList()
+                      .map(list -> String.join("", list))
+                      .zipWith(exitCodeMono)
+                      .flatMap(
+                          tuple -> {
+                            final String output = tuple.getT1();
+                            final int exitCode = tuple.getT2();
+                            if (exitCode != 0) {
+                              return Mono.error(
+                                  new WorkflowExecutionException(
+                                      "Shell script failed with exit code "
+                                          + exitCode
+                                          + ". Output: "
+                                          + output));
+                            }
+                            return Mono.just((Message<?>) message.withPayload(output));
+                          });
 
               return resultMono
                   .timeout(Duration.ofSeconds(timeout))
@@ -165,7 +167,9 @@ public class ShellScriptProcessor implements ProcessorPlugin {
             })
         .onErrorMap(
             IOException.class,
-            e -> new WorkflowExecutionException("Failed to start shell script: " + e.getMessage(), e))
+            e ->
+                new WorkflowExecutionException(
+                    "Failed to start shell script: " + e.getMessage(), e))
         .onErrorMap(
             e -> {
               if (e instanceof WorkflowExecutionException) {

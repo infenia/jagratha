@@ -16,12 +16,10 @@
 package com.infenia.yukta.plugin.scripting.shell;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
-import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +53,8 @@ class ShellScriptProcessorTest {
   @Test
   void testMetadataEnvironmentVariables() {
     final Map<String, Object> config = Map.of("script", "echo $YUKTA_METADATA_TEST_KEY");
-    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "input")
+    final Message<?> msg =
+        DefaultMessage.create(UUID.randomUUID(), "input")
             .withMetadata(Map.of("test.key", "test-value"));
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
@@ -73,7 +72,8 @@ class ShellScriptProcessorTest {
     final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "input");
 
     StepVerifier.create(processor.process(Flux.just(msg), config))
-        .expectErrorMatches(e -> e instanceof WorkflowExecutionException && e.getMessage().contains("exit code 1"))
+        .expectErrorMatches(
+            e -> e instanceof WorkflowExecutionException && e.getMessage().contains("exit code 1"))
         .verify();
   }
 
@@ -107,6 +107,8 @@ class ShellScriptProcessorTest {
   @Test
   void testValidateConfig() {
     StepVerifier.create(processor.validateConfig(Map.of("script", "echo 1"))).verifyComplete();
-    StepVerifier.create(processor.validateConfig(Map.of())).expectError(IllegalArgumentException.class).verify();
+    StepVerifier.create(processor.validateConfig(Map.of()))
+        .expectError(IllegalArgumentException.class)
+        .verify();
   }
 }
