@@ -46,14 +46,14 @@ jobs:
               - 'yukta-plugin-api/**'
             yukta-core:
               - 'yukta-core/**'
-            yukta-web:
-              - 'yukta-web/**'
-            yukta-mcp:
-              - 'yukta-mcp/**'
+            web:
+              - 'web/**'
+            mcp:
+              - 'mcp/**'
             yukta-ui:
               - 'yukta-ui/**'
-            yukta-boot:
-              - 'yukta-boot/**'
+            boot:
+              - 'boot/**'
 
             # Plugin modules
             plugins-build-tools-common:
@@ -143,14 +143,14 @@ jobs:
                 add_module_tasks ":yukta-plugin-api" ;;
               "yukta-core")
                 add_module_tasks ":yukta-core" ;;
-              "yukta-web")
-                add_module_tasks ":yukta-web" ;;
-              "yukta-mcp")
-                add_module_tasks ":yukta-mcp" ;;
+              "web")
+                add_module_tasks ":web" ;;
+              "mcp")
+                add_module_tasks ":mcp" ;;
               "yukta-ui")
                 add_module_tasks ":yukta-ui" ;;
-              "yukta-boot")
-                add_module_tasks ":yukta-boot" ;;
+              "boot")
+                add_module_tasks ":boot" ;;
               "plugins-build-tools-common")
                 add_module_tasks ":plugins:build-tools:common" ;;
               "plugins-build-tools-gradle")

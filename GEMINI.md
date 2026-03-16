@@ -10,6 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **yukta-plugin-api**: Plugin abstraction interfaces (Trigger, Processor, Terminal plugins)
 - **yukta-core**: Core service layer (orchestration, workflow registry, session management)
 - **yukta-ui**: JTE (Java Templating Engine) UI module with Tailwind CSS
+- **web**: Web layer with REST controllers and UI support
+- **mcp**: MCP server implementation and tool providers
 - **boot**: Spring Boot application entry point and MCP server
 - **plugins/build-tools/gradle**: Default Gradle plugin for quality checks
 - **build-logic**: Gradle build conventions (Java, Quality gates, JaCoCo)
