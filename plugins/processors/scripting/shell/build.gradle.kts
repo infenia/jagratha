@@ -26,12 +26,5 @@ dependencies {
 }
 
 coverageConfig {
-    val thresholds = mapOf(
-        "LINE" to 0.8,
-        "BRANCH" to 0.7,
-        "CLASS" to 0.8,
-        "INSTRUCTION" to 0.8,
-        "METHOD" to 0.8
-    )
-    // Add thresholds for ShellScriptProcessor once implemented
+    // No exceptions - 100% coverage required by user
 }

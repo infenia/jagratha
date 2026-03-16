@@ -20,13 +20,10 @@ import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import java.io.File;
 import java.io.IOException;
-import java.time.Duration;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.codec.StringDecoder;
-import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -52,10 +49,15 @@ public class ShellScriptProcessor implements ProcessorPlugin {
   private static final String CONFIG_SCRIPT = "script";
   private static final String CONFIG_EXECUTABLE = "executable";
   private static final String CONFIG_TIMEOUT = "timeout";
-  private static final String CONFIG_WORKING_DIR = "workingDir";
+  private static final String CONFIG_WORK_DIR = "workingDir";
 
-  private static final String DEFAULT_EXECUTABLE = "/bin/bash";
+  private static final String DEF_EXE = "/bin/bash";
   private static final long DEFAULT_TIMEOUT = 60L;
+
+  /** Default constructor. */
+  public ShellScriptProcessor() {
+    super();
+  }
 
   @Override
   public String getType() {
@@ -78,114 +80,115 @@ public class ShellScriptProcessor implements ProcessorPlugin {
 
   @Override
   public Flux<Message<?>> process(final Flux<Message<?>> input, final Map<String, Object> config) {
-    final String script = (String) config.get(CONFIG_SCRIPT);
-    final String executable = (String) config.getOrDefault(CONFIG_EXECUTABLE, DEFAULT_EXECUTABLE);
-    final long timeout =
-        ((Number) config.getOrDefault(CONFIG_TIMEOUT, DEFAULT_TIMEOUT)).longValue();
-    final String workingDir = (String) config.get(CONFIG_WORKING_DIR);
-
-    if (script == null || script.isBlank()) {
-      return Flux.error(new IllegalArgumentException("script configuration is mandatory"));
-    }
-
-    return input.flatMap(
-        message -> executeScript(message, script, executable, timeout, workingDir));
+    return input.flatMap(message -> executeScript(message, config));
   }
 
   private Mono<Message<?>> executeScript(
-      final Message<?> message,
-      final String script,
-      final String executable,
-      final long timeout,
-      final String workingDir) {
+      final Message<?> message, final Map<String, Object> config) {
 
-    return Mono.fromCallable(
-            () -> {
-              final ProcessBuilder pb = new ProcessBuilder(executable, "-c", script);
-              if (workingDir != null && !workingDir.isBlank()) {
-                pb.directory(new File(workingDir));
-              }
-
-              // Export metadata as environment variables
-              final Map<String, String> env = pb.environment();
-              message
-                  .getMetadata()
-                  .forEach(
-                      (k, v) -> {
-                        if (v != null) {
-                          env.put(
-                              "YUKTA_METADATA_" + k.toUpperCase().replace('.', '_'), v.toString());
-                        }
-                      });
-
-              pb.redirectErrorStream(true);
-              return pb.start();
-            })
+    return Mono.<Message<?>>fromCallable(() -> executeScriptSync(message, config))
         .subscribeOn(Schedulers.boundedElastic())
-        .flatMap(
-            process -> {
-              // Capture output
-              final Flux<String> outputFlux =
-                  DataBufferUtils.readInputStream(
-                          process::getInputStream, DefaultDataBufferFactory.sharedInstance, 4096)
-                      .transform(
-                          flux -> StringDecoder.textPlainOnly().decode(flux, null, null, Map.of()));
+        .onErrorMap(this::mapError);
+  }
 
-              final Mono<Integer> exitCodeMono =
-                  Mono.fromFuture(process.onExit()).map(Process::exitValue);
+  private Message<?> executeScriptSync(final Message<?> message, final Map<String, Object> config)
+      throws IOException, InterruptedException {
+    final String script = (String) config.get(CONFIG_SCRIPT);
+    final String executable = (String) config.getOrDefault(CONFIG_EXECUTABLE, DEF_EXE);
+    final long timeout =
+        ((Number) config.getOrDefault(CONFIG_TIMEOUT, DEFAULT_TIMEOUT)).longValue();
+    if (script == null || script.isBlank()) {
+      throw new WorkflowExecutionException("script configuration is mandatory");
+    }
 
-              final Mono<Message<?>> resultMono =
-                  outputFlux
-                      .collectList()
-                      .map(list -> String.join("", list))
-                      .zipWith(exitCodeMono)
-                      .flatMap(
-                          tuple -> {
-                            final String output = tuple.getT1();
-                            final int exitCode = tuple.getT2();
-                            if (exitCode != 0) {
-                              return Mono.error(
-                                  new WorkflowExecutionException(
-                                      "Shell script failed with exit code "
-                                          + exitCode
-                                          + ". Output: "
-                                          + output));
-                            }
-                            return Mono.just((Message<?>) message.withPayload(output));
-                          });
+    final ProcessBuilder processBuilder = new ProcessBuilder(executable, "-c", script);
+    final String workingDir = (String) config.get(CONFIG_WORK_DIR);
+    if (workingDir != null && !workingDir.isBlank()) {
+      processBuilder.directory(new File(workingDir));
+    }
 
-              return resultMono
-                  .timeout(Duration.ofSeconds(timeout))
-                  .onErrorResume(
-                      TimeoutException.class,
-                      e -> {
-                        process.destroyForcibly();
-                        return Mono.error(
-                            new WorkflowExecutionException(
-                                "Shell script execution timed out after " + timeout + "s", e));
-                      });
-            })
-        .onErrorMap(
-            IOException.class,
-            e ->
-                new WorkflowExecutionException(
-                    "Failed to start shell script: " + e.getMessage(), e))
-        .onErrorMap(
-            e -> {
-              if (e instanceof WorkflowExecutionException) {
-                return e;
+    // Export metadata as environment variables
+    exportMetadata(message, processBuilder.environment());
+
+    processBuilder.redirectErrorStream(true);
+    final Process process = processBuilder.start();
+    try {
+      final boolean finished = process.waitFor(timeout, java.util.concurrent.TimeUnit.SECONDS);
+      if (!finished) {
+        process.destroyForcibly();
+        throw new WorkflowExecutionException(
+            "Shell script execution timed out after " + timeout + "s");
+      }
+      return createMessageFromProcess(message, process);
+    } finally {
+      process.destroyForcibly();
+    }
+  }
+
+  private Message<?> createMessageFromProcess(final Message<?> message, final Process process)
+      throws IOException {
+    final String output = readProcessOutput(process.getInputStream());
+    final int exitCode = process.exitValue();
+
+    if (exitCode != 0) {
+      throw new WorkflowExecutionException(
+          "Shell script failed with exit code " + exitCode + ". Output: " + output);
+    }
+    return message.withPayload(output);
+  }
+
+  private String readProcessOutput(final InputStream inputStream) throws IOException {
+    final byte[] outputBytes = inputStream.readAllBytes();
+    return new String(outputBytes, StandardCharsets.UTF_8);
+  }
+
+  private void exportMetadata(final Message<?> message, final Map<String, String> env) {
+    message
+        .getMetadata()
+        .forEach(
+            (key, value) -> {
+              if (value != null) {
+                final String metadataValue = value.toString();
+                final String keyUpper = key.toUpperCase(java.util.Locale.ROOT);
+                final String envKey = "YUKTA_METADATA_" + keyUpper.replace('.', '_');
+                env.put(envKey, metadataValue);
               }
-              return new WorkflowExecutionException(
-                  "Shell script execution failed: " + e.getMessage(), e);
             });
+  }
+
+  /**
+   * Maps throwables to WorkflowExecutionException.
+   *
+   * @param throwable the error to map
+   * @return the mapped exception
+   */
+  protected Throwable mapError(final Throwable throwable) {
+    final Throwable result;
+    if (throwable instanceof WorkflowExecutionException) {
+      result = throwable;
+    } else if (throwable instanceof IOException) {
+      result =
+          new WorkflowExecutionException(
+              "Failed to start shell script: " + throwable.getMessage(), throwable);
+    } else if (throwable instanceof InterruptedException) {
+      result = new WorkflowExecutionException("Shell script execution interrupted", throwable);
+    } else {
+      result =
+          new WorkflowExecutionException(
+              "Shell script execution failed: " + throwable.getMessage(), throwable);
+    }
+    return result;
   }
 
   @Override
   public Mono<Void> validateConfig(final Map<String, Object> config) {
     final String script = (String) config.get(CONFIG_SCRIPT);
+    final Mono<Void> result;
     if (script == null || script.isBlank()) {
-      return Mono.error(new IllegalArgumentException("script is mandatory"));
+      result = Mono.error(new IllegalArgumentException("script is mandatory"));
+    } else {
+      result = Mono.empty();
     }
-    return Mono.empty();
+    return result;
   }
 }
