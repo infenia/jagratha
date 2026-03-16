@@ -62,8 +62,8 @@ jobs:
               - 'plugins/build-tools/gradle/**'
             plugins-processors-internal-core:
               - 'plugins/processors/internal/core/**'
-            plugins-processors-scripting-shell:
-              - 'plugins/processors/scripting/shell/**'
+            plugins-processors-scripting:
+              - 'plugins/processors/scripting/**'
             plugins-triggers-api-trigger:
               - 'plugins/triggers/api-trigger/**'
             plugins-triggers-constant-source:
@@ -157,8 +157,8 @@ jobs:
                 add_module_tasks ":plugins:build-tools:gradle" ;;
               "plugins-processors-internal-core")
                 add_module_tasks ":plugins:processors:internal:core" ;;
-              "plugins-processors-scripting-shell")
-                add_module_tasks ":plugins:processors:scripting:shell" ;;
+              "plugins-processors-scripting")
+                add_module_tasks ":plugins:processors:scripting" ;;
               "plugins-triggers-api-trigger")
                 add_module_tasks ":plugins:triggers:api-trigger" ;;
               "plugins-triggers-constant-source")
