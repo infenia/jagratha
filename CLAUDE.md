@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **yukta-plugin-api**: Plugin abstraction interfaces (Trigger, Processor, Terminal plugins)
 - **yukta-core**: Core service layer (orchestration, workflow registry, session management)
 - **yukta-ui**: JTE (Java Templating Engine) UI module with Tailwind CSS
-- **yukta-boot**: Spring Boot application entry point and MCP server
+- **boot**: Spring Boot application entry point and MCP server
 - **plugins/build-tools/gradle**: Default Gradle plugin for quality checks
 - **build-logic**: Gradle build conventions (Java, Quality gates, JaCoCo)
 
@@ -218,7 +218,7 @@ Example: `feat: add reactive DAG workflow engine for plugin orchestration`
 - **Configuration**: `yukta-core/src/main/java/com/infenia/yukta/config/`
 - **Validation**: `yukta-core/src/main/java/com/infenia/yukta/validation/`
 - **Quality Config**: `config/checkstyle/`, `config/pmd/`, `config/license/`
-- **Application Config**: `yukta-boot/src/main/resources/application.yaml`
+- **Application Config**: `boot/src/main/resources/application.yaml`
 
 ## Testing Strategy
 
@@ -245,4 +245,4 @@ Example: `feat: add reactive DAG workflow engine for plugin orchestration`
 - **Tests fail**: Ensure Reactor streams are properly tested with `StepVerifier`
 - **Quality checks fail**: Check Checkstyle (`config/checkstyle/checkstyle.xml`) and PMD (`config/pmd/ruleset.xml`) rules
 - **Build cache issues**: Run `./gradlew clean build` to clear cached outputs
-- **Native image build fails**: Check GraalVM compatibility in `yukta-boot/build.gradle` graalvmNative config
+- **Native image build fails**: Check GraalVM compatibility in `boot/build.gradle` graalvmNative config
