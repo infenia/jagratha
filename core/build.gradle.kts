@@ -21,7 +21,7 @@ dependencies {
     api(project(":plugin-api"))
 
     // Default plugins
-    implementation(project(":plugins:processors:build-tools"))
+    implementation(project(":plugins:processors:process-executor"))
 
     implementation(libs.spring.boot.starter.webflux)
     implementation(libs.spring.boot.starter.webclient)

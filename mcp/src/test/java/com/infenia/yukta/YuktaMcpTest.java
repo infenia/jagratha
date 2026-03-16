@@ -48,6 +48,6 @@ class YuktaMcpTest {
   void testPluginsAutoConfigured() {
     Map<String, WorkflowPlugin> plugins = context.getBeansOfType(WorkflowPlugin.class);
     assertFalse(plugins.isEmpty(), "No WorkflowPlugin beans found");
-    assertTrue(plugins.containsKey("gradlePlugin"), "gradlePlugin bean missing");
+    assertTrue(plugins.containsKey("processExecutorPlugin"), "processExecutorPlugin bean missing");
   }
 }

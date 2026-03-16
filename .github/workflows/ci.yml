@@ -56,12 +56,10 @@ jobs:
               - 'boot/**'
 
             # Plugin modules
-            plugins-processors-build-tools:
-              - 'plugins/processors/build-tools/**'
+            plugins-processors-process-executor:
+              - 'plugins/processors/process-executor/**'
             plugins-processors-internal-internal-core:
               - 'plugins/processors/internal/internal-core/**'
-            plugins-processors-scripting:
-              - 'plugins/processors/scripting/**'
             plugins-triggers-api-trigger:
               - 'plugins/triggers/api-trigger/**'
             plugins-triggers-constant-source:
@@ -149,12 +147,10 @@ jobs:
                 add_module_tasks ":ui" ;;
               "boot")
                 add_module_tasks ":boot" ;;
-              "plugins-processors-build-tools")
-                add_module_tasks ":plugins:processors:build-tools" ;;
+              "plugins-processors-process-executor")
+                add_module_tasks ":plugins:processors:process-executor" ;;
               "plugins-processors-internal-internal-core")
                 add_module_tasks ":plugins:processors:internal:internal-core" ;;
-              "plugins-processors-scripting")
-                add_module_tasks ":plugins:processors:scripting" ;;
               "plugins-triggers-api-trigger")
                 add_module_tasks ":plugins:triggers:api-trigger" ;;
               "plugins-triggers-constant-source")
