@@ -56,10 +56,8 @@ jobs:
               - 'boot/**'
 
             # Plugin modules
-            plugins-build-tools-common:
-              - 'plugins/build-tools/common/**'
-            plugins-build-tools-gradle:
-              - 'plugins/build-tools/gradle/**'
+            plugins-processors-build-tools:
+              - 'plugins/processors/build-tools/**'
             plugins-processors-internal-internal-core:
               - 'plugins/processors/internal/internal-core/**'
             plugins-processors-scripting:
@@ -151,10 +149,8 @@ jobs:
                 add_module_tasks ":ui" ;;
               "boot")
                 add_module_tasks ":boot" ;;
-              "plugins-build-tools-common")
-                add_module_tasks ":plugins:build-tools:common" ;;
-              "plugins-build-tools-gradle")
-                add_module_tasks ":plugins:build-tools:gradle" ;;
+              "plugins-processors-build-tools")
+                add_module_tasks ":plugins:processors:build-tools" ;;
               "plugins-processors-internal-internal-core")
                 add_module_tasks ":plugins:processors:internal:internal-core" ;;
               "plugins-processors-scripting")
