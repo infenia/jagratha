@@ -81,7 +81,7 @@ public class MapperProcessor implements ProcessorPlugin {
   private static final Engine JS_ENGINE =
       Engine.newBuilder().option("engine.WarnInterpreterOnly", "false").build();
 
-  private final Handlebars handlebars = new Handlebars();
+  private Handlebars handlebars;
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final MapMessageMapper mapMapper = new MapMessageMapper();
   private final DefaultConversionService conversionService = new DefaultConversionService();
@@ -92,6 +92,13 @@ public class MapperProcessor implements ProcessorPlugin {
   /** Default constructor. */
   public MapperProcessor() {
     super();
+  }
+
+  private synchronized Handlebars getHandlebars() {
+    if (handlebars == null) {
+      handlebars = new Handlebars();
+    }
+    return handlebars;
   }
 
   @Override
@@ -170,7 +177,7 @@ public class MapperProcessor implements ProcessorPlugin {
         templateStr,
         t -> {
           try {
-            return handlebars.compileInline(t);
+            return getHandlebars().compileInline(t);
           } catch (Exception e) {
             throw new RuntimeException("Failed to compile Handlebars template", e);
           }

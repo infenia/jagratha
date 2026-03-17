@@ -1,0 +1,28 @@
+[
+  {
+    "name": "gg.jte.TemplateEngine",
+    "methods": [
+      {
+        "name": "render",
+        "parameterTypes": ["java.lang.String", "java.util.Map", "java.lang.Appendable"]
+      },
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "gg.jte.output.StringOutput",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ]
+  }
+]
