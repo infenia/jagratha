@@ -95,6 +95,9 @@ configure<JteExtension> {
     }
 }
 
+// Add generated JTE source directory to Java compilation
+sourceSets.main.get().java.srcDir(layout.buildDirectory.dir("jte-classes"))
+
 tasks.named("bootJar") {
     enabled = false
 }

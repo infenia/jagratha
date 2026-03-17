@@ -32,6 +32,24 @@ public class YuktaApplication {
    * @param args command line arguments
    */
   public static void main(final String[] args) {
+    // Force prod profile in native images to ensure precompiled JTE templates are used
+    if (isNativeImage() && !hasProfileArgument(args)) {
+      System.setProperty("spring.profiles.active", "prod");
+    }
     SpringApplication.run(YuktaApplication.class, args);
+  }
+
+  private static boolean isNativeImage() {
+    String nativeImageProp = System.getProperty("org.graalvm.nativeimage.imagecode");
+    return "runtime".equals(nativeImageProp);
+  }
+
+  private static boolean hasProfileArgument(final String[] args) {
+    for (String arg : args) {
+      if (arg.startsWith("--spring.profiles.active=") || arg.startsWith("-Dspring.profiles.active=")) {
+        return true;
+      }
+    }
+    return false;
   }
 }

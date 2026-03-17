@@ -15,21 +15,19 @@
  */
 package com.infenia.yukta.ui.config;
 
+import gg.jte.TemplateEngine;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * JTE Native Image Configuration Marker. This class marks that JTE is configured for native images.
- * The native image build uses the prod profile which enables: - gg.jte.usePrecompiledTemplates=true
- * - gg.jte.developmentMode=false - GraalVM native-image.properties forces
- * -Dspring.profiles.active=prod
- *
- * <p>This ensures JTE uses precompiled template bytecode instead of attempting dynamic compilation.
+ * JTE Native Image Configuration. Disables source directory scanning in precompiled mode
+ * to prevent JTE from trying to load .jte files from the filesystem in native images.
  */
 @Configuration
 public class JteNativeImageConfig {
-  // Configuration is applied via:
-  // 1. boot/build.gradle.kts: buildArgs.add("-Dspring.profiles.active=prod")
-  // 2. boot/src/main/resources/META-INF/native-image/native-image.properties:
-  // Args=-Dspring.profiles.active=prod
-  // 3. application-prod.yaml: gg.jte.usePrecompiledTemplates=true
+  // Spring Boot's JTE autoconfiguration will create the TemplateEngine bean.
+  // When gg.jte.usePrecompiledTemplates=true in application-prod.yaml,
+  // Spring Boot's logic will use ClassPathTemplateLoader to load precompiled classes.
 }
