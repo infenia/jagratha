@@ -42,16 +42,16 @@ jobs:
               - 'config/**'
 
             # Application modules
-            yukta-plugin-api:
-              - 'yukta-plugin-api/**'
+            plugin-api:
+              - 'plugin-api/**'
             core:
               - 'core/**'
             web:
               - 'web/**'
             mcp:
               - 'mcp/**'
-            yukta-ui:
-              - 'yukta-ui/**'
+            ui:
+              - 'ui/**'
             boot:
               - 'boot/**'
 
@@ -139,16 +139,16 @@ jobs:
 
           for module in $(echo "$CHANGED_MODULES" | jq -r '.[]'); do
             case $module in
-              "yukta-plugin-api")
-                add_module_tasks ":yukta-plugin-api" ;;
+              "plugin-api")
+                add_module_tasks ":plugin-api" ;;
               "core")
                 add_module_tasks ":core" ;;
               "web")
                 add_module_tasks ":web" ;;
               "mcp")
                 add_module_tasks ":mcp" ;;
-              "yukta-ui")
-                add_module_tasks ":yukta-ui" ;;
+              "ui")
+                add_module_tasks ":ui" ;;
               "boot")
                 add_module_tasks ":boot" ;;
               "plugins-build-tools-common")

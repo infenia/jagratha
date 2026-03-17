@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Yukta** (Sanskrit for *united, combined, joined*) is a high-performance server that enforces code quality gates for AI-driven development. It hosts a Model Context Protocol (MCP) server, integrates with AI agents, and provides a reactive DAG-based workflow engine for orchestrating quality checks and custom plugins.
 
 **Key Architecture**: The project is a multi-module Gradle build consisting of:
-- **yukta-plugin-api**: Plugin abstraction interfaces (Trigger, Processor, Terminal plugins)
+- **plugin-api**: Plugin abstraction interfaces (Trigger, Processor, Terminal plugins)
 - **core**: Core service layer (orchestration, workflow registry, session management)
-- **yukta-ui**: JTE (Java Templating Engine) UI module with Tailwind CSS
+- **ui**: JTE (Java Templating Engine) UI module with Tailwind CSS
 - **web**: Web layer with REST controllers and UI support
 - **mcp**: MCP server implementation and tool providers
 - **boot**: Spring Boot application entry point and MCP server
@@ -114,7 +114,7 @@ The refactored `WorkflowOrchestrator` uses four internal fluent builder classes 
 - Preserves all functionality: identical Reactor patterns and semantics
 
 ### Plugin System (Extensible DAG-Based)
-Located in **yukta-plugin-api**, plugins are classified into three categories:
+Located in **plugin-api**, plugins are classified into three categories:
 1. **TriggerPlugin**: Initiates workflows (e.g., API endpoint)
 2. **ProcessorPlugin**: Transforms or validates data (e.g., quality checks)
 3. **TerminalPlugin**: Finalizes workflows (e.g., logging, feedback)
@@ -124,7 +124,7 @@ Plugins are registered in `WorkflowRegistry` and orchestrated by `WorkflowOrches
 **Key Files**:
 - `core/src/main/java/com/infenia/yukta/service/WorkflowOrchestrator.java` - DAG orchestration logic
 - `core/src/main/java/com/infenia/yukta/service/WorkflowRegistry.java` - Plugin registration
-- `yukta-plugin-api/src/main/java/com/infenia/yukta/plugin/` - Plugin interfaces
+- `plugin-api/src/main/java/com/infenia/yukta/plugin/` - Plugin interfaces
 
 ### Immutability & Records
 Use **Java records** for data models (preferred) or **Lombok** (`@RequiredArgsConstructor`, `@Getter`) for immutable objects. Example:
@@ -183,11 +183,11 @@ The `build-logic` directory defines three reusable convention plugins:
 
 All modules apply these plugins via `plugins { id 'com.infenia.yukta.xxx-conventions' }`.
 
-## UI Development (yukta-ui)
+## UI Development (ui)
 
-- **Templates**: JTE files in `yukta-ui/src/main/jte/` (pre-compiled to bytecode)
+- **Templates**: JTE files in `ui/src/main/jte/` (pre-compiled to bytecode)
 - **Styling**: Tailwind CSS 4 compiled during build
-- **CSS Input**: `yukta-ui/src/main/resources/static/css/input.css` (processed by `pnpm exec tailwindcss`)
+- **CSS Input**: `ui/src/main/resources/static/css/input.css` (processed by `pnpm exec tailwindcss`)
 - **Node Dependencies**: Managed via `pnpm` (see build.gradle tasks: `pnpmInstall`, `tailwind`)
 
 ## Git Workflow
@@ -216,7 +216,7 @@ Example: `feat: add reactive DAG workflow engine for plugin orchestration`
 - **Core Services**: `core/src/main/java/com/infenia/yukta/service/`
 - **MCP Tools**: `core/src/main/java/com/infenia/yukta/mcp/` (MCP native integration)
 - **Controllers**: `core/src/main/java/com/infenia/yukta/controller/`
-- **Plugin API**: `yukta-plugin-api/src/main/java/com/infenia/yukta/plugin/`
+- **Plugin API**: `plugin-api/src/main/java/com/infenia/yukta/plugin/`
 - **Configuration**: `core/src/main/java/com/infenia/yukta/config/`
 - **Validation**: `core/src/main/java/com/infenia/yukta/validation/`
 - **Quality Config**: `config/checkstyle/`, `config/pmd/`, `config/license/`

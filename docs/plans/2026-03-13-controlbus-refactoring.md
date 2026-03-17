@@ -13,12 +13,12 @@
 ## Task 1: Extend ControlBusGateway Interface
 
 **Files:**
-- Modify: `yukta-plugin-api/src/main/java/com/infenia/yukta/plugin/gateway/ControlBusGateway.java`
+- Modify: `plugin-api/src/main/java/com/infenia/yukta/plugin/gateway/ControlBusGateway.java`
 
 **Step 1: Read current interface**
 
 ```bash
-cat yukta-plugin-api/src/main/java/com/infenia/yukta/plugin/gateway/ControlBusGateway.java
+cat plugin-api/src/main/java/com/infenia/yukta/plugin/gateway/ControlBusGateway.java
 ```
 
 Expected: Single method `emit()`, marked `@FunctionalInterface`
@@ -120,7 +120,7 @@ public interface ControlBusGateway {
 **Step 3: Verify syntax**
 
 ```bash
-./gradlew :yukta-plugin-api:compileJava
+./gradlew :plugin-api:compileJava
 ```
 
 Expected: BUILD SUCCESSFUL
@@ -128,7 +128,7 @@ Expected: BUILD SUCCESSFUL
 **Step 4: Commit**
 
 ```bash
-git add yukta-plugin-api/src/main/java/com/infenia/yukta/plugin/gateway/ControlBusGateway.java
+git add plugin-api/src/main/java/com/infenia/yukta/plugin/gateway/ControlBusGateway.java
 git commit -m "refactor: extend ControlBusGateway interface with plugin lifecycle and state queries
 
 Adds 6 new methods to ControlBusGateway:
@@ -905,12 +905,12 @@ Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>"
 ## Task 8: Add Configuration to application.yaml
 
 **Files:**
-- Modify: `yukta-boot/src/main/resources/application.yaml`
+- Modify: `boot/src/main/resources/application.yaml`
 
 **Step 1: Read current file**
 
 ```bash
-head -50 yukta-boot/src/main/resources/application.yaml
+head -50 boot/src/main/resources/application.yaml
 ```
 
 **Step 2: Add control bus configuration**
@@ -932,7 +932,7 @@ control:
 **Step 3: Verify YAML syntax**
 
 ```bash
-./gradlew :yukta-boot:compileJava
+./gradlew :boot:compileJava
 ```
 
 Expected: BUILD SUCCESSFUL (YAML is validated during startup)
@@ -940,7 +940,7 @@ Expected: BUILD SUCCESSFUL (YAML is validated during startup)
 **Step 4: Commit**
 
 ```bash
-git add yukta-boot/src/main/resources/application.yaml
+git add boot/src/main/resources/application.yaml
 git commit -m "config: add control bus configuration for batch and buffer tuning
 
 Add configurable parameters:
@@ -1297,7 +1297,7 @@ Expected: "No casts found"
 **Step 2: Run all tests to ensure no regression**
 
 ```bash
-./gradlew :core:test :yukta-boot:test 2>&1 | tail -20
+./gradlew :core:test :boot:test 2>&1 | tail -20
 ```
 
 Expected: BUILD SUCCESSFUL, all tests PASS
@@ -1305,7 +1305,7 @@ Expected: BUILD SUCCESSFUL, all tests PASS
 **Step 3: Run full quality checks**
 
 ```bash
-./gradlew check -x :yukta-ui:spotlessCheck 2>&1 | tail -30
+./gradlew check -x :ui:spotlessCheck 2>&1 | tail -30
 ```
 
 Expected: BUILD SUCCESSFUL (or only pre-existing failures unrelated to these changes)
@@ -1325,7 +1325,7 @@ Expected: No uncommitted changes
 **Step 1: Format code**
 
 ```bash
-./gradlew spotlessApply -x :yukta-ui:spotlessXml
+./gradlew spotlessApply -x :ui:spotlessXml
 ```
 
 Expected: BUILD SUCCESSFUL
@@ -1343,7 +1343,7 @@ Expected: BUILD SUCCESSFUL
 Run the full test suite one more time:
 
 ```bash
-./gradlew :core:test :yukta-boot:test -x :yukta-ui:spotlessCheck
+./gradlew :core:test :boot:test -x :ui:spotlessCheck
 ```
 
 Expected: ALL TESTS PASS, no regressions

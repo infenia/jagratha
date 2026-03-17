@@ -23,7 +23,7 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":web"))
     implementation(project(":mcp"))
-    implementation(project(":yukta-ui"))
+    implementation(project(":ui"))
     implementation(project(":plugins:processors:internal:internal-core"))
     implementation(project(":plugins:triggers:api-trigger"))
     implementation(project(":plugins:triggers:constant-source"))

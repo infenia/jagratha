@@ -1752,7 +1752,7 @@ Expected: PASS (spotless, checkstyle, PMD, SpotBugs, JaCoCo all pass)
 **Step 3: Verify no regressions**
 
 ```bash
-./gradlew :core:check :yukta-plugin-api:check :yukta-ui:check :yukta-boot:check
+./gradlew :core:check :plugin-api:check :ui:check :boot:check
 ```
 
 Expected: PASS (all modules pass)
