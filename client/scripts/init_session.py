@@ -24,11 +24,14 @@ from contextlib import closing
 # Available processor types:
 # - "PROCESS_EXECUTOR": Execute external commands/scripts (Linux/macOS/Windows compatible)
 # - "MAPPER": Transform data using Handlebars templates
-# - "SCRIPTING": Execute shell scripts (bash/batch)
+# Available trigger types:
+# - "api-trigger": REST API trigger
+# Available terminal types:
+# - "console": Console output terminal
 DEFAULT_WORKFLOW_NODES = [
     {
         "nodeId": "trigger-1",
-        "type": "API_TRIGGER",
+        "type": "api-trigger",
         "config": {}
     },
     {
@@ -41,7 +44,7 @@ DEFAULT_WORKFLOW_NODES = [
     },
     {
         "nodeId": "terminal-1",
-        "type": "CONSOLE_TERMINAL",
+        "type": "console",
         "config": {}
     }
 ]
@@ -130,8 +133,8 @@ def main():
         new_node = node.copy()
         node_config = new_node.get("config", {}).copy()
 
-        # Add projectPath for processors that support it
-        if new_node["type"] in ["PROCESS_EXECUTOR", "SCRIPTING"]:
+        # Add projectPath for processors that support it (deep copy to avoid mutation)
+        if new_node["type"] in ["PROCESS_EXECUTOR", "SCRIPTING", "mapper"]:
             node_config["projectPath"] = project_root
 
         new_node["config"] = node_config

@@ -1,6 +1,6 @@
 {
   "name": "Happy Path - Process Executor Example",
-  "description": "Demonstrates a complete workflow: session initialization, tool usage, and graceful shutdown",
+  "description": "Demonstrates session initialization and workflow shutdown",
   "steps": [
     {
       "hook": "SessionStart",
@@ -8,35 +8,11 @@
         "hook_event_name": "SessionStart",
         "session_id": "sim-session-1",
         "cwd": "/media/arun/Infenia/Infenia/Development/Public/yukta",
-        "source": "startup",
-        "model": "claude-opus-4-6"
-      }
-    },
-    {
-      "hook": "PostToolUse",
-      "data": {
-        "hook_event_name": "PostToolUse",
-        "session_id": "sim-session-1",
-        "cwd": "/media/arun/Infenia/Infenia/Development/Public/yukta",
-        "tool_name": "Bash",
-        "tool_input": {
-          "command": "./gradlew :boot:classes",
-          "description": "Build the boot module"
-        }
-      }
-    },
-    {
-      "hook": "PostToolUse",
-      "data": {
-        "hook_event_name": "PostToolUse",
-        "session_id": "sim-session-1",
-        "cwd": "/media/arun/Infenia/Infenia/Development/Public/yukta",
-        "tool_name": "Edit",
-        "tool_input": {
-          "file_path": "/media/arun/Infenia/Infenia/Development/Public/yukta/boot/src/main/java/com/infenia/yukta/YuktaApplication.java",
-          "old_string": "// Old code",
-          "new_string": "// Updated code"
-        }
+        "source": "claude-code",
+        "model": "claude-opus-4-6",
+        "description": "Native image and build optimization workflow",
+        "initiator": "claude-code",
+        "project_root": "/media/arun/Infenia/Infenia/Development/Public/yukta"
       }
     },
     {
@@ -44,7 +20,9 @@
       "data": {
         "hook_event_name": "Stop",
         "session_id": "sim-session-1",
-        "last_assistant_message": "I have successfully configured JTE precompiled templates for native images."
+        "workflowId": "quality-check",
+        "payload": {"projectPath": "/media/arun/Infenia/Infenia/Development/Public/yukta"},
+        "last_assistant_message": "I have successfully configured JTE precompiled templates for native images and built the native executable."
       }
     }
   ]

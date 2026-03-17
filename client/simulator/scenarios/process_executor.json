@@ -9,20 +9,10 @@
         "session_id": "process-exec-session",
         "cwd": "/media/arun/Infenia/Infenia/Development/Public/yukta",
         "source": "claude-code",
-        "model": "claude-opus-4-6"
-      }
-    },
-    {
-      "hook": "PostToolUse",
-      "data": {
-        "hook_event_name": "PostToolUse",
-        "session_id": "process-exec-session",
-        "cwd": "/media/arun/Infenia/Infenia/Development/Public/yukta",
-        "tool_name": "Bash",
-        "tool_input": {
-          "command": "./gradlew :boot:check",
-          "description": "Run quality checks including Spotless, PMD, SpotBugs"
-        }
+        "model": "claude-opus-4-6",
+        "description": "Quality checks with ProcessExecutor plugin",
+        "initiator": "claude-code",
+        "project_root": "/media/arun/Infenia/Infenia/Development/Public/yukta"
       }
     },
     {
