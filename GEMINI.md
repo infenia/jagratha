@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Key Architecture**: The project is a multi-module Gradle build consisting of:
 - **yukta-plugin-api**: Plugin abstraction interfaces (Trigger, Processor, Terminal plugins)
-- **yukta-core**: Core service layer (orchestration, workflow registry, session management)
+- **core**: Core service layer (orchestration, workflow registry, session management)
 - **yukta-ui**: JTE (Java Templating Engine) UI module with Tailwind CSS
 - **web**: Web layer with REST controllers and UI support
 - **mcp**: MCP server implementation and tool providers
@@ -42,10 +42,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew clean build
 
 # Run tests for a specific module
-./gradlew :yukta-core:test
+./gradlew :core:test
 
 # Run a single test class
-./gradlew :yukta-core:test --tests com.infenia.yukta.service.WorkflowOrchestratorTest
+./gradlew :core:test --tests com.infenia.yukta.service.WorkflowOrchestratorTest
 ```
 
 ### Development Tasks
@@ -122,8 +122,8 @@ Located in **yukta-plugin-api**, plugins are classified into three categories:
 Plugins are registered in `WorkflowRegistry` and orchestrated by `WorkflowOrchestrator` which executes a **Directed Acyclic Graph (DAG)** of nodes and edges defined in `WorkflowDefinition`.
 
 **Key Files**:
-- `yukta-core/src/main/java/com/infenia/yukta/service/WorkflowOrchestrator.java` - DAG orchestration logic
-- `yukta-core/src/main/java/com/infenia/yukta/service/WorkflowRegistry.java` - Plugin registration
+- `core/src/main/java/com/infenia/yukta/service/WorkflowOrchestrator.java` - DAG orchestration logic
+- `core/src/main/java/com/infenia/yukta/service/WorkflowRegistry.java` - Plugin registration
 - `yukta-plugin-api/src/main/java/com/infenia/yukta/plugin/` - Plugin interfaces
 
 ### Immutability & Records
@@ -136,7 +136,7 @@ public record WorkflowDefinition(
 
 ### Validation
 - Use **Jakarta Bean Validation** (`@Valid`, `@Validated`, custom validators like `@SessionId`, `@ProjectPath`)
-- Custom validators are in `yukta-core/src/main/java/com/infenia/yukta/validation/`
+- Custom validators are in `core/src/main/java/com/infenia/yukta/validation/`
 - Validation errors are handled globally by `GlobalExceptionHandler`
 
 ### Session Management
@@ -213,12 +213,12 @@ Example: `feat: add reactive DAG workflow engine for plugin orchestration`
 
 ## Key File Locations
 
-- **Core Services**: `yukta-core/src/main/java/com/infenia/yukta/service/`
-- **MCP Tools**: `yukta-core/src/main/java/com/infenia/yukta/mcp/` (MCP native integration)
-- **Controllers**: `yukta-core/src/main/java/com/infenia/yukta/controller/`
+- **Core Services**: `core/src/main/java/com/infenia/yukta/service/`
+- **MCP Tools**: `core/src/main/java/com/infenia/yukta/mcp/` (MCP native integration)
+- **Controllers**: `core/src/main/java/com/infenia/yukta/controller/`
 - **Plugin API**: `yukta-plugin-api/src/main/java/com/infenia/yukta/plugin/`
-- **Configuration**: `yukta-core/src/main/java/com/infenia/yukta/config/`
-- **Validation**: `yukta-core/src/main/java/com/infenia/yukta/validation/`
+- **Configuration**: `core/src/main/java/com/infenia/yukta/config/`
+- **Validation**: `core/src/main/java/com/infenia/yukta/validation/`
 - **Quality Config**: `config/checkstyle/`, `config/pmd/`, `config/license/`
 - **Application Config**: `boot/src/main/resources/application.yaml`
 
@@ -231,7 +231,7 @@ Example: `feat: add reactive DAG workflow engine for plugin orchestration`
 
 ## Common Development Tasks
 
-**Add a new service**: Create in `yukta-core/src/main/java/com/infenia/yukta/service/`, use `@Service`, return `Mono`/`Flux`, add tests.
+**Add a new service**: Create in `core/src/main/java/com/infenia/yukta/service/`, use `@Service`, return `Mono`/`Flux`, add tests.
 
 **Add a new plugin**: Extend `WorkflowPlugin`/`ProcessorPlugin`/`TriggerPlugin` in plugin-api, register in `WorkflowRegistry` during bean initialization.
 

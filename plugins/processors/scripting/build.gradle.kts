@@ -21,7 +21,7 @@ version = "1.0.0"
 
 dependencies {
     implementation(project(":yukta-plugin-api"))
-    implementation(project(":yukta-core"))
+    implementation(project(":core"))
     implementation(libs.spring.boot.starter.webflux)
 }
 

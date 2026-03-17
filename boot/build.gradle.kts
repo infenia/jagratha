@@ -20,7 +20,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":yukta-core"))
+    implementation(project(":core"))
     implementation(project(":web"))
     implementation(project(":mcp"))
     implementation(project(":yukta-ui"))

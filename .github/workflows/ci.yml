@@ -44,8 +44,8 @@ jobs:
             # Application modules
             yukta-plugin-api:
               - 'yukta-plugin-api/**'
-            yukta-core:
-              - 'yukta-core/**'
+            core:
+              - 'core/**'
             web:
               - 'web/**'
             mcp:
@@ -141,8 +141,8 @@ jobs:
             case $module in
               "yukta-plugin-api")
                 add_module_tasks ":yukta-plugin-api" ;;
-              "yukta-core")
-                add_module_tasks ":yukta-core" ;;
+              "core")
+                add_module_tasks ":core" ;;
               "web")
                 add_module_tasks ":web" ;;
               "mcp")
