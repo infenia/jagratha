@@ -18,13 +18,18 @@ package com.infenia.yukta.ui.config;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configuration for JTE template engine in native images. GraalVM native image configuration is
- * handled by native-image.properties and reflect-config.json. The spring property
- * gg.jte.usePrecompiledTemplates=true (in application-prod.yaml) ensures precompiled templates are
- * used instead of dynamic compilation.
+ * JTE Native Image Configuration Marker. This class marks that JTE is configured for native images.
+ * The native image build uses the prod profile which enables: - gg.jte.usePrecompiledTemplates=true
+ * - gg.jte.developmentMode=false - GraalVM native-image.properties forces
+ * -Dspring.profiles.active=prod
+ *
+ * <p>This ensures JTE uses precompiled template bytecode instead of attempting dynamic compilation.
  */
 @Configuration
 public class JteNativeImageConfig {
-  // Configuration is applied via application-prod.yaml and native-image property files
-  // No bean override needed - Spring Boot JTE starter handles it automatically
+  // Configuration is applied via:
+  // 1. boot/build.gradle.kts: buildArgs.add("-Dspring.profiles.active=prod")
+  // 2. boot/src/main/resources/META-INF/native-image/native-image.properties:
+  // Args=-Dspring.profiles.active=prod
+  // 3. application-prod.yaml: gg.jte.usePrecompiledTemplates=true
 }
