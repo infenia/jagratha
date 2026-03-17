@@ -1,3 +1,18 @@
+#
+# Copyright 2026 Infenia Private Limited
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import json
 import os
 import sys
@@ -6,26 +21,33 @@ from http.client import HTTPConnection
 from contextlib import closing
 
 # Configuration variables - easy for users to modify
-DEFAULT_PLUGIN_TYPE = "gradle"
+# Available processor types:
+# - "PROCESS_EXECUTOR": Execute external commands/scripts (Linux/macOS/Windows compatible)
+# - "MAPPER": Transform data using Handlebars templates
+# - "SCRIPTING": Execute shell scripts (bash/batch)
 DEFAULT_WORKFLOW_NODES = [
     {
         "nodeId": "trigger-1",
-        "type": DEFAULT_PLUGIN_TYPE,
+        "type": "API_TRIGGER",
+        "config": {}
+    },
+    {
+        "nodeId": "processor-1",
+        "type": "PROCESS_EXECUTOR",
         "config": {
-            "tasks": ["spotlessApply"]
+            "command": ["echo", "Quality check execution"],
+            "streamOutput": True
         }
     },
     {
         "nodeId": "terminal-1",
-        "type": "console",
+        "type": "CONSOLE_TERMINAL",
         "config": {}
     }
 ]
 DEFAULT_WORKFLOW_EDGES = [
-    {
-        "source": "trigger-1",
-        "target": "terminal-1"
-    }
+    {"source": "trigger-1", "target": "processor-1"},
+    {"source": "processor-1", "target": "terminal-1"}
 ]
 
 WEBSERVER_HOST = os.environ.get("JAGRATHA_HOST", "localhost")
@@ -102,14 +124,17 @@ def main():
     print(f"Initializing for session: {session_id} by {initiator} at {project_root}")
 
     # Construct the ConfigRequest payload
-    # Ensure projectRoot is in the trigger node config as required by GradlePlugin
+    # Add projectPath to nodes that support it
     nodes = []
     for node in DEFAULT_WORKFLOW_NODES:
         new_node = node.copy()
-        if new_node["type"] == "gradle":
-            node_config = new_node.get("config", {}).copy()
-            node_config["projectRoot"] = project_root
-            new_node["config"] = node_config
+        node_config = new_node.get("config", {}).copy()
+
+        # Add projectPath for processors that support it
+        if new_node["type"] in ["PROCESS_EXECUTOR", "SCRIPTING"]:
+            node_config["projectPath"] = project_root
+
+        new_node["config"] = node_config
         nodes.append(new_node)
 
     payload = {
