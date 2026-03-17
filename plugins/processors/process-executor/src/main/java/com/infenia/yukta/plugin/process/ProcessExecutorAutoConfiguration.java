@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.plugin.process;
 
+import com.infenia.yukta.util.VariableResolver;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -31,11 +32,14 @@ public class ProcessExecutorAutoConfiguration {
   /**
    * Create ProcessExecutorPlugin bean if not already defined.
    *
+   * @param gateway the process executor gateway
+   * @param resolver the variable resolver
    * @return the process executor plugin
    */
   @Bean
   @ConditionalOnMissingBean
-  public ProcessExecutorPlugin processExecutorPlugin() {
-    return new ProcessExecutorPlugin();
+  public ProcessExecutorPlugin processExecutorPlugin(
+      final ProcessExecutorGateway gateway, final VariableResolver resolver) {
+    return new ProcessExecutorPlugin(gateway, resolver);
   }
 }

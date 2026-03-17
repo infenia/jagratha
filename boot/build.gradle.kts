@@ -28,6 +28,7 @@ dependencies {
     implementation(project(":plugins:triggers:api-trigger"))
     implementation(project(":plugins:triggers:constant-source"))
     implementation(project(":plugins:terminals:console-terminal"))
+    implementation(project(":plugins:processors:process-executor"))
 
     implementation(libs.spring.boot.starter.webflux)
     implementation(libs.spring.boot.starter.validation)

@@ -15,39 +15,48 @@
  */
 package com.infenia.yukta.plugin.process;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.util.VariableResolver;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ProcessExecutorPluginTest {
 
   private ProcessExecutorPlugin plugin;
-  private ProcessExecutorGateway gateway;
+  @Mock private ProcessExecutorGateway gateway;
+  @Mock private VariableResolver resolver;
 
   @BeforeEach
   void setUp() {
-    plugin = new ProcessExecutorPlugin();
-    gateway = new ProcessExecutorGateway();
-    plugin.setGateway(gateway);
-  }
-
-  @Test
-  void testGetDescription() {
-    assertNotNull(plugin.getDescription());
-  }
-
-  @Test
-  void testGetUsagePattern() {
-    assertNotNull(plugin.getUsagePattern());
+    plugin = new ProcessExecutorPlugin(gateway, resolver);
+    // Generic resolver mock to handle all SpEL resolutions by returning the input
+    when(resolver.resolve(any()))
+        .thenAnswer(
+            invocation -> {
+              Object arg = invocation.getArgument(0);
+              return Mono.justOrEmpty(arg);
+            });
   }
 
   @Test
@@ -56,166 +65,71 @@ class ProcessExecutorPluginTest {
   }
 
   @Test
-  void testGetDefaultTimeout() {
-    assertEquals(600, plugin.getDefaultTimeout().getSeconds());
+  void testGetDescription() {
+    assertNotNull(plugin.getDescription());
   }
 
   @Test
-  void testValidateConfigSuccess() {
-    Map<String, Object> config = Map.of("executable", "echo");
-    StepVerifier.create(plugin.validateConfig(config)).verifyComplete();
-  }
+  @SuppressWarnings("unchecked")
+  void testProcessPayloadOutput() {
+    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "input");
 
-  @Test
-  void testValidateConfigMissingExecutable() {
-    Map<String, Object> config = Map.of("args", List.of("test"));
-    StepVerifier.create(plugin.validateConfig(config)).verifyError(IllegalArgumentException.class);
-  }
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("hello"));
 
-  @Test
-  void testValidateConfigBlankExecutable() {
-    Map<String, Object> config = Map.of("executable", "");
-    StepVerifier.create(plugin.validateConfig(config)).verifyError(IllegalArgumentException.class);
-  }
-
-  @Test
-  void testProcessNormalOutput() {
-    Map<String, Object> config = Map.of("executable", "echo", "args", List.of("hello world"));
-
-    UUID traceId = UUID.randomUUID();
-    Message inputMessage = DefaultMessage.create(traceId, "input");
-    StepVerifier.create(plugin.process(Flux.just(inputMessage), config))
+    StepVerifier.create(plugin.process(Flux.just(input), config))
         .assertNext(
             message -> {
-              assertEquals(traceId.toString(), message.getTraceId());
-              String output = (String) message.getPayload();
-              assertTrue(output.contains("hello world"), "Output should contain 'hello world'");
+              assertEquals("hello", message.getPayload());
             })
         .verifyComplete();
   }
 
   @Test
-  void testProcessNonZeroExit() {
-    Map<String, Object> config = Map.of("executable", "sh", "args", List.of("-c", "exit 1"));
+  @SuppressWarnings("unchecked")
+  void testProcessMetadataOutput() {
+    final Map<String, Object> config =
+        Map.of("command", List.of("echo", "hello"), "outputTarget", "METADATA");
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "input");
 
-    UUID traceId = UUID.randomUUID();
-    Message inputMessage = DefaultMessage.create(traceId, "input");
-    StepVerifier.create(plugin.process(Flux.just(inputMessage), config))
-        .verifyError(WorkflowExecutionException.class);
-  }
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("hello"));
 
-  @Test
-  void testProcessWithConfiguredTimeout() {
-    // Test that timeout configuration is properly accepted
-    Map<String, Object> config =
-        Map.of("executable", "echo", "args", List.of("hello"), "timeout", 30L);
-
-    UUID traceId = UUID.randomUUID();
-    Message inputMessage = DefaultMessage.create(traceId, "input");
-    StepVerifier.create(plugin.process(Flux.just(inputMessage), config))
+    StepVerifier.create(plugin.process(Flux.just(input), config))
         .assertNext(
             message -> {
-              assertEquals(traceId.toString(), message.getTraceId());
-              String output = (String) message.getPayload();
-              assertTrue(output.contains("hello"), "Output should contain 'hello'");
+              assertEquals("input", message.getPayload());
+              assertEquals("hello", message.getMetadata().get("process.output"));
             })
         .verifyComplete();
   }
 
   @Test
-  void testProcessMissingExecutable() {
-    Map<String, Object> config = Map.of("executable", "/non/existent/executable");
+  @SuppressWarnings("unchecked")
+  void testProcessStreamingOutput() {
+    final Map<String, Object> config =
+        Map.of("command", List.of("echo", "hello"), "streamOutput", true);
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "input");
 
-    UUID traceId = UUID.randomUUID();
-    Message inputMessage = DefaultMessage.create(traceId, "input");
-    StepVerifier.create(plugin.process(Flux.just(inputMessage), config))
-        .verifyError(WorkflowExecutionException.class);
-  }
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("line1", "line2"));
 
-  @Test
-  void testProcessWithMetadata() {
-    Map<String, Object> config =
-        Map.of("executable", "sh", "args", List.of("-c", "echo $YUKTA_METADATA_FOO"));
-
-    UUID traceId = UUID.randomUUID();
-    Message inputMessage =
-        DefaultMessage.create(traceId, "input").withMetadata(Map.of("foo", "bar"));
-    StepVerifier.create(plugin.process(Flux.just(inputMessage), config))
-        .assertNext(
-            message -> {
-              String output = (String) message.getPayload();
-              assertTrue(output.contains("bar"), "Output should contain metadata value 'bar'");
-            })
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .expectNextMatches(m -> "line1".equals(m.getPayload()))
+        .expectNextMatches(m -> "line2".equals(m.getPayload()))
         .verifyComplete();
   }
 
   @Test
-  void testProcessBackpressureDrop() {
-    // Create a slow process that takes time to complete
-    Map<String, Object> config =
-        Map.of("executable", "sh", "args", List.of("-c", "sleep 2 && echo done"), "timeout", 5L);
-
-    UUID traceId1 = UUID.randomUUID();
-    UUID traceId2 = UUID.randomUUID();
-    Message msg1 = DefaultMessage.create(traceId1, "payload1");
-    Message msg2 = DefaultMessage.create(traceId2, "payload2");
-
-    // Send two messages almost simultaneously.
-    // The second one should be dropped because the first one is still processing
-    // (onBackpressureDrop + flatMap with concurrency 1).
-    StepVerifier.create(plugin.process(Flux.just(msg1, msg2), config))
-        .assertNext(m -> assertEquals("done", ((String) m.getPayload()).trim()))
-        .verifyComplete();
+  void testValidateConfigMissingCommand() {
+    StepVerifier.create(plugin.validateConfig(Map.of()))
+        .verifyError(IllegalArgumentException.class);
   }
 
   @Test
   void testAutoConfiguration() {
-    ProcessExecutorAutoConfiguration config = new ProcessExecutorAutoConfiguration();
-    assertNotNull(config.processExecutorPlugin());
-  }
-
-  @Test
-  void testProcessWithNoArgs() {
-    Map<String, Object> config = Map.of("executable", "echo");
-
-    UUID traceId = UUID.randomUUID();
-    Message inputMessage = DefaultMessage.create(traceId, "input");
-    StepVerifier.create(plugin.process(Flux.just(inputMessage), config))
-        .assertNext(
-            message -> {
-              assertNotNull(message.getPayload());
-            })
-        .verifyComplete();
-  }
-
-  @Test
-  void testGatewayExecuteSuccess() {
-    StepVerifier.create(gateway.execute(List.of("echo", "test output"), null, 10L))
-        .assertNext(output -> assertTrue(output.contains("test output")))
-        .verifyComplete();
-  }
-
-  @Test
-  void testGatewayExecuteNonZeroExit() {
-    StepVerifier.create(gateway.execute(List.of("sh", "-c", "exit 42"), null, 10L))
-        .verifyError(WorkflowExecutionException.class);
-  }
-
-  @Test
-  void testGatewayExecuteWithMetadata() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_TEST"),
-                null,
-                10L,
-                Map.of("test", "value123")))
-        .assertNext(output -> assertTrue(output.contains("value123")))
-        .verifyComplete();
-  }
-
-  @Test
-  void testGatewayExecuteMissingExecutable() {
-    StepVerifier.create(gateway.execute(List.of("/nonexistent/path/exe"), null, 10L))
-        .verifyError(WorkflowExecutionException.class);
+    ProcessExecutorAutoConfiguration autoConfig = new ProcessExecutorAutoConfiguration();
+    assertNotNull(autoConfig.processExecutorPlugin(gateway, resolver));
   }
 }

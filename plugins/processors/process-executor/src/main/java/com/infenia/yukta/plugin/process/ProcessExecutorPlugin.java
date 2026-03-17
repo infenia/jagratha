@@ -15,60 +15,39 @@
  */
 package com.infenia.yukta.plugin.process;
 
-import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
+import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
-import java.time.Duration;
-import java.util.ArrayList;
+import com.infenia.yukta.util.MapUtils;
+import com.infenia.yukta.util.VariableResolver;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * A processor plugin that executes an arbitrary process with configurable command, arguments,
- * working directory, and timeout.
- *
- * <p>Configuration:
- *
- * <ul>
- *   <li>executable (required): Path or name of the executable to run.
- *   <li>args (optional): List of string arguments. Default is empty list.
- *   <li>workingDir (optional): Working directory for the process.
- *   <li>timeout (optional): Execution timeout in seconds. Default is 600.
- * </ul>
+ * Processor plugin for executing external processes. supports variable resolution in command,
+ * environment, and working directory.
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.UseConcurrentHashMap", "PMD.AvoidDuplicateLiterals"})
 public class ProcessExecutorPlugin implements ProcessorPlugin {
 
   private static final String TYPE = "PROCESS_EXECUTOR";
-  private static final String CONFIG_EXECUTABLE = "executable";
-  private static final String CONFIG_ARGS = "args";
-  private static final String CONFIG_WORK_DIR = "workingDir";
-  private static final String CONFIG_TIMEOUT = "timeout";
+  private static final String METADATA = "METADATA";
+  private static final String PAYLOAD = "PAYLOAD";
+  private static final String OUTPUT_KEY = "process.output";
+  private static final String COMMAND = "command";
 
-  private static final long DEFAULT_TIMEOUT = 600L;
-
-  @Autowired(required = false)
-  private ProcessExecutorGateway gateway;
-
-  /** Default constructor. */
-  public ProcessExecutorPlugin() {
-    super();
-  }
-
-  /**
-   * Set the process executor gateway.
-   *
-   * @param gateway the gateway
-   */
-  public void setGateway(final ProcessExecutorGateway gateway) {
-    this.gateway = gateway;
-  }
+  private final ProcessExecutorGateway gateway;
+  private final VariableResolver resolver;
 
   @Override
   public String getType() {
@@ -77,67 +56,224 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
 
   @Override
   public String getDescription() {
-    return "Executes an arbitrary process and returns the output as a message payload.";
+    return "Executes external processes with reactive streaming output. Supports multi-OS "
+        + "(Linux, macOS, Windows) with shell wrapping and proper cleanup on timeout/error. "
+        + "IMPORTANT: Large output in non-streaming mode may cause memory issues. "
+        + "For large outputs, use streamOutput=true for per-line streaming. "
+        + "SECURITY: Do not export sensitive data (passwords, API keys) via metadata.";
   }
 
   @Override
   public String getUsagePattern() {
-    return "Configure with:\n"
-        + "- executable: Path or name of the executable (required).\n"
-        + "- args: List of string arguments (optional, default: []).\n"
-        + "- workingDir: Optional working directory.\n"
-        + "- timeout: Optional timeout in seconds (default: 600).";
-  }
-
-  @Override
-  public Duration getDefaultTimeout() {
-    return Duration.ofSeconds(600);
+    return "Configuration Parameters:\n"
+        + "\n"
+        + "REQUIRED:\n"
+        + "- command: List<String> (SpEL supported)\n"
+        + "  Command and arguments to execute\n"
+        + "  Example: [\"mvn\", \"clean\", \"test\"] or [\"./gradlew\", \"build\"]\n"
+        + "\n"
+        + "OPTIONAL:\n"
+        + "- workingDir: String (SpEL supported, default: current directory)\n"
+        + "  Working directory for process execution\n"
+        + "  Example: \"/path/to/project\"\n"
+        + "\n"
+        + "- timeout: Long (SpEL supported, default: 300 seconds)\n"
+        + "  Maximum execution time in seconds. Must be positive.\n"
+        + "  Example: 600 (for 10-minute timeout)\n"
+        + "\n"
+        + "- env: Map<String, String> (SpEL supported, default: empty)\n"
+        + "  Environment variables for the process\n"
+        + "  Example: {\"NODE_ENV\": \"production\", \"DEBUG\": \"true\"}\n"
+        + "\n"
+        + "- useShell: Boolean (default: false)\n"
+        + "  Execute command via shell (sh on Unix, cmd.exe on Windows)\n"
+        + "  Use true only if command contains pipes, redirects, or other shell features\n"
+        + "\n"
+        + "- streamOutput: Boolean (default: false)\n"
+        + "  Stream output per line (true) vs buffer entire output (false)\n"
+        + "  Recommended: true for long-running processes or large outputs\n"
+        + "\n"
+        + "- outputTarget: String (default: \"PAYLOAD\")\n"
+        + "  Where to store output: \"PAYLOAD\" or \"METADATA\"\n"
+        + "  PAYLOAD: Output becomes the message payload\n"
+        + "  METADATA: Output stored in metadata[\"process.output\"]\n"
+        + "\n"
+        + "OUTPUT BEHAVIOR:\n"
+        + "- streamOutput=true: Emits one message per output line (recommended)\n"
+        + "- streamOutput=false: Buffers entire output, emits as single message\n"
+        + "  ⚠️  WARNING: Can cause Out-of-Memory for large outputs (>100MB)\n"
+        + "\n"
+        + "EXAMPLES:\n"
+        + "\n"
+        + "Simple command (non-streaming):\n"
+        + "  config: {\"command\": [\"echo\", \"hello\"]}\n"
+        + "\n"
+        + "Streaming output (recommended for large outputs):\n"
+        + "  config: {\n"
+        + "    \"command\": [\"cat\", \"large.log\"],\n"
+        + "    \"streamOutput\": true\n"
+        + "  }\n"
+        + "\n"
+        + "With environment variables:\n"
+        + "  config: {\n"
+        + "    \"command\": [\"sh\", \"-c\", \"echo $MY_VAR\"],\n"
+        + "    \"env\": {\"MY_VAR\": \"secret_value\"},\n"
+        + "    \"useShell\": true\n"
+        + "  }\n"
+        + "\n"
+        + "With timeout and working directory:\n"
+        + "  config: {\n"
+        + "    \"command\": [\"./gradlew\", \"test\"],\n"
+        + "    \"workingDir\": \"/home/project\",\n"
+        + "    \"timeout\": 600\n"
+        + "  }\n"
+        + "\n"
+        + "Metadata output:\n"
+        + "  config: {\n"
+        + "    \"command\": [\"git\", \"status\"],\n"
+        + "    \"outputTarget\": \"METADATA\"\n"
+        + "  }\n"
+        + "\n"
+        + "ERROR HANDLING:\n"
+        + "- Non-zero exit codes throw WorkflowExecutionException\n"
+        + "- Timeout (exceeding timeout seconds) throws WorkflowExecutionException\n"
+        + "- Invalid config (missing command) throws IllegalArgumentException\n"
+        + "- Invalid outputTarget defaults to PAYLOAD with warning logged\n"
+        + "\n"
+        + "MEMORY & PERFORMANCE:\n"
+        + "- Streaming mode: Constant memory regardless of output size\n"
+        + "- Non-streaming mode: Memory consumption = output size (avoid for >100MB)\n"
+        + "- Timeout applies to total execution time, not per-line\n"
+        + "- Process cleanup is automatic (success, timeout, error)\n"
+        + "\n"
+        + "SECURITY NOTES:\n"
+        + "- Shell injection is prevented with proper argument escaping\n"
+        + "- Metadata exported as YUKTA_METADATA_* env vars (visible to child processes)\n"
+        + "- Do NOT export passwords, API keys, or tokens via metadata\n";
   }
 
   @Override
   public Flux<Message<?>> process(final Flux<Message<?>> input, final Map<String, Object> config) {
-    return input.onBackpressureDrop().flatMap(message -> executeProcess(message, config), 1);
+    return input.flatMapSequential(message -> executeProcess(message, config));
   }
 
-  private Mono<Message<?>> executeProcess(
+  private Flux<Message<?>> executeProcess(
       final Message<?> message, final Map<String, Object> config) {
-    return gateway
-        .executeWithMetadata(
-            buildCommand(config),
-            (String) config.get(CONFIG_WORK_DIR),
-            ((Number) config.getOrDefault(CONFIG_TIMEOUT, DEFAULT_TIMEOUT)).longValue(),
-            message.getMetadata())
-        .<Message<?>>map(output -> message.withPayload(output))
-        .onErrorMap(
-            e -> {
-              if (e instanceof WorkflowExecutionException) {
-                return e;
+    return resolveConfig(config)
+        .flatMapMany(
+            resolvedConfig -> {
+              @SuppressWarnings("unchecked")
+              final List<String> command = (List<String>) resolvedConfig.get("command");
+              final String workingDir = (String) resolvedConfig.get("workingDir");
+              final long timeout = (long) resolvedConfig.getOrDefault("timeout", 300L);
+              @SuppressWarnings("unchecked")
+              final Map<String, String> env =
+                  (Map<String, String>) resolvedConfig.getOrDefault("env", Map.of());
+              final boolean useShell = (boolean) resolvedConfig.getOrDefault("useShell", false);
+              final boolean streamOutput =
+                  (boolean) resolvedConfig.getOrDefault("streamOutput", false);
+              final String outputTarget =
+                  (String) resolvedConfig.getOrDefault("outputTarget", "PAYLOAD");
+
+              if (streamOutput) {
+                return gateway
+                    .executeStream(command, workingDir, timeout, env, useShell)
+                    .map(line -> createOutputMessage(message, line, outputTarget));
+              } else {
+                return gateway
+                    .executeStream(command, workingDir, timeout, env, useShell)
+                    .collectList()
+                    // Restore newlines between lines that were stripped by BufferedReader.lines()
+                    .map(list -> String.join("\n", list))
+                    .map(output -> createOutputMessage(message, output, outputTarget))
+                    .flux();
               }
-              return new WorkflowExecutionException(
-                  "Process execution failed: " + e.getMessage(), e);
             });
   }
 
-  private List<String> buildCommand(final Map<String, Object> config) {
-    final String executable = (String) config.get(CONFIG_EXECUTABLE);
-    @SuppressWarnings("unchecked")
-    final List<String> args = (List<String>) config.getOrDefault(CONFIG_ARGS, List.of());
+  @SuppressWarnings("unchecked")
+  private Mono<Map<String, Object>> resolveConfig(final Map<String, Object> config) {
+    return Mono.zip(
+            resolveCommand((List<Object>) config.get(COMMAND)),
+            resolveValue(config.get("workingDir")).map(Object::toString).defaultIfEmpty(""),
+            resolveValue(config.getOrDefault("timeout", 300L))
+                .map(v -> MapUtils.convert(v, Long.class))
+                .defaultIfEmpty(300L),
+            resolveEnv((Map<String, Object>) config.getOrDefault("env", Map.of())),
+            resolveValue(config.getOrDefault("useShell", false))
+                .map(v -> MapUtils.convert(v, Boolean.class))
+                .defaultIfEmpty(false),
+            resolveValue(config.getOrDefault("streamOutput", false))
+                .map(v -> MapUtils.convert(v, Boolean.class))
+                .defaultIfEmpty(false),
+            resolveValue(config.getOrDefault("outputTarget", PAYLOAD))
+                .map(Object::toString)
+                .defaultIfEmpty(PAYLOAD))
+        .map(
+            tuple -> {
+              final Map<String, Object> resolved = new HashMap<>();
+              resolved.put("command", tuple.getT1());
+              resolved.put("workingDir", tuple.getT2().isEmpty() ? null : tuple.getT2());
+              resolved.put("timeout", tuple.getT3());
+              resolved.put("env", tuple.getT4());
+              resolved.put("useShell", tuple.getT5());
+              resolved.put("streamOutput", tuple.getT6());
+              resolved.put("outputTarget", tuple.getT7());
+              return resolved;
+            });
+  }
 
-    final List<String> command = new ArrayList<>();
-    command.add(executable);
-    command.addAll(args);
-    return command;
+  private Mono<List<String>> resolveCommand(final List<Object> command) {
+    if (command == null || command.isEmpty()) {
+      return Mono.error(new IllegalArgumentException("command is mandatory"));
+    }
+    return Flux.fromIterable(command)
+        .flatMapSequential(this::resolveValue)
+        .map(Object::toString)
+        .collectList();
+  }
+
+  private Mono<Map<String, String>> resolveEnv(final Map<String, Object> env) {
+    if (env == null || env.isEmpty()) {
+      return Mono.just(Map.of());
+    }
+    return Flux.fromIterable(env.entrySet())
+        .flatMapSequential(
+            entry ->
+                resolveValue(entry.getValue())
+                    .map(val -> Map.entry(entry.getKey(), val.toString())))
+        .collectMap(Map.Entry::getKey, Map.Entry::getValue);
+  }
+
+  private Mono<Object> resolveValue(final Object value) {
+    if (value == null) {
+      return Mono.justOrEmpty(null);
+    }
+    return resolver.resolve(value);
+  }
+
+  private Message<?> createOutputMessage(
+      final Message<?> original, final String output, final String target) {
+    final String normalizedTarget = target == null ? PAYLOAD : target.toUpperCase(Locale.ROOT);
+
+    if (METADATA.equals(normalizedTarget)) {
+      final Map<String, Object> newMetadata = new HashMap<>(original.getMetadata());
+      newMetadata.put(OUTPUT_KEY, output);
+      return DefaultMessage.from(original, original.getPayload()).withMetadata(newMetadata);
+    } else if (PAYLOAD.equals(normalizedTarget)) {
+      return DefaultMessage.from(original, output);
+    } else {
+      log.warn(
+          "Invalid outputTarget: '{}'. Must be 'PAYLOAD' or 'METADATA'. Using PAYLOAD.", target);
+      return DefaultMessage.from(original, output);
+    }
   }
 
   @Override
   public Mono<Void> validateConfig(final Map<String, Object> config) {
-    final String executable = (String) config.get(CONFIG_EXECUTABLE);
-    final Mono<Void> result;
-    if (executable == null || executable.isBlank()) {
-      result = Mono.error(new IllegalArgumentException("executable is mandatory"));
-    } else {
-      result = Mono.empty();
+    if (config.get("command") == null) {
+      return Mono.error(new IllegalArgumentException("command is mandatory"));
     }
-    return result;
+    return Mono.empty();
   }
 }

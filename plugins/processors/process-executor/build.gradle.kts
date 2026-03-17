@@ -21,6 +21,7 @@ version = "1.0.0"
 
 dependencies {
     implementation(project(":plugin-api"))
+    implementation(project(":core"))
     implementation(libs.spring.boot.starter.webflux)
 }
 
