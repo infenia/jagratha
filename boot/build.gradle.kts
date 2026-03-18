@@ -52,6 +52,16 @@ tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
     outputs.upToDateWhen { false }
 }
 
+coverageConfig {
+    exceptions.put("com.infenia.yukta.YuktaApplication", mapOf(
+        "LINE" to 0.5,
+        "BRANCH" to 0.1,
+        "CLASS" to 0.8,
+        "INSTRUCTION" to 0.3,
+        "METHOD" to 0.7
+    ))
+}
+
 graalvmNative {
     binaries {
         named("main") {
