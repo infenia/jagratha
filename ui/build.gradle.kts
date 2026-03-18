@@ -98,6 +98,11 @@ configure<JteExtension> {
 // Add generated JTE source directory to Java compilation
 sourceSets.main.get().java.srcDir(layout.buildDirectory.dir("jte-classes"))
 
+// Fix dependency: Checkstyle should depend on JTE generation
+tasks.named("checkstyleMain") {
+    dependsOn(tasks.named("generateJte"), tasks.named("precompileJte"))
+}
+
 tasks.named("bootJar") {
     enabled = false
 }
@@ -137,7 +142,7 @@ tasks.named<ProcessResources>("processResources") {
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {
-    onlyIf { tasks.named("test").get().didWork || layout.buildDirectory.file("jacoco/test.exec").get().asFile.exists() }
+    onlyIf { layout.buildDirectory.file("jacoco/test.exec").get().asFile.exists() }
 }
 
 tasks.withType<Pmd> {
