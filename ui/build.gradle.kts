@@ -148,6 +148,10 @@ tasks.named<JacocoReport>("jacocoTestReport") {
     }
 }
 
+tasks.named("pmdMain") {
+    dependsOn(tasks.named("precompileJte"))
+}
+
 tasks.withType<Pmd> {
     exclude("**/generated/**")
 }
