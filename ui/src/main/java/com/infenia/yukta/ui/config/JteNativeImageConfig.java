@@ -15,15 +15,11 @@
  */
 package com.infenia.yukta.ui.config;
 
-import gg.jte.TemplateEngine;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * JTE Native Image Configuration. Disables source directory scanning in precompiled mode
- * to prevent JTE from trying to load .jte files from the filesystem in native images.
+ * JTE Native Image Configuration. Disables source directory scanning in precompiled mode to prevent
+ * JTE from trying to load .jte files from the filesystem in native images.
  */
 @Configuration
 public class JteNativeImageConfig {

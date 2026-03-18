@@ -46,7 +46,8 @@ public class YuktaApplication {
 
   private static boolean hasProfileArgument(final String[] args) {
     for (String arg : args) {
-      if (arg.startsWith("--spring.profiles.active=") || arg.startsWith("-Dspring.profiles.active=")) {
+      if (arg.startsWith("--spring.profiles.active=")
+          || arg.startsWith("-Dspring.profiles.active=")) {
         return true;
       }
     }
