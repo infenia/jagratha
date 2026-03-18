@@ -124,8 +124,9 @@ def main():
                 WORKFLOW_ID = data['workflowId']
             if 'payload' in data and data['payload']:
                 PAYLOAD = data['payload']
-        except Exception:
-            pass
+        except Exception as e:
+            # Non-fatal: stdin may be empty or not contain valid JSON; fall back to CLI args only.
+            print(f"Note: Could not read session configuration from stdin: {e}", file=sys.stderr)
 
     if not session_id:
         print("Error: --session-id is required or must be provided via stdin")
