@@ -20,8 +20,8 @@ import argparse
 import http.client
 
 # Yukta Server Configuration
-WEBSERVER_HOST = os.environ.get("JAGRATHA_HOST", "localhost")
-WEBSERVER_PORT = int(os.environ.get("JAGRATHA_PORT", 8080))
+WEBSERVER_HOST = os.environ.get("YUKTA_HOST", "localhost")
+WEBSERVER_PORT = int(os.environ.get("YUKTA_PORT", 8080))
 
 # Workflow Configuration - Set these values as needed
 WORKFLOW_ID = "quality-check"

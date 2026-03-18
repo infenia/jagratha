@@ -53,8 +53,8 @@ DEFAULT_WORKFLOW_EDGES = [
     {"source": "processor-1", "target": "terminal-1"}
 ]
 
-WEBSERVER_HOST = os.environ.get("JAGRATHA_HOST", "localhost")
-WEBSERVER_PORT = int(os.environ.get("JAGRATHA_PORT", 8080))
+WEBSERVER_HOST = os.environ.get("YUKTA_HOST", "localhost")
+WEBSERVER_PORT = int(os.environ.get("YUKTA_PORT", 8080))
 WEBSERVER_ENDPOINT = "/api/config"
 
 def http_post(host, port, location, payload):
@@ -65,7 +65,7 @@ def http_post(host, port, location, payload):
             connection.request("POST", location, body=body, headers=headers)
             response = connection.getresponse()
             print(f"HTTP Status: {response.status}")
-            response_body = response.read().decode('utf-8')
+            response_body = response.read().decode('utf-8') 
             try:
                 data = json.loads(response_body)
                 if "message" in data:

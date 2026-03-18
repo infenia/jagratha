@@ -25,7 +25,7 @@ python3 simulator.py scenarios/happy_path.json --host 192.168.1.10 --port 9090
 
 Or via environment variables:
 ```bash
-JAGRATHA_HOST=myserver JAGRATHA_PORT=8888 python3 simulator.py scenarios/happy_path.json
+YUKTA_HOST=myserver YUKTA_PORT=8888 python3 simulator.py scenarios/happy_path.json
 ```
 
 ## 📝 Scenario Format
