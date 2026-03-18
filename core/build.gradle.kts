@@ -40,6 +40,7 @@ dependencies {
     testImplementation(libs.spring.boot.starter.validation.test)
     testImplementation(libs.spring.boot.starter.actuator.test)
     testImplementation(libs.spring.boot.starter.jackson.test)
+    testImplementation(libs.awaitility)
 }
 
 coverageConfig {
