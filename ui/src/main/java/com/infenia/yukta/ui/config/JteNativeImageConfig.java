@@ -23,6 +23,12 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class JteNativeImageConfig {
+
+  /** Default constructor. */
+  public JteNativeImageConfig() {
+    super();
+  }
+
   // Spring Boot's JTE autoconfiguration will create the TemplateEngine bean.
   // When gg.jte.usePrecompiledTemplates=true in application-prod.yaml,
   // Spring Boot's logic will use ClassPathTemplateLoader to load precompiled classes.

@@ -81,7 +81,7 @@ public class MapperProcessor implements ProcessorPlugin {
   private static final Engine JS_ENGINE =
       Engine.newBuilder().option("engine.WarnInterpreterOnly", "false").build();
 
-  private Handlebars handlebars;
+  private final Handlebars handlebars = new Handlebars();
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final MapMessageMapper mapMapper = new MapMessageMapper();
   private final DefaultConversionService conversionService = new DefaultConversionService();
@@ -94,10 +94,7 @@ public class MapperProcessor implements ProcessorPlugin {
     super();
   }
 
-  private synchronized Handlebars getHandlebars() {
-    if (handlebars == null) {
-      handlebars = new Handlebars();
-    }
+  private Handlebars getHandlebars() {
     return handlebars;
   }
 

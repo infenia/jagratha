@@ -142,7 +142,10 @@ tasks.named<ProcessResources>("processResources") {
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {
-    onlyIf { layout.buildDirectory.file("jacoco/test.exec").get().asFile.exists() }
+    onlyIf {
+        // Check if jacoco execution data exists using a provider to avoid configuration cache issues
+        executionData.files.any { it.exists() }
+    }
 }
 
 tasks.withType<Pmd> {
