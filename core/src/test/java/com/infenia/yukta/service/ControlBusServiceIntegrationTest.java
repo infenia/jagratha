@@ -58,7 +58,7 @@ class ControlBusServiceIntegrationTest {
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
 
     try {
-      Thread.sleep(100);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -77,7 +77,7 @@ class ControlBusServiceIntegrationTest {
     StepVerifier.create(controlBusService.emit(stats)).verifyComplete();
 
     try {
-      Thread.sleep(100);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -100,7 +100,7 @@ class ControlBusServiceIntegrationTest {
     StepVerifier.create(controlBusService.emit(stats)).verifyComplete();
 
     try {
-      Thread.sleep(100);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -130,7 +130,7 @@ class ControlBusServiceIntegrationTest {
     StepVerifier.create(controlBusService.emit(hb2)).verifyComplete();
 
     try {
-      Thread.sleep(100);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -171,7 +171,7 @@ class ControlBusServiceIntegrationTest {
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
 
     try {
-      Thread.sleep(100);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -201,7 +201,7 @@ class ControlBusServiceIntegrationTest {
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
 
     try {
-      Thread.sleep(100);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -238,7 +238,7 @@ class ControlBusServiceIntegrationTest {
 
     // Sleep to allow batch processing
     try {
-      Thread.sleep(100);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -256,7 +256,7 @@ class ControlBusServiceIntegrationTest {
 
     // Sleep to allow batch processing
     try {
-      Thread.sleep(100);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -275,7 +275,7 @@ class ControlBusServiceIntegrationTest {
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
 
     try {
-      Thread.sleep(100);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -297,7 +297,7 @@ class ControlBusServiceIntegrationTest {
     StepVerifier.create(controlBusService.emit(stats)).verifyComplete();
 
     try {
-      Thread.sleep(100);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -320,7 +320,7 @@ class ControlBusServiceIntegrationTest {
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
 
     try {
-      Thread.sleep(100);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -345,7 +345,7 @@ class ControlBusServiceIntegrationTest {
     StepVerifier.create(controlBusService.emit(highPriority)).verifyComplete();
 
     try {
-      Thread.sleep(150);
+      Thread.sleep(500);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
