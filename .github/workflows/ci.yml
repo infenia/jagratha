@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '0 0 * * *' # 5:30 AM IST (00:00 UTC)
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_VERSION: 24
+
 permissions:
   contents: write
 
