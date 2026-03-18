@@ -87,12 +87,20 @@ public class ProcessExecutorGateway {
                     })
                 .subscribeOn(Schedulers.boundedElastic()),
             process -> {
+              final java.io.BufferedReader reader =
+                  new java.io.BufferedReader(
+                      new java.io.InputStreamReader(
+                          process.getInputStream(), StandardCharsets.UTF_8));
               final Flux<String> lines =
-                  Flux.fromStream(
-                          new java.io.BufferedReader(
-                                  new java.io.InputStreamReader(
-                                      process.getInputStream(), StandardCharsets.UTF_8))
-                              .lines())
+                  Flux.fromStream(reader.lines())
+                      .doFinally(
+                          signalType -> {
+                            try {
+                              reader.close();
+                            } catch (java.io.IOException e) {
+                              log.warn("Failed to close process output reader", e);
+                            }
+                          })
                       .subscribeOn(Schedulers.boundedElastic());
 
               // Validate exit code after all lines are consumed to ensure proper ordering
