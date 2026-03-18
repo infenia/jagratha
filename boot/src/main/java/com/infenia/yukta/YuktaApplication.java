@@ -17,6 +17,7 @@ package com.infenia.yukta;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import reactor.core.publisher.Hooks;
 
 /**
  * Main application class for Yukta. Yukta is a Spring Boot application that manages external
@@ -32,6 +33,10 @@ public class YuktaApplication {
    * @param args command line arguments
    */
   public static void main(final String[] args) {
+    // Enable automatic context propagation for Reactor to preserve context across thread
+    // boundaries and async operations
+    Hooks.enableAutomaticContextPropagation();
+
     // Force prod profile in native images to ensure precompiled JTE templates are used
     if (isNativeImage() && !hasProfileArgument(args)) {
       System.setProperty("spring.profiles.active", "prod");
@@ -39,11 +44,13 @@ public class YuktaApplication {
     SpringApplication.run(YuktaApplication.class, args);
   }
 
+  @SuppressWarnings("PMD.LocalVariableCouldBeFinal")
   private static boolean isNativeImage() {
     String nativeImageProp = System.getProperty("org.graalvm.nativeimage.imagecode");
     return "runtime".equals(nativeImageProp);
   }
 
+  @SuppressWarnings({"PMD.UseVarargs", "PMD.LocalVariableCouldBeFinal", "PMD.OnlyOneReturn"})
   private static boolean hasProfileArgument(final String[] args) {
     for (String arg : args) {
       if (arg.startsWith("--spring.profiles.active=")
