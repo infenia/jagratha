@@ -1,11 +1,8 @@
-# Yukta 🛡️
-
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Java 25+](https://img.shields.io/badge/Java-25+-green.svg)](https://www.oracle.com/java/)
-[![Spring Boot 4.0](https://img.shields.io/badge/Spring%20Boot-4.0-6db33f.svg)](https://spring.io/projects/spring-boot)
-[![Gradle 9.0](https://img.shields.io/badge/Gradle-9.0-02303a.svg)](https://gradle.org/)
+# ![Yukta](ui/src/main/resources/static/images/favicon.svg) Yukta
 
 **Yukta** (Sanskrit for *Vigilance*) is a high-performance quality-gate server that enforces code standards autonomously for AI-driven development.
+
+**License**: Apache 2.0 | **Java**: 25+ | **Spring Boot**: 4.0 | **Gradle**: 9.0
 
 It hosts a **Model Context Protocol (MCP)** server, integrates with AI agents (like Claude Code), validates code changes in real-time, enforces quality gates (Spotless, Checkstyle, PMD, SpotBugs, JaCoCo), and provides structured feedback—enabling **AI agents to self-correct instantly** without breaking your build.
 
