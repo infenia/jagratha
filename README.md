@@ -1,5 +1,5 @@
 <div style="text-align: center;">
-  <img src="ui/src/main/resources/static/images/favicon.svg" alt="Yukta" width="120" height="120" style="border-radius: 64px;" />
+  <img src="ui/src/main/resources/static/images/favicon.svg" alt="Yukta" width="120" height="120" style="border-radius: 64px; padding: 4px; background-color: #fff;" />
   <h1 style="margin-top: 12px;">Yukta</h1>
   <p><strong>Orchestrate multi-step workflows with confidence.</strong> Define once, execute anywhere, integrate with AI.</p>
 </div>
@@ -95,20 +95,31 @@ curl http://localhost:8080/api/workflow/my-project/status/.../stream
 
 **No polling. No webhooks. Just REST + SSE.**
 
-### For **AI Teams**:
+### For **AI Teams** (Any MCP-Compatible Agent):
 ```python
-# Claude Code integration (built-in)
-# When file is saved:
-#   SessionStart → init_session.py → POST /api/config
-#   When task finishes:
-#   Stop → trigger_workflow.py → POST /api/workflow/trigger + monitor
+# MCP Integration with any AI agent
+# Supports: Claude Code, Claude API, and any agent implementing MCP
 
-# Claude gets instant feedback:
+# Connection:
+# AI Agent → MCP Protocol → Yukta (/sse endpoint)
+# Capabilities: 13 MCP tools (create_session, trigger_workflow, get_status, etc.)
+
+# Example with Claude Code (SessionStart hook):
+#   SessionStart → init_session.py → POST /api/config (via MCP)
+#   Stop → trigger_workflow.py → POST /api/workflow/trigger (via MCP)
+
+# Example with Claude API (custom integration):
+#   Agent connects to http://localhost:8080/sse (MCP STATELESS protocol)
+#   Agent calls create_session tool
+#   Agent calls trigger_workflow tool
+#   Agent streams status in real-time (no polling)
+
+# AI agent gets instant feedback:
 # ✅ Tests passed → commit changes
-# ❌ Tests failed → Claude reads error, auto-fixes, retries
+# ❌ Tests failed → AI reads error, auto-fixes, retries
 ```
 
-**The AI doesn't wait. It doesn't poll. It gets instant feedback and self-corrects.**
+**The AI doesn't wait. It doesn't poll. It gets instant feedback via MCP and self-corrects. Works with any AI that supports MCP.**
 
 ---
 
@@ -195,9 +206,9 @@ Visual, auditable, testable. No spaghetti code.
 Format → Lint → Test
   ↑            ↓
   ← (if fail) ←
-Claude Code auto-fixes and retries
+Any MCP-compatible AI agent auto-fixes and retries
 ```
-AI never waits. Claude gets instant feedback and self-corrects.
+AI never waits. Any MCP-compatible agent gets instant feedback and self-corrects (Claude Code, Claude API, or other agents).
 
 ---
 
@@ -205,7 +216,7 @@ AI never waits. Claude gets instant feedback and self-corrects.
 
 ### **Option 1: MCP Integration** (Recommended for AI-Driven Workflows)
 
-Use Yukta with Claude Code or Claude API for instant, automated workflow execution.
+Use Yukta with **any MCP-compatible AI agent** (Claude Code, Claude API, or any other AI that supports MCP) for instant, automated workflow execution.
 
 ```bash
 # 1. Install Yukta (native executable, ~50MB, no JVM needed)
@@ -213,8 +224,8 @@ wget https://github.com/infenia/yukta/releases/download/v0.1.0/yukta-linux-x64
 chmod +x yukta-linux-x64
 ./yukta-linux-x64
 
-# 2. Claude Code automatically connects via MCP
-# Add to your .claude/settings.json:
+# 2. Configure your AI agent to use Yukta via MCP
+# For Claude Code, add to .claude/settings.json:
 {
   "mcpServers": {
     "yukta": {
@@ -224,15 +235,23 @@ chmod +x yukta-linux-x64
   }
 }
 
-# 3. Claude Code now has Yukta tools:
+# For Claude API or other agents, use the MCP protocol
+# Endpoint: http://localhost:8080/sse
+# Protocol: STATELESS, ASYNC
+
+# 3. Your AI agent now has Yukta tools:
 #    - create_session
 #    - trigger_workflow
 #    - get_workflow_status
 #    - stream_session_logs
-#    ... and 9 more
+#    - get_workflow_execution_logs
+#    - list_plugins
+#    - get_plugin_details
+#    - get_control_bus_status
+#    ... and 5 more
 ```
 
-**Result**: Claude Code auto-runs workflows, detects failures, self-corrects. No polling. No webhooks.
+**Result**: AI agent auto-runs workflows, detects failures, self-corrects. No polling. No webhooks. Works with any MCP-compatible AI.
 
 ---
 
@@ -309,10 +328,10 @@ cd yukta
 
 | Use Case | Pick This | Why |
 |----------|-----------|-----|
-| **AI-driven development** (Claude Code, Claude API) | Option 1: MCP | Native integration, instant feedback, self-correcting |
+| **AI-driven development** (any MCP-compatible AI agent) | Option 1: MCP | Native MCP integration, instant feedback, self-correcting |
 | **Production deployment** (K8s, CI/CD, Docker) | Option 2: Native Executable | 50MB executable, <100ms startup, zero JVM overhead |
 | **Building custom plugins** (extending Yukta) | Option 3: Java Development | Full IDE support, testing, hot reload |
-| **I don't know yet** | Option 1: MCP | Zero setup, works with what you already have (Claude Code) |
+| **I don't know yet** | Option 1: MCP | Zero setup, works with any AI agent that supports MCP |
 
 ---
 
@@ -359,7 +378,7 @@ curl http://localhost:8080/api/workflow/demo/status/{executionId}
 ## Built for Today's Challenges
 
 - **Microservices**: Orchestrate across multiple services
-- **AI-Driven Dev**: Claude Code + Yukta = auto-fixing workflows
+- **AI-Driven Dev**: Any MCP-compatible AI agent + Yukta = auto-fixing workflows (Claude Code, Claude API, or others)
 - **DevOps**: CI/CD without YAML hell
 - **Data Pipelines**: ETL with visibility and control
 - **Hybrid Workflows**: Mix humans and AI, real-time feedback
@@ -440,7 +459,7 @@ curl http://localhost:8080/api/workflow/demo/status/{executionId}
 **Ready to orchestrate?** ⚡
 
 Choose your path:
-- **🧠 AI-driven**: Set up MCP with Claude Code (Option 1)
+- **🧠 AI-driven**: Set up MCP with any AI agent (Option 1)
 - **🚀 Production**: Run native executable (Option 2)
 - **👨‍💻 Development**: Clone repo and `./gradlew bootRun` (Option 3)
 
