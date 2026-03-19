@@ -201,48 +201,144 @@ AI never waits. Claude gets instant feedback and self-corrects.
 
 ---
 
-## 🚀 Quick Start (5 Minutes)
+## 🚀 Getting Started (Choose Your Path)
 
-### **1. Start Yukta**
+### **Option 1: MCP Integration** (Recommended for AI-Driven Workflows)
+
+Use Yukta with Claude Code or Claude API for instant, automated workflow execution.
+
 ```bash
-./gradlew bootRun
+# 1. Install Yukta (native executable, ~50MB, no JVM needed)
+wget https://github.com/infenia/yukta/releases/download/v0.1.0/yukta-linux-x64
+chmod +x yukta-linux-x64
+./yukta-linux-x64
+
+# 2. Claude Code automatically connects via MCP
+# Add to your .claude/settings.json:
+{
+  "mcpServers": {
+    "yukta": {
+      "command": "./yukta-linux-x64",
+      "args": ["--mcp"]
+    }
+  }
+}
+
+# 3. Claude Code now has Yukta tools:
+#    - create_session
+#    - trigger_workflow
+#    - get_workflow_status
+#    - stream_session_logs
+#    ... and 9 more
 ```
 
-### **2. Define Your Workflow (JSON)**
+**Result**: Claude Code auto-runs workflows, detects failures, self-corrects. No polling. No webhooks.
+
+---
+
+### **Option 2: Native Executable** (Recommended for Production Deployments)
+
+Zero JVM overhead. Instant startup. GraalVM ahead-of-time compilation.
+
 ```bash
+# 1. Download native executable
+wget https://github.com/infenia/yukta/releases/download/v0.1.0/yukta-macos-aarch64
+chmod +x yukta-macos-aarch64
+./yukta-macos-aarch64
+
+# 2. Define your workflow
 curl -X POST http://localhost:8080/api/config \
   -H "Content-Type: application/json" \
   -d '{
-    "sessionId": "my-session",
-    "description": "My first workflow",
-    "initiator": "me",
-    "projectPath": "/path/to/project",
+    "sessionId": "my-pipeline",
+    "description": "Data ETL",
+    "initiator": "devops",
+    "projectPath": "/data",
     "workflows": {
-      "test": {
-        "description": "Run tests",
+      "ingest-transform-load": {
+        "description": "ETL pipeline",
         "nodes": [
-          { "nodeId": "test", "type": "PROCESS_EXECUTOR", "config": { "command": ["./gradlew", "test"] } }
+          { "nodeId": "validate", "type": "PROCESS_EXECUTOR", "config": { "command": ["./validate.sh"] } },
+          { "nodeId": "transform", "type": "PROCESS_EXECUTOR", "config": { "command": ["./transform.sh"] } },
+          { "nodeId": "load", "type": "PROCESS_EXECUTOR", "config": { "command": ["./load.sh"] } }
         ],
-        "edges": []
+        "edges": [
+          { "source": "validate", "target": "transform" },
+          { "source": "transform", "target": "load" }
+        ]
       }
     }
   }'
-```
 
-### **3. Run It**
-```bash
+# 3. Run it
 curl -X POST http://localhost:8080/api/workflow/trigger \
-  -d '{ "sessionId": "my-session", "workflowId": "test", "payload": {} }'
+  -d '{ "sessionId": "my-pipeline", "workflowId": "ingest-transform-load", "payload": {} }'
 
-# Get executionId from response
+# 4. Stream live status
+curl http://localhost:8080/api/workflow/my-pipeline/status/{executionId}/stream
 ```
 
-### **4. Check Status**
+**Result**: Production-ready, sub-100ms feedback, observable workflows.
+
+---
+
+### **Option 3: Java Development** (For Contributors & Custom Plugins)
+
+Traditional Spring Boot development with hot reload and full debugging.
+
 ```bash
-curl http://localhost:8080/api/workflow/my-session/status/{executionId}
+# 1. Clone and build
+git clone https://github.com/infenia/yukta.git
+cd yukta
+./gradlew bootRun
+
+# 2. Open web UI
+# http://localhost:8080/swagger-ui.html
+
+# 3. Start developing
+# - Add custom plugins (implements ProcessorPlugin)
+# - Modify orchestration logic
+# - Write tests with StepVerifier
 ```
 
-**Done.** No shell scripts. No error handling boilerplate. Just results.
+**Result**: Full IDE debugging, instant hot reload, test-driven plugin development.
+
+---
+
+## Which Should I Choose?
+
+| Use Case | Pick This | Why |
+|----------|-----------|-----|
+| **AI-driven development** (Claude Code, Claude API) | Option 1: MCP | Native integration, instant feedback, self-correcting |
+| **Production deployment** (K8s, CI/CD, Docker) | Option 2: Native Executable | 50MB executable, <100ms startup, zero JVM overhead |
+| **Building custom plugins** (extending Yukta) | Option 3: Java Development | Full IDE support, testing, hot reload |
+| **I don't know yet** | Option 1: MCP | Zero setup, works with what you already have (Claude Code) |
+
+---
+
+## 5-Minute Hands-On
+
+**Want to try right now?**
+
+```bash
+# Using native executable
+wget https://github.com/infenia/yukta/releases/download/v0.1.0/yukta-$(uname -s)-$(uname -m)
+chmod +x yukta-*
+./yukta-* &
+
+# Trigger a simple workflow
+curl -X POST http://localhost:8080/api/config \
+  -H "Content-Type: application/json" \
+  -d '{ "sessionId": "demo", "description": "Quick demo", "initiator": "me", "workflows": { "hello": { "description": "Echo", "nodes": [{ "nodeId": "echo", "type": "PROCESS_EXECUTOR", "config": { "command": ["echo", "Hello from Yukta!"] } }], "edges": [] } } }'
+
+curl -X POST http://localhost:8080/api/workflow/trigger \
+  -d '{ "sessionId": "demo", "workflowId": "hello", "payload": {} }'
+
+# See it run
+curl http://localhost:8080/api/workflow/demo/status/{executionId}
+```
+
+**Done.** Three execution paths. Pick the one that fits your workflow.
 
 ---
 
@@ -343,10 +439,11 @@ curl http://localhost:8080/api/workflow/my-session/status/{executionId}
 
 **Ready to orchestrate?** ⚡
 
-```bash
-./gradlew bootRun
-```
+Choose your path:
+- **🧠 AI-driven**: Set up MCP with Claude Code (Option 1)
+- **🚀 Production**: Run native executable (Option 2)
+- **👨‍💻 Development**: Clone repo and `./gradlew bootRun` (Option 3)
 
-Then visit **[http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)** to start defining workflows.
+Then visit **[http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)** to see your workflows in action.
 
 Happy orchestrating! 🚀
