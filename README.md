@@ -50,6 +50,37 @@ Today, you solve this with **shell scripts** 🐚. Tomorrow, you're debugging th
 
 ---
 
+## Why Yukta Matters to You Personally
+
+👨‍💼 **Project Manager / Tech Lead**
+> "Stop approving hotfixes for broken workflows. Define once, get visibility, sleep at night."
+- Single source of truth for all workflows (no tribal knowledge)
+- Real-time dashboard (who's running what, what's failing, why)
+- Audit trail (compliant, traceable, blame-free)
+
+👨‍💻 **Developer**
+> "Write JSON, not bash. Get instant feedback from AI while you code."
+- No shell script debugging at 3am
+- Workflows run locally, in CI/CD, in production—same definition
+- AI auto-fixes your code when tests fail (via MCP integration)
+- Test-driven workflow development (StepVerifier for Reactor streams)
+
+👷 **DevOps Engineer**
+> "Deploy once, run everywhere. 50MB executable, zero operational overhead."
+- Native executable (no JVM, no container bloat)
+- REST API + MCP for any orchestration tool
+- Built-in observability (no external monitoring needed; events batched 100@50ms)
+- Observable: heartbeats every 10s, structured JSONL logs, live DAG visualization
+
+🏗️ **Architect / CTO**
+> "Modular, testable, extensible. Write one plugin, use everywhere."
+- Clean 3-layer architecture (Plugin → Orchestration → Transport)
+- 16 built-in plugins, custom plugins in minutes
+- Battle-tested reactive patterns (Project Reactor, virtual threads, <100ms loops)
+- Future-proof: Any AI agent via MCP, local-first design, no vendor lock-in
+
+---
+
 ## How It Works (The Pitch)
 
 ### For **Developers**:
@@ -212,6 +243,33 @@ AI never waits. Any MCP-compatible agent gets instant feedback and self-corrects
 
 ---
 
+## ⚡ 30-Second Quick Start (TL;DR)
+
+Just want to try it? **One command:**
+
+```bash
+# 1. Download & run (native executable, no setup needed)
+wget https://github.com/infenia/yukta/releases/download/v0.1.0/yukta-$(uname -s)-$(uname -m)
+chmod +x yukta-*
+./yukta-* &
+
+# 2. Define a workflow (one curl, that's it)
+curl -X POST http://localhost:8080/api/config \
+  -H "Content-Type: application/json" \
+  -d '{ "sessionId": "demo", "description": "Quick demo", "initiator": "me", "workflows": { "hello": { "description": "Echo", "nodes": [{ "nodeId": "echo", "type": "PROCESS_EXECUTOR", "config": { "command": ["echo", "Hello from Yukta!"] } }], "edges": [] } } }'
+
+# 3. Run it
+curl -X POST http://localhost:8080/api/workflow/trigger \
+  -d '{ "sessionId": "demo", "workflowId": "hello", "payload": {} }'
+
+# 4. See it run (real-time status)
+curl http://localhost:8080/api/workflow/demo/status/{executionId}
+```
+
+**Done.** That's a workflow orchestrator working. Ready for more? Read on. ↓
+
+---
+
 ## 🚀 Getting Started (Choose Your Path)
 
 ### **Option 1: MCP Integration** (Recommended for AI-Driven Workflows)
@@ -332,6 +390,40 @@ cd yukta
 | **Production deployment** (K8s, CI/CD, Docker) | Option 2: Native Executable | 50MB executable, <100ms startup, zero JVM overhead |
 | **Building custom plugins** (extending Yukta) | Option 3: Java Development | Full IDE support, testing, hot reload |
 | **I don't know yet** | Option 1: MCP | Zero setup, works with any AI agent that supports MCP |
+
+---
+
+## Common Questions (We Get These a Lot)
+
+**Q: Is this just for containers/K8s?**
+A: No. Works locally, in Docker, on bare metal, in K8s, in serverless. Same workflow everywhere. Define once in JSON, run anywhere.
+
+**Q: Do I have to learn a new language?**
+A: No. Workflows are JSON. You describe the flow (nodes and edges), Yukta handles the orchestration. No special syntax.
+
+**Q: What if a step fails?**
+A: Yukta shows you exactly what failed (with error output). You choose: automatic retries, conditional branching to error-handling steps, or manual intervention.
+
+**Q: Will this replace my CI/CD tool?**
+A: No. Yukta **complements** your CI/CD (GitHub Actions, GitLab CI, Jenkins). Yukta is the "inside" orchestrator—it handles multi-step workflows, your CI/CD handles triggering, notifications, and secrets management.
+
+**Q: Is it open-source?**
+A: Yes. Apache 2.0 licensed. Self-hosted, local-first, no vendor lock-in. Run it wherever you want.
+
+**Q: Can I use it with my current AI (Claude, ChatGPT, Gemini, others)?**
+A: If your AI supports **MCP (Model Context Protocol)**, yes. We provide MCP natively. If not, use the REST API directly.
+
+**Q: What's the learning curve?**
+A: Very low. Define your first workflow in 5 minutes (just JSON). Get advanced in a day. Write custom plugins in a week.
+
+**Q: How much does it cost?**
+A: Nothing. It's open-source. Self-host it, no usage charges.
+
+**Q: Can I run this in production?**
+A: Absolutely. It's production-ready: input validation, session isolation, structured logging, error handling, and real-time monitoring.
+
+**Q: What's the performance like?**
+A: Sub-100ms feedback loops (reactive non-blocking). Handles 10k+ workflows/day with <100ms startup time. Scales from 1 engineer to 100+ concurrent workflows.
 
 ---
 
