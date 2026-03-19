@@ -25,8 +25,8 @@ You have **multi-step workflows** (build → test → deploy, format → lint �
 | **Real-time status visibility** | Logs only | REST API + Server-Sent Events (SSE) |
 | **Reusable workflow definitions** | Copy-paste scripts | Sessions + JSON DAG = reproducible |
 | **AI agent integration** | Manual polling/webhooks | MCP-native (instant feedback) |
-| **Extensibility** (custom process execution, transformations) | Rewrite script | Plugin architecture (swap any node) |
-| **Error handling & observability** | Grep logs | Structured logs, session context |
+| **Extensibility** (custom process execution, transformations) | Rewrite script | 16 built-in plugins + custom plugins |
+| **Error handling & observability** | Grep logs | Structured logs, session context, control bus |
 
 **The advantage**: Define once, execute anywhere (dev machine, CI/CD, AI agent callback).
 
@@ -63,7 +63,7 @@ Yukta has **three layers**:
 │ - PROCESS_EXECUTOR (execute OS commands)   │
 │ - BRANCH (conditional routing)             │
 │ - MAPPER, FILTER, SPLITTER, AGGREGATOR     │
-│ - 150+ built-in plugins                    │
+│ - 16 built-in plugins                      │
 └─────────────────────────────────────────────┘
 ```
 
@@ -84,17 +84,19 @@ A **plugin** is a reusable component that processes messages (input → output).
 The **WorkflowOrchestrator** (`@core`) does the heavy lifting:
 
 1. **DAG Parsing**: Reads nodes (plugins) + edges (connections)
-2. **Topological Execution**: Runs nodes in dependency order
-3. **Reactive Streams**: Non-blocking execution via Project Reactor (Mono/Flux)
-4. **Session Context**: Propagates data across nodes (session ID, execution ID, payload)
-5. **Error Handling**: Configurable error paths (branch to error handler on failure)
-6. **Performance**: <100ms feedback loops, handles concurrent workflow runs
+2. **Validation**: 8-step validation (plugins exist, entry points, cycles, configs)
+3. **Compilation**: Pre-compiles execution pipeline to optimized lambda
+4. **Reactive Execution**: Non-blocking via Project Reactor (Mono/Flux)
+5. **Session Context**: Propagates data across nodes (session ID, execution ID, payload)
+6. **Error Handling**: Configurable error paths (branch to error handler on failure)
+7. **Performance**: <100ms feedback loops, handles concurrent workflow runs
 
 **Core classes**:
-- `WorkflowOrchestrator`: Executes DAG
+- `WorkflowOrchestrator`: DAG validation, compilation, execution
 - `WorkflowService`: Queues workflow runs per session
-- `SessionService`: Manages session config (workflows, project paths)
-- `SessionConfigStore`: Persists workflows (file or in-memory)
+- `SessionService`: Manages session lifecycle
+- `TaskTrackerService`: Tracks execution state (O(1) lookup), auto-cleanup
+- `ControlBusService`: Multi-cast event bus for monitoring
 
 ### **Layer 3: REST API + MCP** (@web, @mcp)
 
@@ -191,23 +193,25 @@ curl -X GET http://localhost:8080/api/workflow/my-session/status/abc-123
 #   "executionId": "abc-123",
 #   "workflowId": "quality-check",
 #   "status": "SUCCESS",
-#   "progress": 100,
-#   "nodeResults": [
-#     { "nodeId": "format", "status": "SUCCESS", "output": "..." },
-#     { "nodeId": "lint", "status": "SUCCESS", "output": "..." },
-#     { "nodeId": "test", "status": "SUCCESS", "output": "..." }
-#   ]
+#   "tasks": [
+#     { "nodeId": "format", "status": "SUCCESS", "module": "PROCESS_EXECUTOR", "startTime": "...", "endTime": "..." },
+#     { "nodeId": "lint", "status": "SUCCESS", "module": "PROCESS_EXECUTOR", "startTime": "...", "endTime": "..." },
+#     { "nodeId": "test", "status": "SUCCESS", "module": "PROCESS_EXECUTOR", "startTime": "...", "endTime": "..." }
+#   ],
+#   "startTime": "...",
+#   "endTime": "..."
 # }
 ```
 
 **5. AI Agent Uses MCP (Optional)**:
 ```
 Claude Code:
-  POST /mcp/workflow/trigger (same as REST, but over MCP protocol)
+  Connect to /sse endpoint via MCP STATELESS protocol
+  Call trigger_workflow MCP tool
 
 Yukta (MCP):
   Executes workflow
-  Streams heartbeats (progress updates)
+  Streams heartbeats + status (progress updates)
   On failure: Returns structured error message
   Claude Code parses error, auto-fixes, retries
 ```
@@ -274,8 +278,8 @@ Route to different nodes based on SpEL expressions.
     "mode": "EXPRESSION",
     "selector": "#status == 'FAILED'",
     "cases": {
-      "true": { "port": "error" },
-      "false": { "port": "success" }
+      "true": "error",
+      "false": "success"
     }
   }
 }
@@ -283,8 +287,10 @@ Route to different nodes based on SpEL expressions.
 
 Edges specify which output port to follow:
 ```json
-{ "source": "test", "target": "coverage", "port": "success" },
-{ "source": "test", "target": "notify", "port": "error" }
+[
+  { "source": "test", "target": "coverage", "sourcePort": "success" },
+  { "source": "test", "target": "notify", "sourcePort": "error" }
+]
 ```
 
 #### **MAPPER** (Transform Data)
@@ -353,6 +359,8 @@ curl -X POST http://localhost:8080/api/config \
   -H "Content-Type: application/json" \
   -d '{
     "sessionId": "demo",
+    "description": "Build project",
+    "initiator": "me",
     "projectPath": "/path/to/project",
     "workflows": {
       "build": {
@@ -447,7 +455,7 @@ curl -X GET http://localhost:8080/api/workflow/demo/status/abc-123
 | **Conditional Branching** | ✅ Stable | BRANCH + MAPPER for complex logic |
 | **Session Management** | ✅ Stable | File or in-memory persistence |
 | **Parallel Execution** | 🔄 Beta | Parallel nodes in DAG (next release) |
-| **Workflow Visualization UI** | 📅 Planned (v0.2) | Web dashboard for DAG graphs |
+| **Custom Dashboard UI** | ✅ Stable | Web dashboard with live DAG visualization, history, control console |
 | **Database Connectors** | 📅 Planned (v0.3) | Direct DB integration plugins |
 | **Kubernetes Operator** | 📅 Planned (v0.3) | Deploy Yukta on K8s |
 
