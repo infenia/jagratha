@@ -1,4 +1,7 @@
-# ![Yukta](ui/src/main/resources/static/images/favicon.svg) Yukta
+<div align="center">
+  <img src="ui/src/main/resources/static/images/favicon.svg" alt="Yukta" width="120" height="120" />
+  <h1>Yukta</h1>
+</div>
 
 **Yukta** (Sanskrit for *Vigilance*) is a high-performance quality-gate server that enforces code standards autonomously for AI-driven development.
 
