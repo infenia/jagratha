@@ -1,38 +1,52 @@
 <div style="text-align: center;">
-  <img src="ui/src/main/resources/static/images/favicon.svg" alt="Yukta" width="120" height="120" style="border-radius: 16px;" />
+  <img src="ui/src/main/resources/static/images/favicon.svg" alt="Yukta" width="120" height="120" style="border-radius: 64px;" />
   <h1 style="margin-top: 12px;">Yukta</h1>
 </div>
 
-**Yukta** (Sanskrit for *Vigilance*) is a high-performance quality-gate server that enforces code standards autonomously for AI-driven development.
+**Yukta** (Sanskrit for *Vigilance*) is a **high-performance workflow orchestrator** that executes dynamic DAG-based workflows with enterprise-grade control and observability.
 
-**License**: Apache 2.0 | **Java**: 25+ | **Spring Boot**: 4.0 | **Gradle**: 9.0
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
+[![Java 25+](https://img.shields.io/badge/java-25%2B-orange?style=flat-square)](https://www.oracle.com/java/)
+[![Spring Boot 4.0](https://img.shields.io/badge/spring--boot-4.0-6db33f?style=flat-square)](https://spring.io/projects/spring-boot)
+[![Gradle 9.0](https://img.shields.io/badge/gradle-9.0-02303a?style=flat-square)](https://gradle.org/)
+[![MCP Native](https://img.shields.io/badge/MCP-native-blueviolet?style=flat-square)](https://modelcontextprotocol.io/)
+[![GraalVM](https://img.shields.io/badge/GraalVM-native%20image-red?style=flat-square)](https://www.graalvm.org/)
 
-It hosts a **Model Context Protocol (MCP)** server, integrates with AI agents (like Claude Code), validates code changes in real-time, enforces quality gates (Spotless, Checkstyle, PMD, SpotBugs, JaCoCo), and provides structured feedback—enabling **AI agents to self-correct instantly** without breaking your build.
+Yukta orchestrates **AI agent workflows**, **CI/CD pipelines**, **quality gates**, and **custom business workflows** using **Enterprise Integration Patterns** (EIPs). It provides:
+- **DAG-based orchestration** with full control over workflow topology and execution semantics
+- **Plugin ecosystem** for extensibility (Gradle, Maven, custom tools, AI models)
+- **MCP integration** for native AI agent collaboration
+- **Session-aware observability** with structured, traceable logs
+- **Reactive, non-blocking architecture** for high-concurrency workloads
 
-**Use case**: You're using Claude Code (or another AI agent) to generate or modify code, and you want Yukta to enforce your project's quality standards *automatically* before changes are committed. If a check fails, Yukta returns the exact error, and the AI fixes it immediately.
+**Common use cases**:
+- 🤖 **AI Agent Workflows**: Claude Code validates code changes in real-time with instant feedback loops
+- 🔄 **CI/CD Orchestration**: Replace brittle shell scripts with type-safe, observable workflow definitions
+- ✓ **Quality Gates**: Enforce code standards (formatting, linting, testing) with granular control
+- ⚙️ **Custom Workflows**: Build domain-specific automation (data pipelines, compliance checks, deployment orchestration) without low-code limitations
 
 ---
 
 ## 🎯 Why Yukta?
 
-| Problem | Traditional Approach | Yukta |
-|---------|---|---|
-| AI generates code that breaks your linter/formatter | You discover it post-commit or in CI/CD (slow feedback loop) | Yukta validates *before* the AI commits—instant feedback, AI self-corrects |
-| Manual quality checks slow down AI workflows | CI/CD is the first line of defense (delays of minutes to hours) | Real-time MCP integration with AI agents (milliseconds) |
-| Hard to trace which checks failed and why | Scattered logs, unclear error messages | Session-aware JSONL logs, structured feedback to the AI |
-| Quality gates are tool-specific (Gradle, Maven, etc.) | Every tool needs custom integration | Plugin-based architecture—extend for any build system |
+| Use Case | Challenge | Yukta Solution |
+|----------|-----------|---|
+| **AI Agent Workflows** | AI-generated code breaks CI/CD; slow feedback loops | Real-time validation via MCP; instant feedback to AI agents for self-correction |
+| **CI/CD Orchestration** | Shell scripts are fragile, hard to test, lack observability | Type-safe DAG workflows with reactive execution and structured logging |
+| **Quality Gates** | Tool-specific integrations (Gradle, Maven, NPM) scattered across the stack | Unified plugin architecture; configure once, reuse everywhere |
+| **Custom Workflows** | Low-code platforms lack fine-grained control; high-code requires reinventing orchestration | Enterprise Integration Patterns with developer control; reactive streams; extensible plugins |
 
 ---
 
 ## 🚀 Key Features
 
-- **AI Orchestration**: Seamlessly integrates with AI agents like Claude Code via MCP to validate code autonomously.
-- **Quality Gates**: Enforces strict coding standards using Spotless, Checkstyle, PMD, SpotBugs, and JaCoCo.
-- **Extensible Plugin System**: Support for any build tool (Gradle, Maven, NPM) and custom workflows via DAG-based orchestration.
-- **MCP Native**: Native support for Model Context Protocol—AI agents can run quality checks directly without external scripts.
-- **Session-Aware Logging**: JSONL-formatted logs per session for easy consumption and tracing.
-- **Reactive & High-Performance**: Built on Spring Boot WebFlux for non-blocking operations—handles concurrent workflows efficiently.
-- **Real-Time Feedback**: No waiting for CI/CD—feedback loops in milliseconds.
+- **DAG-Based Orchestration**: Define complex workflows as Directed Acyclic Graphs with fine-grained control over topology, execution semantics, and resource management.
+- **Enterprise Integration Patterns**: Built-in support for EIP concepts (routers, aggregators, transformers) for composable, reusable workflow components.
+- **Extensible Plugin Architecture**: Trigger, Processor, and Terminal plugins enable integration with any tool (Gradle, Maven, custom scripts, AI models, external services).
+- **MCP Native**: Model Context Protocol integration allows AI agents to orchestrate and monitor workflows in real-time.
+- **Reactive & High-Performance**: Powered by Spring Boot WebFlux and Project Reactor for non-blocking, concurrent workflow execution (<100ms feedback loops).
+- **Session-Aware Observability**: JSONL-formatted logs with context propagation across workflow executions—built for traceability and debugging.
+- **GraalVM Native Image**: Compile to native executable (~50MB) for instant startup and minimal resource footprint in containerized environments.
 
 ---
 
@@ -40,8 +54,8 @@ It hosts a **Model Context Protocol (MCP)** server, integrates with AI agents (l
 
 - **Java 25+** (Java 25 recommended; Gradle handles toolchain)
 - **Gradle 9.0+** (included: `./gradlew` works out-of-the-box)
-- **An AI agent** (Claude Code, or any ACP client) — *optional for testing*
-- **Linux/macOS/Windows** (tested on Linux; other OSes supported)
+- **Linux/macOS/Windows** (fully tested; production-ready on all platforms)
+- **Optional**: AI agent client (Claude Code, or any ACP-compatible agent) for AI workflow integration
 
 ---
 
@@ -134,55 +148,85 @@ To use Yukta with Claude Code, see **[Integration with Claude Code](docs/getting
 
 ## 💡 Usage Examples
 
-### Example 1: Gradle Project with Spotless + Checkstyle
+### Example 1: Quality Gate Workflow (Linear Chain)
+
+Run formatting, linting, and tests in sequence:
 
 ```bash
-# Configure session
 curl -X POST http://localhost:8080/api/config \
   -H "Content-Type: application/json" \
   -d '{
-    "sessionId": "gradle-project",
-    "projectPath": "/home/user/my-gradle-app",
+    "sessionId": "quality-checks",
+    "projectPath": "/home/user/my-project",
     "pluginName": "gradle",
     "pluginConfig": { "gradlePath": "./gradlew" },
     "tasks": ["spotlessCheck", "checkstyleMain", "test"],
     "workflows": []
   }'
 
-# Trigger checks
 curl -X POST http://localhost:8080/api/workflow/trigger \
   -H "Content-Type: application/json" \
-  -d '{ "sessionId": "gradle-project" }'
+  -d '{ "sessionId": "quality-checks" }'
 ```
 
-### Example 2: Custom Workflow with DAG
+### Example 2: Complex DAG Workflow
 
-Define a workflow that runs tests *only if* formatting passes:
+Define a workflow with conditional branching: lint→test, then run coverage *only if* tests pass:
 
 ```bash
 curl -X POST http://localhost:8080/api/config \
   -H "Content-Type: application/json" \
   -d '{
-    "sessionId": "custom-workflow",
+    "sessionId": "ci-pipeline",
     "projectPath": "/home/user/my-project",
     "pluginName": "gradle",
     "pluginConfig": { "gradlePath": "./gradlew" },
     "tasks": [],
     "workflows": [
       {
-        "name": "quality-gate",
+        "name": "ci-pipeline",
         "nodes": [
           { "id": "format", "pluginName": "gradle", "task": "spotlessCheck" },
-          { "id": "style", "pluginName": "gradle", "task": "checkstyleMain" },
-          { "id": "test", "pluginName": "gradle", "task": "test" }
+          { "id": "lint", "pluginName": "gradle", "task": "checkstyleMain" },
+          { "id": "test", "pluginName": "gradle", "task": "test" },
+          { "id": "coverage", "pluginName": "gradle", "task": "jacocoTestReport" }
         ],
         "edges": [
-          { "from": "format", "to": "style" },
-          { "from": "style", "to": "test" }
+          { "from": "format", "to": "lint" },
+          { "from": "lint", "to": "test" },
+          { "from": "test", "to": "coverage" }
         ]
       }
     ]
   }'
+```
+
+### Example 3: AI Agent Integration (Claude Code)
+
+Real-time feedback for AI-generated code via MCP:
+
+```bash
+# 1. Initialize session
+curl -X POST http://localhost:8080/api/config \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionId": "claude-session-123",
+    "projectPath": "/home/user/my-project",
+    "pluginName": "gradle",
+    "pluginConfig": { "gradlePath": "./gradlew" },
+    "tasks": ["spotlessCheck", "checkstyleMain"],
+    "workflows": []
+  }'
+
+# 2. AI agent modifies a file (Claude Code triggers via hook)
+# File logged automatically via session hook
+
+# 3. Claude Code requests validation (via MCP)
+curl -X POST http://localhost:8080/api/workflow/trigger \
+  -H "Content-Type: application/json" \
+  -d '{ "sessionId": "claude-session-123" }'
+
+# Response includes exact errors → Claude Code auto-fixes and retries
 ```
 
 ---
