@@ -3,7 +3,7 @@
   <h1 style="margin-top: 12px;">Yukta</h1>
 </div>
 
-**Yukta** (Sanskrit for *Vigilance*) is a **high-performance workflow orchestrator** that executes dynamic DAG-based workflows with enterprise-grade control and observability.
+**Yukta** is a **high-performance workflow orchestrator** that executes dynamic DAG-based workflows with enterprise-grade control and observability.
 
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Java 25+](https://img.shields.io/badge/java-25%2B-orange?style=flat-square)](https://www.oracle.com/java/)
@@ -313,4 +313,12 @@ Yukta is developed and maintained by **[Infenia Private Limited](https://infenia
 - **Discussions**: [Yukta Community](https://github.com/infenia/yukta/discussions)
 - **Email**: arun@infenia.com
 
-Happy quality-checking! 🚀
+---
+
+## 🎵 Fun Fact
+
+*Yukta* (युक्त) is a Sanskrit word meaning **"united" or "joined"**—reflecting the philosophy of orchestrating disparate tools, systems, and agents into a cohesive, harmonious workflow. 🔗
+
+---
+
+Happy orchestrating! 🚀
