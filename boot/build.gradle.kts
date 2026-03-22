@@ -72,12 +72,11 @@ graalvmNative {
             // Aggressive size-reduction flags
             buildArgs.add("-H:+RemoveUnusedSymbols")  // Strip unused symbols
             buildArgs.add("-H:+StripDebugInfo")        // Remove debug information
-            buildArgs.add("-H:+UseG1GC")               // Use G1 garbage collector
-            buildArgs.add("-H:GCHeapSize=512m")        // Set heap size for GC
+            buildArgs.add("--gc=G1")                    // Use G1 garbage collector
+            buildArgs.add("-R:MaxHeapSize=512m")        // Set runtime max heap size
             buildArgs.add("-J-Xmx4g")                  // JVM max heap (build time)
 
-            // Force prod profile and enable AOT
-            buildArgs.add("-Dspring.profiles.active=prod")
+            // Enable AOT compilation for native image
             buildArgs.add("-Dspring.aot.enabled=true")
         }
     }
