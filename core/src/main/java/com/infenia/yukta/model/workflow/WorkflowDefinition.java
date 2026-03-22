@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.model.workflow;
 
+import com.infenia.yukta.plugin.retry.RetryPolicy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -56,6 +57,7 @@ public record WorkflowDefinition(
    * @param nodeId unique identifier for the node
    * @param type the type of plugin to use
    * @param config configuration for the plugin
+   * @param retryPolicy retry policy for this node (null defaults to no retries)
    */
   @Schema(description = "A single node in the workflow DAG")
   public record Node(
@@ -67,10 +69,27 @@ public record WorkflowDefinition(
           @NotNull(message = "Plugin type cannot be null")
           @NotBlank(message = "Plugin type cannot be blank")
           String type,
-      @Schema(description = "Plugin configuration") Map<String, Object> config) {
+      @Schema(description = "Plugin configuration") Map<String, Object> config,
+      @Schema(description = "Retry policy for this node") @Valid @org.jspecify.annotations.Nullable
+          RetryPolicy retryPolicy) {
     /** Compact constructor. */
     public Node {
       config = config != null ? Map.copyOf(config) : Map.of();
+      // Normalize null retryPolicy to no-retry sentinel
+      if (retryPolicy == null) {
+        retryPolicy = RetryPolicy.none();
+      }
+    }
+
+    /**
+     * Backward-compatible constructor without retryPolicy.
+     *
+     * @param nodeId unique identifier for the node
+     * @param type the type of plugin to use
+     * @param config configuration for the plugin
+     */
+    public Node(final String nodeId, final String type, final Map<String, Object> config) {
+      this(nodeId, type, config, null);
     }
   }
 

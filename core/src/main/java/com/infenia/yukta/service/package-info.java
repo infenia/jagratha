@@ -13,23 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.model.monitoring;
-
-/** Status enumeration for task execution states. */
-public enum TaskStatus {
-  PENDING,
-  RUNNING,
-  SUCCESS,
-  FAILURE,
-  ERROR,
-  CANCELLED;
-
-  /**
-   * Check if this status is a terminal state.
-   *
-   * @return true if status is SUCCESS, FAILURE, ERROR, or CANCELLED; false otherwise
-   */
-  public boolean isTerminal() {
-    return this == SUCCESS || this == FAILURE || this == ERROR || this == CANCELLED;
-  }
-}
+@SuppressWarnings({
+  "PMD.AtLeastOneConstructor",
+  "PMD.LongVariable",
+  "PMD.OnlyOneReturn",
+  "PMD.FormalParameterNamingConventions",
+  "PMD.CyclomaticComplexity",
+  "PMD.ExcessiveParameterList",
+  "PMD.LambdaCanBeMethodReference",
+  "PMD.LawOfDemeter",
+  "PMD.NPathComplexity",
+  "PMD.TooManyMethods",
+  "PMD.UnnecessaryWarningSuppression",
+  "PMD.UnusedPrivateMethod",
+  "PMD.UseConcurrentHashMap",
+  "PMD.UseDiamondOperator",
+  "PMD.AvoidCatchingGenericException"
+})
+package com.infenia.yukta.service;

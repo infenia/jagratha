@@ -13,23 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.model.monitoring;
+package com.infenia.yukta.plugin.retry;
 
-/** Status enumeration for task execution states. */
-public enum TaskStatus {
-  PENDING,
-  RUNNING,
-  SUCCESS,
-  FAILURE,
-  ERROR,
-  CANCELLED;
+/** Enumeration of backoff strategies for retry logic. */
+public enum BackoffType {
+  /** Fixed delay between retries. */
+  FIXED,
 
-  /**
-   * Check if this status is a terminal state.
-   *
-   * @return true if status is SUCCESS, FAILURE, ERROR, or CANCELLED; false otherwise
-   */
-  public boolean isTerminal() {
-    return this == SUCCESS || this == FAILURE || this == ERROR || this == CANCELLED;
-  }
+  /** Exponential delay between retries (delay * 2^attempt). */
+  EXPONENTIAL
 }

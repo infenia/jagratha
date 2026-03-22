@@ -20,6 +20,7 @@ import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -32,6 +33,8 @@ import reactor.core.publisher.Mono;
 public class DefaultControlBusGateway implements ControlBusGateway {
 
   private final ControlBusService controlBusService;
+  private final ObjectProvider<WorkflowRestartService> workflowRestartService;
+  private final ObjectProvider<ExecutionRegistry> executionRegistry;
 
   @Override
   public <T> Mono<Void> emit(final Message<T> signal) {
@@ -66,5 +69,32 @@ public class DefaultControlBusGateway implements ControlBusGateway {
   @Override
   public List<String> getActiveNodes() {
     return controlBusService.getActiveNodes();
+  }
+
+  @Override
+  public Mono<Boolean> cancelExecution(final String executionId) {
+    final ExecutionRegistry registry = executionRegistry.getIfAvailable();
+    if (registry == null) {
+      return Mono.just(false);
+    }
+    return registry.cancel(executionId);
+  }
+
+  @Override
+  public Mono<String> restartExecution(final String executionId) {
+    final WorkflowRestartService service = workflowRestartService.getIfAvailable();
+    if (service == null) {
+      return Mono.error(new IllegalStateException("WorkflowRestartService not configured"));
+    }
+    return service.restartExecution(executionId);
+  }
+
+  @Override
+  public Mono<String> restartFromNode(final String executionId, final String fromNodeId) {
+    final WorkflowRestartService service = workflowRestartService.getIfAvailable();
+    if (service == null) {
+      return Mono.error(new IllegalStateException("WorkflowRestartService not configured"));
+    }
+    return service.restartFromNode(executionId, fromNodeId);
   }
 }

@@ -55,6 +55,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -70,6 +71,9 @@ class WorkflowOrchestratorTest {
   private WorkflowValidator validator;
   private SessionConfigStore configService;
   private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
+  @Mock private ExecutionRegistry executionRegistry;
+  @Mock private CheckpointService checkpointService;
+  @Mock private DependencyEngine dependencyEngine;
   private WorkflowOrchestrator orchestrator;
 
   @BeforeEach
@@ -78,6 +82,9 @@ class WorkflowOrchestratorTest {
     tracker = mock(TaskTrackerService.class);
     configService = mock(SessionConfigStore.class);
     controlBusGateway = mock(com.infenia.yukta.plugin.gateway.ControlBusGateway.class);
+    executionRegistry = mock(ExecutionRegistry.class);
+    checkpointService = mock(CheckpointService.class);
+    dependencyEngine = mock(DependencyEngine.class);
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
     validator = new WorkflowValidator(registry);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), any()))
@@ -101,7 +108,10 @@ class WorkflowOrchestratorTest {
             null,
             controlBusGateway,
             java.time.Duration.ofSeconds(10),
-            Schedulers.parallel());
+            Schedulers.parallel(),
+            executionRegistry,
+            checkpointService,
+            dependencyEngine);
   }
 
   @Test
@@ -445,7 +455,10 @@ class WorkflowOrchestratorTest {
             mockStore,
             controlBusGateway,
             java.time.Duration.ofSeconds(10),
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            executionRegistry,
+            checkpointService,
+            dependencyEngine);
 
     final Node triggerNode = new Node("t1", "trigger", Map.of());
     final Node terminalNode = new Node("term1", "terminal", Map.of());
@@ -838,7 +851,10 @@ class WorkflowOrchestratorTest {
             null,
             controlBusGateway,
             java.time.Duration.ofMillis(10),
-            Schedulers.parallel());
+            Schedulers.parallel(),
+            executionRegistry,
+            checkpointService,
+            dependencyEngine);
 
     StepVerifier.create(
             fastOrchestrator

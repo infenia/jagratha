@@ -13,23 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.model.monitoring;
+package com.infenia.yukta.plugin.message.control;
 
-/** Status enumeration for task execution states. */
-public enum TaskStatus {
-  PENDING,
-  RUNNING,
-  SUCCESS,
-  FAILURE,
-  ERROR,
-  CANCELLED;
+import java.time.Instant;
 
-  /**
-   * Check if this status is a terminal state.
-   *
-   * @return true if status is SUCCESS, FAILURE, ERROR, or CANCELLED; false otherwise
-   */
-  public boolean isTerminal() {
-    return this == SUCCESS || this == FAILURE || this == ERROR || this == CANCELLED;
-  }
-}
+/**
+ * Control event indicating a cancellation request for an execution.
+ *
+ * @param executionId the execution identifier
+ * @param requestedBy the user or component that requested the cancellation
+ * @param timestamp when the cancellation was requested
+ */
+public record CancelEvent(String executionId, String requestedBy, Instant timestamp) {}

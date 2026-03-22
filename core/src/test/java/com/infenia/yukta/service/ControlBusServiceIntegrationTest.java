@@ -46,7 +46,7 @@ class ControlBusServiceIntegrationTest {
     statisticsHandler = new ControlStatisticsHandler();
 
     final List<ControlSignalHandler> handlers = List.of(heartbeatHandler, statisticsHandler);
-    controlBusService = new ControlBusService(100, 50, 256, handlers);
+    controlBusService = new ControlBusService(100, 50, 256, handlers, null);
     controlBusService.init();
   }
 
@@ -229,7 +229,7 @@ class ControlBusServiceIntegrationTest {
 
   @Test
   void testInitWithCustomBufferSize() {
-    final ControlBusService service = new ControlBusService(50, 30, 512, List.of());
+    final ControlBusService service = new ControlBusService(50, 30, 512, List.of(), null);
     service.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
@@ -378,7 +378,7 @@ class ControlBusServiceIntegrationTest {
   @Test
   void testEmitWithBufferSize256() {
     // Test default buffer size (256) - should not reinitialize sink
-    final ControlBusService service = new ControlBusService(100, 50, 256, List.of());
+    final ControlBusService service = new ControlBusService(100, 50, 256, List.of(), null);
     service.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
@@ -388,7 +388,7 @@ class ControlBusServiceIntegrationTest {
   @Test
   void testEmitWithCustomBufferSizeLessThanSmall() {
     // Test buffer size smaller than SMALL_BUFFER_SIZE (64) - should use SMALL_BUFFER_SIZE
-    final ControlBusService service = new ControlBusService(100, 50, 32, List.of());
+    final ControlBusService service = new ControlBusService(100, 50, 32, List.of(), null);
     service.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
@@ -409,7 +409,7 @@ class ControlBusServiceIntegrationTest {
   @Test
   void testInitWithBufferSizeZero() {
     // Test buffer size = 0 - should use SMALL_BUFFER_SIZE
-    final ControlBusService service = new ControlBusService(100, 50, 0, List.of());
+    final ControlBusService service = new ControlBusService(100, 50, 0, List.of(), null);
     service.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");

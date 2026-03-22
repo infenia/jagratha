@@ -83,4 +83,29 @@ public interface ControlBusGateway {
    * @return list of node IDs
    */
   List<String> getActiveNodes();
+
+  /**
+   * Cancel a workflow execution.
+   *
+   * @param executionId the execution ID to cancel
+   * @return a Mono containing true if cancelled, false if execution not found
+   */
+  Mono<Boolean> cancelExecution(String executionId);
+
+  /**
+   * Restart a workflow execution from the beginning.
+   *
+   * @param executionId the execution ID to restart
+   * @return a Mono containing the new execution ID
+   */
+  Mono<String> restartExecution(String executionId);
+
+  /**
+   * Restart a workflow execution from a specific node.
+   *
+   * @param executionId the execution ID to restart
+   * @param fromNodeId the node ID to resume from
+   * @return a Mono containing the new execution ID
+   */
+  Mono<String> restartFromNode(String executionId, String fromNodeId);
 }

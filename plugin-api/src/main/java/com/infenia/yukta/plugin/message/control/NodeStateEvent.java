@@ -13,23 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.model.monitoring;
+package com.infenia.yukta.plugin.message.control;
 
-/** Status enumeration for task execution states. */
-public enum TaskStatus {
-  PENDING,
-  RUNNING,
-  SUCCESS,
-  FAILURE,
-  ERROR,
-  CANCELLED;
+import com.infenia.yukta.plugin.core.NodeState;
+import java.time.Instant;
 
-  /**
-   * Check if this status is a terminal state.
-   *
-   * @return true if status is SUCCESS, FAILURE, ERROR, or CANCELLED; false otherwise
-   */
-  public boolean isTerminal() {
-    return this == SUCCESS || this == FAILURE || this == ERROR || this == CANCELLED;
-  }
-}
+/**
+ * Control event indicating a node state transition.
+ *
+ * @param nodeId the node identifier
+ * @param executionId the execution identifier
+ * @param previousState the previous node state
+ * @param newState the new node state
+ * @param timestamp when the transition occurred
+ */
+public record NodeStateEvent(
+    String nodeId,
+    String executionId,
+    NodeState previousState,
+    NodeState newState,
+    Instant timestamp) {}

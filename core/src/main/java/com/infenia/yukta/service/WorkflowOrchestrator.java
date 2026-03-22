@@ -132,6 +132,9 @@ public class WorkflowOrchestrator {
   private final ControlBusGateway controlBusGateway;
   private final Duration heartbeatInterval;
   private final Scheduler virtualThreadScheduler;
+  private final ExecutionRegistry executionRegistry;
+  private final CheckpointService checkpointService;
+  private final DependencyEngine dependencyEngine;
 
   /**
    * Constructs a new WorkflowOrchestrator.
@@ -145,6 +148,9 @@ public class WorkflowOrchestrator {
    * @param controlBusGateway the control bus gateway
    * @param heartbeatInterval the heartbeat interval duration
    * @param virtualThreadScheduler the scheduler for virtual threads
+   * @param executionRegistry the execution registry for lifecycle management
+   * @param checkpointService the checkpoint service
+   * @param dependencyEngine the dependency engine for DAG management
    */
   @Autowired
   @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -157,7 +163,10 @@ public class WorkflowOrchestrator {
       @Nullable final MessageStore messageStore,
       final ControlBusGateway controlBusGateway,
       final Duration heartbeatInterval,
-      @Qualifier("virtualThreadScheduler") final Scheduler virtualThreadScheduler) {
+      @Qualifier("virtualThreadScheduler") final Scheduler virtualThreadScheduler,
+      final ExecutionRegistry executionRegistry,
+      final CheckpointService checkpointService,
+      final DependencyEngine dependencyEngine) {
     this.registry = registry;
     this.tracker = tracker;
     this.validator = validator;
@@ -167,6 +176,9 @@ public class WorkflowOrchestrator {
     this.controlBusGateway = controlBusGateway;
     this.heartbeatInterval = heartbeatInterval;
     this.virtualThreadScheduler = virtualThreadScheduler;
+    this.executionRegistry = executionRegistry;
+    this.checkpointService = checkpointService;
+    this.dependencyEngine = dependencyEngine;
   }
 
   /**
@@ -322,6 +334,19 @@ public class WorkflowOrchestrator {
         .addKeyValue(LOG_KEY_NODE_COUNT, prepared.topologicalOrder().size())
         .log("Starting workflow execution");
 
+    // Register execution in ExecutionRegistry and initialize DependencyEngine
+    executionRegistry.register(executionId, prepared);
+
+    final Map<String, List<String>> parentMap = new HashMap<>();
+    for (final Node node : prepared.topologicalOrder()) {
+      parentMap.put(
+          node.nodeId(),
+          prepared.parentsList().getOrDefault(node.nodeId(), List.of()).stream()
+              .map(Node::nodeId)
+              .toList());
+    }
+    dependencyEngine.initExecution(executionId, parentMap);
+
     return prepared
         .template()
         .instantiate(executionId, payload)
@@ -377,7 +402,7 @@ public class WorkflowOrchestrator {
 
     final List<String> nodeIds = topologicalOrder.stream().map(Node::nodeId).toList();
 
-    return (executionId, payload) ->
+    return (executionId, workflowPayload) ->
         Mono.deferContextual(
             ctx ->
                 tracker
@@ -388,13 +413,13 @@ public class WorkflowOrchestrator {
                             () ->
                                 executeTemplate(
                                     executionId,
-                                    payload,
+                                    workflowPayload,
                                     nodeCount,
                                     assemblers,
                                     ctx.get(CTX_SESSION_ID),
                                     ctx.get(CTX_WORKFLOW_ID),
                                     nodeIds)))
-                    .contextWrite(c -> c.put(CTX_PAYLOAD, payload)));
+                    .contextWrite(c -> c.put(CTX_PAYLOAD, workflowPayload)));
   }
 
   /**
@@ -462,6 +487,8 @@ public class WorkflowOrchestrator {
         .withDisposables(disposables)
         .withTerminals(terminals)
         .withConnectors(connectors)
+        .withCancelSignal(executionRegistry.getCancelSignal(executionId))
+        .withExecutionRegistry(executionRegistry)
         .withExecutionTimeout(sessionId, executionId)
         .build();
   }

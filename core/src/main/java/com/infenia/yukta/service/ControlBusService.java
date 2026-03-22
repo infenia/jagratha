@@ -50,6 +50,7 @@ public class ControlBusService {
   private final Duration batchTimeout;
   private final int bufferSize;
   private final List<ControlSignalHandler> handlers;
+  @Nullable private final ExecutionRegistry executionRegistry;
   private final Map<String, WorkflowPlugin> activePlugins = new ConcurrentHashMap<>();
   private Sinks.Many<Message<?>> controlSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
@@ -68,11 +69,13 @@ public class ControlBusService {
       @Value("${control.bus.batch.size:100}") final int batchSize,
       @Value("${control.bus.batch.timeout.ms:50}") final int batchTimeoutMs,
       @Value("${control.bus.buffer.size:256}") final int bufferSize,
-      final List<ControlSignalHandler> handlers) {
+      final List<ControlSignalHandler> handlers,
+      @Nullable final ExecutionRegistry executionRegistry) {
     this.batchSize = batchSize;
     this.batchTimeout = Duration.ofMillis(batchTimeoutMs);
     this.bufferSize = Math.max(bufferSize, Queues.SMALL_BUFFER_SIZE);
     this.handlers = List.copyOf(handlers);
+    this.executionRegistry = executionRegistry;
   }
 
   /** Initialize the control sink and background event consumer. */
@@ -233,4 +236,18 @@ public class ControlBusService {
       }
     }
   }
+
+  /**
+   * Cancel a workflow execution.
+   *
+   * @param executionId the execution ID to cancel
+   * @return a Mono containing true if cancelled, false if execution not found
+   */
+  public Mono<Boolean> cancelExecution(@NotBlank final String executionId) {
+    if (executionRegistry == null) {
+      return Mono.just(false);
+    }
+    return executionRegistry.cancel(executionId);
+  }
+
 }

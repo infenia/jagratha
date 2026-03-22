@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -51,6 +52,9 @@ class GuardIntegrationTest {
   private WorkflowValidator validator;
   private SessionConfigStore configService;
   private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
+  @Mock private ExecutionRegistry executionRegistry;
+  @Mock private CheckpointService checkpointService;
+  @Mock private DependencyEngine dependencyEngine;
 
   private TriggerPlugin triggerPlugin;
   private ProcessorPlugin guardPlugin;
@@ -63,6 +67,9 @@ class GuardIntegrationTest {
     tracker = mock(TaskTrackerService.class);
     configService = mock(SessionConfigStore.class);
     controlBusGateway = mock(com.infenia.yukta.plugin.gateway.ControlBusGateway.class);
+    executionRegistry = mock(ExecutionRegistry.class);
+    checkpointService = mock(CheckpointService.class);
+    dependencyEngine = mock(DependencyEngine.class);
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
     validator = new WorkflowValidator(registry);
     when(configService.getExecutionTimeout(anyString())).thenReturn(Mono.just(3600L));
@@ -76,7 +83,10 @@ class GuardIntegrationTest {
             null,
             controlBusGateway,
             java.time.Duration.ofSeconds(10),
-            Schedulers.parallel());
+            Schedulers.parallel(),
+            executionRegistry,
+            checkpointService,
+            dependencyEngine);
 
     triggerPlugin = mock(TriggerPlugin.class);
     when(triggerPlugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));

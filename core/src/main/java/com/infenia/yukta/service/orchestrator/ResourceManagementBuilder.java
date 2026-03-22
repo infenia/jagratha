@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.service.orchestrator;
 
+import com.infenia.yukta.service.ExecutionRegistry;
 import com.infenia.yukta.service.TaskTrackerService;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -75,6 +76,10 @@ public class ResourceManagementBuilder {
   @Nullable private String sessionId;
 
   @Nullable private String executionId;
+
+  @Nullable private Mono<Void> cancelSignal;
+
+  @Nullable private ExecutionRegistry executionRegistry;
 
   /**
    * Creates a new ResourceManagementBuilder instance.
@@ -146,6 +151,28 @@ public class ResourceManagementBuilder {
   }
 
   /**
+   * Sets the cancel signal for this execution.
+   *
+   * @param signal the Mono<Void> that completes when cancellation is triggered
+   * @return this builder for fluent chaining
+   */
+  public ResourceManagementBuilder withCancelSignal(final Mono<Void> signal) {
+    this.cancelSignal = signal;
+    return this;
+  }
+
+  /**
+   * Sets the execution registry for cleanup on cancellation.
+   *
+   * @param registry the execution registry
+   * @return this builder for fluent chaining
+   */
+  public ResourceManagementBuilder withExecutionRegistry(final ExecutionRegistry registry) {
+    this.executionRegistry = registry;
+    return this;
+  }
+
+  /**
    * Builds the resource-managed Mono execution.
    *
    * <p>The resulting Mono uses Mono.using() to manage the lifecycle of disposables. On
@@ -159,9 +186,9 @@ public class ResourceManagementBuilder {
   }
 
   /**
-   * Executes the workflow with the configured timeout.
+   * Executes the workflow with the configured timeout and cancellation support.
    *
-   * @return a Mono<Void> that manages the execution with timeout
+   * @return a Mono<Void> that manages the execution with timeout and cancellation
    */
   private Mono<Void> executeWithTimeout() {
     // Retrieve the execution timeout from the session config store
@@ -176,7 +203,14 @@ public class ResourceManagementBuilder {
           final Mono<Void> terminalMono = buildTerminalMono();
 
           // Apply timeout to the terminal execution
-          final Mono<Void> timedMono = terminalMono.timeout(Duration.ofSeconds(timeout), scheduler);
+          final Mono<Void> timedMonoWithTimeout =
+              terminalMono.timeout(Duration.ofSeconds(timeout), scheduler);
+
+          // Apply cancel signal if configured (takeUntilOther cancels when cancelSignal completes)
+          final Mono<Void> timedMono =
+              (cancelSignal != null)
+                  ? timedMonoWithTimeout.takeUntilOther(cancelSignal)
+                  : timedMonoWithTimeout;
 
           // Run connectors on subscription and manage resources
           return Mono.using(
@@ -184,6 +218,7 @@ public class ResourceManagementBuilder {
                   unused -> timedMono.doOnSubscribe(s -> runConnectors()),
                   this::cleanup)
               .doOnSuccess(v -> emitStatus(STATUS_SUCCESS))
+              .doOnCancel(() -> emitCancellation())
               .onErrorResume(
                   error -> {
                     emitStatus(STATUS_ERROR);
@@ -233,8 +268,19 @@ public class ResourceManagementBuilder {
     }
   }
 
+  /** Emits a cancellation event and updates workflow status to CANCELLED. */
+  private void emitCancellation() {
+    if (executionId != null) {
+      tracker.emitWorkflowStatusEvent(executionId, "CANCELLED");
+      // Clean up execution state in registry
+      if (executionRegistry != null) {
+        executionRegistry.unregister(executionId);
+      }
+    }
+  }
+
   /**
-   * Cleans up all disposables.
+   * Cleans up all disposables and execution registry state.
    *
    * @param resource the disposables resource to clean up
    */
@@ -246,6 +292,10 @@ public class ResourceManagementBuilder {
       } catch (final Exception e) {
         log.error("Error disposing resource", e);
       }
+    }
+    // Clean up execution registry on completion
+    if (executionRegistry != null && executionId != null) {
+      executionRegistry.unregister(executionId);
     }
   }
 }

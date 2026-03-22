@@ -16,6 +16,7 @@
 package com.infenia.yukta.controller;
 
 import com.infenia.yukta.model.api.ApiResponse;
+import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.ControlBusService;
@@ -24,8 +25,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,6 +50,7 @@ import reactor.core.publisher.Mono;
 @Tag(name = "Control Bus API", description = "Endpoints for system management and monitoring")
 public class ControlBusController {
   private final ControlBusService controlBusService;
+  private final ControlBusGateway controlBusGateway;
 
   /**
    * Get all active nodes that have emitted heartbeats.
@@ -109,5 +114,78 @@ public class ControlBusController {
     return controlBusService
         .getControlStream()
         .map(msg -> ServerSentEvent.<Message<?>>builder().data(msg).build());
+  }
+
+  /**
+   * Cancel a workflow execution.
+   *
+   * @param executionId the execution ID to cancel
+   * @return a Mono of the response indicating success/failure
+   */
+  @DeleteMapping("/executions/{executionId}")
+  @Operation(
+      summary = "Cancel workflow execution",
+      description = "Cancels a running workflow execution")
+  public Mono<ResponseEntity<ApiResponse<Boolean>>> cancelExecution(
+      @PathVariable final String executionId) {
+    return controlBusService
+        .cancelExecution(executionId)
+        .map(
+            cancelled ->
+                cancelled
+                    ? ResponseEntity.ok(ApiResponse.success(200, "Execution cancelled", true))
+                    : ResponseEntity.notFound().build());
+  }
+
+  /**
+   * Restart a workflow execution from the beginning.
+   *
+   * @param executionId the execution ID to restart
+   * @return a Mono of the response containing the new execution ID
+   */
+  @PostMapping("/executions/{executionId}/restart")
+  @Operation(
+      summary = "Restart workflow execution",
+      description = "Restarts a workflow execution from the beginning")
+  public Mono<ResponseEntity<ApiResponse<String>>> restartExecution(
+      @PathVariable final String executionId) {
+    return controlBusGateway
+        .restartExecution(executionId)
+        .map(
+            newExecutionId ->
+                ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success(201, "Execution restarted", newExecutionId)))
+        .onErrorResume(
+            e ->
+                Mono.just(
+                    ResponseEntity.badRequest()
+                        .body(ApiResponse.success(400, e.getMessage(), (String) null))));
+  }
+
+  /**
+   * Restart a workflow execution from a specific node.
+   *
+   * @param executionId the execution ID to restart
+   * @param fromNodeId the node ID to resume from
+   * @return a Mono of the response containing the new execution ID
+   */
+  @PostMapping("/executions/{executionId}/restart/{fromNodeId}")
+  @Operation(
+      summary = "Restart workflow from node",
+      description = "Restarts a workflow execution from a specific checkpoint node")
+  public Mono<ResponseEntity<ApiResponse<String>>> restartFromNode(
+      @PathVariable final String executionId, @PathVariable final String fromNodeId) {
+    return controlBusGateway
+        .restartFromNode(executionId, fromNodeId)
+        .map(
+            newExecutionId ->
+                ResponseEntity.status(HttpStatus.CREATED)
+                    .body(
+                        ApiResponse.success(201, "Execution restarted from node", newExecutionId)))
+        .onErrorResume(
+            e ->
+                Mono.just(
+                    ResponseEntity.badRequest()
+                        .body(ApiResponse.success(400, e.getMessage(), (String) null))));
   }
 }

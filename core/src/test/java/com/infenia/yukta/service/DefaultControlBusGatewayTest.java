@@ -41,7 +41,7 @@ class DefaultControlBusGatewayTest {
   @BeforeEach
   void setUp() {
     controlBusService = mock(ControlBusService.class);
-    gateway = new DefaultControlBusGateway(controlBusService);
+    gateway = new DefaultControlBusGateway(controlBusService, null, null);
   }
 
   @Test

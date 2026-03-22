@@ -43,7 +43,7 @@ class ControlBusServiceTest {
   void setUp() {
     final List<ControlSignalHandler> handlers =
         List.of(new ControlHeartbeatHandler(), new ControlStatisticsHandler());
-    service = new ControlBusService(100, 50, 256, handlers);
+    service = new ControlBusService(100, 50, 256, handlers, null);
     service.init();
   }
 
@@ -102,7 +102,7 @@ class ControlBusServiceTest {
 
   @Test
   void testInitCustomBufferSize() {
-    ControlBusService customService = new ControlBusService(10, 10, 512, List.of());
+    ControlBusService customService = new ControlBusService(10, 10, 512, List.of(), null);
     customService.init();
     customService.shutdown();
   }
@@ -110,7 +110,7 @@ class ControlBusServiceTest {
   @Test
   void testInitZeroBufferSize() {
     // bufferSize=0: condition (bufferSize > 0 && bufferSize != 256) is false
-    ControlBusService zeroBufferService = new ControlBusService(10, 10, 0, List.of());
+    ControlBusService zeroBufferService = new ControlBusService(10, 10, 0, List.of(), null);
     zeroBufferService.init();
     zeroBufferService.shutdown();
   }
@@ -118,7 +118,8 @@ class ControlBusServiceTest {
   @Test
   void testInitNegativeBufferSize() {
     // bufferSize=-1: condition (bufferSize > 0 && bufferSize != 256) is false
-    ControlBusService negativeBufferService = new ControlBusService(10, 10, -1, List.of());
+    ControlBusService negativeBufferService =
+        new ControlBusService(10, 10, -1, List.of(), null);
     negativeBufferService.init();
     negativeBufferService.shutdown();
   }
@@ -132,7 +133,8 @@ class ControlBusServiceTest {
         .when(failingHandler)
         .handle(any(), any(), any());
 
-    ControlBusService errService = new ControlBusService(1, 1, 256, List.of(failingHandler));
+    ControlBusService errService =
+        new ControlBusService(1, 1, 256, List.of(failingHandler), null);
     errService.init();
 
     Message<String> msg = DefaultMessage.create(null, "payload").withSourceNodeId("node1");
@@ -146,7 +148,8 @@ class ControlBusServiceTest {
   @Test
   void testEmitError() throws Exception {
     // Force a failure in the sink
-    ControlBusService serviceWithFullSink = new ControlBusService(100, 50, 256, List.of());
+    ControlBusService serviceWithFullSink =
+        new ControlBusService(100, 50, 256, List.of(), null);
     // Directly close the sink to force emit fail
     java.lang.reflect.Field sinkField = ControlBusService.class.getDeclaredField("controlSink");
     sinkField.setAccessible(true);
@@ -164,7 +167,7 @@ class ControlBusServiceTest {
 
   @Test
   void testHandleControlBatchBranches() throws Exception {
-    ControlBusService testService = new ControlBusService(100, 50, 256, List.of());
+    ControlBusService testService = new ControlBusService(100, 50, 256, List.of(), null);
     java.lang.reflect.Method handleBatch =
         ControlBusService.class.getDeclaredMethod("handleControlBatch", List.class);
     handleBatch.setAccessible(true);
@@ -184,13 +187,13 @@ class ControlBusServiceTest {
 
   @Test
   void testGetActiveNodesEmpty() {
-    ControlBusService emptyService = new ControlBusService(100, 50, 256, List.of());
+    ControlBusService emptyService = new ControlBusService(100, 50, 256, List.of(), null);
     assertTrue(emptyService.getActiveNodes().isEmpty());
   }
 
   @Test
   void testGetHeartbeatAndStatsMissing() {
-    ControlBusService emptyService = new ControlBusService(100, 50, 256, List.of());
+    ControlBusService emptyService = new ControlBusService(100, 50, 256, List.of(), null);
     org.junit.jupiter.api.Assertions.assertNull(emptyService.getLastHeartbeat("n1"));
     org.junit.jupiter.api.Assertions.assertNull(emptyService.getLastStatistics("n1"));
   }

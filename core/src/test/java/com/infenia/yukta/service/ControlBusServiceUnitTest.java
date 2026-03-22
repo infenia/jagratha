@@ -42,7 +42,7 @@ class ControlBusServiceUnitTest {
   @Test
   void testEmitWhenSinkThrowsRuntimeException()
       throws NoSuchFieldException, IllegalAccessException {
-    final ControlBusService service = new ControlBusService(100, 50, 256, List.of());
+    final ControlBusService service = new ControlBusService(100, 50, 256, List.of(), null);
     service.init();
 
     // Mock the sink to throw RuntimeException on emitNext
@@ -69,7 +69,7 @@ class ControlBusServiceUnitTest {
   @Test
   void testEmitWhenSinkThrowsIllegalStateException()
       throws NoSuchFieldException, IllegalAccessException {
-    final ControlBusService service = new ControlBusService(100, 50, 256, List.of());
+    final ControlBusService service = new ControlBusService(100, 50, 256, List.of(), null);
     service.init();
 
     // Mock the sink to throw IllegalStateException on emitNext
@@ -100,7 +100,8 @@ class ControlBusServiceUnitTest {
     when(faultyHandler.canHandle(any())).thenReturn(true);
     doThrow(new RuntimeException("Handler error")).when(faultyHandler).handle(any(), any(), any());
 
-    final ControlBusService service = new ControlBusService(1, 50, 256, List.of(faultyHandler));
+    final ControlBusService service =
+        new ControlBusService(1, 50, 256, List.of(faultyHandler), null);
     service.init();
 
     final Message<?> msg =
@@ -130,7 +131,7 @@ class ControlBusServiceUnitTest {
     // When bufferSize is exactly 256, the condition in init():
     // if (bufferSize > 0 && bufferSize != 256) is FALSE
     // So the sink is NOT reinitialized - it uses the default SMALL_BUFFER_SIZE sink
-    final ControlBusService service = new ControlBusService(100, 50, 256, List.of());
+    final ControlBusService service = new ControlBusService(100, 50, 256, List.of(), null);
     service.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
