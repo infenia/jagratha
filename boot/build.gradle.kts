@@ -75,7 +75,7 @@ graalvmNative {
             buildArgs.add("-H:+StripDebugInfo")        // Remove debug information
             buildArgs.add("--gc=G1")                    // Use G1 garbage collector
             buildArgs.add("-R:MaxHeapSize=512m")        // Set runtime max heap size
-            buildArgs.add("-J-Xmx4g")                  // JVM max heap (build time)
+            buildArgs.add("-J-Xmx8g")                  // JVM max heap (build time)
 
             // Enable AOT compilation for native image
             buildArgs.add("-Dspring.aot.enabled=true")

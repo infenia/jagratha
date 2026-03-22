@@ -1,5 +1,7 @@
 spring:
-  profiles: prod
+  config:
+    activate:
+      on-profile: prod
   jte:
     developmentMode: false              # Precompiled JTE templates for native
     usePrecompiledTemplates: true       # Critical: use precompiled classes
