@@ -13,7 +13,10 @@
 # limitations under the License.
 
 # Stage 1: Build native image with GraalVM
-FROM ghcr.io/graalvm/native-image:25-muslib AS builder
+FROM ghcr.io/graalvm/native-image:latest AS builder
+
+# Install xargs, findutils, and Java 21 for build-logic toolchain requirements
+RUN microdnf install -y util-linux findutils java-21-openjdk-devel && microdnf clean all
 
 WORKDIR /build
 COPY . .
@@ -21,10 +24,10 @@ COPY . .
 # Build native image with aggressive optimizations
 RUN ./gradlew nativeCompile -x test --no-daemon
 
-# Stage 2: Compress executable with UPX (optional but recommended)
-FROM ubuntu:24.04 AS compressor
+# Stage 2: Copy binary (UPX compression attempted but not critical for image size)
+FROM alpine:latest AS compressor
 
-RUN apt-get update && apt-get install -y upx && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache upx || echo "UPX not available, skipping compression"
 
 COPY --from=builder /build/boot/build/native/nativeCompile/yukta /tmp/yukta
 
