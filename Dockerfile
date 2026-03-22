@@ -47,8 +47,4 @@ EXPOSE 8080
 ENV HOME=/home/nonroot \
     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# Health check (distroless has no curl, use exec probe instead)
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD ["/app/yukta", "--help"]
-
 ENTRYPOINT ["/app/yukta"]
