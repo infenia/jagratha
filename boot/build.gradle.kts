@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.actuator)
 
+    // Dev-only dependencies (automatically excluded from native image but made explicit for clarity)
     developmentOnly(libs.spring.boot.devtools)
     developmentOnly(libs.spring.boot.docker.compose)
 
