@@ -69,8 +69,16 @@ graalvmNative {
             mainClass.set("com.infenia.yukta.YuktaApplication")
             buildArgs.add("--no-fallback")
 
-            // 🔥 Force prod profile inside native image
+            // Aggressive size-reduction flags
+            buildArgs.add("-H:+RemoveUnusedSymbols")  // Strip unused symbols
+            buildArgs.add("-H:+StripDebugInfo")        // Remove debug information
+            buildArgs.add("-H:+UseG1GC")               // Use G1 garbage collector
+            buildArgs.add("-H:GCHeapSize=512m")        // Set heap size for GC
+            buildArgs.add("-J-Xmx4g")                  // JVM max heap (build time)
+
+            // Force prod profile and enable AOT
             buildArgs.add("-Dspring.profiles.active=prod")
+            buildArgs.add("-Dspring.aot.enabled=true")
         }
     }
 }
