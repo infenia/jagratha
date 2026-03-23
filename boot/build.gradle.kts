@@ -70,14 +70,13 @@ graalvmNative {
             mainClass.set("com.infenia.yukta.YuktaApplication")
             buildArgs.add("--no-fallback")
 
-            // Aggressive size-reduction flags
-            buildArgs.add("-H:+RemoveUnusedSymbols")  // Strip unused symbols
-            buildArgs.add("-H:+StripDebugInfo")        // Remove debug information
-            buildArgs.add("--gc=G1")                    // Use G1 garbage collector
-            buildArgs.add("-R:MaxHeapSize=512m")        // Set runtime max heap size
-            buildArgs.add("-J-Xmx8g")                  // JVM max heap (build time)
+            // Size-reduction flags (compatible with GraalVM 25)
+            buildArgs.add("-H:+RemoveUnusedSymbols")           // Remove unused symbols
+            buildArgs.add("-H:+StripDebugInfo")                // Remove debug information
+            buildArgs.add("-H:-AddAllCharsets")                // Remove unnecessary charsets
 
-            // Enable AOT compilation for native image
+            // Force prod profile + AOT compilation
+            buildArgs.add("-Dspring.profiles.active=prod")
             buildArgs.add("-Dspring.aot.enabled=true")
         }
     }
