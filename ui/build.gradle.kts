@@ -153,10 +153,8 @@ tasks.named<ProcessResources>("processResources") {
     from(layout.buildDirectory.dir("esbuild")) {
         into("static/js")
     }
-    // Include JTE binary content files (.bin) in the JAR so precompiled templates can load them
-    from(layout.buildDirectory.dir("generated-resources/jte")) {
-        into(".")
-    }
+    // JTE plugin automatically includes binary content files (.bin) in generated-resources/jte
+    // which are picked up by processResources. No need to explicitly copy them.
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {
