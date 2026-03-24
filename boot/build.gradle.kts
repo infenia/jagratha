@@ -70,6 +70,9 @@ graalvmNative {
             mainClass.set("com.infenia.yukta.YuktaApplication")
             buildArgs.add("--no-fallback")
 
+            // Increase heap for native image compilation (JTE classes need more memory)
+            buildArgs.add("-J-Xmx16g")
+
             // Size-reduction flags (compatible with GraalVM 25)
             buildArgs.add("-H:+RemoveUnusedSymbols")           // Remove unused symbols
             buildArgs.add("-H:+StripDebugInfo")                // Remove debug information

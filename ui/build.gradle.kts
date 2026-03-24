@@ -98,6 +98,17 @@ configure<JteExtension> {
 // Add generated JTE source directory to Java compilation
 sourceSets.main.get().java.srcDir(layout.buildDirectory.dir("jte-classes"))
 
+// Copy JTE precompiled classes to classes output dir so they're included in JAR
+tasks.register<Copy>("copyJteClasses") {
+    dependsOn(tasks.named("precompileJte"), tasks.named("generateJte"))
+    from(layout.buildDirectory.dir("jte-classes"))
+    into(layout.buildDirectory.dir("classes/java/main"))
+}
+
+tasks.named("classes") {
+    dependsOn(tasks.named("copyJteClasses"))
+}
+
 // Fix dependency: Checkstyle should depend on JTE generation
 tasks.named("checkstyleMain") {
     dependsOn(tasks.named("generateJte"), tasks.named("precompileJte"))
