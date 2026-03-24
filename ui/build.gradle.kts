@@ -87,7 +87,10 @@ configure<JteExtension> {
     if (isProdBuild) {
         println("JTE → PRODUCTION mode (precompiled)")
         precompile()
-        binaryStaticContent.set(true)
+        // Disable binary static content for native images: BinaryContent.load() uses
+        // ClassLoader.getResourceAsStream() which doesn't work reliably in GraalVM native images.
+        // Text-based content works fine and adds minimal overhead.
+        binaryStaticContent.set(false)
     } else {
         println("JTE → DEVELOPMENT mode (hot reload)")
         generate()
@@ -143,12 +146,16 @@ val bundleJs = tasks.register<PnpmTask>("bundleJs") {
 }
 
 tasks.named<ProcessResources>("processResources") {
-    dependsOn(tailwind, bundleJs)
+    dependsOn(tailwind, bundleJs, tasks.named("precompileJte"), tasks.named("generateJte"))
     from(layout.buildDirectory.dir("tailwind")) {
         into("static/css")
     }
     from(layout.buildDirectory.dir("esbuild")) {
         into("static/js")
+    }
+    // Include JTE binary content files (.bin) in the JAR so precompiled templates can load them
+    from(layout.buildDirectory.dir("generated-resources/jte")) {
+        into(".")
     }
 }
 
