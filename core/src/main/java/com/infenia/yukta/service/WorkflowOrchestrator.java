@@ -28,9 +28,12 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlError;
 import com.infenia.yukta.plugin.store.MessageStore;
+import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.control.ExecutionControl;
+import com.infenia.yukta.service.control.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
@@ -74,7 +77,8 @@ import reactor.util.context.Context;
   "PMD.CouplingBetweenObjects",
   "PMD.LawOfDemeter",
   "PMD.TooManyMethods",
-  "PMD.LongVariable"
+  "PMD.LongVariable",
+  "PMD.ExcessiveParameterList"
 })
 public class WorkflowOrchestrator {
 
@@ -132,6 +136,8 @@ public class WorkflowOrchestrator {
   private final ControlBusGateway controlBusGateway;
   private final Duration heartbeatInterval;
   private final Scheduler virtualThreadScheduler;
+  private final ExecutionControlRegistry executionControlRegistry;
+  private final NodeCheckpointStore checkpointStore;
 
   /**
    * Constructs a new WorkflowOrchestrator.
@@ -145,6 +151,8 @@ public class WorkflowOrchestrator {
    * @param controlBusGateway the control bus gateway
    * @param heartbeatInterval the heartbeat interval duration
    * @param virtualThreadScheduler the scheduler for virtual threads
+   * @param executionControlRegistry the registry for live executions
+   * @param checkpointStore the node checkpoint store for restart support
    */
   @Autowired
   @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -157,7 +165,9 @@ public class WorkflowOrchestrator {
       @Nullable final MessageStore messageStore,
       final ControlBusGateway controlBusGateway,
       final Duration heartbeatInterval,
-      @Qualifier("virtualThreadScheduler") final Scheduler virtualThreadScheduler) {
+      @Qualifier("virtualThreadScheduler") final Scheduler virtualThreadScheduler,
+      final ExecutionControlRegistry executionControlRegistry,
+      final NodeCheckpointStore checkpointStore) {
     this.registry = registry;
     this.tracker = tracker;
     this.validator = validator;
@@ -167,6 +177,8 @@ public class WorkflowOrchestrator {
     this.controlBusGateway = controlBusGateway;
     this.heartbeatInterval = heartbeatInterval;
     this.virtualThreadScheduler = virtualThreadScheduler;
+    this.executionControlRegistry = executionControlRegistry;
+    this.checkpointStore = checkpointStore;
   }
 
   /**
@@ -322,9 +334,18 @@ public class WorkflowOrchestrator {
         .addKeyValue(LOG_KEY_NODE_COUNT, prepared.topologicalOrder().size())
         .log("Starting workflow execution");
 
-    return prepared
-        .template()
-        .instantiate(executionId, payload)
+    final Sinks.One<Void> stopSink = Sinks.one();
+    executionControlRegistry.register(
+        new ExecutionControl(sessionId, workflowId, executionId, prepared, payload, stopSink));
+
+    final Mono<Void> execution = prepared.template().instantiate(executionId, payload);
+
+    return Mono.firstWithSignal(execution, stopSink.asMono())
+        .doFinally(
+            signal -> {
+              executionControlRegistry.unregister(executionId);
+              checkpointStore.clear(executionId);
+            })
         .doOnSuccess(
             v ->
                 log.atInfo()
@@ -348,16 +369,16 @@ public class WorkflowOrchestrator {
   }
 
   /**
-   * Compiles a workflow template for high-performance execution.
+   * Builds an assembler array for the given workflow in topological order.
    *
    * @param def the workflow definition
    * @param parentsList map of nodeId to parent nodes
    * @param pluginCache map of nodeId to initialized plugin instances
    * @param topologicalOrder list of nodes in topological order
-   * @return the compiled workflow template
+   * @return the node assembler array, indexed by topological position
    */
   @SuppressWarnings("PMD.UseConcurrentHashMap")
-  private WorkflowTemplate compileTemplate(
+  /* package */ NodeAssembler[] compileAssemblers(
       final WorkflowDefinition def,
       final Map<String, List<Node>> parentsList,
       final Map<String, WorkflowPlugin> pluginCache,
@@ -374,6 +395,27 @@ public class WorkflowOrchestrator {
       final Node node = topologicalOrder.get(i);
       assemblers[i] = createNodeAssembler(def, node, parentsList, pluginCache, nodeToIndex);
     }
+    return assemblers;
+  }
+
+  /**
+   * Compiles a workflow template for high-performance execution.
+   *
+   * @param def the workflow definition
+   * @param parentsList map of nodeId to parent nodes
+   * @param pluginCache map of nodeId to initialized plugin instances
+   * @param topologicalOrder list of nodes in topological order
+   * @return the compiled workflow template
+   */
+  private WorkflowTemplate compileTemplate(
+      final WorkflowDefinition def,
+      final Map<String, List<Node>> parentsList,
+      final Map<String, WorkflowPlugin> pluginCache,
+      final List<Node> topologicalOrder) {
+
+    final int nodeCount = topologicalOrder.size();
+    final NodeAssembler[] assemblers =
+        compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
 
     final List<String> nodeIds = topologicalOrder.stream().map(Node::nodeId).toList();
 
@@ -726,6 +768,97 @@ public class WorkflowOrchestrator {
   private record ParentEdgeInfo(int parentIndex, String sourceNodeId, String sourcePort) {}
 
   /**
+   * Executes a workflow starting from a specific node, replaying checkpoint messages from its
+   * direct parents.
+   *
+   * <p>Nodes that appear before {@code restartNodeId} in topological order are replaced with bypass
+   * assemblers. Direct parents of the restart node emit their stored checkpoint message; all other
+   * predecessors emit an empty stream. The restart node and its successors run normally.
+   *
+   * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @param previousExecutionId the execution whose checkpoints to replay
+   * @param newExecutionId the new execution identifier
+   * @param prepared the prepared workflow
+   * @param restartNodeId the node from which to resume execution
+   * @param parentCheckpoints map of parentNodeId to the checkpoint message to replay
+   * @return a Mono that completes when the restarted execution finishes
+   */
+  @SuppressWarnings({"PMD.UseConcurrentHashMap", "PMD.UseObjectForClearerAPI"})
+  public Mono<Void> restartFromNode(
+      final String sessionId,
+      final String workflowId,
+      final String previousExecutionId,
+      final String newExecutionId,
+      final PreparedWorkflow prepared,
+      final String restartNodeId,
+      final Map<String, Message<?>> parentCheckpoints) {
+
+    final List<Node> topologicalOrder = prepared.topologicalOrder();
+    final int nodeCount = topologicalOrder.size();
+    final Map<String, Integer> nodeToIndex = new HashMap<>(nodeCount);
+    for (int i = 0; i < nodeCount; i++) {
+      nodeToIndex.put(topologicalOrder.get(i).nodeId(), i);
+    }
+
+    final int restartIndex = nodeToIndex.getOrDefault(restartNodeId, 0);
+    final NodeAssembler[] assemblers =
+        compileAssemblers(
+            prepared.definition(),
+            prepared.parentsList(),
+            prepared.pluginCache(),
+            topologicalOrder);
+
+    // Replace pre-restart assemblers with bypass or checkpoint-replay variants
+    for (int i = 0; i < restartIndex; i++) {
+      final Node node = topologicalOrder.get(i);
+      final int idx = i;
+      final Message<?> checkpoint = parentCheckpoints.get(node.nodeId());
+      if (checkpoint != null) {
+        assemblers[idx] =
+            (execId, sessId, wfId, pld, strms, terms, disps, conns) ->
+                strms[idx] = Flux.just(checkpoint);
+      } else {
+        assemblers[idx] =
+            (execId, sessId, wfId, pld, strms, terms, disps, conns) -> strms[idx] = Flux.empty();
+      }
+    }
+
+    final List<String> nodeIds = topologicalOrder.stream().map(Node::nodeId).toList();
+
+    final Sinks.One<Void> stopSink = Sinks.one();
+    executionControlRegistry.register(
+        new ExecutionControl(sessionId, workflowId, newExecutionId, prepared, Map.of(), stopSink));
+
+    return tracker
+        .startWorkflow(newExecutionId, sessionId, workflowId, nodeIds)
+        .then(
+            executeTemplate(
+                newExecutionId, Map.of(), nodeCount, assemblers, sessionId, workflowId, nodeIds))
+        .as(mono -> Mono.firstWithSignal(mono, stopSink.asMono()))
+        .doFinally(
+            signal -> {
+              executionControlRegistry.unregister(newExecutionId);
+              checkpointStore.clear(newExecutionId);
+            })
+        .doOnSuccess(
+            v ->
+                log.atInfo()
+                    .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+                    .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+                    .addKeyValue(LOG_KEY_EXECUTION_ID, newExecutionId)
+                    .log("RestartFromNode execution completed"))
+        .doOnError(
+            e ->
+                log.atError()
+                    .setCause(e)
+                    .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+                    .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+                    .addKeyValue(LOG_KEY_EXECUTION_ID, newExecutionId)
+                    .log("RestartFromNode execution failed"));
+  }
+
+  /**
    * Gets the buffer size for a node.
    *
    * @param node the node
@@ -813,6 +946,10 @@ public class WorkflowOrchestrator {
     if (messageStore != null) {
       logStream = logStream.flatMap(msg -> messageStore.store(msg).thenReturn(msg));
     }
+
+    // 3. Checkpoint: Save the last output of each node for restart-from-node support
+    logStream =
+        logStream.flatMap(msg -> checkpointStore.save(executionId, nodeId, msg).thenReturn(msg));
 
     final Flux<Message<?>> processedStream;
     if (log.isTraceEnabled()) {

@@ -41,11 +41,13 @@ import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.control.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
 import com.infenia.yukta.service.orchestrator.StreamBuilder;
 import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -101,7 +103,9 @@ class WorkflowOrchestratorTest {
             null,
             controlBusGateway,
             java.time.Duration.ofSeconds(10),
-            Schedulers.parallel());
+            Schedulers.parallel(),
+            new ExecutionControlRegistry(),
+            new InMemoryNodeCheckpointStore());
   }
 
   @Test
@@ -445,7 +449,9 @@ class WorkflowOrchestratorTest {
             mockStore,
             controlBusGateway,
             java.time.Duration.ofSeconds(10),
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            new ExecutionControlRegistry(),
+            new InMemoryNodeCheckpointStore());
 
     final Node triggerNode = new Node("t1", "trigger", Map.of());
     final Node terminalNode = new Node("term1", "terminal", Map.of());
@@ -838,7 +844,9 @@ class WorkflowOrchestratorTest {
             null,
             controlBusGateway,
             java.time.Duration.ofMillis(10),
-            Schedulers.parallel());
+            Schedulers.parallel(),
+            new ExecutionControlRegistry(),
+            new InMemoryNodeCheckpointStore());
 
     StepVerifier.create(
             fastOrchestrator

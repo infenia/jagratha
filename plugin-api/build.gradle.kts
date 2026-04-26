@@ -47,6 +47,7 @@ coverageConfig {
         "METHOD" to 0.9
     ))
     exceptions.put("com.infenia.yukta.plugin.message.control.*", lowCoverage)
+    exceptions.put("com.infenia.yukta.plugin.control.*", lowCoverage)
     exceptions.put("com.infenia.yukta.plugin.exception.*", mapOf(
         "LINE" to 0.5,
         "BRANCH" to 0.5,

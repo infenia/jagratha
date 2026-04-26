@@ -32,7 +32,9 @@ import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.control.ExecutionControlRegistry;
 import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -76,7 +78,9 @@ class GuardIntegrationTest {
             null,
             controlBusGateway,
             java.time.Duration.ofSeconds(10),
-            Schedulers.parallel());
+            Schedulers.parallel(),
+            new ExecutionControlRegistry(),
+            new InMemoryNodeCheckpointStore());
 
     triggerPlugin = mock(TriggerPlugin.class);
     when(triggerPlugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));

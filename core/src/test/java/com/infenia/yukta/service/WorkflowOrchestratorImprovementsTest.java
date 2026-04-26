@@ -31,7 +31,9 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.control.ExecutionControlRegistry;
 import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +75,9 @@ class WorkflowOrchestratorImprovementsTest {
             null,
             controlBusGateway,
             java.time.Duration.ofSeconds(10),
-            Schedulers.parallel());
+            Schedulers.parallel(),
+            new ExecutionControlRegistry(),
+            new InMemoryNodeCheckpointStore());
   }
 
   @Test
@@ -235,7 +239,9 @@ class WorkflowOrchestratorImprovementsTest {
                       null,
                       controlBusGateway,
                       java.time.Duration.ofSeconds(10),
-                      Schedulers.parallel());
+                      Schedulers.parallel(),
+                      new ExecutionControlRegistry(),
+                      new InMemoryNodeCheckpointStore());
               return vOrchestrator
                   .prepareWorkflow(def)
                   .flatMap(
