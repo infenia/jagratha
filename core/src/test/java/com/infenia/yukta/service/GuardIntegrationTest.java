@@ -36,6 +36,7 @@ import com.infenia.yukta.service.control.factory.ExecutionControlFactory;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
 import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
+import com.infenia.yukta.service.orchestrator.preparator.WorkflowPreparator;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
@@ -74,20 +75,18 @@ class GuardIntegrationTest {
     when(configService.getExecutionTimeout(anyString())).thenReturn(Mono.just(3600L));
     orchestrator =
         new WorkflowOrchestrator(
-            registry,
             tracker,
-            validator,
-            new TopologicalSortService(),
-            configService,
-            null,
-            controlBusGateway,
-            Schedulers.parallel(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
-            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
-            new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofSeconds(10),
-                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()));
+            new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(),
+                java.time.Duration.ofSeconds(10), configService,
+                new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()),
+            new WorkflowPreparator(registry, validator, new TopologicalSortService(),
+                controlBusGateway, new WorkflowCompiler(tracker, controlBusGateway,
+                    Schedulers.parallel(), java.time.Duration.ofSeconds(10), configService,
+                    new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
+                    List.of())));
 
     triggerPlugin = mock(TriggerPlugin.class);
     when(triggerPlugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));

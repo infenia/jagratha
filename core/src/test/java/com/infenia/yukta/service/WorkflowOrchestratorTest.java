@@ -49,6 +49,7 @@ import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
 import com.infenia.yukta.service.orchestrator.StreamBuilder;
 import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
+import com.infenia.yukta.service.orchestrator.preparator.WorkflowPreparator;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
@@ -99,20 +100,15 @@ class WorkflowOrchestratorTest {
             });
     orchestrator =
         new WorkflowOrchestrator(
-            registry,
             tracker,
-            validator,
-            new TopologicalSortService(),
-            configService,
-            null,
-            controlBusGateway,
-            Schedulers.parallel(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
-            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
             new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofSeconds(10),
-                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()));
+                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()),
+            new WorkflowPreparator(registry, validator, new TopologicalSortService(), controlBusGateway,
+                new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofSeconds(10),
+                    configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of())));
   }
 
   @Test
@@ -448,20 +444,15 @@ class WorkflowOrchestratorTest {
 
     final WorkflowOrchestrator tappedOrchestrator =
         new WorkflowOrchestrator(
-            registry,
             tracker,
-            validator,
-            new TopologicalSortService(),
-            configService,
-            mockStore,
-            controlBusGateway,
-            Schedulers.immediate(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
-            new StreamTopologyDecorator(mockStore, tracker, new InMemoryNodeCheckpointStore()),
             new WorkflowCompiler(tracker, controlBusGateway, Schedulers.immediate(), java.time.Duration.ofSeconds(10),
-                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()));
+                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()),
+            new WorkflowPreparator(registry, validator, new TopologicalSortService(), controlBusGateway,
+                new WorkflowCompiler(tracker, controlBusGateway, Schedulers.immediate(), java.time.Duration.ofSeconds(10),
+                    configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of())));
 
     final Node triggerNode = new Node("t1", "trigger", Map.of());
     final Node terminalNode = new Node("term1", "terminal", Map.of());
@@ -846,20 +837,15 @@ class WorkflowOrchestratorTest {
 
     WorkflowOrchestrator fastOrchestrator =
         new WorkflowOrchestrator(
-            registry,
             tracker,
-            validator,
-            new TopologicalSortService(),
-            configService,
-            null,
-            controlBusGateway,
-            Schedulers.parallel(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
-            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
             new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofMillis(10),
-                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()));
+                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()),
+            new WorkflowPreparator(registry, validator, new TopologicalSortService(), controlBusGateway,
+                new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofMillis(10),
+                    configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of())));
 
     StepVerifier.create(
             fastOrchestrator

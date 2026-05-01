@@ -1,0 +1,191 @@
+/*
+ * Copyright 2026 Infenia Private Limited
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.infenia.yukta.service.orchestrator.preparator;
+
+import com.infenia.yukta.model.workflow.PreparedWorkflow;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
+import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.gateway.ControlBusGateway;
+import com.infenia.yukta.plugin.message.DefaultMessage;
+import com.infenia.yukta.service.WorkflowRegistry;
+import com.infenia.yukta.service.WorkflowValidator;
+import com.infenia.yukta.service.TopologicalSortService;
+import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class WorkflowPreparator {
+
+  private static final String LOG_KEY_NUM_NODES = "numNodes";
+  private static final String LOG_KEY_NODE_IDS = "nodeIds";
+  private static final String LOG_KEY_NODE_ID = "nodeId";
+  private static final String LOG_KEY_PLUGIN_TYPE = "pluginType";
+  private static final String LOG_KEY_SOURCE = "source";
+  private static final String LOG_KEY_TARGET = "target";
+  private static final String LOG_KEY_PORT = "port";
+  private static final String LOG_KEY_PLUGIN_COUNT = "pluginCount";
+
+  private final WorkflowRegistry registry;
+  private final WorkflowValidator validator;
+  private final TopologicalSortService topologicalSortService;
+  private final ControlBusGateway controlBusGateway;
+  private final WorkflowCompiler compiler;
+
+  /**
+   * Prepares a workflow for execution.
+   *
+   * @param def the workflow definition
+   * @return a Mono containing the prepared workflow
+   */
+  public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
+    final int numNodes = def.nodes().size();
+    log.atDebug()
+        .addKeyValue(LOG_KEY_NUM_NODES, numNodes)
+        .addKeyValue(LOG_KEY_NODE_IDS, def.nodes().stream().map(Node::nodeId).toList())
+        .log("Preparing workflow with {} nodes", numNodes);
+
+    final Map<String, List<Node>> adjacencyList = new ConcurrentHashMap<>(numNodes);
+    final Map<String, List<Node>> parentsList = new ConcurrentHashMap<>(numNodes);
+    final Map<String, WorkflowPlugin> pluginCache = new ConcurrentHashMap<>(numNodes);
+    final Map<String, Node> nodeMap = new ConcurrentHashMap<>(numNodes);
+
+    def.nodes()
+        .forEach(
+            node -> {
+              nodeMap.put(node.nodeId(), node);
+              adjacencyList.put(node.nodeId(), new ArrayList<>());
+              parentsList.put(node.nodeId(), new ArrayList<>());
+              final WorkflowPlugin plugin = registry.get(node.type());
+              if (plugin != null) {
+                pluginCache.put(node.nodeId(), plugin);
+                log.atTrace()
+                    .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                    .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+                    .log("Cached plugin for node");
+              } else {
+                log.atWarn()
+                    .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                    .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+                    .log("Plugin not found for node type");
+              }
+            });
+
+    def.edges()
+        .forEach(
+            edge -> {
+              adjacencyList.get(edge.source()).add(nodeMap.get(edge.target()));
+              parentsList.get(edge.target()).add(nodeMap.get(edge.source()));
+              log.atTrace()
+                  .addKeyValue(LOG_KEY_SOURCE, edge.source())
+                  .addKeyValue(LOG_KEY_TARGET, edge.target())
+                  .addKeyValue(LOG_KEY_PORT, edge.sourcePort())
+                  .log("Added workflow edge");
+            });
+
+    return validator
+        .validate(def)
+        .doOnError(e -> log.atError().setCause(e).log("Workflow validation failed"))
+        .then(
+            Flux.fromIterable(def.nodes())
+                .flatMap(
+                    node -> {
+                      final WorkflowPlugin plugin = pluginCache.get(node.nodeId());
+                      if (plugin == null) {
+                        log.atError()
+                            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+                            .log("Plugin not found during initialization");
+                        return Mono.error(
+                            new IllegalArgumentException("Plugin not found: " + node.type()));
+                      }
+                      return plugin
+                          .initialize(node.config())
+                          .doOnSuccess(
+                              v -> {
+                                log.atDebug()
+                                    .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                                    .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+                                    .log("Plugin initialized successfully");
+                                controlBusGateway.registerPlugin(node.nodeId(), plugin);
+                              })
+                          .then(
+                              controlBusGateway.emit(
+                                  DefaultMessage.create(null, "Node Online")
+                                      .withSourceNodeId(node.nodeId())
+                                      .withControl(true)));
+                    })
+                .then())
+        .then(
+            Mono.fromCallable(
+                () -> {
+                  final List<Node> topologicalOrder =
+                      topologicalSortService.computeTopologicalOrder(
+                          def, adjacencyList, parentsList);
+                  return new PreparedWorkflow(
+                      def,
+                      adjacencyList,
+                      parentsList,
+                      pluginCache,
+                      topologicalOrder,
+                      compiler.compileTemplate(def, parentsList, pluginCache, topologicalOrder));
+                }))
+        .onErrorResume(
+            e -> {
+              log.atError()
+                  .setCause(e)
+                  .addKeyValue(LOG_KEY_PLUGIN_COUNT, pluginCache.size())
+                  .log("Workflow preparation failed, shutting down plugins");
+              return Flux.fromIterable(pluginCache.entrySet())
+                  .flatMap(
+                      entry -> {
+                        final String nodeId = entry.getKey();
+                        final WorkflowPlugin plugin = entry.getValue();
+
+                        log.atDebug()
+                            .addKeyValue(LOG_KEY_NODE_ID, nodeId)
+                            .log("Unregistering and shutting down plugin");
+                        controlBusGateway.unregisterPlugin(nodeId);
+
+                        final Node node = nodeMap.get(nodeId);
+                        final Mono<Void> shutdown = plugin.shutdown(node.config());
+
+                        return (shutdown != null ? shutdown : Mono.<Void>empty())
+                            .onErrorResume(
+                                ex -> {
+                                  log.atWarn()
+                                      .setCause(ex)
+                                      .addKeyValue(LOG_KEY_NODE_ID, nodeId)
+                                      .log("Error during plugin shutdown");
+                                  return Mono.empty();
+                                });
+                      })
+                  .then(Mono.error(e));
+            });
+  }
+}

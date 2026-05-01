@@ -35,6 +35,7 @@ import com.infenia.yukta.service.control.factory.ExecutionControlFactory;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
 import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
+import com.infenia.yukta.service.orchestrator.preparator.WorkflowPreparator;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
@@ -71,20 +72,15 @@ class WorkflowOrchestratorImprovementsTest {
     // Default orchestrator for simple tests
     orchestrator =
         new WorkflowOrchestrator(
-            registry,
             tracker,
-            validator,
-            new TopologicalSortService(),
-            configService,
-            null,
-            controlBusGateway,
-            Schedulers.parallel(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
-            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
             new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofSeconds(10),
-                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()));
+                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()),
+            new WorkflowPreparator(registry, validator, new TopologicalSortService(), controlBusGateway,
+                new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofSeconds(10),
+                    configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of())));
   }
 
   @Test
@@ -238,21 +234,15 @@ class WorkflowOrchestratorImprovementsTest {
             () -> {
               WorkflowOrchestrator vOrchestrator =
                   new WorkflowOrchestrator(
-                      registry,
                       tracker,
-                      validator,
-                      new TopologicalSortService(),
-                      configService,
-                      null,
-                      controlBusGateway,
-                      Schedulers.parallel(),
                       new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
                       new ExecutionControlFactory(),
                       new InMemoryNodeCheckpointStore(),
-                      new StreamTopologyDecorator(
-                          null, tracker, new InMemoryNodeCheckpointStore()),
                       new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofSeconds(10),
-                          configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()));
+                          configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()),
+                      new WorkflowPreparator(registry, validator, new TopologicalSortService(), controlBusGateway,
+                          new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofSeconds(10),
+                              configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of())));
               return vOrchestrator
                   .prepareWorkflow(def)
                   .flatMap(
