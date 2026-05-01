@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.service.control.store.ExecutionControlStore;
+import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.service.session.SessionConfigStoreFactory;
 import java.time.Duration;
@@ -48,6 +50,9 @@ class AppConfigurationTest {
               assertThat(context).hasBean("heartbeatInterval");
               assertThat(context.getBean("heartbeatInterval")).isEqualTo(Duration.ofSeconds(10));
               assertThat(context).hasSingleBean(SessionConfigStore.class);
+              assertThat(context).hasSingleBean(ExecutionControlStore.class);
+              assertThat(context.getBean(ExecutionControlStore.class))
+                  .isInstanceOf(InMemoryExecutionControlStore.class);
             });
   }
 
@@ -75,6 +80,19 @@ class AppConfigurationTest {
             context -> {
               assertThat(context).hasSingleBean(SessionConfigStore.class);
               assertThat(context.getBean(SessionConfigStore.class)).isSameAs(customStore);
+            });
+  }
+
+  @Test
+  void shouldNotOverrideExistingExecutionControlStore() {
+    ExecutionControlStore customStore = mock(ExecutionControlStore.class);
+    this.contextRunner
+        .withBean(ExecutionControlStore.class, () -> customStore)
+        .withBean(SessionConfigStoreFactory.class, () -> mock(SessionConfigStoreFactory.class))
+        .run(
+            context -> {
+              assertThat(context).hasSingleBean(ExecutionControlStore.class);
+              assertThat(context.getBean(ExecutionControlStore.class)).isSameAs(customStore);
             });
   }
 

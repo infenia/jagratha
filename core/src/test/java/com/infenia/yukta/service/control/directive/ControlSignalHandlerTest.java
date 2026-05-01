@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.control;
+package com.infenia.yukta.service.control.directive;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -23,6 +23,7 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
 import com.infenia.yukta.plugin.message.control.ControlStatistics;
+import com.infenia.yukta.service.control.ExecutionControl;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

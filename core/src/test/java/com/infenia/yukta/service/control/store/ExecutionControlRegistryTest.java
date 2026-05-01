@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.control;
+package com.infenia.yukta.service.control.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.infenia.yukta.service.control.ExecutionControl;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,25 @@ class ExecutionControlRegistryTest {
 
   @BeforeEach
   void setUp() {
-    registry = new ExecutionControlRegistry();
+    final ExecutionControlStore store = new InMemoryExecutionControlStore();
+    registry = new ExecutionControlRegistry(store);
+  }
+
+  private ExecutionControl createControl(
+      final String sessionId, final String workflowId, final String executionId) {
+    return new ExecutionControl(
+        sessionId,
+        workflowId,
+        executionId,
+        null,
+        Map.of(),
+        Sinks.one(),
+        Sinks.one(),
+        null,
+        Map.of(),
+        Map.of(),
+        Map.of(),
+        Map.of());
   }
 
   @Test
@@ -36,9 +55,7 @@ class ExecutionControlRegistryTest {
     final String executionId = "exec-1";
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
-    final Sinks.One<Void> stopSink = Sinks.one();
-    final ExecutionControl control =
-        new ExecutionControl(sessionId, workflowId, executionId, null, Map.of(), stopSink);
+    final ExecutionControl control = createControl(sessionId, workflowId, executionId);
 
     registry.register(control);
 
@@ -58,8 +75,7 @@ class ExecutionControlRegistryTest {
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
     final Sinks.One<Void> stopSink = Sinks.one();
-    final ExecutionControl control =
-        new ExecutionControl(sessionId, workflowId, executionId, null, Map.of(), stopSink);
+    final ExecutionControl control = createControl(sessionId, workflowId, executionId);
 
     registry.register(control);
 
@@ -79,8 +95,7 @@ class ExecutionControlRegistryTest {
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
     final Sinks.One<Void> stopSink = Sinks.one();
-    final ExecutionControl control =
-        new ExecutionControl(sessionId, workflowId, executionId, null, Map.of(), stopSink);
+    final ExecutionControl control = createControl(sessionId, workflowId, executionId);
 
     registry.register(control);
     registry.unregister(executionId);
@@ -93,10 +108,8 @@ class ExecutionControlRegistryTest {
   void testMultipleExecutions() {
     final Sinks.One<Void> sink1 = Sinks.one();
     final Sinks.One<Void> sink2 = Sinks.one();
-    final ExecutionControl control1 =
-        new ExecutionControl("session-1", "workflow-1", "exec-1", null, Map.of(), sink1);
-    final ExecutionControl control2 =
-        new ExecutionControl("session-1", "workflow-1", "exec-2", null, Map.of(), sink2);
+    final ExecutionControl control1 = createControl("session-1", "workflow-1", "exec-1");
+    final ExecutionControl control2 = createControl("session-1", "workflow-1", "exec-2");
 
     registry.register(control1);
     registry.register(control2);
@@ -109,10 +122,8 @@ class ExecutionControlRegistryTest {
   void testFindActiveByWorkflowMultipleSessions() {
     final Sinks.One<Void> sink1 = Sinks.one();
     final Sinks.One<Void> sink2 = Sinks.one();
-    final ExecutionControl control1 =
-        new ExecutionControl("session-1", "workflow-1", "exec-1", null, Map.of(), sink1);
-    final ExecutionControl control2 =
-        new ExecutionControl("session-2", "workflow-1", "exec-2", null, Map.of(), sink2);
+    final ExecutionControl control1 = createControl("session-1", "workflow-1", "exec-1");
+    final ExecutionControl control2 = createControl("session-2", "workflow-1", "exec-2");
 
     registry.register(control1);
     registry.register(control2);

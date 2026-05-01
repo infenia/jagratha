@@ -33,7 +33,8 @@ import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.control.ExecutionControl;
-import com.infenia.yukta.service.control.ExecutionControlRegistry;
+import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
+import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
@@ -55,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -334,13 +336,13 @@ public class WorkflowOrchestrator {
         .addKeyValue(LOG_KEY_NODE_COUNT, prepared.topologicalOrder().size())
         .log("Starting workflow execution");
 
-    final Sinks.One<Void> stopSink = Sinks.one();
-    executionControlRegistry.register(
-        new ExecutionControl(sessionId, workflowId, executionId, prepared, payload, stopSink));
+    final ExecutionControl control =
+        createExecutionControl(sessionId, workflowId, executionId, prepared, payload);
+    executionControlRegistry.register(control);
 
     final Mono<Void> execution = prepared.template().instantiate(executionId, payload);
 
-    return Mono.firstWithSignal(execution, stopSink.asMono())
+    return Mono.firstWithSignal(execution, control.safeStopSink().asMono())
         .doFinally(
             signal -> {
               executionControlRegistry.unregister(executionId);
@@ -826,16 +828,16 @@ public class WorkflowOrchestrator {
 
     final List<String> nodeIds = topologicalOrder.stream().map(Node::nodeId).toList();
 
-    final Sinks.One<Void> stopSink = Sinks.one();
-    executionControlRegistry.register(
-        new ExecutionControl(sessionId, workflowId, newExecutionId, prepared, Map.of(), stopSink));
+    final ExecutionControl control =
+        createExecutionControl(sessionId, workflowId, newExecutionId, prepared, Map.of());
+    executionControlRegistry.register(control);
 
     return tracker
         .startWorkflow(newExecutionId, sessionId, workflowId, nodeIds)
         .then(
             executeTemplate(
                 newExecutionId, Map.of(), nodeCount, assemblers, sessionId, workflowId, nodeIds))
-        .as(mono -> Mono.firstWithSignal(mono, stopSink.asMono()))
+        .as(mono -> Mono.firstWithSignal(mono, control.safeStopSink().asMono()))
         .doFinally(
             signal -> {
               executionControlRegistry.unregister(newExecutionId);
@@ -960,5 +962,41 @@ public class WorkflowOrchestrator {
       processedStream = logStream;
     }
     return processedStream;
+  }
+
+  private ExecutionControl createExecutionControl(
+      final String sessionId,
+      final String workflowId,
+      final String executionId,
+      final PreparedWorkflow prepared,
+      final Map<String, Object> payload) {
+    final List<String> nodeIds = prepared.topologicalOrder().stream().map(Node::nodeId).toList();
+
+    final Map<String, Sinks.One<Void>> nodeImmediateStopSinks = new ConcurrentHashMap<>();
+    final Map<String, Sinks.One<Void>> nodeSafeStopSinks = new ConcurrentHashMap<>();
+    final Map<String, ReactiveControlValve> nodePauseValves = new ConcurrentHashMap<>();
+    final Map<String, AtomicBoolean> nodeSkipFlags = new ConcurrentHashMap<>();
+
+    nodeIds.forEach(
+        nodeId -> {
+          nodeImmediateStopSinks.put(nodeId, Sinks.one());
+          nodeSafeStopSinks.put(nodeId, Sinks.one());
+          nodePauseValves.put(nodeId, null);
+          nodeSkipFlags.put(nodeId, new AtomicBoolean(false));
+        });
+
+    return new ExecutionControl(
+        sessionId,
+        workflowId,
+        executionId,
+        prepared,
+        payload,
+        Sinks.one(),
+        Sinks.one(),
+        null,
+        nodeImmediateStopSinks,
+        nodeSafeStopSinks,
+        nodePauseValves,
+        nodeSkipFlags);
   }
 }

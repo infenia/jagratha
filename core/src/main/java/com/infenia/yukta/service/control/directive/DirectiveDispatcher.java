@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.control;
+package com.infenia.yukta.service.control.directive;
 
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
@@ -23,6 +23,8 @@ import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.ControlBusService;
 import com.infenia.yukta.service.WorkflowOrchestrator;
+import com.infenia.yukta.service.control.ExecutionControl;
+import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PostConstruct;
 import java.util.Comparator;
@@ -159,7 +161,7 @@ public class DirectiveDispatcher {
     return Mono.fromRunnable(
         () -> {
           registry.unregister(control.executionId());
-          control.stopSink().emitEmpty(FAIL_FAST);
+          control.safeStopSink().emitEmpty(FAIL_FAST);
           log.atInfo().log(
               "Stopped execution {} for workflow {}: {}",
               control.executionId(),
@@ -172,7 +174,7 @@ public class DirectiveDispatcher {
     return Mono.fromRunnable(
             () -> {
               registry.unregister(control.executionId());
-              control.stopSink().emitEmpty(FAIL_FAST);
+              control.safeStopSink().emitEmpty(FAIL_FAST);
             })
         .then(
             Mono.defer(
@@ -220,7 +222,7 @@ public class DirectiveDispatcher {
             Mono.defer(
                 () -> {
                   registry.unregister(control.executionId());
-                  control.stopSink().emitEmpty(FAIL_FAST);
+                  control.safeStopSink().emitEmpty(FAIL_FAST);
                   checkpointStore.clear(control.executionId());
 
                   final String newExecutionId = UUID.randomUUID().toString();

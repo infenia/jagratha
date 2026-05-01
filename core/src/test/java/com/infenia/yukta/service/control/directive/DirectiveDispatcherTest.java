@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.control;
+package com.infenia.yukta.service.control.directive;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -26,6 +26,9 @@ import com.infenia.yukta.plugin.control.WorkflowDirective;
 import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.service.ControlBusService;
 import com.infenia.yukta.service.WorkflowOrchestrator;
+import com.infenia.yukta.service.control.ExecutionControl;
+import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
+import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,9 +46,26 @@ class DirectiveDispatcherTest {
   private ControlSignalProcessor processor;
   private DirectiveDispatcher dispatcher;
 
+  private ExecutionControl createControl(
+      final String sessionId, final String workflowId, final String executionId) {
+    return new ExecutionControl(
+        sessionId,
+        workflowId,
+        executionId,
+        null,
+        Map.of(),
+        Sinks.one(),
+        Sinks.one(),
+        null,
+        Map.of(),
+        Map.of(),
+        Map.of(),
+        Map.of());
+  }
+
   @BeforeEach
   void setUp() {
-    registry = new ExecutionControlRegistry();
+    registry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
     orchestrator = mock(WorkflowOrchestrator.class);
     controlBusService = mock(ControlBusService.class);
     processor = mock(ControlSignalProcessor.class);
@@ -69,10 +89,8 @@ class DirectiveDispatcherTest {
     final String executionId = "exec-1";
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
-    final Sinks.One<Void> stopSink = Sinks.one();
 
-    final ExecutionControl control =
-        new ExecutionControl(sessionId, workflowId, executionId, null, Map.of(), stopSink);
+    final ExecutionControl control = createControl(sessionId, workflowId, executionId);
     registry.register(control);
 
     final ControlCommand command =
@@ -112,10 +130,8 @@ class DirectiveDispatcherTest {
     final String executionId = "exec-1";
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
-    final Sinks.One<Void> stopSink = Sinks.one();
 
-    final ExecutionControl control =
-        new ExecutionControl(sessionId, workflowId, executionId, null, Map.of(), stopSink);
+    final ExecutionControl control = createControl(sessionId, workflowId, executionId);
     registry.register(control);
 
     final ControlCommand command =
@@ -135,10 +151,8 @@ class DirectiveDispatcherTest {
   void testDispatchProcessorNotFound() {
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
-    final Sinks.One<Void> stopSink = Sinks.one();
 
-    final ExecutionControl control =
-        new ExecutionControl(sessionId, workflowId, "exec-1", null, Map.of(), stopSink);
+    final ExecutionControl control = createControl(sessionId, workflowId, "exec-1");
     registry.register(control);
 
     final ControlCommand command =
@@ -155,10 +169,8 @@ class DirectiveDispatcherTest {
   void testDispatchMultipleProcessorsPriority() {
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
-    final Sinks.One<Void> stopSink = Sinks.one();
 
-    final ExecutionControl control =
-        new ExecutionControl(sessionId, workflowId, "exec-1", null, Map.of(), stopSink);
+    final ExecutionControl control = createControl(sessionId, workflowId, "exec-1");
     registry.register(control);
 
     final ControlSignalProcessor lowPriorityProcessor = mock(ControlSignalProcessor.class);

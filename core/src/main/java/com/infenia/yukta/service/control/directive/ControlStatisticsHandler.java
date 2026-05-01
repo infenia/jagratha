@@ -13,64 +13,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.control;
+package com.infenia.yukta.service.control.directive;
 
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
+import com.infenia.yukta.plugin.message.control.ControlStatistics;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * Handler for ControlHeartbeat signals.
+ * Handler for ControlStatistics signals.
  *
- * <p>Stores the last heartbeat message from each node for status queries.
+ * <p>Stores the last statistics message from each node for performance monitoring.
  */
 @Component
 @NoArgsConstructor
-public class ControlHeartbeatHandler implements ControlSignalHandler {
+public class ControlStatisticsHandler implements ControlSignalHandler {
 
-  private final Map<String, Message<?>> lastHeartbeats = new ConcurrentHashMap<>();
+  private final Map<String, Message<?>> lastStatistics = new ConcurrentHashMap<>();
 
   @Override
   public boolean canHandle(final Object payload) {
-    return payload instanceof ControlHeartbeat;
+    return payload instanceof ControlStatistics;
   }
 
   @Override
   public void handle(final String nodeId, final Message<?> message, final Object payload) {
-    lastHeartbeats.put(nodeId, message);
+    lastStatistics.put(nodeId, message);
   }
 
   /**
-   * Get the last heartbeat for a node.
+   * Get the last statistics message for a node.
    *
    * @param nodeId the node identifier
-   * @return the last heartbeat message, or null if none
+   * @return the last statistics message, or null if none
    */
   @Override
-  public Message<?> getLastHeartbeat(final String nodeId) {
-    return lastHeartbeats.get(nodeId);
+  public Message<?> getLastStatistics(final String nodeId) {
+    return lastStatistics.get(nodeId);
   }
 
   /**
-   * Get all active node IDs.
-   *
-   * @return list of node IDs that have sent heartbeats
-   */
-  @Override
-  public java.util.List<String> getActiveNodes() {
-    return java.util.List.copyOf(lastHeartbeats.keySet());
-  }
-
-  /**
-   * Remove a node's heartbeat record.
+   * Remove a node's statistics record.
    *
    * @param nodeId the node identifier
    */
   @Override
   public void removeNode(final String nodeId) {
-    lastHeartbeats.remove(nodeId);
+    lastStatistics.remove(nodeId);
   }
 }

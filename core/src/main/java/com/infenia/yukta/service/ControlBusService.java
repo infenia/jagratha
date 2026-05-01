@@ -17,7 +17,7 @@ package com.infenia.yukta.service;
 
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.service.control.ControlSignalHandler;
+import com.infenia.yukta.service.control.directive.ControlSignalHandler;
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotBlank;

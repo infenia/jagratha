@@ -13,43 +13,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.control;
+package com.infenia.yukta.service.control.store;
 
-import java.util.Map;
+import com.infenia.yukta.service.control.ExecutionControl;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * Thread-safe registry of all currently running workflow executions.
+ * Registry of all currently running workflow executions.
  *
- * <p>The orchestrator registers an {@link ExecutionControl} on start and unregisters it in the
+ * <p>The orchestrator saves an {@link ExecutionControl} on start and removes it in the
  * {@code doFinally} callback. The {@code DirectiveDispatcher} queries this registry to locate the
  * execution that a control command targets.
+ *
+ * <p>Delegates to a pluggable {@link ExecutionControlStore} for actual storage. By default, uses
+ * in-memory storage.
  */
 @Component
-@NoArgsConstructor
+@RequiredArgsConstructor
 public class ExecutionControlRegistry {
 
-  private final Map<String, ExecutionControl> byExecutionId = new ConcurrentHashMap<>();
+  private final ExecutionControlStore store;
 
   /**
-   * Registers a new execution.
+   * Saves an execution control handle.
    *
-   * @param control the execution handle to register
+   * @param control the execution handle to save
    */
   public void register(final ExecutionControl control) {
-    byExecutionId.put(control.executionId(), control);
+    store.save(control);
   }
 
   /**
    * Removes the execution handle for the given execution ID.
    *
-   * @param executionId the execution to deregister
+   * @param executionId the execution to remove
    */
   public void unregister(final String executionId) {
-    byExecutionId.remove(executionId);
+    store.remove(executionId);
   }
 
   /**
@@ -59,7 +61,7 @@ public class ExecutionControlRegistry {
    * @return an Optional containing the handle, or empty if not found
    */
   public Optional<ExecutionControl> findByExecutionId(final String executionId) {
-    return Optional.ofNullable(byExecutionId.get(executionId));
+    return store.findByExecutionId(executionId);
   }
 
   /**
@@ -74,8 +76,6 @@ public class ExecutionControlRegistry {
    */
   public Optional<ExecutionControl> findActiveByWorkflow(
       final String sessionId, final String workflowId) {
-    return byExecutionId.values().stream()
-        .filter(c -> c.sessionId().equals(sessionId) && c.workflowId().equals(workflowId))
-        .findFirst();
+    return store.findActiveByWorkflow(sessionId, workflowId);
   }
 }

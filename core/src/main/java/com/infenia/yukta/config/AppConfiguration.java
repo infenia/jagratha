@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.config;
 
+import com.infenia.yukta.service.control.store.ExecutionControlStore;
+import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.service.session.SessionConfigStoreFactory;
 import java.time.Duration;
@@ -81,5 +83,19 @@ public class AppConfiguration {
   @ConditionalOnMissingBean
   public SessionConfigStore sessionConfigStore(final SessionConfigStoreFactory factory) {
     return factory.getStore();
+  }
+
+  /**
+   * Provide the ExecutionControlStore bean.
+   *
+   * <p>In-memory implementation suitable for single-node deployments. Override this bean to use
+   * alternative backends (Redis, database, etc.).
+   *
+   * @return the execution control store instance
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  public ExecutionControlStore executionControlStore() {
+    return new InMemoryExecutionControlStore();
   }
 }
