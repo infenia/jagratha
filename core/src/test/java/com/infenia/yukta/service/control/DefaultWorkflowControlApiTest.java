@@ -52,6 +52,77 @@ class DefaultWorkflowControlApiTest {
         Map.of(),
         Map.of(),
         Map.of(),
+        Map.of(),
+        Map.of(),
+        Map.of());
+  }
+
+  private ExecutionControl createControlWithNodeValve(
+      final String sessionId,
+      final String workflowId,
+      final String executionId,
+      final String nodeId,
+      final ReactiveControlValve nodeValve) {
+    return new ExecutionControl(
+        sessionId,
+        workflowId,
+        executionId,
+        null,
+        Map.of(),
+        Sinks.one(),
+        Sinks.one(),
+        new ReactiveControlValve(),
+        Map.of(),
+        Map.of(),
+        Map.of(nodeId, nodeValve),
+        Map.of(),
+        Map.of(),
+        Map.of());
+  }
+
+  private ExecutionControl createControlWithNodeSink(
+      final String sessionId,
+      final String workflowId,
+      final String executionId,
+      final String nodeId,
+      final Sinks.One<Void> nodeSink,
+      final boolean isImmediateStop) {
+    return new ExecutionControl(
+        sessionId,
+        workflowId,
+        executionId,
+        null,
+        Map.of(),
+        Sinks.one(),
+        Sinks.one(),
+        new ReactiveControlValve(),
+        isImmediateStop ? Map.of(nodeId, nodeSink) : Map.of(),
+        isImmediateStop ? Map.of() : Map.of(nodeId, nodeSink),
+        Map.of(),
+        Map.of(),
+        Map.of(),
+        Map.of());
+  }
+
+  private ExecutionControl createControlWithNodeSkipFlag(
+      final String sessionId,
+      final String workflowId,
+      final String executionId,
+      final String nodeId) {
+    return new ExecutionControl(
+        sessionId,
+        workflowId,
+        executionId,
+        null,
+        Map.of(),
+        Sinks.one(),
+        Sinks.one(),
+        new ReactiveControlValve(),
+        Map.of(),
+        Map.of(),
+        Map.of(),
+        Map.of(nodeId, new AtomicBoolean(false)),
+        Map.of(),
         Map.of());
   }
 
@@ -125,19 +196,7 @@ class DefaultWorkflowControlApiTest {
     final String nodeId = "node-1";
     final ReactiveControlValve nodeValve = new ReactiveControlValve();
     final ExecutionControl control =
-        new ExecutionControl(
-            "session-1",
-            "workflow-1",
-            executionId,
-            null,
-            Map.of(),
-            Sinks.one(),
-            Sinks.one(),
-            new ReactiveControlValve(),
-            Map.of(),
-            Map.of(),
-            Map.of(nodeId, nodeValve),
-            Map.of());
+        createControlWithNodeValve("session-1", "workflow-1", executionId, nodeId, nodeValve);
     registry.register(control);
 
     assertThat(nodeValve.isPaused()).isFalse();
@@ -153,19 +212,7 @@ class DefaultWorkflowControlApiTest {
     final String nodeId = "node-1";
     final ReactiveControlValve nodeValve = new ReactiveControlValve();
     final ExecutionControl control =
-        new ExecutionControl(
-            "session-1",
-            "workflow-1",
-            executionId,
-            null,
-            Map.of(),
-            Sinks.one(),
-            Sinks.one(),
-            new ReactiveControlValve(),
-            Map.of(),
-            Map.of(),
-            Map.of(nodeId, nodeValve),
-            Map.of());
+        createControlWithNodeValve("session-1", "workflow-1", executionId, nodeId, nodeValve);
     registry.register(control);
 
     nodeValve.pause();
@@ -193,19 +240,7 @@ class DefaultWorkflowControlApiTest {
     final String nodeId = "node-1";
     final Sinks.One<Void> nodeSink = Sinks.one();
     final ExecutionControl control =
-        new ExecutionControl(
-            "session-1",
-            "workflow-1",
-            executionId,
-            null,
-            Map.of(),
-            Sinks.one(),
-            Sinks.one(),
-            new ReactiveControlValve(),
-            Map.of(nodeId, nodeSink),
-            Map.of(),
-            Map.of(),
-            Map.of());
+        createControlWithNodeSink("session-1", "workflow-1", executionId, nodeId, nodeSink, true);
     registry.register(control);
 
     StepVerifier.create(api.stopNodeImmediately(executionId, nodeId)).verifyComplete();
@@ -219,19 +254,7 @@ class DefaultWorkflowControlApiTest {
     final String nodeId = "node-1";
     final Sinks.One<Void> nodeSink = Sinks.one();
     final ExecutionControl control =
-        new ExecutionControl(
-            "session-1",
-            "workflow-1",
-            executionId,
-            null,
-            Map.of(),
-            Sinks.one(),
-            Sinks.one(),
-            new ReactiveControlValve(),
-            Map.of(),
-            Map.of(nodeId, nodeSink),
-            Map.of(),
-            Map.of());
+        createControlWithNodeSink("session-1", "workflow-1", executionId, nodeId, nodeSink, false);
     registry.register(control);
 
     StepVerifier.create(api.stopNodeSafely(executionId, nodeId)).verifyComplete();
@@ -257,7 +280,9 @@ class DefaultWorkflowControlApiTest {
             Map.of(),
             Map.of(),
             Map.of(),
-            Map.of(nodeId, skipFlag));
+            Map.of(nodeId, skipFlag),
+            Map.of(),
+            Map.of());
     registry.register(control);
 
     assertThat(skipFlag.get()).isFalse();
@@ -285,7 +310,9 @@ class DefaultWorkflowControlApiTest {
             Map.of(),
             Map.of(),
             Map.of(),
-            Map.of(nodeId, skipFlag));
+            Map.of(nodeId, skipFlag),
+            Map.of(),
+            Map.of());
     registry.register(control);
 
     assertThat(skipFlag.get()).isTrue();
@@ -328,7 +355,9 @@ class DefaultWorkflowControlApiTest {
             Map.of(),
             Map.of(),
             Map.of(nodeId, nodeValve),
-            Map.of(nodeId, skipFlag));
+            Map.of(nodeId, skipFlag),
+            Map.of(),
+            Map.of());
     registry.register(control);
 
     StepVerifier.create(api.getStatus(executionId))
@@ -418,8 +447,7 @@ class DefaultWorkflowControlApiTest {
 
     assertThat(nodeValve.isStepMode()).isFalse();
 
-    StepVerifier.create(api.enableNodeStepMode(executionId, nodeId))
-        .verifyComplete();
+    StepVerifier.create(api.enableNodeStepMode(executionId, nodeId)).verifyComplete();
 
     assertThat(nodeValve.isStepMode()).isTrue();
     assertThat(nodeValve.isPaused()).isTrue();
@@ -451,8 +479,7 @@ class DefaultWorkflowControlApiTest {
     nodeValve.enableStepMode();
     assertThat(nodeValve.isStepMode()).isTrue();
 
-    StepVerifier.create(api.disableNodeStepMode(executionId, nodeId))
-        .verifyComplete();
+    StepVerifier.create(api.disableNodeStepMode(executionId, nodeId)).verifyComplete();
 
     assertThat(nodeValve.isStepMode()).isFalse();
   }
@@ -482,8 +509,7 @@ class DefaultWorkflowControlApiTest {
 
     nodeValve.enableStepMode();
 
-    StepVerifier.create(api.stepNode(executionId, nodeId))
-        .verifyComplete();
+    StepVerifier.create(api.stepNode(executionId, nodeId)).verifyComplete();
   }
 
   @Test

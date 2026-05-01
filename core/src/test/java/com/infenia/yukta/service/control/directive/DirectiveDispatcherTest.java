@@ -60,6 +60,8 @@ class DirectiveDispatcherTest {
         Map.of(),
         Map.of(),
         Map.of(),
+        Map.of(),
+        Map.of(),
         Map.of());
   }
 

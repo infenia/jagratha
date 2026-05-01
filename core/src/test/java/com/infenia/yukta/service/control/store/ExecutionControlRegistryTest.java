@@ -47,6 +47,8 @@ class ExecutionControlRegistryTest {
         Map.of(),
         Map.of(),
         Map.of(),
+        Map.of(),
+        Map.of(),
         Map.of());
   }
 

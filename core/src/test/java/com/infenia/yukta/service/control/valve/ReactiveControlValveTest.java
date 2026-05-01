@@ -205,11 +205,12 @@ class ReactiveControlValveTest {
         .expectSubscription()
         .then(() -> assertThat(valve.step()).isTrue())
         .expectNext(1)
-        .then(() -> {
-          StepVerifier.create(valve.allowPassage().timeout(Duration.ofMillis(50)))
-              .expectError()
-              .verify();
-        })
+        .then(
+            () -> {
+              StepVerifier.create(valve.allowPassage().timeout(Duration.ofMillis(50)))
+                  .expectError()
+                  .verify();
+            })
         .then(() -> assertThat(valve.step()).isTrue())
         .expectNext(2)
         .then(() -> assertThat(valve.step()).isTrue())

@@ -46,6 +46,8 @@ class InMemoryExecutionControlStoreTest {
         Map.of(),
         Map.of(),
         Map.of(),
+        Map.of(),
+        Map.of(),
         Map.of());
   }
 
