@@ -1035,6 +1035,8 @@ public class WorkflowOrchestrator {
     final Map<String, Sinks.One<Void>> nodeSafeStopSinks = new ConcurrentHashMap<>();
     final Map<String, ReactiveControlValve> nodePauseValves = new ConcurrentHashMap<>();
     final Map<String, AtomicBoolean> nodeSkipFlags = new ConcurrentHashMap<>();
+    final Map<String, AtomicBoolean> nodeStepModes = new ConcurrentHashMap<>();
+    final Map<String, Sinks.Many<Void>> nodeStepSinks = new ConcurrentHashMap<>();
 
     nodeIds.forEach(
         nodeId -> {
@@ -1042,6 +1044,8 @@ public class WorkflowOrchestrator {
           nodeSafeStopSinks.put(nodeId, Sinks.one());
           nodePauseValves.put(nodeId, new ReactiveControlValve());
           nodeSkipFlags.put(nodeId, new AtomicBoolean(false));
+          nodeStepModes.put(nodeId, new AtomicBoolean(false));
+          nodeStepSinks.put(nodeId, Sinks.many().multicast().onBackpressureBuffer());
         });
 
     return new ExecutionControl(
@@ -1056,6 +1060,8 @@ public class WorkflowOrchestrator {
         nodeImmediateStopSinks,
         nodeSafeStopSinks,
         nodePauseValves,
-        nodeSkipFlags);
+        nodeSkipFlags,
+        nodeStepModes,
+        nodeStepSinks);
   }
 }

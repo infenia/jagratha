@@ -118,4 +118,35 @@ public interface WorkflowControlApi {
    * @return a Mono containing the current status, or empty if not found
    */
   Mono<WorkflowExecutionSnapshot> getStatus(String executionId);
+
+  /**
+   * Enable step-through debug mode on a node. Each element must be stepped via stepNode().
+   *
+   * <p>Automatically pauses the node until step signals are sent.
+   *
+   * @param executionId the execution to target
+   * @param nodeId the node to enable step mode on
+   * @return a Mono that completes when step mode is enabled
+   */
+  Mono<Void> enableNodeStepMode(String executionId, String nodeId);
+
+  /**
+   * Disable step-through debug mode on a node. Returns to normal pause/resume.
+   *
+   * @param executionId the execution to target
+   * @param nodeId the node to disable step mode on
+   * @return a Mono that completes when step mode is disabled
+   */
+  Mono<Void> disableNodeStepMode(String executionId, String nodeId);
+
+  /**
+   * Step to the next element when node is in step-through mode.
+   *
+   * <p>Allows exactly one element to pass through the node before blocking again.
+   *
+   * @param executionId the execution to target
+   * @param nodeId the node to step
+   * @return a Mono that completes when the step signal is emitted
+   */
+  Mono<Void> stepNode(String executionId, String nodeId);
 }

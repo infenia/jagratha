@@ -26,21 +26,33 @@ import reactor.core.publisher.Sinks.Many;
  *
  * <p>Uses {@code delayUntil} to halt downstream items when paused. Fast path when flowing; blocks
  * when paused until explicit resume.
+ *
+ * <p>Supports step-through mode: when enabled, each element must be explicitly stepped via the
+ * stepSink signal, allowing one element through at a time.
  */
 public final class ReactiveControlValve {
 
   private final AtomicBoolean paused = new AtomicBoolean(false);
+  private final AtomicBoolean stepMode = new AtomicBoolean(false);
   private final Many<Boolean> resumeSink = Sinks.many().replay().latestOrDefault(true);
+  private final Many<Void> stepSink = Sinks.many().multicast().onBackpressureBuffer();
 
   /**
    * Checks if passage is allowed. Returns immediately if flowing; blocks if paused.
    *
+   * <p>In step mode, waits for next step signal via stepSink rather than permanent resume.
+   *
    * @return Mono that emits true when passage is allowed
    */
   public Mono<Boolean> allowPassage() {
-    if (!paused.get()) {
+    if (!paused.get() && !stepMode.get()) {
       return Mono.just(true);
     }
+
+    if (stepMode.get()) {
+      return stepSink.asFlux().next().thenReturn(true);
+    }
+
     return resumeSink.asFlux().filter(Boolean::booleanValue).next().thenReturn(true);
   }
 
@@ -63,6 +75,44 @@ public final class ReactiveControlValve {
    */
   public boolean isPaused() {
     return paused.get();
+  }
+
+  /**
+   * Enables step-through mode. Each element must be explicitly stepped via {@code step()}.
+   *
+   * <p>Automatically pauses the valve.
+   */
+  public void enableStepMode() {
+    stepMode.set(true);
+    paused.set(true);
+  }
+
+  /** Disables step-through mode and resumes normal pause/resume. */
+  public void disableStepMode() {
+    stepMode.set(false);
+    resume();
+  }
+
+  /**
+   * Signals the next step in step-through mode. Allows exactly one element through.
+   *
+   * @return true if step signal was emitted, false if step mode not active
+   */
+  public boolean step() {
+    if (!stepMode.get()) {
+      return false;
+    }
+    stepSink.tryEmitNext(null);
+    return true;
+  }
+
+  /**
+   * Checks current step-mode state.
+   *
+   * @return true if step mode is active, false otherwise
+   */
+  public boolean isStepMode() {
+    return stepMode.get();
   }
 
   /**

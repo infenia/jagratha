@@ -42,6 +42,8 @@ import reactor.core.publisher.Sinks;
  *   <li><strong>nodeSafeStopSinks:</strong> Per-node drain & stop
  *   <li><strong>nodePauseValves:</strong> Per-node pause via backpressure
  *   <li><strong>nodeSkipFlags:</strong> Per-node bypass (skip processing, pass through)
+ *   <li><strong>nodeStepModes:</strong> Per-node debug step-through (one element at a time)
+ *   <li><strong>nodeStepSinks:</strong> Per-node step signal sink (signals next step)
  * </ul>
  *
  * @param sessionId the session that owns this execution
@@ -56,6 +58,8 @@ import reactor.core.publisher.Sinks;
  * @param nodeSafeStopSinks per-node drain & stop (keyed by nodeId)
  * @param nodePauseValves per-node pause (keyed by nodeId)
  * @param nodeSkipFlags per-node bypass flags (keyed by nodeId)
+ * @param nodeStepModes per-node step-through debug mode flags (keyed by nodeId)
+ * @param nodeStepSinks per-node step signal sinks (keyed by nodeId)
  */
 @Slf4j
 public record ExecutionControl(
@@ -70,7 +74,9 @@ public record ExecutionControl(
     Map<String, Sinks.One<Void>> nodeImmediateStopSinks,
     Map<String, Sinks.One<Void>> nodeSafeStopSinks,
     Map<String, ReactiveControlValve> nodePauseValves,
-    Map<String, AtomicBoolean> nodeSkipFlags) {
+    Map<String, AtomicBoolean> nodeSkipFlags,
+    Map<String, AtomicBoolean> nodeStepModes,
+    Map<String, Sinks.Many<Void>> nodeStepSinks) {
 
   /** Compact constructor: makes payload immutable and enforces field consistency. */
   public ExecutionControl {

@@ -38,8 +38,7 @@ public class DefaultWorkflowControlApi implements WorkflowControlApi {
   private Mono<ExecutionControl> getControl(final String executionId) {
     return Mono.justOrEmpty(registry.findByExecutionId(executionId))
         .switchIfEmpty(
-            Mono.error(
-                new IllegalArgumentException("Execution not found: " + executionId)));
+            Mono.error(new IllegalArgumentException("Execution not found: " + executionId)));
   }
 
   @Override
@@ -165,8 +164,7 @@ public class DefaultWorkflowControlApi implements WorkflowControlApi {
   }
 
   @Override
-  public Mono<Void> skipNode(
-      final String executionId, final String nodeId, final boolean skip) {
+  public Mono<Void> skipNode(final String executionId, final String nodeId, final boolean skip) {
     return getControl(executionId)
         .flatMap(
             control -> {
@@ -183,6 +181,57 @@ public class DefaultWorkflowControlApi implements WorkflowControlApi {
   @Override
   public Mono<WorkflowExecutionSnapshot> getStatus(final String executionId) {
     return getControl(executionId).map(this::buildSnapshot);
+  }
+
+  @Override
+  public Mono<Void> enableNodeStepMode(final String executionId, final String nodeId) {
+    return getControl(executionId)
+        .flatMap(
+            control -> {
+              final ReactiveControlValve valve = control.nodePauseValves().get(nodeId);
+              if (valve == null) {
+                return Mono.error(
+                    new IllegalArgumentException(
+                        "Node not found or not controllable: " + nodeId));
+              }
+              valve.enableStepMode();
+              return Mono.empty();
+            });
+  }
+
+  @Override
+  public Mono<Void> disableNodeStepMode(final String executionId, final String nodeId) {
+    return getControl(executionId)
+        .flatMap(
+            control -> {
+              final ReactiveControlValve valve = control.nodePauseValves().get(nodeId);
+              if (valve == null) {
+                return Mono.error(
+                    new IllegalArgumentException(
+                        "Node not found or not controllable: " + nodeId));
+              }
+              valve.disableStepMode();
+              return Mono.empty();
+            });
+  }
+
+  @Override
+  public Mono<Void> stepNode(final String executionId, final String nodeId) {
+    return getControl(executionId)
+        .flatMap(
+            control -> {
+              final ReactiveControlValve valve = control.nodePauseValves().get(nodeId);
+              if (valve == null) {
+                return Mono.error(
+                    new IllegalArgumentException(
+                        "Node not found or not controllable: " + nodeId));
+              }
+              if (!valve.step()) {
+                return Mono.error(
+                    new IllegalStateException("Node is not in step mode: " + nodeId));
+              }
+              return Mono.empty();
+            });
   }
 
   private WorkflowExecutionSnapshot buildSnapshot(final ExecutionControl control) {
