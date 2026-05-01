@@ -58,32 +58,24 @@ class DefaultWorkflowControlApiTest {
   @Test
   void testStopImmediately() {
     final String executionId = "exec-1";
-    final ExecutionControl control =
-        createControl("session-1", "workflow-1", executionId);
+    final ExecutionControl control = createControl("session-1", "workflow-1", executionId);
     registry.register(control);
 
-    StepVerifier.create(api.stopImmediately(executionId))
-        .verifyComplete();
+    StepVerifier.create(api.stopImmediately(executionId)).verifyComplete();
 
     // Sink should be completed
-    StepVerifier.create(control.immediateStopSink().asMono())
-        .expectComplete()
-        .verify();
+    StepVerifier.create(control.immediateStopSink().asMono()).expectComplete().verify();
   }
 
   @Test
   void testStopSafely() {
     final String executionId = "exec-1";
-    final ExecutionControl control =
-        createControl("session-1", "workflow-1", executionId);
+    final ExecutionControl control = createControl("session-1", "workflow-1", executionId);
     registry.register(control);
 
-    StepVerifier.create(api.stopSafely(executionId))
-        .verifyComplete();
+    StepVerifier.create(api.stopSafely(executionId)).verifyComplete();
 
-    StepVerifier.create(control.safeStopSink().asMono())
-        .expectComplete()
-        .verify();
+    StepVerifier.create(control.safeStopSink().asMono()).expectComplete().verify();
   }
 
   @Test
@@ -96,14 +88,12 @@ class DefaultWorkflowControlApiTest {
   @Test
   void testPauseWorkflow() {
     final String executionId = "exec-1";
-    final ExecutionControl control =
-        createControl("session-1", "workflow-1", executionId);
+    final ExecutionControl control = createControl("session-1", "workflow-1", executionId);
     registry.register(control);
 
     assertThat(control.globalPauseValve().isPaused()).isFalse();
 
-    StepVerifier.create(api.pauseWorkflow(executionId))
-        .verifyComplete();
+    StepVerifier.create(api.pauseWorkflow(executionId)).verifyComplete();
 
     assertThat(control.globalPauseValve().isPaused()).isTrue();
   }
@@ -111,15 +101,13 @@ class DefaultWorkflowControlApiTest {
   @Test
   void testUnpauseWorkflow() {
     final String executionId = "exec-1";
-    final ExecutionControl control =
-        createControl("session-1", "workflow-1", executionId);
+    final ExecutionControl control = createControl("session-1", "workflow-1", executionId);
     registry.register(control);
 
     control.globalPauseValve().pause();
     assertThat(control.globalPauseValve().isPaused()).isTrue();
 
-    StepVerifier.create(api.unpauseWorkflow(executionId))
-        .verifyComplete();
+    StepVerifier.create(api.unpauseWorkflow(executionId)).verifyComplete();
 
     assertThat(control.globalPauseValve().isPaused()).isFalse();
   }
@@ -154,8 +142,7 @@ class DefaultWorkflowControlApiTest {
 
     assertThat(nodeValve.isPaused()).isFalse();
 
-    StepVerifier.create(api.pauseNode(executionId, nodeId))
-        .verifyComplete();
+    StepVerifier.create(api.pauseNode(executionId, nodeId)).verifyComplete();
 
     assertThat(nodeValve.isPaused()).isTrue();
   }
@@ -184,8 +171,7 @@ class DefaultWorkflowControlApiTest {
     nodeValve.pause();
     assertThat(nodeValve.isPaused()).isTrue();
 
-    StepVerifier.create(api.unpauseNode(executionId, nodeId))
-        .verifyComplete();
+    StepVerifier.create(api.unpauseNode(executionId, nodeId)).verifyComplete();
 
     assertThat(nodeValve.isPaused()).isFalse();
   }
@@ -193,8 +179,7 @@ class DefaultWorkflowControlApiTest {
   @Test
   void testPauseNodeNotFound() {
     final String executionId = "exec-1";
-    final ExecutionControl control =
-        createControl("session-1", "workflow-1", executionId);
+    final ExecutionControl control = createControl("session-1", "workflow-1", executionId);
     registry.register(control);
 
     StepVerifier.create(api.pauseNode(executionId, "non-existent"))
@@ -223,12 +208,9 @@ class DefaultWorkflowControlApiTest {
             Map.of());
     registry.register(control);
 
-    StepVerifier.create(api.stopNodeImmediately(executionId, nodeId))
-        .verifyComplete();
+    StepVerifier.create(api.stopNodeImmediately(executionId, nodeId)).verifyComplete();
 
-    StepVerifier.create(nodeSink.asMono())
-        .expectComplete()
-        .verify();
+    StepVerifier.create(nodeSink.asMono()).expectComplete().verify();
   }
 
   @Test
@@ -252,12 +234,9 @@ class DefaultWorkflowControlApiTest {
             Map.of());
     registry.register(control);
 
-    StepVerifier.create(api.stopNodeSafely(executionId, nodeId))
-        .verifyComplete();
+    StepVerifier.create(api.stopNodeSafely(executionId, nodeId)).verifyComplete();
 
-    StepVerifier.create(nodeSink.asMono())
-        .expectComplete()
-        .verify();
+    StepVerifier.create(nodeSink.asMono()).expectComplete().verify();
   }
 
   @Test
@@ -283,8 +262,7 @@ class DefaultWorkflowControlApiTest {
 
     assertThat(skipFlag.get()).isFalse();
 
-    StepVerifier.create(api.skipNode(executionId, nodeId, true))
-        .verifyComplete();
+    StepVerifier.create(api.skipNode(executionId, nodeId, true)).verifyComplete();
 
     assertThat(skipFlag.get()).isTrue();
   }
@@ -312,8 +290,7 @@ class DefaultWorkflowControlApiTest {
 
     assertThat(skipFlag.get()).isTrue();
 
-    StepVerifier.create(api.skipNode(executionId, nodeId, false))
-        .verifyComplete();
+    StepVerifier.create(api.skipNode(executionId, nodeId, false)).verifyComplete();
 
     assertThat(skipFlag.get()).isFalse();
   }
@@ -321,8 +298,7 @@ class DefaultWorkflowControlApiTest {
   @Test
   void testSkipNodeNotFound() {
     final String executionId = "exec-1";
-    final ExecutionControl control =
-        createControl("session-1", "workflow-1", executionId);
+    final ExecutionControl control = createControl("session-1", "workflow-1", executionId);
     registry.register(control);
 
     StepVerifier.create(api.skipNode(executionId, "non-existent", true))
@@ -356,21 +332,21 @@ class DefaultWorkflowControlApiTest {
     registry.register(control);
 
     StepVerifier.create(api.getStatus(executionId))
-        .assertNext(snapshot -> {
-          assertThat(snapshot.executionId()).isEqualTo(executionId);
-          assertThat(snapshot.sessionId()).isEqualTo("session-1");
-          assertThat(snapshot.workflowId()).isEqualTo("workflow-1");
-          assertThat(snapshot.pausedNodes()).contains(nodeId);
-          assertThat(snapshot.skippedNodes()).contains(nodeId);
-          assertThat(snapshot.isGlobalPaused()).isFalse();
-        })
+        .assertNext(
+            snapshot -> {
+              assertThat(snapshot.executionId()).isEqualTo(executionId);
+              assertThat(snapshot.sessionId()).isEqualTo("session-1");
+              assertThat(snapshot.workflowId()).isEqualTo("workflow-1");
+              assertThat(snapshot.pausedNodes()).contains(nodeId);
+              assertThat(snapshot.skippedNodes()).contains(nodeId);
+              assertThat(snapshot.isGlobalPaused()).isFalse();
+            })
         .verifyComplete();
   }
 
   @Test
   void testGetStatusNotFound() {
-    StepVerifier.create(api.getStatus("non-existent"))
-        .verifyComplete();
+    StepVerifier.create(api.getStatus("non-existent")).verifyComplete();
   }
 
   @Test
@@ -403,14 +379,138 @@ class DefaultWorkflowControlApiTest {
             Map.of(),
             Map.of(),
             Map.of(node1, valve1, node2, valve2, node3, valve3),
-            Map.of(node1, skip1, node2, skip2));
+            Map.of(node1, skip1, node2, skip2),
+            Map.of(),
+            Map.of());
     registry.register(control);
 
     StepVerifier.create(api.getStatus(executionId))
-        .assertNext(snapshot -> {
-          assertThat(snapshot.pausedNodes()).containsExactlyInAnyOrder(node1, node3);
-          assertThat(snapshot.skippedNodes()).contains(node1);
-        })
+        .assertNext(
+            snapshot -> {
+              assertThat(snapshot.pausedNodes()).containsExactlyInAnyOrder(node1, node3);
+              assertThat(snapshot.skippedNodes()).contains(node1);
+            })
         .verifyComplete();
+  }
+
+  @Test
+  void testEnableNodeStepMode() {
+    final String executionId = "exec-1";
+    final String nodeId = "node-1";
+    final ReactiveControlValve nodeValve = new ReactiveControlValve();
+    final ExecutionControl control =
+        new ExecutionControl(
+            "session-1",
+            "workflow-1",
+            executionId,
+            null,
+            Map.of(),
+            Sinks.one(),
+            Sinks.one(),
+            new ReactiveControlValve(),
+            Map.of(),
+            Map.of(),
+            Map.of(nodeId, nodeValve),
+            Map.of(),
+            Map.of(),
+            Map.of());
+    registry.register(control);
+
+    assertThat(nodeValve.isStepMode()).isFalse();
+
+    StepVerifier.create(api.enableNodeStepMode(executionId, nodeId))
+        .verifyComplete();
+
+    assertThat(nodeValve.isStepMode()).isTrue();
+    assertThat(nodeValve.isPaused()).isTrue();
+  }
+
+  @Test
+  void testDisableNodeStepMode() {
+    final String executionId = "exec-1";
+    final String nodeId = "node-1";
+    final ReactiveControlValve nodeValve = new ReactiveControlValve();
+    final ExecutionControl control =
+        new ExecutionControl(
+            "session-1",
+            "workflow-1",
+            executionId,
+            null,
+            Map.of(),
+            Sinks.one(),
+            Sinks.one(),
+            new ReactiveControlValve(),
+            Map.of(),
+            Map.of(),
+            Map.of(nodeId, nodeValve),
+            Map.of(),
+            Map.of(),
+            Map.of());
+    registry.register(control);
+
+    nodeValve.enableStepMode();
+    assertThat(nodeValve.isStepMode()).isTrue();
+
+    StepVerifier.create(api.disableNodeStepMode(executionId, nodeId))
+        .verifyComplete();
+
+    assertThat(nodeValve.isStepMode()).isFalse();
+  }
+
+  @Test
+  void testStepNode() {
+    final String executionId = "exec-1";
+    final String nodeId = "node-1";
+    final ReactiveControlValve nodeValve = new ReactiveControlValve();
+    final ExecutionControl control =
+        new ExecutionControl(
+            "session-1",
+            "workflow-1",
+            executionId,
+            null,
+            Map.of(),
+            Sinks.one(),
+            Sinks.one(),
+            new ReactiveControlValve(),
+            Map.of(),
+            Map.of(),
+            Map.of(nodeId, nodeValve),
+            Map.of(),
+            Map.of(),
+            Map.of());
+    registry.register(control);
+
+    nodeValve.enableStepMode();
+
+    StepVerifier.create(api.stepNode(executionId, nodeId))
+        .verifyComplete();
+  }
+
+  @Test
+  void testStepNodeNotInStepMode() {
+    final String executionId = "exec-1";
+    final String nodeId = "node-1";
+    final ReactiveControlValve nodeValve = new ReactiveControlValve();
+    final ExecutionControl control =
+        new ExecutionControl(
+            "session-1",
+            "workflow-1",
+            executionId,
+            null,
+            Map.of(),
+            Sinks.one(),
+            Sinks.one(),
+            new ReactiveControlValve(),
+            Map.of(),
+            Map.of(),
+            Map.of(nodeId, nodeValve),
+            Map.of(),
+            Map.of(),
+            Map.of());
+    registry.register(control);
+
+    StepVerifier.create(api.stepNode(executionId, nodeId))
+        .expectError(IllegalStateException.class)
+        .verify();
   }
 }

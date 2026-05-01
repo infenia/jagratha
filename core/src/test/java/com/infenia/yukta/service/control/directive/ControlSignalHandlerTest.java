@@ -23,7 +23,6 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
 import com.infenia.yukta.plugin.message.control.ControlStatistics;
-import com.infenia.yukta.service.control.ExecutionControl;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

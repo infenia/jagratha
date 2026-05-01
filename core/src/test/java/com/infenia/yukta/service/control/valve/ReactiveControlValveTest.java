@@ -34,9 +34,7 @@ class ReactiveControlValveTest {
 
   @Test
   void testAllowPassageWhenFlowing() {
-    StepVerifier.create(valve.allowPassage())
-        .expectNext(true)
-        .verifyComplete();
+    StepVerifier.create(valve.allowPassage()).expectNext(true).verifyComplete();
   }
 
   @Test
@@ -90,9 +88,7 @@ class ReactiveControlValveTest {
 
   @Test
   void testAsTransformFlowing() {
-    StepVerifier.create(
-            Flux.range(1, 5)
-                .transform(valve.asTransform()))
+    StepVerifier.create(Flux.range(1, 5).transform(valve.asTransform()))
         .expectNext(1, 2, 3, 4, 5)
         .verifyComplete();
   }
@@ -102,9 +98,7 @@ class ReactiveControlValveTest {
     valve.pause();
 
     StepVerifier.create(
-            Flux.range(1, 5)
-                .transform(valve.asTransform())
-                .timeout(Duration.ofMillis(100)))
+            Flux.range(1, 5).transform(valve.asTransform()).timeout(Duration.ofMillis(100)))
         .expectError()
         .verify();
   }
@@ -113,13 +107,15 @@ class ReactiveControlValveTest {
   void testAsTransformPausedThenResumed() {
     valve.pause();
 
-    final Flux<Integer> flux = Flux.range(1, 5)
-        .transform(valve.asTransform())
-        .doOnNext(v -> {
-          if (v == 2) {
-            valve.resume();
-          }
-        });
+    final Flux<Integer> flux =
+        Flux.range(1, 5)
+            .transform(valve.asTransform())
+            .doOnNext(
+                v -> {
+                  if (v == 2) {
+                    valve.resume();
+                  }
+                });
 
     StepVerifier.create(flux.timeout(Duration.ofSeconds(1)))
         .expectNext(1, 2, 3, 4, 5)
@@ -161,8 +157,73 @@ class ReactiveControlValveTest {
     valve.pause();
     valve.resume();
 
-    StepVerifier.create(valve.allowPassage())
-        .expectNext(true)
+    StepVerifier.create(valve.allowPassage()).expectNext(true).verifyComplete();
+  }
+
+  @Test
+  void testEnableStepMode() {
+    assertThat(valve.isStepMode()).isFalse();
+
+    valve.enableStepMode();
+
+    assertThat(valve.isStepMode()).isTrue();
+    assertThat(valve.isPaused()).isTrue();
+  }
+
+  @Test
+  void testDisableStepMode() {
+    valve.enableStepMode();
+    assertThat(valve.isStepMode()).isTrue();
+
+    valve.disableStepMode();
+
+    assertThat(valve.isStepMode()).isFalse();
+    assertThat(valve.isPaused()).isFalse();
+  }
+
+  @Test
+  void testStepWithoutStepMode() {
+    assertThat(valve.step()).isFalse();
+  }
+
+  @Test
+  void testStepWithStepMode() {
+    valve.enableStepMode();
+
+    final boolean stepped = valve.step();
+
+    assertThat(stepped).isTrue();
+  }
+
+  @Test
+  void testStepModeAllowsOneElementThenBlocks() {
+    valve.enableStepMode();
+
+    Flux<Integer> source = Flux.range(1, 3).transform(valve.asTransform());
+
+    StepVerifier.create(source)
+        .expectSubscription()
+        .then(() -> assertThat(valve.step()).isTrue())
+        .expectNext(1)
+        .then(() -> {
+          StepVerifier.create(valve.allowPassage().timeout(Duration.ofMillis(50)))
+              .expectError()
+              .verify();
+        })
+        .then(() -> assertThat(valve.step()).isTrue())
+        .expectNext(2)
+        .then(() -> assertThat(valve.step()).isTrue())
+        .expectNext(3)
         .verifyComplete();
+  }
+
+  @Test
+  void testDisableStepModeReturnsToNormal() {
+    valve.enableStepMode();
+    valve.step();
+
+    valve.disableStepMode();
+
+    StepVerifier.create(valve.allowPassage()).expectNext(true).verifyComplete();
   }
 }

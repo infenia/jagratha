@@ -54,15 +54,7 @@ class WorkflowExecutionSnapshotTest {
     final Instant now = Instant.now();
     final WorkflowExecutionSnapshot snapshot =
         new WorkflowExecutionSnapshot(
-            "exec-1",
-            "session-1",
-            "workflow-1",
-            true,
-            Set.of(),
-            Set.of(),
-            Set.of(),
-            now,
-            now);
+            "exec-1", "session-1", "workflow-1", true, Set.of(), Set.of(), Set.of(), now, now);
 
     assertThat(snapshot.isGlobalPaused()).isTrue();
   }
@@ -72,15 +64,7 @@ class WorkflowExecutionSnapshotTest {
     final Instant now = Instant.now();
     final WorkflowExecutionSnapshot snapshot =
         new WorkflowExecutionSnapshot(
-            "exec-1",
-            "session-1",
-            "workflow-1",
-            false,
-            Set.of(),
-            Set.of(),
-            Set.of(),
-            now,
-            now);
+            "exec-1", "session-1", "workflow-1", false, Set.of(), Set.of(), Set.of(), now, now);
 
     assertThat(snapshot.pausedNodes()).isEmpty();
     assertThat(snapshot.skippedNodes()).isEmpty();
@@ -186,27 +170,11 @@ class WorkflowExecutionSnapshotTest {
     final Instant now = Instant.now();
     final WorkflowExecutionSnapshot snapshot1 =
         new WorkflowExecutionSnapshot(
-            "exec-1",
-            "session-1",
-            "workflow-1",
-            false,
-            Set.of(),
-            Set.of(),
-            Set.of(),
-            now,
-            now);
+            "exec-1", "session-1", "workflow-1", false, Set.of(), Set.of(), Set.of(), now, now);
 
     final WorkflowExecutionSnapshot snapshot2 =
         new WorkflowExecutionSnapshot(
-            "exec-2",
-            "session-1",
-            "workflow-1",
-            false,
-            Set.of(),
-            Set.of(),
-            Set.of(),
-            now,
-            now);
+            "exec-2", "session-1", "workflow-1", false, Set.of(), Set.of(), Set.of(), now, now);
 
     assertThat(snapshot1).isNotEqualTo(snapshot2);
   }
@@ -237,27 +205,11 @@ class WorkflowExecutionSnapshotTest {
     final Instant now = Instant.now();
     final WorkflowExecutionSnapshot snapshot1 =
         new WorkflowExecutionSnapshot(
-            "exec-1",
-            "session-1",
-            "workflow-1",
-            false,
-            Set.of(),
-            Set.of(),
-            Set.of(),
-            now,
-            now);
+            "exec-1", "session-1", "workflow-1", false, Set.of(), Set.of(), Set.of(), now, now);
 
     final WorkflowExecutionSnapshot snapshot2 =
         new WorkflowExecutionSnapshot(
-            "exec-1",
-            "session-1",
-            "workflow-1",
-            false,
-            Set.of(),
-            Set.of(),
-            Set.of(),
-            now,
-            now);
+            "exec-1", "session-1", "workflow-1", false, Set.of(), Set.of(), Set.of(), now, now);
 
     assertThat(snapshot1.hashCode()).isEqualTo(snapshot2.hashCode());
   }

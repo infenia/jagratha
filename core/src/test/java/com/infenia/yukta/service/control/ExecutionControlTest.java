@@ -9,7 +9,7 @@
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
@@ -53,7 +53,9 @@ class ExecutionControlTest {
             Map.of(nodeId, Sinks.one()),
             Map.of(nodeId, Sinks.one()),
             Map.of(nodeId, new ReactiveControlValve()),
-            Map.of(nodeId, new AtomicBoolean(false)));
+            Map.of(nodeId, new AtomicBoolean(false)),
+            Map.of(nodeId, new AtomicBoolean(false)),
+            Map.of(nodeId, Sinks.many().multicast().onBackpressureBuffer()));
   }
 
   @Test
@@ -72,6 +74,8 @@ class ExecutionControlTest {
             Map.of(),
             Map.of(),
             Map.of(),
+            Map.of(),
+            Map.of(),
             Map.of());
 
     assertThat(ctrl.payload()).isNotSameAs(payload);
@@ -80,8 +84,7 @@ class ExecutionControlTest {
 
   @Test
   void testApplyPreProcessingControlsWithoutSkip() {
-    final Flux<Message<?>> input =
-        Flux.range(1, 3).map(i -> mockMessage());
+    final Flux<Message<?>> input = Flux.range(1, 3).map(i -> mockMessage());
 
     StepVerifier.create(control.applyPreProcessingControls(nodeId, input))
         .expectNextCount(3)
@@ -92,8 +95,7 @@ class ExecutionControlTest {
   void testApplyPreProcessingControlsWithSkipEnabled() {
     control.nodeSkipFlags().get(nodeId).set(true);
 
-    final Flux<Message<?>> input =
-        Flux.range(1, 3).map(i -> mockMessage());
+    final Flux<Message<?>> input = Flux.range(1, 3).map(i -> mockMessage());
 
     StepVerifier.create(control.applyPreProcessingControls(nodeId, input))
         .expectNextCount(3)
@@ -105,18 +107,15 @@ class ExecutionControlTest {
     final Sinks.One<Void> safeSink = control.nodeSafeStopSinks().get(nodeId);
     safeSink.emitEmpty(Sinks.EmitFailureHandler.FAIL_FAST);
 
-    final Flux<Message<?>> input =
-        Flux.range(1, 3).map(i -> mockMessage());
+    final Flux<Message<?>> input = Flux.range(1, 3).map(i -> mockMessage());
 
-    StepVerifier.create(control.applyPreProcessingControls(nodeId, input))
-        .verifyComplete();
+    StepVerifier.create(control.applyPreProcessingControls(nodeId, input)).verifyComplete();
   }
 
   @Test
   void testApplyPreProcessingControlsNoNodeControls() {
     final String otherNodeId = "other-node";
-    final Flux<Message<?>> input =
-        Flux.range(1, 2).map(i -> mockMessage());
+    final Flux<Message<?>> input = Flux.range(1, 2).map(i -> mockMessage());
 
     StepVerifier.create(control.applyPreProcessingControls(otherNodeId, input))
         .expectNextCount(2)
@@ -125,8 +124,7 @@ class ExecutionControlTest {
 
   @Test
   void testApplyPostProcessingControlsWithoutPause() {
-    final Flux<Message<?>> output =
-        Flux.range(1, 3).map(i -> mockMessage());
+    final Flux<Message<?>> output = Flux.range(1, 3).map(i -> mockMessage());
 
     StepVerifier.create(control.applyPostProcessingControls(nodeId, output))
         .expectNextCount(3)
@@ -138,8 +136,7 @@ class ExecutionControlTest {
     final ReactiveControlValve nodeValve = control.nodePauseValves().get(nodeId);
     nodeValve.pause();
 
-    final Flux<Message<?>> output =
-        Flux.range(1, 2).map(i -> mockMessage());
+    final Flux<Message<?>> output = Flux.range(1, 2).map(i -> mockMessage());
 
     nodeValve.resume();
 
@@ -153,8 +150,7 @@ class ExecutionControlTest {
     final ReactiveControlValve globalValve = control.globalPauseValve();
     globalValve.pause();
 
-    final Flux<Message<?>> output =
-        Flux.range(1, 2).map(i -> mockMessage());
+    final Flux<Message<?>> output = Flux.range(1, 2).map(i -> mockMessage());
 
     globalValve.resume();
 
@@ -168,18 +164,15 @@ class ExecutionControlTest {
     final Sinks.One<Void> immediateSink = control.nodeImmediateStopSinks().get(nodeId);
     immediateSink.emitEmpty(Sinks.EmitFailureHandler.FAIL_FAST);
 
-    final Flux<Message<?>> output =
-        Flux.range(1, 3).map(i -> mockMessage());
+    final Flux<Message<?>> output = Flux.range(1, 3).map(i -> mockMessage());
 
-    StepVerifier.create(control.applyPostProcessingControls(nodeId, output))
-        .verifyComplete();
+    StepVerifier.create(control.applyPostProcessingControls(nodeId, output)).verifyComplete();
   }
 
   @Test
   void testApplyPostProcessingControlsNoNodeControls() {
     final String otherNodeId = "other-node";
-    final Flux<Message<?>> output =
-        Flux.range(1, 2).map(i -> mockMessage());
+    final Flux<Message<?>> output = Flux.range(1, 2).map(i -> mockMessage());
 
     StepVerifier.create(control.applyPostProcessingControls(otherNodeId, output))
         .expectNextCount(2)
@@ -248,6 +241,8 @@ class ExecutionControlTest {
             Sinks.one(),
             Sinks.one(),
             new ReactiveControlValve(),
+            Map.of(),
+            Map.of(),
             Map.of(),
             Map.of(),
             Map.of(),
