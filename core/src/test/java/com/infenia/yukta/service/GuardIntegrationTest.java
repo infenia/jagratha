@@ -35,6 +35,7 @@ import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.control.factory.ExecutionControlFactory;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
+import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
 import java.util.List;
@@ -83,7 +84,8 @@ class GuardIntegrationTest {
             Schedulers.parallel(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
-            new InMemoryNodeCheckpointStore());
+            new InMemoryNodeCheckpointStore(),
+            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()));
 
     triggerPlugin = mock(TriggerPlugin.class);
     when(triggerPlugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));

@@ -48,6 +48,7 @@ import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
 import com.infenia.yukta.service.orchestrator.StreamBuilder;
+import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
 import java.lang.reflect.Method;
@@ -108,7 +109,8 @@ class WorkflowOrchestratorTest {
             Schedulers.parallel(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
-            new InMemoryNodeCheckpointStore());
+            new InMemoryNodeCheckpointStore(),
+            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()));
   }
 
   @Test
@@ -455,7 +457,8 @@ class WorkflowOrchestratorTest {
             Schedulers.immediate(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
-            new InMemoryNodeCheckpointStore());
+            new InMemoryNodeCheckpointStore(),
+            new StreamTopologyDecorator(mockStore, tracker, new InMemoryNodeCheckpointStore()));
 
     final Node triggerNode = new Node("t1", "trigger", Map.of());
     final Node terminalNode = new Node("term1", "terminal", Map.of());
@@ -851,7 +854,8 @@ class WorkflowOrchestratorTest {
             Schedulers.parallel(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
-            new InMemoryNodeCheckpointStore());
+            new InMemoryNodeCheckpointStore(),
+            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()));
 
     StepVerifier.create(
             fastOrchestrator

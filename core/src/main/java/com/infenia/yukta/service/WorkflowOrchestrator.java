@@ -16,6 +16,7 @@
 package com.infenia.yukta.service;
 
 import com.infenia.yukta.model.workflow.NodeAssembler;
+import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
@@ -40,6 +41,7 @@ import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
 import com.infenia.yukta.service.orchestrator.StreamBuilder;
+import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
@@ -142,6 +144,7 @@ public class WorkflowOrchestrator {
   private final ExecutionControlRegistry executionControlRegistry;
   private final ExecutionControlFactory executionControlFactory;
   private final NodeCheckpointStore checkpointStore;
+  private final StreamTopologyDecorator streamTopologyDecorator;
 
   /**
    * Constructs a new WorkflowOrchestrator.
@@ -158,6 +161,7 @@ public class WorkflowOrchestrator {
    * @param executionControlRegistry the registry for live executions
    * @param executionControlFactory the factory for creating execution controls
    * @param checkpointStore the node checkpoint store for restart support
+   * @param streamTopologyDecorator the stream topology decorator for message flow management
    */
   @Autowired
   @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -173,7 +177,8 @@ public class WorkflowOrchestrator {
       @Qualifier("virtualThreadScheduler") final Scheduler virtualThreadScheduler,
       final ExecutionControlRegistry executionControlRegistry,
       final ExecutionControlFactory executionControlFactory,
-      final NodeCheckpointStore checkpointStore) {
+      final NodeCheckpointStore checkpointStore,
+      final StreamTopologyDecorator streamTopologyDecorator) {
     this.registry = registry;
     this.tracker = tracker;
     this.validator = validator;
@@ -186,6 +191,7 @@ public class WorkflowOrchestrator {
     this.executionControlRegistry = executionControlRegistry;
     this.executionControlFactory = executionControlFactory;
     this.checkpointStore = checkpointStore;
+    this.streamTopologyDecorator = streamTopologyDecorator;
   }
 
   /**
@@ -643,7 +649,7 @@ public class WorkflowOrchestrator {
       built = control.applyPostProcessingControls(node.nodeId(), built);
       built = contextBuilder.applyContextTo(built);
       context.streams()[index] =
-          applyLoggingAndBroadcasting(
+          streamTopologyDecorator.applyLoggingAndBroadcasting(
               context.executionId(),
               node.nodeId(),
               built,
@@ -664,7 +670,8 @@ public class WorkflowOrchestrator {
 
     return context -> {
       final ExecutionControl control = context.control();
-      final Flux<Message<?>> mergedInput = mergeParentStreams(context.streams(), parentEdges);
+      final Flux<Message<?>> mergedInput =
+          streamTopologyDecorator.mergeParentStreams(context.streams(), parentEdges);
 
       // 1. Apply Pre-Processing Controls (Safe Stop & Skip Detection)
       Flux<Message<?>> safeInput = control.applyPreProcessingControls(node.nodeId(), mergedInput);
@@ -705,7 +712,7 @@ public class WorkflowOrchestrator {
       built = control.applyPostProcessingControls(node.nodeId(), built);
       built = contextBuilder.applyContextTo(built);
       context.streams()[index] =
-          applyLoggingAndBroadcasting(
+          streamTopologyDecorator.applyLoggingAndBroadcasting(
               context.executionId(),
               node.nodeId(),
               built,
@@ -724,7 +731,8 @@ public class WorkflowOrchestrator {
 
     return context -> {
       final ExecutionControl control = context.control();
-      final Flux<Message<?>> mergedInput = mergeParentStreams(context.streams(), parentEdges);
+      final Flux<Message<?>> mergedInput =
+          streamTopologyDecorator.mergeParentStreams(context.streams(), parentEdges);
 
       // 1. Apply Pre-Processing Controls (Safe Stop & Skip)
       final Flux<Message<?>> safeInput =
@@ -803,43 +811,6 @@ public class WorkflowOrchestrator {
       context.terminals().add(completion);
     };
   }
-
-  /**
-   * Merges parent streams.
-   *
-   * @param streams the array of streams
-   * @param parentEdges the parent edges
-   * @return the merged stream
-   */
-  @SuppressWarnings({"PMD.UseVarargs", "PMD.OnlyOneReturn", "PMD.AvoidLiteralsInIfCondition"})
-  private Flux<Message<?>> mergeParentStreams(
-      final Flux<Message<?>>[] streams, final ParentEdgeInfo[] parentEdges) {
-    if (parentEdges.length == 0) {
-      return Flux.empty();
-    }
-    if (parentEdges.length == 1) {
-      return applyEdgeRouting(streams, parentEdges[0]);
-    }
-
-    final List<Flux<Message<?>>> parentFluxes = new ArrayList<>(parentEdges.length);
-    for (final ParentEdgeInfo edge : parentEdges) {
-      parentFluxes.add(applyEdgeRouting(streams, edge));
-    }
-    return Flux.merge(parentFluxes);
-  }
-
-  private Flux<Message<?>> applyEdgeRouting(
-      final Flux<Message<?>>[] streams, final ParentEdgeInfo edge) {
-    Flux<Message<?>> stream =
-        streams[edge.parentIndex()].map(msg -> msg.withSourceNodeId(edge.sourceNodeId()));
-
-    if (edge.sourcePort() != null) {
-      stream = stream.filter(msg -> edge.sourcePort().equals(msg.getSourcePort()));
-    }
-    return stream;
-  }
-
-  private record ParentEdgeInfo(int parentIndex, String sourceNodeId, String sourcePort) {}
 
   /**
    * Executes a workflow starting from a specific node, replaying checkpoint messages from its
@@ -969,67 +940,5 @@ public class WorkflowOrchestrator {
       }
     }
     return result;
-  }
-
-  /**
-   * Applies logging and broadcasting (Sinks) to a stream.
-   *
-   * @param executionId the execution ID
-   * @param nodeId the node ID
-   * @param stream the stream to process
-   * @param bufferSize the buffer size
-   * @param disposables the list of disposables to manage resource lifecycle
-   * @param connectors the list of tasks to connect upstreams to sinks
-   * @return the processed stream
-   */
-  private Flux<Message<?>> applyLoggingAndBroadcasting(
-      final String executionId,
-      final String nodeId,
-      final Flux<Message<?>> stream,
-      final int bufferSize,
-      final List<Disposable> disposables,
-      final List<Runnable> connectors) {
-    final Flux<Message<?>> historiedStream = stream.map(msg -> msg.withAddedHistory(nodeId));
-    final Flux<Message<?>> processedStream = getMessageFlux(executionId, nodeId, historiedStream);
-
-    final Sinks.Many<Message<?>> sink = Sinks.many().multicast().onBackpressureBuffer(bufferSize);
-
-    connectors.add(
-        () ->
-            disposables.add(
-                processedStream.subscribe(
-                    msg -> sink.emitNext(msg, RETRY_HANDLER),
-                    err -> sink.emitError(err, RETRY_HANDLER),
-                    () -> sink.emitComplete(RETRY_HANDLER))));
-
-    return sink.asFlux();
-  }
-
-  private Flux<Message<?>> getMessageFlux(
-      final String executionId, final String nodeId, final Flux<Message<?>> stream) {
-    Flux<Message<?>> logStream = stream;
-    // 1. Conditional Reactor Logging: Only active if DEBUG level is set for this class
-    if (log.isDebugEnabled()) {
-      logStream = logStream.log("Node-" + nodeId);
-    }
-
-    // 2. Wire Tap: Send to MessageStore if available
-    if (messageStore != null) {
-      logStream = logStream.flatMap(msg -> messageStore.store(msg).thenReturn(msg));
-    }
-
-    // 3. Checkpoint: Save the last output of each node for restart-from-node support
-    logStream =
-        logStream.flatMap(msg -> checkpointStore.save(executionId, nodeId, msg).thenReturn(msg));
-
-    final Flux<Message<?>> processedStream;
-    if (log.isTraceEnabled()) {
-      processedStream =
-          logStream.doOnNext(
-              msg -> tracker.emitLogEvent(executionId, String.valueOf(msg.getPayload())));
-    } else {
-      processedStream = logStream;
-    }
-    return processedStream;
   }
 }
