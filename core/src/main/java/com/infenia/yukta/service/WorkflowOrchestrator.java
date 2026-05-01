@@ -342,7 +342,8 @@ public class WorkflowOrchestrator {
 
     final Mono<Void> execution = prepared.template().instantiate(executionId, payload);
 
-    return Mono.firstWithSignal(execution, control.safeStopSink().asMono())
+    return Mono.firstWithSignal(
+            execution, control.immediateStopSink().asMono(), control.safeStopSink().asMono())
         .doFinally(
             signal -> {
               executionControlRegistry.unregister(executionId);
@@ -587,6 +588,16 @@ public class WorkflowOrchestrator {
       final int bufferSize) {
 
     return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
+      final ExecutionControl control =
+          executionControlRegistry.findByExecutionId(execId).orElse(null);
+      if (control == null) {
+        log.atError()
+            .addKeyValue(LOG_KEY_EXECUTION_ID, execId)
+            .addKeyValue("nodeId", node.nodeId())
+            .log("Execution control not found");
+        return;
+      }
+
       Flux<Message<?>> stream = trigger.start(node.config());
       if (trigger.isBlocking()) {
         stream = stream.subscribeOn(virtualThreadScheduler);
@@ -608,6 +619,12 @@ public class WorkflowOrchestrator {
               .withErrorHandling(execId)
               .build();
 
+      final Sinks.One<Void> nodeSafeSink = control.nodeSafeStopSinks().get(node.nodeId());
+      if (nodeSafeSink != null) {
+        built = built.takeUntilOther(nodeSafeSink.asMono());
+      }
+
+      built = control.applyPostProcessingControls(node.nodeId(), built);
       built = contextBuilder.applyContextTo(built);
       strms[index] =
           applyLoggingAndBroadcasting(execId, node.nodeId(), built, bufferSize, disps, conns);
@@ -624,10 +641,35 @@ public class WorkflowOrchestrator {
       final ParentEdgeInfo[] parentEdges) {
 
     return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
+      final ExecutionControl control =
+          executionControlRegistry.findByExecutionId(execId).orElse(null);
+      if (control == null) {
+        log.atError()
+            .addKeyValue(LOG_KEY_EXECUTION_ID, execId)
+            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+            .log("Execution control not found");
+        return;
+      }
+
       final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
-      Flux<Message<?>> stream = processor.process(mergedInput, node.config());
-      if (processor.isBlocking()) {
-        stream = stream.subscribeOn(virtualThreadScheduler);
+
+      // 1. Apply Pre-Processing Controls (Safe Stop & Skip Detection)
+      Flux<Message<?>> safeInput = control.applyPreProcessingControls(node.nodeId(), mergedInput);
+
+      // 2. Execute processor (or skip if flagged)
+      Flux<Message<?>> stream;
+      final AtomicBoolean skipFlag = control.nodeSkipFlags().get(node.nodeId());
+
+      if (skipFlag != null && skipFlag.get()) {
+        log.atDebug()
+            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+            .log("Node marked for skip, bypassing processor");
+        stream = safeInput;
+      } else {
+        stream = processor.process(safeInput, node.config());
+        if (processor.isBlocking()) {
+          stream = stream.subscribeOn(virtualThreadScheduler);
+        }
       }
 
       final ExecutionContextBuilder contextBuilder =
@@ -646,6 +688,8 @@ public class WorkflowOrchestrator {
               .withErrorHandling(execId)
               .build();
 
+      // 3. Apply Post-Processing Controls (Immediate Stop & Pauses)
+      built = control.applyPostProcessingControls(node.nodeId(), built);
       built = contextBuilder.applyContextTo(built);
       strms[index] =
           applyLoggingAndBroadcasting(execId, node.nodeId(), built, bufferSize, disps, conns);
@@ -660,9 +704,24 @@ public class WorkflowOrchestrator {
       final ParentEdgeInfo[] parentEdges) {
 
     return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
+      final ExecutionControl control =
+          executionControlRegistry.findByExecutionId(execId).orElse(null);
+      if (control == null) {
+        log.atError()
+            .addKeyValue(LOG_KEY_EXECUTION_ID, execId)
+            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+            .log("Execution control not found");
+        return;
+      }
+
       final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
+
+      // 1. Apply Pre-Processing Controls (Safe Stop & Skip)
+      final Flux<Message<?>> safeInput =
+          control.applyPreProcessingControls(node.nodeId(), mergedInput);
+
       final Flux<Message<?>> inputToTerminal =
-          mergedInput
+          safeInput
               .flatMap(
                   msg ->
                       Mono.<Message<?>>just(msg)
@@ -981,7 +1040,7 @@ public class WorkflowOrchestrator {
         nodeId -> {
           nodeImmediateStopSinks.put(nodeId, Sinks.one());
           nodeSafeStopSinks.put(nodeId, Sinks.one());
-          nodePauseValves.put(nodeId, null);
+          nodePauseValves.put(nodeId, new ReactiveControlValve());
           nodeSkipFlags.put(nodeId, new AtomicBoolean(false));
         });
 
@@ -993,7 +1052,7 @@ public class WorkflowOrchestrator {
         payload,
         Sinks.one(),
         Sinks.one(),
-        null,
+        new ReactiveControlValve(),
         nodeImmediateStopSinks,
         nodeSafeStopSinks,
         nodePauseValves,
