@@ -41,6 +41,7 @@ import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
 import com.infenia.yukta.service.orchestrator.StreamBuilder;
+import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy;
 import com.infenia.yukta.service.session.SessionConfigStore;
@@ -140,13 +141,12 @@ public class WorkflowOrchestrator {
   private final SessionConfigStore configService;
   private final MessageStore messageStore;
   private final ControlBusGateway controlBusGateway;
-  private final Duration heartbeatInterval;
   private final Scheduler virtualThreadScheduler;
   private final ExecutionControlRegistry executionControlRegistry;
   private final ExecutionControlFactory executionControlFactory;
   private final NodeCheckpointStore checkpointStore;
   private final StreamTopologyDecorator streamTopologyDecorator;
-  private final List<NodeAssemblerStrategy> nodeAssemblerStrategies;
+  private final WorkflowCompiler compiler;
 
   /**
    * Constructs a new WorkflowOrchestrator.
@@ -158,12 +158,12 @@ public class WorkflowOrchestrator {
    * @param configService the session config store
    * @param messageStore the message store for auditing
    * @param controlBusGateway the control bus gateway
-   * @param heartbeatInterval the heartbeat interval duration
    * @param virtualThreadScheduler the scheduler for virtual threads
    * @param executionControlRegistry the registry for live executions
    * @param executionControlFactory the factory for creating execution controls
    * @param checkpointStore the node checkpoint store for restart support
    * @param streamTopologyDecorator the stream topology decorator for message flow management
+   * @param compiler the workflow compiler for template and assembler compilation
    */
   @Autowired
   @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -175,13 +175,12 @@ public class WorkflowOrchestrator {
       final SessionConfigStore configService,
       @Nullable final MessageStore messageStore,
       final ControlBusGateway controlBusGateway,
-      final Duration heartbeatInterval,
       @Qualifier("virtualThreadScheduler") final Scheduler virtualThreadScheduler,
       final ExecutionControlRegistry executionControlRegistry,
       final ExecutionControlFactory executionControlFactory,
       final NodeCheckpointStore checkpointStore,
       final StreamTopologyDecorator streamTopologyDecorator,
-      final List<NodeAssemblerStrategy> nodeAssemblerStrategies) {
+      final WorkflowCompiler compiler) {
     this.registry = registry;
     this.tracker = tracker;
     this.validator = validator;
@@ -189,13 +188,12 @@ public class WorkflowOrchestrator {
     this.configService = configService;
     this.messageStore = messageStore;
     this.controlBusGateway = controlBusGateway;
-    this.heartbeatInterval = heartbeatInterval;
     this.virtualThreadScheduler = virtualThreadScheduler;
     this.executionControlRegistry = executionControlRegistry;
     this.executionControlFactory = executionControlFactory;
     this.checkpointStore = checkpointStore;
     this.streamTopologyDecorator = streamTopologyDecorator;
-    this.nodeAssemblerStrategies = nodeAssemblerStrategies;
+    this.compiler = compiler;
   }
 
   /**
@@ -289,7 +287,7 @@ public class WorkflowOrchestrator {
                       topologicalSortService.computeTopologicalOrder(
                           def, adjacencyList, parentsList);
                   final WorkflowTemplate template =
-                      compileTemplate(def, parentsList, pluginCache, topologicalOrder);
+                      compiler.compileTemplate(def, parentsList, pluginCache, topologicalOrder);
                   return new PreparedWorkflow(
                       def, adjacencyList, parentsList, pluginCache, topologicalOrder, template);
                 }))
@@ -387,208 +385,6 @@ public class WorkflowOrchestrator {
   }
 
   /**
-   * Builds an assembler array for the given workflow in topological order.
-   *
-   * @param def the workflow definition
-   * @param parentsList map of nodeId to parent nodes
-   * @param pluginCache map of nodeId to initialized plugin instances
-   * @param topologicalOrder list of nodes in topological order
-   * @return the node assembler array, indexed by topological position
-   */
-  @SuppressWarnings("PMD.UseConcurrentHashMap")
-  /* package */ NodeAssembler[] compileAssemblers(
-      final WorkflowDefinition def,
-      final Map<String, List<Node>> parentsList,
-      final Map<String, WorkflowPlugin> pluginCache,
-      final List<Node> topologicalOrder) {
-
-    final int nodeCount = topologicalOrder.size();
-    final Map<String, Integer> nodeToIndex = new HashMap<>(nodeCount);
-    for (int i = 0; i < nodeCount; i++) {
-      nodeToIndex.put(topologicalOrder.get(i).nodeId(), i);
-    }
-
-    final NodeAssembler[] assemblers = new NodeAssembler[nodeCount];
-    for (int i = 0; i < nodeCount; i++) {
-      final Node node = topologicalOrder.get(i);
-      assemblers[i] = createNodeAssembler(def, node, parentsList, pluginCache, nodeToIndex);
-    }
-    return assemblers;
-  }
-
-  /**
-   * Compiles a workflow template for high-performance execution.
-   *
-   * @param def the workflow definition
-   * @param parentsList map of nodeId to parent nodes
-   * @param pluginCache map of nodeId to initialized plugin instances
-   * @param topologicalOrder list of nodes in topological order
-   * @return the compiled workflow template
-   */
-  private WorkflowTemplate compileTemplate(
-      final WorkflowDefinition def,
-      final Map<String, List<Node>> parentsList,
-      final Map<String, WorkflowPlugin> pluginCache,
-      final List<Node> topologicalOrder) {
-
-    final int nodeCount = topologicalOrder.size();
-    final NodeAssembler[] assemblers =
-        compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
-
-    final List<String> nodeIds = topologicalOrder.stream().map(Node::nodeId).toList();
-
-    return (executionId, payload) ->
-        Mono.deferContextual(
-            ctx ->
-                tracker
-                    .startWorkflow(
-                        executionId, ctx.get(CTX_SESSION_ID), ctx.get(CTX_WORKFLOW_ID), nodeIds)
-                    .then(
-                        Mono.defer(
-                            () ->
-                                executeTemplate(
-                                    executionId,
-                                    payload,
-                                    nodeCount,
-                                    assemblers,
-                                    ctx.get(CTX_SESSION_ID),
-                                    ctx.get(CTX_WORKFLOW_ID),
-                                    nodeIds)))
-                    .contextWrite(c -> c.put(CTX_PAYLOAD, payload)));
-  }
-
-  /**
-   * Internal execution logic for a compiled template.
-   *
-   * @param executionId the execution ID
-   * @param payload the initial payload
-   * @param nodeCount the number of nodes in the workflow
-   * @param assemblers the node assemblers
-   * @param sessionId the session ID
-   * @param workflowId the workflow ID
-   * @param nodeIds the list of node IDs
-   * @return a Mono that completes when execution is finished
-   */
-  private Mono<Void> executeTemplate(
-      final String executionId,
-      final Map<String, Object> payload,
-      final int nodeCount,
-      final NodeAssembler[] assemblers,
-      final String sessionId,
-      final String workflowId,
-      final List<String> nodeIds) {
-
-    log.atDebug()
-        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-        .addKeyValue(LOG_KEY_NODE_COUNT, nodeCount)
-        .addKeyValue(LOG_KEY_NODE_IDS, nodeIds)
-        .log("Executing workflow template with {} nodes", nodeCount);
-
-    @SuppressWarnings("unchecked")
-    final Flux<Message<?>>[] streams = new Flux[nodeCount];
-    final List<Mono<Void>> terminals = new ArrayList<>(nodeCount);
-    final List<Disposable> disposables = new ArrayList<>(nodeCount);
-    final List<Runnable> connectors = new ArrayList<>(nodeCount);
-
-    final ExecutionControl control =
-        executionControlRegistry
-            .findByExecutionId(executionId)
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "ExecutionControl not registered for execution: " + executionId));
-
-    final AssemblyContext context =
-        new AssemblyContext(
-            executionId,
-            sessionId,
-            workflowId,
-            payload,
-            control,
-            streams,
-            terminals,
-            disposables,
-            connectors);
-
-    for (final NodeAssembler assembler : assemblers) {
-      assembler.assemble(context);
-    }
-
-    log.atTrace()
-        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-        .addKeyValue(LOG_KEY_TERMINAL_COUNT, terminals.size())
-        .log("Node assembly complete");
-
-    // Setup heartbeats and statistics
-    log.atDebug()
-        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-        .addKeyValue(LOG_KEY_NODE_COUNT, nodeIds.size())
-        .addKeyValue(LOG_KEY_HEARTBEAT_INTERVAL, heartbeatInterval.toMillis())
-        .log("Starting heartbeat and statistics emission for {} nodes", nodeIds.size());
-
-    final HeartbeatBuilder heartbeatBuilder =
-        new HeartbeatBuilder(controlBusGateway, heartbeatInterval, virtualThreadScheduler);
-    final List<Disposable> heartbeatDisposables =
-        heartbeatBuilder
-            .forNodes(nodeIds)
-            .withHeartbeatInterval(heartbeatInterval)
-            .withStatisticsInterval(heartbeatInterval.multipliedBy(2))
-            .build();
-    disposables.addAll(heartbeatDisposables);
-
-    // Execute with resource management
-    return new ResourceManagementBuilder(tracker, configService, virtualThreadScheduler)
-        .withDisposables(disposables)
-        .withTerminals(terminals)
-        .withConnectors(connectors)
-        .withExecutionTimeout(sessionId, executionId)
-        .build();
-  }
-
-  /**
-   * Creates a NodeAssembler for a specific node.
-   *
-   * @param def the workflow definition
-   * @param node the node to assemble
-   * @param parentsList map of nodeId to parent nodes
-   * @param pluginCache map of nodeId to initialized plugin instances
-   * @param nodeToIndex map of nodeId to stream array index
-   * @return the NodeAssembler
-   */
-  private NodeAssembler createNodeAssembler(
-      final WorkflowDefinition def,
-      final Node node,
-      final Map<String, List<Node>> parentsList,
-      final Map<String, WorkflowPlugin> pluginCache,
-      final Map<String, Integer> nodeToIndex) {
-
-    final WorkflowPlugin plugin = pluginCache.get(node.nodeId());
-    final Duration nodeTimeout = getNodeTimeout(node, plugin);
-    final int bufferSize = getBufferSize(node);
-    final boolean hasParents = !parentsList.get(node.nodeId()).isEmpty();
-    final int nodeIndex = nodeToIndex.get(node.nodeId());
-
-    final ParentEdgeInfo[] parentEdges =
-        def.edges().stream()
-            .filter(e -> e.target().equals(node.nodeId()))
-            .map(e -> new ParentEdgeInfo(nodeToIndex.get(e.source()), e.source(), e.sourcePort()))
-            .toArray(ParentEdgeInfo[]::new);
-
-    for (final NodeAssemblerStrategy strategy : nodeAssemblerStrategies) {
-      if (strategy.supports(plugin, hasParents)) {
-        return strategy.createAssembler(node, plugin, nodeTimeout, nodeIndex, bufferSize,
-            parentEdges);
-      }
-    }
-
-    log.atWarn()
-        .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-        .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-        .log("Unknown plugin type, creating no-op assembler");
-    return context -> {};
-  }
-
-  /**
    * Executes a workflow starting from a specific node, replaying checkpoint messages from its
    * direct parents.
    *
@@ -624,7 +420,7 @@ public class WorkflowOrchestrator {
 
     final int restartIndex = nodeToIndex.getOrDefault(restartNodeId, 0);
     final NodeAssembler[] assemblers =
-        compileAssemblers(
+        compiler.compileAssemblers(
             prepared.definition(),
             prepared.parentsList(),
             prepared.pluginCache(),
@@ -651,7 +447,7 @@ public class WorkflowOrchestrator {
     return tracker
         .startWorkflow(newExecutionId, sessionId, workflowId, nodeIds)
         .then(
-            executeTemplate(
+            compiler.executeTemplate(
                 newExecutionId, Map.of(), nodeCount, assemblers, sessionId, workflowId, nodeIds))
         .as(mono -> Mono.firstWithSignal(mono, control.safeStopSink().asMono()))
         .doFinally(
@@ -676,45 +472,4 @@ public class WorkflowOrchestrator {
                     .log("RestartFromNode execution failed"));
   }
 
-  /**
-   * Gets the buffer size for a node.
-   *
-   * @param node the node
-   * @return the buffer size
-   */
-  private int getBufferSize(final Node node) {
-    final Object bufferVal = node.config().get("bufferSize");
-    final int result;
-    if (bufferVal instanceof Number numValue && numValue.intValue() > 0) {
-      result = numValue.intValue();
-    } else {
-      result = BUFFER_SIZE;
-    }
-    return result;
-  }
-
-  /**
-   * Gets the timeout for a node.
-   *
-   * @param node the node
-   * @param plugin the plugin
-   * @return the timeout duration
-   */
-  private Duration getNodeTimeout(final Node node, final WorkflowPlugin plugin) {
-    final Object timeoutVal =
-        node.config().getOrDefault("timeoutSeconds", node.config().get("timeout"));
-
-    final Duration result;
-    if (timeoutVal instanceof Number numValue && numValue.longValue() > 0) {
-      result = Duration.ofSeconds(numValue.longValue());
-    } else {
-      final Duration defaultTimeout = plugin != null ? plugin.getDefaultTimeout() : null;
-      if (defaultTimeout != null) {
-        result = defaultTimeout;
-      } else {
-        result = Duration.ofSeconds(REF_COUNT_TIMEOUT);
-      }
-    }
-    return result;
-  }
 }

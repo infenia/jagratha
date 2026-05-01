@@ -36,6 +36,7 @@ import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.control.factory.ExecutionControlFactory;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
+import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
@@ -77,13 +78,13 @@ class WorkflowOrchestratorFanInTest {
             configService,
             null,
             controlBusGateway,
-            java.time.Duration.ofSeconds(10),
             Schedulers.parallel(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
             new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
-            List.of());
+            new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofSeconds(10),
+                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()));
   }
 
   @Test

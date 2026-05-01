@@ -48,6 +48,7 @@ import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
 import com.infenia.yukta.service.orchestrator.StreamBuilder;
+import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
@@ -105,13 +106,13 @@ class WorkflowOrchestratorTest {
             configService,
             null,
             controlBusGateway,
-            java.time.Duration.ofSeconds(10),
             Schedulers.parallel(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
             new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
-            List.of());
+            new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofSeconds(10),
+                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()));
   }
 
   @Test
@@ -454,13 +455,13 @@ class WorkflowOrchestratorTest {
             configService,
             mockStore,
             controlBusGateway,
-            java.time.Duration.ofSeconds(10),
             Schedulers.immediate(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
             new StreamTopologyDecorator(mockStore, tracker, new InMemoryNodeCheckpointStore()),
-            List.of());
+            new WorkflowCompiler(tracker, controlBusGateway, Schedulers.immediate(), java.time.Duration.ofSeconds(10),
+                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()));
 
     final Node triggerNode = new Node("t1", "trigger", Map.of());
     final Node terminalNode = new Node("term1", "terminal", Map.of());
@@ -852,13 +853,13 @@ class WorkflowOrchestratorTest {
             configService,
             null,
             controlBusGateway,
-            java.time.Duration.ofMillis(10),
             Schedulers.parallel(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
             new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
-            List.of());
+            new WorkflowCompiler(tracker, controlBusGateway, Schedulers.parallel(), java.time.Duration.ofMillis(10),
+                configService, new ExecutionControlRegistry(new InMemoryExecutionControlStore()), List.of()));
 
     StepVerifier.create(
             fastOrchestrator
