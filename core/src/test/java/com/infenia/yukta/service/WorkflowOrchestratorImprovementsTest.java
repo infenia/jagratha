@@ -82,7 +82,8 @@ class WorkflowOrchestratorImprovementsTest {
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
-            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()));
+            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
+            List.of());
   }
 
   @Test
@@ -249,7 +250,8 @@ class WorkflowOrchestratorImprovementsTest {
                       new ExecutionControlFactory(),
                       new InMemoryNodeCheckpointStore(),
                       new StreamTopologyDecorator(
-                          null, tracker, new InMemoryNodeCheckpointStore()));
+                          null, tracker, new InMemoryNodeCheckpointStore()),
+                      List.of());
               return vOrchestrator
                   .prepareWorkflow(def)
                   .flatMap(

@@ -82,7 +82,8 @@ class WorkflowOrchestratorFanInTest {
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
-            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()));
+            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
+            List.of());
   }
 
   @Test

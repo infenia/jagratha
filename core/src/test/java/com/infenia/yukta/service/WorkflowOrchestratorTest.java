@@ -110,7 +110,8 @@ class WorkflowOrchestratorTest {
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
-            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()));
+            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
+            List.of());
   }
 
   @Test
@@ -458,7 +459,8 @@ class WorkflowOrchestratorTest {
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
-            new StreamTopologyDecorator(mockStore, tracker, new InMemoryNodeCheckpointStore()));
+            new StreamTopologyDecorator(mockStore, tracker, new InMemoryNodeCheckpointStore()),
+            List.of());
 
     final Node triggerNode = new Node("t1", "trigger", Map.of());
     final Node terminalNode = new Node("term1", "terminal", Map.of());
@@ -855,7 +857,8 @@ class WorkflowOrchestratorTest {
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
-            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()));
+            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
+            List.of());
 
     StepVerifier.create(
             fastOrchestrator

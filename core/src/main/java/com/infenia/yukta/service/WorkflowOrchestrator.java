@@ -42,6 +42,7 @@ import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
 import com.infenia.yukta.service.orchestrator.StreamBuilder;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
+import com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
@@ -145,6 +146,7 @@ public class WorkflowOrchestrator {
   private final ExecutionControlFactory executionControlFactory;
   private final NodeCheckpointStore checkpointStore;
   private final StreamTopologyDecorator streamTopologyDecorator;
+  private final List<NodeAssemblerStrategy> nodeAssemblerStrategies;
 
   /**
    * Constructs a new WorkflowOrchestrator.
@@ -178,7 +180,8 @@ public class WorkflowOrchestrator {
       final ExecutionControlRegistry executionControlRegistry,
       final ExecutionControlFactory executionControlFactory,
       final NodeCheckpointStore checkpointStore,
-      final StreamTopologyDecorator streamTopologyDecorator) {
+      final StreamTopologyDecorator streamTopologyDecorator,
+      final List<NodeAssemblerStrategy> nodeAssemblerStrategies) {
     this.registry = registry;
     this.tracker = tracker;
     this.validator = validator;
@@ -192,6 +195,7 @@ public class WorkflowOrchestrator {
     this.executionControlFactory = executionControlFactory;
     this.checkpointStore = checkpointStore;
     this.streamTopologyDecorator = streamTopologyDecorator;
+    this.nodeAssemblerStrategies = nodeAssemblerStrategies;
   }
 
   /**
@@ -564,252 +568,24 @@ public class WorkflowOrchestrator {
     final boolean hasParents = !parentsList.get(node.nodeId()).isEmpty();
     final int nodeIndex = nodeToIndex.get(node.nodeId());
 
-    final NodeAssembler result;
-    if (plugin instanceof TriggerPlugin trigger
-        && (plugin.getCategory() == PluginCategory.TRIGGER || !hasParents)) {
-      log.atTrace()
-          .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-          .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-          .addKeyValue(LOG_KEY_NODE_CATEGORY, "TRIGGER")
-          .log("Creating trigger node assembler");
-      result = createTriggerAssembler(node, trigger, nodeTimeout, nodeIndex, bufferSize);
-    } else {
-      final ParentEdgeInfo[] parentEdges =
-          def.edges().stream()
-              .filter(e -> e.target().equals(node.nodeId()))
-              .map(e -> new ParentEdgeInfo(nodeToIndex.get(e.source()), e.source(), e.sourcePort()))
-              .toArray(ParentEdgeInfo[]::new);
+    final ParentEdgeInfo[] parentEdges =
+        def.edges().stream()
+            .filter(e -> e.target().equals(node.nodeId()))
+            .map(e -> new ParentEdgeInfo(nodeToIndex.get(e.source()), e.source(), e.sourcePort()))
+            .toArray(ParentEdgeInfo[]::new);
 
-      if (plugin instanceof ProcessorPlugin processor) {
-        log.atTrace()
-            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-            .addKeyValue(LOG_KEY_NODE_CATEGORY, "PROCESSOR")
-            .addKeyValue(LOG_KEY_PARENT_EDGE_COUNT, parentEdges.length)
-            .log("Creating processor node assembler");
-        result =
-            createProcessorAssembler(
-                node, processor, nodeTimeout, nodeIndex, bufferSize, parentEdges);
-      } else if (plugin instanceof TerminalPlugin terminal) {
-        log.atTrace()
-            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-            .addKeyValue(LOG_KEY_NODE_CATEGORY, "TERMINAL")
-            .addKeyValue(LOG_KEY_PARENT_EDGE_COUNT, parentEdges.length)
-            .log("Creating terminal node assembler");
-        result = createTerminalAssembler(node, terminal, nodeTimeout, parentEdges);
-      } else {
-        log.atWarn()
-            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-            .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-            .log("Unknown plugin type, creating no-op assembler");
-        result = context -> {};
+    for (final NodeAssemblerStrategy strategy : nodeAssemblerStrategies) {
+      if (strategy.supports(plugin, hasParents)) {
+        return strategy.createAssembler(node, plugin, nodeTimeout, nodeIndex, bufferSize,
+            parentEdges);
       }
     }
 
-    return result;
-  }
-
-  private NodeAssembler createTriggerAssembler(
-      final Node node,
-      final TriggerPlugin trigger,
-      final Duration timeout,
-      final int index,
-      final int bufferSize) {
-
-    return context -> {
-      final ExecutionControl control = context.control();
-
-      Flux<Message<?>> stream = trigger.start(node.config());
-      if (trigger.isBlocking()) {
-        stream = stream.subscribeOn(virtualThreadScheduler);
-      }
-
-      final ExecutionContextBuilder contextBuilder =
-          new ExecutionContextBuilder()
-              .sessionId(context.sessionId())
-              .workflowId(context.workflowId())
-              .executionId(context.executionId())
-              .nodeId(node.nodeId())
-              .payload(context.payload());
-
-      Flux<Message<?>> built =
-          new StreamBuilder(node, timeout, tracker, controlBusGateway)
-              .withSource(stream)
-              .withTimeout()
-              .withTaskTracking(context.executionId())
-              .withErrorHandling(context.executionId())
-              .build();
-
-      final Sinks.One<Void> nodeSafeSink = control.nodeSafeStopSinks().get(node.nodeId());
-      if (nodeSafeSink != null) {
-        built = built.takeUntilOther(nodeSafeSink.asMono());
-      }
-
-      built = control.applyPostProcessingControls(node.nodeId(), built);
-      built = contextBuilder.applyContextTo(built);
-      context.streams()[index] =
-          streamTopologyDecorator.applyLoggingAndBroadcasting(
-              context.executionId(),
-              node.nodeId(),
-              built,
-              bufferSize,
-              context.disposables(),
-              context.connectors());
-    };
-  }
-
-  @SuppressWarnings("PMD.UseVarargs")
-  private NodeAssembler createProcessorAssembler(
-      final Node node,
-      final ProcessorPlugin processor,
-      final Duration timeout,
-      final int index,
-      final int bufferSize,
-      final ParentEdgeInfo[] parentEdges) {
-
-    return context -> {
-      final ExecutionControl control = context.control();
-      final Flux<Message<?>> mergedInput =
-          streamTopologyDecorator.mergeParentStreams(context.streams(), parentEdges);
-
-      // 1. Apply Pre-Processing Controls (Safe Stop & Skip Detection)
-      Flux<Message<?>> safeInput = control.applyPreProcessingControls(node.nodeId(), mergedInput);
-
-      // 2. Execute processor (or skip if flagged)
-      Flux<Message<?>> stream;
-      final AtomicBoolean skipFlag = control.nodeSkipFlags().get(node.nodeId());
-
-      if (skipFlag != null && skipFlag.get()) {
-        log.atDebug()
-            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-            .log("Node marked for skip, bypassing processor");
-        stream = safeInput;
-      } else {
-        stream = processor.process(safeInput, node.config());
-        if (processor.isBlocking()) {
-          stream = stream.subscribeOn(virtualThreadScheduler);
-        }
-      }
-
-      final ExecutionContextBuilder contextBuilder =
-          new ExecutionContextBuilder()
-              .sessionId(context.sessionId())
-              .workflowId(context.workflowId())
-              .executionId(context.executionId())
-              .nodeId(node.nodeId())
-              .payload(context.payload());
-
-      Flux<Message<?>> built =
-          new StreamBuilder(node, timeout, tracker, controlBusGateway)
-              .withSource(stream)
-              .withTimeout()
-              .withTaskTracking(context.executionId())
-              .withErrorHandling(context.executionId())
-              .build();
-
-      // 3. Apply Post-Processing Controls (Immediate Stop & Pauses)
-      built = control.applyPostProcessingControls(node.nodeId(), built);
-      built = contextBuilder.applyContextTo(built);
-      context.streams()[index] =
-          streamTopologyDecorator.applyLoggingAndBroadcasting(
-              context.executionId(),
-              node.nodeId(),
-              built,
-              bufferSize,
-              context.disposables(),
-              context.connectors());
-    };
-  }
-
-  @SuppressWarnings("PMD.UseVarargs")
-  private NodeAssembler createTerminalAssembler(
-      final Node node,
-      final TerminalPlugin terminal,
-      final Duration timeout,
-      final ParentEdgeInfo[] parentEdges) {
-
-    return context -> {
-      final ExecutionControl control = context.control();
-      final Flux<Message<?>> mergedInput =
-          streamTopologyDecorator.mergeParentStreams(context.streams(), parentEdges);
-
-      // 1. Apply Pre-Processing Controls (Safe Stop & Skip)
-      final Flux<Message<?>> safeInput =
-          control.applyPreProcessingControls(node.nodeId(), mergedInput);
-
-      final Flux<Message<?>> inputToTerminal =
-          safeInput
-              .flatMap(
-                  msg ->
-                      Mono.<Message<?>>just(msg)
-                          .timeout(timeout, virtualThreadScheduler)
-                          .onErrorMap(TimeoutException.class, e -> e),
-                  BUFFER_SIZE)
-              .transformDeferredContextual(
-                  (flux, ctx) -> {
-                    final ResultCollector collector = ctx.getOrDefault("resultCollector", null);
-                    return collector != null ? flux.doOnNext(collector::add) : flux;
-                  });
-
-      final ExecutionContextBuilder contextBuilder =
-          new ExecutionContextBuilder()
-              .sessionId(context.sessionId())
-              .workflowId(context.workflowId())
-              .executionId(context.executionId())
-              .nodeId(node.nodeId())
-              .payload(context.payload());
-
-      Mono<Void> completion = terminal.consume(inputToTerminal, node.config());
-      if (terminal.isBlocking()) {
-        completion = completion.subscribeOn(virtualThreadScheduler);
-      }
-
-      completion =
-          completion
-              .doOnSubscribe(
-                  s ->
-                      tracker.emitTaskStatusEvent(
-                          context.executionId(),
-                          node.nodeId(),
-                          DEFAULT_TASK_ID,
-                          STATUS_RUNNING,
-                          Collections.emptyMap()))
-              .doOnSuccess(
-                  v ->
-                      tracker.emitTaskStatusEvent(
-                          context.executionId(),
-                          node.nodeId(),
-                          DEFAULT_TASK_ID,
-                          STATUS_SUCCESS,
-                          Collections.emptyMap()))
-              .doOnError(
-                  e -> {
-                    tracker.emitTaskStatusEvent(
-                        context.executionId(),
-                        node.nodeId(),
-                        DEFAULT_TASK_ID,
-                        STATUS_FAILURE,
-                        Collections.emptyMap());
-                    controlBusGateway
-                        .emit(
-                            DefaultMessage.create(
-                                    null,
-                                    new ControlError(
-                                        node.nodeId(),
-                                        context.executionId(),
-                                        "Node Failure",
-                                        e.getMessage()))
-                                .withSourceNodeId(node.nodeId())
-                                .withControl(true)
-                                .withPriority(10))
-                        .subscribe();
-                  })
-              .then();
-
-      completion = contextBuilder.applyContextTo(completion);
-      context.terminals().add(completion);
-    };
+    log.atWarn()
+        .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+        .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+        .log("Unknown plugin type, creating no-op assembler");
+    return context -> {};
   }
 
   /**

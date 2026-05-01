@@ -85,7 +85,8 @@ class GuardIntegrationTest {
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
             new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore(),
-            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()));
+            new StreamTopologyDecorator(null, tracker, new InMemoryNodeCheckpointStore()),
+            List.of());
 
     triggerPlugin = mock(TriggerPlugin.class);
     when(triggerPlugin.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
