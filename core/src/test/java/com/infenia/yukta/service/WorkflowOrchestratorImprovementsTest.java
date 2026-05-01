@@ -31,6 +31,7 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.control.factory.ExecutionControlFactory;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
 import com.infenia.yukta.service.session.SessionConfigStore;
@@ -78,6 +79,7 @@ class WorkflowOrchestratorImprovementsTest {
             java.time.Duration.ofSeconds(10),
             Schedulers.parallel(),
             new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
+            new ExecutionControlFactory(),
             new InMemoryNodeCheckpointStore());
   }
 
@@ -242,6 +244,7 @@ class WorkflowOrchestratorImprovementsTest {
                       java.time.Duration.ofSeconds(10),
                       Schedulers.parallel(),
                       new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
+                      new ExecutionControlFactory(),
                       new InMemoryNodeCheckpointStore());
               return vOrchestrator
                   .prepareWorkflow(def)

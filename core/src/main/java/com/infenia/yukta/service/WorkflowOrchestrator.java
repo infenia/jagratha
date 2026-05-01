@@ -33,8 +33,8 @@ import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.control.ExecutionControl;
+import com.infenia.yukta.service.control.factory.ExecutionControlFactory;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
-import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import com.infenia.yukta.service.orchestrator.AssemblyContext;
 import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
@@ -140,6 +140,7 @@ public class WorkflowOrchestrator {
   private final Duration heartbeatInterval;
   private final Scheduler virtualThreadScheduler;
   private final ExecutionControlRegistry executionControlRegistry;
+  private final ExecutionControlFactory executionControlFactory;
   private final NodeCheckpointStore checkpointStore;
 
   /**
@@ -155,6 +156,7 @@ public class WorkflowOrchestrator {
    * @param heartbeatInterval the heartbeat interval duration
    * @param virtualThreadScheduler the scheduler for virtual threads
    * @param executionControlRegistry the registry for live executions
+   * @param executionControlFactory the factory for creating execution controls
    * @param checkpointStore the node checkpoint store for restart support
    */
   @Autowired
@@ -170,6 +172,7 @@ public class WorkflowOrchestrator {
       final Duration heartbeatInterval,
       @Qualifier("virtualThreadScheduler") final Scheduler virtualThreadScheduler,
       final ExecutionControlRegistry executionControlRegistry,
+      final ExecutionControlFactory executionControlFactory,
       final NodeCheckpointStore checkpointStore) {
     this.registry = registry;
     this.tracker = tracker;
@@ -181,6 +184,7 @@ public class WorkflowOrchestrator {
     this.heartbeatInterval = heartbeatInterval;
     this.virtualThreadScheduler = virtualThreadScheduler;
     this.executionControlRegistry = executionControlRegistry;
+    this.executionControlFactory = executionControlFactory;
     this.checkpointStore = checkpointStore;
   }
 
@@ -338,7 +342,7 @@ public class WorkflowOrchestrator {
         .log("Starting workflow execution");
 
     final ExecutionControl control =
-        createExecutionControl(sessionId, workflowId, executionId, prepared, payload);
+        executionControlFactory.create(sessionId, workflowId, executionId, prepared, payload);
     executionControlRegistry.register(control);
 
     final Mono<Void> execution = prepared.template().instantiate(executionId, payload);
@@ -477,14 +481,23 @@ public class WorkflowOrchestrator {
     final List<Runnable> connectors = new ArrayList<>(nodeCount);
 
     final ExecutionControl control =
-        executionControlRegistry.findByExecutionId(executionId).orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "ExecutionControl not registered for execution: " + executionId));
+        executionControlRegistry
+            .findByExecutionId(executionId)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "ExecutionControl not registered for execution: " + executionId));
 
     final AssemblyContext context =
         new AssemblyContext(
-            executionId, sessionId, workflowId, payload, control, streams, terminals, disposables,
+            executionId,
+            sessionId,
+            workflowId,
+            payload,
+            control,
+            streams,
+            terminals,
+            disposables,
             connectors);
 
     for (final NodeAssembler assembler : assemblers) {
@@ -711,8 +724,7 @@ public class WorkflowOrchestrator {
 
     return context -> {
       final ExecutionControl control = context.control();
-      final Flux<Message<?>> mergedInput =
-          mergeParentStreams(context.streams(), parentEdges);
+      final Flux<Message<?>> mergedInput = mergeParentStreams(context.streams(), parentEdges);
 
       // 1. Apply Pre-Processing Controls (Safe Stop & Skip)
       final Flux<Message<?>> safeInput =
@@ -886,7 +898,7 @@ public class WorkflowOrchestrator {
     final List<String> nodeIds = topologicalOrder.stream().map(Node::nodeId).toList();
 
     final ExecutionControl control =
-        createExecutionControl(sessionId, workflowId, newExecutionId, prepared, Map.of());
+        executionControlFactory.create(sessionId, workflowId, newExecutionId, prepared, Map.of());
     executionControlRegistry.register(control);
 
     return tracker
@@ -1019,47 +1031,5 @@ public class WorkflowOrchestrator {
       processedStream = logStream;
     }
     return processedStream;
-  }
-
-  private ExecutionControl createExecutionControl(
-      final String sessionId,
-      final String workflowId,
-      final String executionId,
-      final PreparedWorkflow prepared,
-      final Map<String, Object> payload) {
-    final List<String> nodeIds = prepared.topologicalOrder().stream().map(Node::nodeId).toList();
-
-    final Map<String, Sinks.One<Void>> nodeImmediateStopSinks = new ConcurrentHashMap<>();
-    final Map<String, Sinks.One<Void>> nodeSafeStopSinks = new ConcurrentHashMap<>();
-    final Map<String, ReactiveControlValve> nodePauseValves = new ConcurrentHashMap<>();
-    final Map<String, AtomicBoolean> nodeSkipFlags = new ConcurrentHashMap<>();
-    final Map<String, AtomicBoolean> nodeStepModes = new ConcurrentHashMap<>();
-    final Map<String, Sinks.Many<Void>> nodeStepSinks = new ConcurrentHashMap<>();
-
-    nodeIds.forEach(
-        nodeId -> {
-          nodeImmediateStopSinks.put(nodeId, Sinks.one());
-          nodeSafeStopSinks.put(nodeId, Sinks.one());
-          nodePauseValves.put(nodeId, new ReactiveControlValve());
-          nodeSkipFlags.put(nodeId, new AtomicBoolean(false));
-          nodeStepModes.put(nodeId, new AtomicBoolean(false));
-          nodeStepSinks.put(nodeId, Sinks.many().multicast().onBackpressureBuffer());
-        });
-
-    return new ExecutionControl(
-        sessionId,
-        workflowId,
-        executionId,
-        prepared,
-        payload,
-        Sinks.one(),
-        Sinks.one(),
-        new ReactiveControlValve(),
-        nodeImmediateStopSinks,
-        nodeSafeStopSinks,
-        nodePauseValves,
-        nodeSkipFlags,
-        nodeStepModes,
-        nodeStepSinks);
   }
 }
