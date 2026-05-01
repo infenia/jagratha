@@ -35,6 +35,7 @@ import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
+import com.infenia.yukta.service.orchestrator.AssemblyContext;
 import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
@@ -475,9 +476,19 @@ public class WorkflowOrchestrator {
     final List<Disposable> disposables = new ArrayList<>(nodeCount);
     final List<Runnable> connectors = new ArrayList<>(nodeCount);
 
+    final ExecutionControl control =
+        executionControlRegistry.findByExecutionId(executionId).orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "ExecutionControl not registered for execution: " + executionId));
+
+    final AssemblyContext context =
+        new AssemblyContext(
+            executionId, sessionId, workflowId, payload, control, streams, terminals, disposables,
+            connectors);
+
     for (final NodeAssembler assembler : assemblers) {
-      assembler.assemble(
-          executionId, sessionId, workflowId, payload, streams, terminals, disposables, connectors);
+      assembler.assemble(context);
     }
 
     log.atTrace()
@@ -573,7 +584,7 @@ public class WorkflowOrchestrator {
             .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
             .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
             .log("Unknown plugin type, creating no-op assembler");
-        result = (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {};
+        result = context -> {};
       }
     }
 
@@ -587,16 +598,8 @@ public class WorkflowOrchestrator {
       final int index,
       final int bufferSize) {
 
-    return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
-      final ExecutionControl control =
-          executionControlRegistry.findByExecutionId(execId).orElse(null);
-      if (control == null) {
-        log.atError()
-            .addKeyValue(LOG_KEY_EXECUTION_ID, execId)
-            .addKeyValue("nodeId", node.nodeId())
-            .log("Execution control not found");
-        return;
-      }
+    return context -> {
+      final ExecutionControl control = context.control();
 
       Flux<Message<?>> stream = trigger.start(node.config());
       if (trigger.isBlocking()) {
@@ -605,18 +608,18 @@ public class WorkflowOrchestrator {
 
       final ExecutionContextBuilder contextBuilder =
           new ExecutionContextBuilder()
-              .sessionId(sessId)
-              .workflowId(wfId)
-              .executionId(execId)
+              .sessionId(context.sessionId())
+              .workflowId(context.workflowId())
+              .executionId(context.executionId())
               .nodeId(node.nodeId())
-              .payload(pld);
+              .payload(context.payload());
 
       Flux<Message<?>> built =
           new StreamBuilder(node, timeout, tracker, controlBusGateway)
               .withSource(stream)
               .withTimeout()
-              .withTaskTracking(execId)
-              .withErrorHandling(execId)
+              .withTaskTracking(context.executionId())
+              .withErrorHandling(context.executionId())
               .build();
 
       final Sinks.One<Void> nodeSafeSink = control.nodeSafeStopSinks().get(node.nodeId());
@@ -626,8 +629,14 @@ public class WorkflowOrchestrator {
 
       built = control.applyPostProcessingControls(node.nodeId(), built);
       built = contextBuilder.applyContextTo(built);
-      strms[index] =
-          applyLoggingAndBroadcasting(execId, node.nodeId(), built, bufferSize, disps, conns);
+      context.streams()[index] =
+          applyLoggingAndBroadcasting(
+              context.executionId(),
+              node.nodeId(),
+              built,
+              bufferSize,
+              context.disposables(),
+              context.connectors());
     };
   }
 
@@ -640,18 +649,9 @@ public class WorkflowOrchestrator {
       final int bufferSize,
       final ParentEdgeInfo[] parentEdges) {
 
-    return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
-      final ExecutionControl control =
-          executionControlRegistry.findByExecutionId(execId).orElse(null);
-      if (control == null) {
-        log.atError()
-            .addKeyValue(LOG_KEY_EXECUTION_ID, execId)
-            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-            .log("Execution control not found");
-        return;
-      }
-
-      final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
+    return context -> {
+      final ExecutionControl control = context.control();
+      final Flux<Message<?>> mergedInput = mergeParentStreams(context.streams(), parentEdges);
 
       // 1. Apply Pre-Processing Controls (Safe Stop & Skip Detection)
       Flux<Message<?>> safeInput = control.applyPreProcessingControls(node.nodeId(), mergedInput);
@@ -674,25 +674,31 @@ public class WorkflowOrchestrator {
 
       final ExecutionContextBuilder contextBuilder =
           new ExecutionContextBuilder()
-              .sessionId(sessId)
-              .workflowId(wfId)
-              .executionId(execId)
+              .sessionId(context.sessionId())
+              .workflowId(context.workflowId())
+              .executionId(context.executionId())
               .nodeId(node.nodeId())
-              .payload(pld);
+              .payload(context.payload());
 
       Flux<Message<?>> built =
           new StreamBuilder(node, timeout, tracker, controlBusGateway)
               .withSource(stream)
               .withTimeout()
-              .withTaskTracking(execId)
-              .withErrorHandling(execId)
+              .withTaskTracking(context.executionId())
+              .withErrorHandling(context.executionId())
               .build();
 
       // 3. Apply Post-Processing Controls (Immediate Stop & Pauses)
       built = control.applyPostProcessingControls(node.nodeId(), built);
       built = contextBuilder.applyContextTo(built);
-      strms[index] =
-          applyLoggingAndBroadcasting(execId, node.nodeId(), built, bufferSize, disps, conns);
+      context.streams()[index] =
+          applyLoggingAndBroadcasting(
+              context.executionId(),
+              node.nodeId(),
+              built,
+              bufferSize,
+              context.disposables(),
+              context.connectors());
     };
   }
 
@@ -703,18 +709,10 @@ public class WorkflowOrchestrator {
       final Duration timeout,
       final ParentEdgeInfo[] parentEdges) {
 
-    return (execId, sessId, wfId, pld, strms, terms, disps, conns) -> {
-      final ExecutionControl control =
-          executionControlRegistry.findByExecutionId(execId).orElse(null);
-      if (control == null) {
-        log.atError()
-            .addKeyValue(LOG_KEY_EXECUTION_ID, execId)
-            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-            .log("Execution control not found");
-        return;
-      }
-
-      final Flux<Message<?>> mergedInput = mergeParentStreams(strms, parentEdges);
+    return context -> {
+      final ExecutionControl control = context.control();
+      final Flux<Message<?>> mergedInput =
+          mergeParentStreams(context.streams(), parentEdges);
 
       // 1. Apply Pre-Processing Controls (Safe Stop & Skip)
       final Flux<Message<?>> safeInput =
@@ -736,11 +734,11 @@ public class WorkflowOrchestrator {
 
       final ExecutionContextBuilder contextBuilder =
           new ExecutionContextBuilder()
-              .sessionId(sessId)
-              .workflowId(wfId)
-              .executionId(execId)
+              .sessionId(context.sessionId())
+              .workflowId(context.workflowId())
+              .executionId(context.executionId())
               .nodeId(node.nodeId())
-              .payload(pld);
+              .payload(context.payload());
 
       Mono<Void> completion = terminal.consume(inputToTerminal, node.config());
       if (terminal.isBlocking()) {
@@ -752,7 +750,7 @@ public class WorkflowOrchestrator {
               .doOnSubscribe(
                   s ->
                       tracker.emitTaskStatusEvent(
-                          execId,
+                          context.executionId(),
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_RUNNING,
@@ -760,7 +758,7 @@ public class WorkflowOrchestrator {
               .doOnSuccess(
                   v ->
                       tracker.emitTaskStatusEvent(
-                          execId,
+                          context.executionId(),
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_SUCCESS,
@@ -768,7 +766,7 @@ public class WorkflowOrchestrator {
               .doOnError(
                   e -> {
                     tracker.emitTaskStatusEvent(
-                        execId,
+                        context.executionId(),
                         node.nodeId(),
                         DEFAULT_TASK_ID,
                         STATUS_FAILURE,
@@ -778,7 +776,10 @@ public class WorkflowOrchestrator {
                             DefaultMessage.create(
                                     null,
                                     new ControlError(
-                                        node.nodeId(), execId, "Node Failure", e.getMessage()))
+                                        node.nodeId(),
+                                        context.executionId(),
+                                        "Node Failure",
+                                        e.getMessage()))
                                 .withSourceNodeId(node.nodeId())
                                 .withControl(true)
                                 .withPriority(10))
@@ -787,7 +788,7 @@ public class WorkflowOrchestrator {
               .then();
 
       completion = contextBuilder.applyContextTo(completion);
-      terms.add(completion);
+      context.terminals().add(completion);
     };
   }
 
@@ -876,12 +877,9 @@ public class WorkflowOrchestrator {
       final int idx = i;
       final Message<?> checkpoint = parentCheckpoints.get(node.nodeId());
       if (checkpoint != null) {
-        assemblers[idx] =
-            (execId, sessId, wfId, pld, strms, terms, disps, conns) ->
-                strms[idx] = Flux.just(checkpoint);
+        assemblers[idx] = context -> context.streams()[idx] = Flux.just(checkpoint);
       } else {
-        assemblers[idx] =
-            (execId, sessId, wfId, pld, strms, terms, disps, conns) -> strms[idx] = Flux.empty();
+        assemblers[idx] = context -> context.streams()[idx] = Flux.empty();
       }
     }
 
