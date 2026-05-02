@@ -42,14 +42,14 @@ class DefaultWorkflowControlApiTest {
 
   private WorkflowControlApi api;
   private ExecutionControlRegistry registry;
+  private WorkflowOrchestrator orchestrator;
+  private NodeCheckpointStore checkpointStore;
 
-    private WorkflowOrchestrator orchestrator;
-
-    @BeforeEach
+  @BeforeEach
   void setUp() {
     registry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
     orchestrator = mock(WorkflowOrchestrator.class);
-        final NodeCheckpointStore checkpointStore = mock(NodeCheckpointStore.class);
+    checkpointStore = mock(NodeCheckpointStore.class);
     api = new DefaultWorkflowControlApi(registry, orchestrator, checkpointStore);
   }
 
@@ -816,7 +816,6 @@ class DefaultWorkflowControlApiTest {
 
     when(checkpointStore.get(executionId, parentNodeId))
         .thenReturn(Mono.error(new RuntimeException("Checkpoint not found")));
-    when(checkpointStore.clear(executionId)).thenReturn(Mono.empty());
     when(orchestrator.restartFromNode(
             eq("session-1"),
             eq("workflow-1"),
