@@ -779,4 +779,56 @@ class DefaultWorkflowControlApiTest {
         .expectError(IllegalArgumentException.class)
         .verify();
   }
+
+  @Test
+  void testRestartFromNodeWithCheckpointFetchError() {
+    final String executionId = "exec-1";
+    final String nodeId = "node-2";
+    final String parentNodeId = "node-1";
+
+    final WorkflowDefinition definition =
+        new WorkflowDefinition("test workflow", List.of(), List.of());
+    final WorkflowDefinition.Node parentNode =
+        new WorkflowDefinition.Node(parentNodeId, "parent-plugin", Map.of());
+    final Map<String, List<WorkflowDefinition.Node>> parentsList =
+        Map.of(nodeId, List.of(parentNode));
+    final PreparedWorkflow prepared =
+        new PreparedWorkflow(definition, Map.of(), parentsList, Map.of(), List.of(), null);
+    final Map<String, Object> payload = Map.of("key", "value");
+
+    final ExecutionControl control =
+        new ExecutionControl(
+            "session-1",
+            "workflow-1",
+            executionId,
+            prepared,
+            payload,
+            Sinks.one(),
+            Sinks.one(),
+            new ReactiveControlValve(),
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of());
+    registry.register(control);
+
+    when(checkpointStore.get(executionId, parentNodeId))
+        .thenReturn(Mono.error(new RuntimeException("Checkpoint not found")));
+    when(checkpointStore.clear(executionId)).thenReturn(Mono.empty());
+    when(orchestrator.restartFromNode(
+            eq("session-1"),
+            eq("workflow-1"),
+            eq(executionId),
+            anyString(),
+            eq(prepared),
+            eq(nodeId),
+            any()))
+        .thenReturn(Mono.empty());
+
+    StepVerifier.create(api.restartFromNode(executionId, nodeId))
+        .assertNext(newExecutionId -> assertThat(newExecutionId).isNotBlank())
+        .verifyComplete();
+  }
 }
