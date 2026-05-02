@@ -832,6 +832,36 @@ class DefaultWorkflowControlApiTest {
   }
 
   @Test
+  void testGetStatusWithNullGlobalPauseValve() {
+    final String executionId = "exec-1";
+    final ExecutionControl control =
+        new ExecutionControl(
+            "session-1",
+            "workflow-1",
+            executionId,
+            null,
+            Map.of(),
+            Sinks.one(),
+            Sinks.one(),
+            null,
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of());
+    registry.register(control);
+
+    StepVerifier.create(api.getStatus(executionId))
+        .assertNext(
+            snapshot -> {
+              assertThat(snapshot.executionId()).isEqualTo(executionId);
+              assertThat(snapshot.isGlobalPaused()).isFalse();
+            })
+        .verifyComplete();
+  }
+
+  @Test
   void testRestartFromNodeWithSuccessfulCheckpointFetch() {
     final String executionId = "exec-1";
     final String nodeId = "node-2";
