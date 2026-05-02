@@ -713,7 +713,8 @@ class DefaultWorkflowControlApiTest {
             Map.of());
     registry.register(control);
 
-    when(orchestrator.execute("session-1", "workflow-1", anyString(), eq(prepared), any()))
+    when(orchestrator.execute(
+            eq("session-1"), eq("workflow-1"), anyString(), eq(prepared), any()))
         .thenReturn(Mono.empty());
 
     StepVerifier.create(api.restartWorkflow(executionId))
@@ -758,7 +759,13 @@ class DefaultWorkflowControlApiTest {
     registry.register(control);
 
     when(orchestrator.restartFromNode(
-            "session-1", "workflow-1", executionId, anyString(), eq(prepared), eq(nodeId), any()))
+            eq("session-1"),
+            eq("workflow-1"),
+            eq(executionId),
+            anyString(),
+            eq(prepared),
+            eq(nodeId),
+            any()))
         .thenReturn(Mono.empty());
 
     StepVerifier.create(api.restartFromNode(executionId, nodeId))
