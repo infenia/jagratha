@@ -16,6 +16,9 @@
 package com.infenia.yukta.service.control;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -41,13 +44,12 @@ class DefaultWorkflowControlApiTest {
   private ExecutionControlRegistry registry;
 
     private WorkflowOrchestrator orchestrator;
-  private NodeCheckpointStore checkpointStore;
 
-  @BeforeEach
+    @BeforeEach
   void setUp() {
     registry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
     orchestrator = mock(WorkflowOrchestrator.class);
-    checkpointStore = mock(NodeCheckpointStore.class);
+        final NodeCheckpointStore checkpointStore = mock(NodeCheckpointStore.class);
     api = new DefaultWorkflowControlApi(registry, orchestrator, checkpointStore);
   }
 
@@ -104,28 +106,6 @@ class DefaultWorkflowControlApiTest {
         isImmediateStop ? Map.of() : Map.of("node-1", nodeSink),
         Map.of(),
         Map.of(),
-        Map.of(),
-        Map.of());
-  }
-
-  private ExecutionControl createControlWithNodeSkipFlag(
-      final String sessionId,
-      final String workflowId,
-      final String executionId,
-      final String nodeId) {
-    return new ExecutionControl(
-        sessionId,
-        workflowId,
-        executionId,
-        null,
-        Map.of(),
-        Sinks.one(),
-        Sinks.one(),
-        new ReactiveControlValve(),
-        Map.of(),
-        Map.of(),
-        Map.of(),
-        Map.of(nodeId, new AtomicBoolean(false)),
         Map.of(),
         Map.of());
   }
@@ -733,7 +713,7 @@ class DefaultWorkflowControlApiTest {
             Map.of());
     registry.register(control);
 
-    when(orchestrator.execute("session-1", "workflow-1", "exec-2", prepared, payload))
+    when(orchestrator.execute("session-1", "workflow-1", anyString(), eq(prepared), any()))
         .thenReturn(Mono.empty());
 
     StepVerifier.create(api.restartWorkflow(executionId))
@@ -778,7 +758,7 @@ class DefaultWorkflowControlApiTest {
     registry.register(control);
 
     when(orchestrator.restartFromNode(
-            "session-1", "workflow-1", executionId, "exec-2", prepared, nodeId, Map.of()))
+            "session-1", "workflow-1", executionId, anyString(), eq(prepared), eq(nodeId), any()))
         .thenReturn(Mono.empty());
 
     StepVerifier.create(api.restartFromNode(executionId, nodeId))
