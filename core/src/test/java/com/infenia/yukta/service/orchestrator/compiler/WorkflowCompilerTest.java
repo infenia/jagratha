@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service;
+package com.infenia.yukta.service.orchestrator.compiler;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -33,10 +33,14 @@ import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.TaskTrackerService;
+import com.infenia.yukta.service.TopologicalSortService;
+import com.infenia.yukta.service.WorkflowRegistry;
+import com.infenia.yukta.service.WorkflowValidator;
 import com.infenia.yukta.service.control.factory.ExecutionControlFactory;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
-import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
+import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.orchestrator.preparator.WorkflowPreparator;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.session.SessionConfigStore;
@@ -46,12 +50,15 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
-class WorkflowOrchestratorFanInTest {
+@ExtendWith(MockitoExtension.class)
+class WorkflowCompilerTest {
 
   private WorkflowRegistry registry;
   private TaskTrackerService tracker;
@@ -65,9 +72,9 @@ class WorkflowOrchestratorFanInTest {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
     configService = mock(SessionConfigStore.class);
+    validator = mock(WorkflowValidator.class);
     controlBusGateway = mock(com.infenia.yukta.plugin.gateway.ControlBusGateway.class);
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
-    validator = new WorkflowValidator(registry);
     when(tracker.startWorkflow(any(), any(), any(), any())).thenReturn(Mono.empty());
     when(configService.getExecutionTimeout(anyString())).thenReturn(Mono.just(3600L));
     orchestrator =
@@ -155,7 +162,6 @@ class WorkflowOrchestratorFanInTest {
                         orchestrator.execute(sessionId, "test-workflow", executionId, p, Map.of())))
         .verifyComplete();
 
-    // Verify that terminal received 2 messages (one from each trigger path)
     verify(terminal).consume(any(), any());
     verify(tracker, atLeastOnce()).emitWorkflowStatusEvent(eq(executionId), eq("SUCCESS"));
   }
@@ -316,7 +322,6 @@ class WorkflowOrchestratorFanInTest {
 
     verify(tracker, timeout(1000).atLeastOnce())
         .emitTaskStatusEvent(eq(executionId), eq("t1"), anyString(), eq("FAILURE"), any());
-    // ERROR now since I changed the error handling in execute() to STATUS_ERROR
     verify(tracker, timeout(1000)).emitWorkflowStatusEvent(eq(executionId), eq("ERROR"));
   }
 }

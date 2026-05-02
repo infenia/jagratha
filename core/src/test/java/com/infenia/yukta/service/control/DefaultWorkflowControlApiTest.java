@@ -16,10 +16,13 @@
 package com.infenia.yukta.service.control;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
+import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
+import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,11 +34,15 @@ class DefaultWorkflowControlApiTest {
 
   private WorkflowControlApi api;
   private ExecutionControlRegistry registry;
+  private WorkflowOrchestrator orchestrator;
+  private NodeCheckpointStore checkpointStore;
 
   @BeforeEach
   void setUp() {
     registry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
-    api = new DefaultWorkflowControlApi(registry);
+    orchestrator = mock(WorkflowOrchestrator.class);
+    checkpointStore = mock(NodeCheckpointStore.class);
+    api = new DefaultWorkflowControlApi(registry, orchestrator, checkpointStore);
   }
 
   private ExecutionControl createControl(

@@ -15,20 +15,54 @@
  */
 package com.infenia.yukta.service.control;
 
+import com.infenia.yukta.model.workflow.PreparedWorkflow;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import java.util.Map;
 import reactor.core.publisher.Mono;
 
 /**
- * Synchronous / Programmatic boundary for workflow execution control.
+ * Unified Facade for the entire workflow engine lifecycle.
  *
- * <p>Single source of truth for all workflow control state mutations (stop, pause, skip, etc.).
- * Encapsulates complex Project Reactor state manipulations (Sinks, Valves, etc.) behind a clean,
- * declarative API.
+ * <p>Covers initialization, execution, and runtime control. Single entry point for workflow
+ * management: prepare → execute → pause/stop/restart/skip.
  *
- * <p><strong>Usage:</strong> Asynchronous listeners (e.g., event-driven dispatchers) translate
- * generic bus messages into concrete API calls here instead of mutating ExecutionControl directly.
- * This cleanly separates message consumption from workflow state management.
+ * <p>Encapsulates complex Project Reactor state manipulations (Sinks, Valves, etc.) behind a
+ * clean, declarative API.
+ *
+ * <p><strong>Usage:</strong> Controllers and dispatchers inject this interface for full workflow
+ * management without needing separate orchestrator and control API dependencies.
  */
 public interface WorkflowControlApi {
+
+  // --- Initialization & Execution ---
+
+  /**
+   * Prepares a workflow for execution.
+   *
+   * @param def the workflow definition
+   * @return a Mono containing the prepared workflow
+   */
+  Mono<PreparedWorkflow> prepareWorkflow(
+      @jakarta.validation.Valid WorkflowDefinition def);
+
+  /**
+   * Executes a prepared workflow.
+   *
+   * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @param executionId the unique execution identifier
+   * @param prepared the prepared workflow
+   * @param payload the initial payload
+   * @return a Mono that completes when execution finishes
+   */
+  Mono<Void> executeWorkflow(
+      String sessionId,
+      String workflowId,
+      String executionId,
+      PreparedWorkflow prepared,
+      java.util.Map<String, Object> payload);
+
+  // --- Runtime Control ---
 
   /**
    * Stop execution immediately, cancelling upstream operations.
@@ -149,4 +183,25 @@ public interface WorkflowControlApi {
    * @return a Mono that completes when the step signal is emitted
    */
   Mono<Void> stepNode(String executionId, String nodeId);
+
+  // --- Restart & Replay Controls ---
+
+  /**
+   * Safely stops the current execution and restarts the entire workflow from the beginning using
+   * the original payload.
+   *
+   * @param executionId the execution to restart
+   * @return a Mono containing the newly generated executionId
+   */
+  Mono<String> restartWorkflow(String executionId);
+
+  /**
+   * Safely stops the current execution and restarts the workflow from a specific node, replaying
+   * the last known checkpoints for its parent nodes.
+   *
+   * @param executionId the execution to restart
+   * @param nodeId the node from which to resume execution
+   * @return a Mono containing the newly generated executionId
+   */
+  Mono<String> restartFromNode(String executionId, String nodeId);
 }

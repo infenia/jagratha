@@ -16,6 +16,7 @@
 package com.infenia.yukta.service.control.valve;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -35,7 +36,8 @@ public final class ReactiveControlValve {
   private final AtomicBoolean paused = new AtomicBoolean(false);
   private final AtomicBoolean stepMode = new AtomicBoolean(false);
   private final Many<Boolean> resumeSink = Sinks.many().replay().latestOrDefault(true);
-  private final Many<Void> stepSink = Sinks.many().multicast().onBackpressureBuffer();
+  private final Many<Long> stepSignal = Sinks.many().replay().latestOrDefault(0L);
+  private final AtomicLong stepCounter = new AtomicLong(0);
 
   /**
    * Checks if passage is allowed. Returns immediately if flowing; blocks if paused.
@@ -45,12 +47,17 @@ public final class ReactiveControlValve {
    * @return Mono that emits true when passage is allowed
    */
   public Mono<Boolean> allowPassage() {
-    if (!paused.get() && !stepMode.get()) {
+    if (!paused.get()) {
       return Mono.just(true);
     }
 
     if (stepMode.get()) {
-      return stepSink.asFlux().next().thenReturn(true);
+      long currentStep = stepCounter.get();
+      return stepSignal
+          .asFlux()
+          .filter(s -> s > currentStep)
+          .next()
+          .thenReturn(true);
     }
 
     return resumeSink.asFlux().filter(Boolean::booleanValue).next().thenReturn(true);
@@ -102,7 +109,8 @@ public final class ReactiveControlValve {
     if (!stepMode.get()) {
       return false;
     }
-    stepSink.tryEmitNext(null);
+    long nextStep = stepCounter.incrementAndGet();
+    stepSignal.tryEmitNext(nextStep);
     return true;
   }
 

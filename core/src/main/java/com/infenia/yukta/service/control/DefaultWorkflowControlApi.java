@@ -15,15 +15,28 @@
  */
 package com.infenia.yukta.service.control;
 
+import com.infenia.yukta.model.workflow.PreparedWorkflow;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
+import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
+import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
+import jakarta.validation.Valid;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
@@ -34,11 +47,28 @@ import reactor.core.publisher.Sinks;
 public class DefaultWorkflowControlApi implements WorkflowControlApi {
 
   private final ExecutionControlRegistry registry;
+  private final WorkflowOrchestrator orchestrator;
+  private final NodeCheckpointStore checkpointStore;
 
   private Mono<ExecutionControl> getControl(final String executionId) {
     return Mono.justOrEmpty(registry.findByExecutionId(executionId))
         .switchIfEmpty(
             Mono.error(new IllegalArgumentException("Execution not found: " + executionId)));
+  }
+
+  @Override
+  public Mono<PreparedWorkflow> prepareWorkflow(@Valid final WorkflowDefinition def) {
+    return orchestrator.prepareWorkflow(def);
+  }
+
+  @Override
+  public Mono<Void> executeWorkflow(
+      final String sessionId,
+      final String workflowId,
+      final String executionId,
+      final PreparedWorkflow prepared,
+      final Map<String, Object> payload) {
+    return orchestrator.execute(sessionId, workflowId, executionId, prepared, payload);
   }
 
   @Override
@@ -231,6 +261,76 @@ public class DefaultWorkflowControlApi implements WorkflowControlApi {
                     new IllegalStateException("Node is not in step mode: " + nodeId));
               }
               return Mono.empty();
+            });
+  }
+
+  @Override
+  public Mono<String> restartWorkflow(final String executionId) {
+    return getControl(executionId)
+        .flatMap(
+            control ->
+                stopSafely(executionId)
+                    .then(
+                        Mono.defer(
+                            () -> {
+                              final String newExecutionId = UUID.randomUUID().toString();
+                              return orchestrator
+                                  .execute(
+                                      control.sessionId(),
+                                      control.workflowId(),
+                                      newExecutionId,
+                                      control.prepared(),
+                                      control.payload())
+                                  .thenReturn(newExecutionId);
+                            })));
+  }
+
+  @Override
+  public Mono<String> restartFromNode(final String executionId, final String nodeId) {
+    return getControl(executionId)
+        .flatMap(
+            control -> {
+              final List<Node> parentNodes =
+                  control.prepared().parentsList().getOrDefault(nodeId, List.of());
+              final Map<String, Message<?>> parentCheckpoints = new HashMap<>(parentNodes.size());
+              final AtomicInteger checkpointsFetched = new AtomicInteger(0);
+
+              return Flux.fromIterable(parentNodes)
+                  .flatMap(
+                      parentNode ->
+                          checkpointStore
+                              .get(executionId, parentNode.nodeId())
+                              .doOnNext(
+                                  msg -> {
+                                    parentCheckpoints.put(parentNode.nodeId(), msg);
+                                    checkpointsFetched.incrementAndGet();
+                                  })
+                              .onErrorResume(e -> {
+                                log.atDebug()
+                                    .addKeyValue("executionId", executionId)
+                                    .addKeyValue("nodeId", parentNode.nodeId())
+                                    .setCause(e)
+                                    .log("Checkpoint not found for parent node, skipping");
+                                return Mono.empty();
+                              }))
+                  .then(
+                      stopSafely(executionId)
+                          .then(
+                              Mono.defer(
+                                  () -> {
+                                    checkpointStore.clear(executionId);
+                                    final String newExecutionId = UUID.randomUUID().toString();
+                                    return orchestrator
+                                        .restartFromNode(
+                                            control.sessionId(),
+                                            control.workflowId(),
+                                            executionId,
+                                            newExecutionId,
+                                            control.prepared(),
+                                            nodeId,
+                                            parentCheckpoints)
+                                        .thenReturn(newExecutionId);
+                                  })));
             });
   }
 

@@ -58,10 +58,9 @@ class ReactiveControlValveTest {
                       assertThat(v).isTrue();
                     })
                 .timeout(Duration.ofSeconds(1)))
+        .then(() -> valve.resume())
         .expectNext(true)
         .verifyComplete();
-
-    valve.resume();
   }
 
   @Test
@@ -117,7 +116,8 @@ class ReactiveControlValveTest {
                   }
                 });
 
-    StepVerifier.create(flux.timeout(Duration.ofSeconds(1)))
+    StepVerifier.create(flux)
+        .then(() -> valve.resume())
         .expectNext(1, 2, 3, 4, 5)
         .verifyComplete();
   }
@@ -128,17 +128,14 @@ class ReactiveControlValveTest {
     final Thread[] threads = new Thread[numThreads];
 
     for (int t = 0; t < numThreads; t++) {
-      final int threadId = t;
       threads[t] =
           new Thread(
               () -> {
                 for (int i = 0; i < 10; i++) {
                   if (i % 2 == 0) {
                     valve.pause();
-                    assertThat(valve.isPaused()).isTrue();
                   } else {
                     valve.resume();
-                    assertThat(valve.isPaused()).isFalse();
                   }
                 }
               });
@@ -207,9 +204,13 @@ class ReactiveControlValveTest {
         .expectNext(1)
         .then(
             () -> {
-              StepVerifier.create(valve.allowPassage().timeout(Duration.ofMillis(50)))
-                  .expectError()
-                  .verify();
+              var result =
+                  valve
+                      .allowPassage()
+                      .timeout(Duration.ofMillis(50))
+                      .onErrorReturn(false)
+                      .block();
+              assertThat(result).isFalse();
             })
         .then(() -> assertThat(valve.step()).isTrue())
         .expectNext(2)

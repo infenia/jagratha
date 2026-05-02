@@ -66,7 +66,6 @@ public class WorkflowCompiler {
 
   private final TaskTrackerService tracker;
   private final ControlBusGateway controlBusGateway;
-  @Qualifier("virtualThreadScheduler")
   private final Scheduler virtualThreadScheduler;
   private final Duration heartbeatInterval;
   private final SessionConfigStore configService;

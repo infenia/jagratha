@@ -28,7 +28,7 @@ import reactor.core.publisher.Sinks;
 /**
  * Runtime handle for a live workflow execution.
  *
- * <p>Registered in {@link ExecutionControlRegistry} when an execution starts and removed when it
+ * <p>Registered in {@link com.infenia.yukta.service.control.store.ExecutionControlRegistry} when an execution starts and removed when it
  * finishes. The {@code DirectiveDispatcher} looks up this record to apply stop, restart, or
  * restart-from-node directives without coupling to the orchestrator's internal state.
  *
@@ -111,7 +111,7 @@ public record ExecutionControl(
     }
 
     if (safeSink != null) {
-      result = result.takeUntilOther(Mono.fromCompletionStage(safeSink.asMono().toFuture()));
+      result = result.takeUntilOther(safeSink.asMono());
     }
 
     return result;
@@ -167,7 +167,7 @@ public record ExecutionControl(
     }
 
     if (immediateSink != null) {
-      result = result.takeUntilOther(Mono.fromCompletionStage(immediateSink.asMono().toFuture()));
+      result = result.takeUntilOther(immediateSink.asMono());
     }
 
     return result;
