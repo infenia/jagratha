@@ -866,7 +866,7 @@ class DefaultWorkflowControlApiTest {
     registry.register(control);
 
     final com.infenia.yukta.plugin.message.Message<?> checkpointMsg =
-        com.infenia.yukta.plugin.message.Message.empty();
+        mock(com.infenia.yukta.plugin.message.Message.class);
     when(checkpointStore.get(executionId, parentNodeId)).thenReturn(Mono.just(checkpointMsg));
     when(orchestrator.restartFromNode(
             eq("session-1"),
