@@ -81,16 +81,13 @@ class WorkflowCompilerTest {
   @BeforeEach
   void setUp() {
     registry = mock(WorkflowRegistry.class);
-    tracker = mock(TaskTrackerService.class);
+    tracker = mock(TaskTrackerService.class, invocation -> Mono.empty());
     configService = mock(SessionConfigStore.class);
     validator = mock(WorkflowValidator.class);
     controlBusGateway = mock(com.infenia.yukta.plugin.gateway.ControlBusGateway.class);
     executionControlRegistry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
 
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
-    when(tracker.startWorkflow(any(), any(), any(), any())).thenReturn(Mono.empty());
-    when(tracker.emitTaskStatusEvent(anyString(), anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
-    when(tracker.emitWorkflowStatusEvent(anyString(), anyString())).thenReturn(Mono.empty());
     when(configService.getExecutionTimeout(anyString())).thenReturn(Mono.just(3600L));
 
     compiler =
