@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -59,14 +60,11 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
-@ExtendWith(MockitoExtension.class)
 class WorkflowCompilerTest {
 
   private WorkflowRegistry registry;
@@ -80,15 +78,21 @@ class WorkflowCompilerTest {
 
   @BeforeEach
   void setUp() {
+    setupCompilerAndOrchestrator();
+  }
+
+  void setupCompilerAndOrchestrator() {
     registry = mock(WorkflowRegistry.class);
-    tracker = mock(TaskTrackerService.class, invocation -> Mono.empty());
+    tracker = mock(TaskTrackerService.class);
     configService = mock(SessionConfigStore.class);
     validator = mock(WorkflowValidator.class);
     controlBusGateway = mock(com.infenia.yukta.plugin.gateway.ControlBusGateway.class);
     executionControlRegistry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
 
-    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
-    when(configService.getExecutionTimeout(anyString())).thenReturn(Mono.just(3600L));
+    lenient().when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
+    lenient().when(tracker.startWorkflow(any(), any(), any(), any())).thenReturn(Mono.empty());
+    lenient().when(configService.getExecutionTimeout(anyString())).thenReturn(Mono.just(3600L));
+    lenient().when(validator.validate(any())).thenReturn(Mono.empty());
 
     compiler =
         new WorkflowCompiler(
@@ -352,6 +356,7 @@ class WorkflowCompilerTest {
 
   @Test
   void testCompileAssemblers() {
+    // Don't need orchestrator for this test - only compiler
     Node t1 = new Node("t1", "trigger", Map.of());
     Node p1 = new Node("p1", "processor", Map.of());
     Node term = new Node("term", "terminal", Map.of());
