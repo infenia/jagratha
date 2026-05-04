@@ -136,63 +136,63 @@ class InMemoryExecutionControlStoreTest {
     assertThat(found).isPresent().contains(control2);
   }
 
-   @Test
-   void testFindActiveByWorkflowSameSessionDifferentWorkflow() {
-     final ExecutionControl control = createControl("session-1", "workflow-1", "exec-1");
-     store.save(control);
+  @Test
+  void testFindActiveByWorkflowSameSessionDifferentWorkflow() {
+    final ExecutionControl control = createControl("session-1", "workflow-1", "exec-1");
+    store.save(control);
 
-     // Now query for same session but different workflow
-     final var found = store.findActiveByWorkflow("session-1", "workflow-2");
-     assertThat(found).isEmpty();
-   }
+    // Now query for same session but different workflow
+    final var found = store.findActiveByWorkflow("session-1", "workflow-2");
+    assertThat(found).isEmpty();
+  }
 
-   @Test
-   void testFindActiveByWorkflowDifferentSessionSameWorkflow() {
-     final ExecutionControl control = createControl("session-1", "workflow-1", "exec-1");
-     store.save(control);
+  @Test
+  void testFindActiveByWorkflowDifferentSessionSameWorkflow() {
+    final ExecutionControl control = createControl("session-1", "workflow-1", "exec-1");
+    store.save(control);
 
-     // Now query for different session but same workflow
-     final var found = store.findActiveByWorkflow("session-2", "workflow-1");
-     assertThat(found).isEmpty();
-   }
+    // Now query for different session but same workflow
+    final var found = store.findActiveByWorkflow("session-2", "workflow-1");
+    assertThat(found).isEmpty();
+  }
 
-   @Test
-   void testFindActiveByWorkflowDifferentSessionDifferentWorkflow() {
-     final ExecutionControl control = createControl("session-1", "workflow-1", "exec-1");
-     store.save(control);
+  @Test
+  void testFindActiveByWorkflowDifferentSessionDifferentWorkflow() {
+    final ExecutionControl control = createControl("session-1", "workflow-1", "exec-1");
+    store.save(control);
 
-     // Now query for different session and different workflow
-     final var found = store.findActiveByWorkflow("session-2", "workflow-2");
-     assertThat(found).isEmpty();
-   }
+    // Now query for different session and different workflow
+    final var found = store.findActiveByWorkflow("session-2", "workflow-2");
+    assertThat(found).isEmpty();
+  }
 
-   @Test
-   void testThreadSafety() throws InterruptedException {
-     final int numThreads = 10;
-     final int executionsPerThread = 100;
-     final Thread[] threads = new Thread[numThreads];
+  @Test
+  void testThreadSafety() throws InterruptedException {
+    final int numThreads = 10;
+    final int executionsPerThread = 100;
+    final Thread[] threads = new Thread[numThreads];
 
-     for (int t = 0; t < numThreads; t++) {
-       final int threadId = t;
-       threads[t] =
-           new Thread(
-               () -> {
-                 for (int i = 0; i < executionsPerThread; i++) {
-                   final String execId = "exec-" + threadId + "-" + i;
-                   final ExecutionControl control = createControl("session-1", "workflow-1", execId);
-                   store.save(control);
-                   assertThat(store.findByExecutionId(execId)).isPresent();
-                   store.remove(execId);
-                   assertThat(store.findByExecutionId(execId)).isEmpty();
-                 }
-               });
-       threads[t].start();
-     }
+    for (int t = 0; t < numThreads; t++) {
+      final int threadId = t;
+      threads[t] =
+          new Thread(
+              () -> {
+                for (int i = 0; i < executionsPerThread; i++) {
+                  final String execId = "exec-" + threadId + "-" + i;
+                  final ExecutionControl control = createControl("session-1", "workflow-1", execId);
+                  store.save(control);
+                  assertThat(store.findByExecutionId(execId)).isPresent();
+                  store.remove(execId);
+                  assertThat(store.findByExecutionId(execId)).isEmpty();
+                }
+              });
+      threads[t].start();
+    }
 
-     for (final Thread thread : threads) {
-       thread.join();
-     }
+    for (final Thread thread : threads) {
+      thread.join();
+    }
 
-     assertThat(store.findByExecutionId("exec-0-0")).isEmpty();
-   }
+    assertThat(store.findByExecutionId("exec-0-0")).isEmpty();
+  }
 }

@@ -55,9 +55,9 @@ class DefaultWorkflowControlApiTest {
 
   private ExecutionControl createControl() {
     return new ExecutionControl(
-            "session-1",
-            "workflow-1",
-            "exec-1",
+        "session-1",
+        "workflow-1",
+        "exec-1",
         null,
         Map.of(),
         Sinks.one(),
@@ -71,12 +71,11 @@ class DefaultWorkflowControlApiTest {
         Map.of());
   }
 
-  private ExecutionControl createControlWithNodeValve(
-      final ReactiveControlValve nodeValve) {
+  private ExecutionControl createControlWithNodeValve(final ReactiveControlValve nodeValve) {
     return new ExecutionControl(
-            "session-1",
-            "workflow-1",
-            "exec-1",
+        "session-1",
+        "workflow-1",
+        "exec-1",
         null,
         Map.of(),
         Sinks.one(),
@@ -91,12 +90,11 @@ class DefaultWorkflowControlApiTest {
   }
 
   private ExecutionControl createControlWithNodeSink(
-      final Sinks.One<Void> nodeSink,
-      final boolean isImmediateStop) {
+      final Sinks.One<Void> nodeSink, final boolean isImmediateStop) {
     return new ExecutionControl(
-            "session-1",
-            "workflow-1",
-            "exec-1",
+        "session-1",
+        "workflow-1",
+        "exec-1",
         null,
         Map.of(),
         Sinks.one(),
@@ -179,8 +177,7 @@ class DefaultWorkflowControlApiTest {
     final String executionId = "exec-1";
     final String nodeId = "node-1";
     final ReactiveControlValve nodeValve = new ReactiveControlValve();
-    final ExecutionControl control =
-        createControlWithNodeValve(nodeValve);
+    final ExecutionControl control = createControlWithNodeValve(nodeValve);
     registry.register(control);
 
     assertThat(nodeValve.isPaused()).isFalse();
@@ -195,8 +192,7 @@ class DefaultWorkflowControlApiTest {
     final String executionId = "exec-1";
     final String nodeId = "node-1";
     final ReactiveControlValve nodeValve = new ReactiveControlValve();
-    final ExecutionControl control =
-        createControlWithNodeValve(nodeValve);
+    final ExecutionControl control = createControlWithNodeValve(nodeValve);
     registry.register(control);
 
     nodeValve.pause();
@@ -223,8 +219,7 @@ class DefaultWorkflowControlApiTest {
     final String executionId = "exec-1";
     final String nodeId = "node-1";
     final Sinks.One<Void> nodeSink = Sinks.one();
-    final ExecutionControl control =
-        createControlWithNodeSink(nodeSink, true);
+    final ExecutionControl control = createControlWithNodeSink(nodeSink, true);
     registry.register(control);
 
     StepVerifier.create(api.stopNodeImmediately(executionId, nodeId)).verifyComplete();
@@ -237,8 +232,7 @@ class DefaultWorkflowControlApiTest {
     final String executionId = "exec-1";
     final String nodeId = "node-1";
     final Sinks.One<Void> nodeSink = Sinks.one();
-    final ExecutionControl control =
-        createControlWithNodeSink(nodeSink, false);
+    final ExecutionControl control = createControlWithNodeSink(nodeSink, false);
     registry.register(control);
 
     StepVerifier.create(api.stopNodeSafely(executionId, nodeId)).verifyComplete();
@@ -713,8 +707,7 @@ class DefaultWorkflowControlApiTest {
             Map.of());
     registry.register(control);
 
-    when(orchestrator.execute(
-            eq("session-1"), eq("workflow-1"), anyString(), eq(prepared), any()))
+    when(orchestrator.execute(eq("session-1"), eq("workflow-1"), anyString(), eq(prepared), any()))
         .thenReturn(Mono.empty());
 
     StepVerifier.create(api.restartWorkflow(executionId))

@@ -53,11 +53,7 @@ public final class ReactiveControlValve {
 
     if (stepMode.get()) {
       long currentStep = stepCounter.get();
-      return stepSignal
-          .asFlux()
-          .filter(s -> s > currentStep)
-          .next()
-          .thenReturn(true);
+      return stepSignal.asFlux().filter(s -> s > currentStep).next().thenReturn(true);
     }
 
     return resumeSink.asFlux().filter(Boolean::booleanValue).next().thenReturn(true);

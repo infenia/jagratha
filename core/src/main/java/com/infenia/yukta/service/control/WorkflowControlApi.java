@@ -17,7 +17,6 @@ package com.infenia.yukta.service.control;
 
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import java.util.Map;
 import reactor.core.publisher.Mono;
 
 /**
@@ -26,8 +25,8 @@ import reactor.core.publisher.Mono;
  * <p>Covers initialization, execution, and runtime control. Single entry point for workflow
  * management: prepare → execute → pause/stop/restart/skip.
  *
- * <p>Encapsulates complex Project Reactor state manipulations (Sinks, Valves, etc.) behind a
- * clean, declarative API.
+ * <p>Encapsulates complex Project Reactor state manipulations (Sinks, Valves, etc.) behind a clean,
+ * declarative API.
  *
  * <p><strong>Usage:</strong> Controllers and dispatchers inject this interface for full workflow
  * management without needing separate orchestrator and control API dependencies.
@@ -42,8 +41,7 @@ public interface WorkflowControlApi {
    * @param def the workflow definition
    * @return a Mono containing the prepared workflow
    */
-  Mono<PreparedWorkflow> prepareWorkflow(
-      @jakarta.validation.Valid WorkflowDefinition def);
+  Mono<PreparedWorkflow> prepareWorkflow(@jakarta.validation.Valid WorkflowDefinition def);
 
   /**
    * Executes a prepared workflow.

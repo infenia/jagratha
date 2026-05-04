@@ -116,10 +116,7 @@ class ReactiveControlValveTest {
                   }
                 });
 
-    StepVerifier.create(flux)
-        .then(() -> valve.resume())
-        .expectNext(1, 2, 3, 4, 5)
-        .verifyComplete();
+    StepVerifier.create(flux).then(() -> valve.resume()).expectNext(1, 2, 3, 4, 5).verifyComplete();
   }
 
   @Test
@@ -205,11 +202,7 @@ class ReactiveControlValveTest {
         .then(
             () -> {
               var result =
-                  valve
-                      .allowPassage()
-                      .timeout(Duration.ofMillis(50))
-                      .onErrorReturn(false)
-                      .block();
+                  valve.allowPassage().timeout(Duration.ofMillis(50)).onErrorReturn(false).block();
               assertThat(result).isFalse();
             })
         .then(() -> assertThat(valve.step()).isTrue())

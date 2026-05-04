@@ -23,8 +23,8 @@ import org.springframework.stereotype.Component;
 /**
  * Registry of all currently running workflow executions.
  *
- * <p>The orchestrator saves an {@link ExecutionControl} on start and removes it in the
- * {@code doFinally} callback. The {@code DirectiveDispatcher} queries this registry to locate the
+ * <p>The orchestrator saves an {@link ExecutionControl} on start and removes it in the {@code
+ * doFinally} callback. The {@code DirectiveDispatcher} queries this registry to locate the
  * execution that a control command targets.
  *
  * <p>Delegates to a pluggable {@link ExecutionControlStore} for actual storage. By default, uses

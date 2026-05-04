@@ -96,7 +96,8 @@ class ExecutionControlTest {
             Map.of(),
             Map.of());
 
-    final var flux = control.applyPreProcessingControls("unknown", reactor.core.publisher.Flux.empty());
+    final var flux =
+        control.applyPreProcessingControls("unknown", reactor.core.publisher.Flux.empty());
     assertThat(flux).isNotNull();
   }
 
@@ -113,9 +114,7 @@ class ExecutionControlTest {
             Sinks.one(),
             new ReactiveControlValve(),
             Map.of(),
-            Map.of(
-                "node1",
-                Sinks.one()),
+            Map.of("node1", Sinks.one()),
             Map.of(),
             Map.of(),
             Map.of(),
@@ -124,7 +123,8 @@ class ExecutionControlTest {
     final Sinks.One<Void> safeSink = control.nodeSafeStopSinks().get("node1");
     safeSink.emitEmpty(Sinks.EmitFailureHandler.FAIL_FAST);
 
-    final var flux = control.applyPreProcessingControls("node1", reactor.core.publisher.Flux.empty());
+    final var flux =
+        control.applyPreProcessingControls("node1", reactor.core.publisher.Flux.empty());
     assertThat(flux).isNotNull();
   }
 
@@ -148,9 +148,10 @@ class ExecutionControlTest {
             Map.of(),
             Map.of());
 
-    final var result = control
-        .applyPreProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
-        .blockLast();
+    final var result =
+        control
+            .applyPreProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
+            .blockLast();
     assertThat(result).isNotNull();
   }
 
@@ -174,9 +175,10 @@ class ExecutionControlTest {
             Map.of(),
             Map.of());
 
-    final var result = control
-        .applyPreProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
-        .blockLast();
+    final var result =
+        control
+            .applyPreProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
+            .blockLast();
     assertThat(result).isNotNull();
   }
 
@@ -199,7 +201,8 @@ class ExecutionControlTest {
             Map.of(),
             Map.of());
 
-    final var flux = control.applyPostProcessingControls("unknown", reactor.core.publisher.Flux.empty());
+    final var flux =
+        control.applyPostProcessingControls("unknown", reactor.core.publisher.Flux.empty());
     assertThat(flux).isNotNull();
   }
 
@@ -217,16 +220,15 @@ class ExecutionControlTest {
             null,
             Map.of(),
             Map.of(),
-            Map.of(
-                "node1",
-                new ReactiveControlValve()),
+            Map.of("node1", new ReactiveControlValve()),
             Map.of(),
             Map.of(),
             Map.of());
 
-    final var result = control
-        .applyPostProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
-        .blockLast();
+    final var result =
+        control
+            .applyPostProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
+            .blockLast();
     assertThat(result).isNotNull();
   }
 
@@ -249,9 +251,10 @@ class ExecutionControlTest {
             Map.of(),
             Map.of());
 
-    final var result = control
-        .applyPostProcessingControls("any", reactor.core.publisher.Flux.just(TEST_MESSAGE))
-        .blockLast();
+    final var result =
+        control
+            .applyPostProcessingControls("any", reactor.core.publisher.Flux.just(TEST_MESSAGE))
+            .blockLast();
     assertThat(result).isNotNull();
   }
 
@@ -267,16 +270,15 @@ class ExecutionControlTest {
             Sinks.one(),
             Sinks.one(),
             null,
-            Map.of(
-                "node1",
-                Sinks.one()),
+            Map.of("node1", Sinks.one()),
             Map.of(),
             Map.of(),
             Map.of(),
             Map.of(),
             Map.of());
 
-    final var flux = control.applyPostProcessingControls("node1", reactor.core.publisher.Flux.empty());
+    final var flux =
+        control.applyPostProcessingControls("node1", reactor.core.publisher.Flux.empty());
     assertThat(flux).isNotNull();
   }
 
@@ -294,16 +296,15 @@ class ExecutionControlTest {
             new ReactiveControlValve(),
             Map.of(),
             Map.of(),
-            Map.of(
-                "node1",
-                new ReactiveControlValve()),
+            Map.of("node1", new ReactiveControlValve()),
             Map.of(),
             Map.of(),
             Map.of());
 
-    final var result = control
-        .applyPostProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
-        .blockLast();
+    final var result =
+        control
+            .applyPostProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
+            .blockLast();
     assertThat(result).isNotNull();
   }
 
@@ -330,9 +331,10 @@ class ExecutionControlTest {
             Map.of(),
             Map.of());
 
-    final var result = control
-        .applyPostProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
-        .blockLast();
+    final var result =
+        control
+            .applyPostProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
+            .blockLast();
     assertThat(result).isNotNull();
   }
 
@@ -359,9 +361,10 @@ class ExecutionControlTest {
             Map.of(),
             Map.of());
 
-    final var result = control
-        .applyPostProcessingControls("any", reactor.core.publisher.Flux.just(TEST_MESSAGE))
-        .blockLast();
+    final var result =
+        control
+            .applyPostProcessingControls("any", reactor.core.publisher.Flux.just(TEST_MESSAGE))
+            .blockLast();
     assertThat(result).isNotNull();
   }
 
@@ -384,9 +387,10 @@ class ExecutionControlTest {
             Map.of(),
             Map.of());
 
-    final var result = control
-        .applyPostProcessingControls("any", reactor.core.publisher.Flux.just(TEST_MESSAGE))
-        .blockLast();
+    final var result =
+        control
+            .applyPostProcessingControls("any", reactor.core.publisher.Flux.just(TEST_MESSAGE))
+            .blockLast();
     assertThat(result).isNotNull();
   }
 
@@ -409,9 +413,10 @@ class ExecutionControlTest {
             Map.of(),
             Map.of());
 
-    final var result = control
-        .applyPostProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
-        .blockLast();
+    final var result =
+        control
+            .applyPostProcessingControls("node1", reactor.core.publisher.Flux.just(TEST_MESSAGE))
+            .blockLast();
     assertThat(result).isNotNull();
   }
 
@@ -434,7 +439,8 @@ class ExecutionControlTest {
             Map.of(),
             Map.of());
 
-    final var flux = control.applyPostProcessingControls("node1", reactor.core.publisher.Flux.empty());
+    final var flux =
+        control.applyPostProcessingControls("node1", reactor.core.publisher.Flux.empty());
     assertThat(flux).isNotNull();
   }
 }

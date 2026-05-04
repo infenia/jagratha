@@ -21,8 +21,7 @@ import java.util.Optional;
 /**
  * Abstraction for storing and retrieving execution control handles.
  *
- * <p>Allows pluggable backends (in-memory, Redis, database) for tracking live workflow
- * executions.
+ * <p>Allows pluggable backends (in-memory, Redis, database) for tracking live workflow executions.
  */
 public interface ExecutionControlStore {
 

@@ -21,6 +21,8 @@ import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.gateway.ControlBusGateway;
+import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.TaskTrackerService;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.AssemblyContext;
@@ -28,8 +30,6 @@ import com.infenia.yukta.service.orchestrator.HeartbeatBuilder;
 import com.infenia.yukta.service.orchestrator.ResourceManagementBuilder;
 import com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy;
 import com.infenia.yukta.service.session.SessionConfigStore;
-import com.infenia.yukta.plugin.gateway.ControlBusGateway;
-import com.infenia.yukta.plugin.message.Message;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -262,8 +261,8 @@ public class WorkflowCompiler {
 
     for (final NodeAssemblerStrategy strategy : assemblerStrategies) {
       if (strategy.supports(plugin, hasParents)) {
-        return strategy.createAssembler(node, plugin, nodeTimeout, nodeIndex, bufferSize,
-            parentEdges);
+        return strategy.createAssembler(
+            node, plugin, nodeTimeout, nodeIndex, bufferSize, parentEdges);
       }
     }
 

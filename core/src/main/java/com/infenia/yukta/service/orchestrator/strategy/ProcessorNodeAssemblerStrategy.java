@@ -44,8 +44,10 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   private final TaskTrackerService tracker;
   private final ControlBusGateway controlBusGateway;
+
   @Qualifier("virtualThreadScheduler")
   private final Scheduler virtualThreadScheduler;
+
   private final StreamTopologyDecorator streamTopologyDecorator;
 
   private static final String LOG_KEY_NODE_ID = "nodeId";
@@ -76,8 +78,7 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
       final Flux<Message<?>> mergedInput =
           streamTopologyDecorator.mergeParentStreams(context.streams(), parentEdges);
 
-      Flux<Message<?>> safeInput =
-          control.applyPreProcessingControls(node.nodeId(), mergedInput);
+      Flux<Message<?>> safeInput = control.applyPreProcessingControls(node.nodeId(), mergedInput);
 
       Flux<Message<?>> stream;
       final AtomicBoolean skipFlag = control.nodeSkipFlags().get(node.nodeId());

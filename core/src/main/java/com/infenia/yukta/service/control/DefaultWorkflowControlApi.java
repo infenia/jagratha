@@ -221,8 +221,7 @@ public class DefaultWorkflowControlApi implements WorkflowControlApi {
               final ReactiveControlValve valve = control.nodePauseValves().get(nodeId);
               if (valve == null) {
                 return Mono.error(
-                    new IllegalArgumentException(
-                        "Node not found or not controllable: " + nodeId));
+                    new IllegalArgumentException("Node not found or not controllable: " + nodeId));
               }
               valve.enableStepMode();
               return Mono.empty();
@@ -237,8 +236,7 @@ public class DefaultWorkflowControlApi implements WorkflowControlApi {
               final ReactiveControlValve valve = control.nodePauseValves().get(nodeId);
               if (valve == null) {
                 return Mono.error(
-                    new IllegalArgumentException(
-                        "Node not found or not controllable: " + nodeId));
+                    new IllegalArgumentException("Node not found or not controllable: " + nodeId));
               }
               valve.disableStepMode();
               return Mono.empty();
@@ -253,12 +251,10 @@ public class DefaultWorkflowControlApi implements WorkflowControlApi {
               final ReactiveControlValve valve = control.nodePauseValves().get(nodeId);
               if (valve == null) {
                 return Mono.error(
-                    new IllegalArgumentException(
-                        "Node not found or not controllable: " + nodeId));
+                    new IllegalArgumentException("Node not found or not controllable: " + nodeId));
               }
               if (!valve.step()) {
-                return Mono.error(
-                    new IllegalStateException("Node is not in step mode: " + nodeId));
+                return Mono.error(new IllegalStateException("Node is not in step mode: " + nodeId));
               }
               return Mono.empty();
             });
@@ -305,14 +301,15 @@ public class DefaultWorkflowControlApi implements WorkflowControlApi {
                                     parentCheckpoints.put(parentNode.nodeId(), msg);
                                     checkpointsFetched.incrementAndGet();
                                   })
-                              .onErrorResume(e -> {
-                                log.atDebug()
-                                    .addKeyValue("executionId", executionId)
-                                    .addKeyValue("nodeId", parentNode.nodeId())
-                                    .setCause(e)
-                                    .log("Checkpoint not found for parent node, skipping");
-                                return Mono.empty();
-                              }))
+                              .onErrorResume(
+                                  e -> {
+                                    log.atDebug()
+                                        .addKeyValue("executionId", executionId)
+                                        .addKeyValue("nodeId", parentNode.nodeId())
+                                        .setCause(e)
+                                        .log("Checkpoint not found for parent node, skipping");
+                                    return Mono.empty();
+                                  }))
                   .then(
                       stopSafely(executionId)
                           .then(

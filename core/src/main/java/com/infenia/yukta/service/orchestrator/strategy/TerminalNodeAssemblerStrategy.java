@@ -56,8 +56,10 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   private final TaskTrackerService tracker;
   private final ControlBusGateway controlBusGateway;
+
   @Qualifier("virtualThreadScheduler")
   private final Scheduler virtualThreadScheduler;
+
   private final StreamTopologyDecorator streamTopologyDecorator;
 
   @Override

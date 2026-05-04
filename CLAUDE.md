@@ -4,26 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Yukta** (Sanskrit for *united, combined, joined*) is a high-performance server that enforces code quality gates for AI-driven development. It hosts a Model Context Protocol (MCP) server, integrates with AI agents, and provides a reactive DAG-based workflow engine for orchestrating quality checks and custom plugins.
+**Yukta** is a high-performance server that enforces code quality gates for AI-driven development. It hosts a Model Context Protocol (MCP) server, integrates with AI agents, and provides a reactive DAG-based workflow engine for orchestration.
 
 **Key Architecture**: The project is a multi-module Gradle build consisting of:
-- **plugin-api**: Plugin abstraction interfaces (Trigger, Processor, Terminal plugins)
-- **core**: Core service layer (orchestration, workflow registry, session management)
-- **ui**: JTE (Java Templating Engine) UI module with Tailwind CSS
+- **plugin-api**: Plugin abstraction interfaces.
+- **core**: Core service layer
+- **ui**: JTE UI module with Tailwind CSS
 - **web**: Web layer with REST controllers and UI support
 - **mcp**: MCP server implementation and tool providers
 - **boot**: Spring Boot application entry point and MCP server
 - **plugins/build-tools/gradle**: Default Gradle plugin for quality checks
-- **build-logic**: Gradle build conventions (Java, Quality gates, JaCoCo)
+- **build-logic**: Gradle build conventions
 
 ## Tech Stack
 
-- **Java 25** (source & target compatibility; LTS alternative Java 21 supported)
-- **Spring Boot 4.0.2** (WebFlux for reactive non-blocking operations)
-- **Gradle 9.0** (multi-module with convention plugins)
-- **GraalVM** (native image support)
-- **JTE** (Java Templating Engine) + **Tailwind CSS 4**
-- **Project Reactor** (Mono, Flux for reactive streams)
+- **Java 25**
+- **Spring Boot 4.0.2** - WebFlux for reactive non-blocking operations
+- **Gradle 9.0**
+- **GraalVM**
+- **JTE** + **Tailwind CSS 4**
+- **Project Reactor**
 
 ## Build & Development Commands
 
@@ -46,15 +46,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Run a single test class
 ./gradlew :core:test --tests com.infenia.yukta.service.WorkflowOrchestratorTest
-```
-
-### Development Tasks
-```bash
-# Access Swagger UI (after bootRun)
-# http://localhost:8080/swagger-ui.html
-
-# UI development: pnpm is used for Node dependencies (Tailwind CSS)
-# JTE templates are precompiled automatically during build
 
 # Build native image (GraalVM)
 ./gradlew nativeCompile
@@ -66,7 +57,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 All service and controller logic uses **Project Reactor** (`Mono`, `Flux`). Key principles:
 - Controllers return `Mono<ResponseEntity<T>>` or `Mono<T>`
 - Services use `Mono` for single operations, `Flux` for streams
-- Avoid blocking operations; use `.block()` only in tests
+- Avoid blocking operations
 
 **Example**:
 ```java
@@ -76,42 +67,6 @@ public Mono<TaskResponse> executeTask(WorkflowTriggerRequest request) {
         .doOnError(error -> log.error("Task execution failed", error));
 }
 ```
-
-### WorkflowOrchestrator Builder Pattern Refactoring
-
-The refactored `WorkflowOrchestrator` uses four internal fluent builder classes to manage cross-cutting concerns and improve maintainability:
-
-**ExecutionContextBuilder** (`com.infenia.yukta.service.orchestrator`):
-- Centralizes context key management (sessionId, workflowId, executionId, nodeId, payload)
-- Provides fluent API for building and applying contexts to Mono/Flux streams
-- Ensures consistent context handling across the orchestration pipeline
-- Usage: `new ExecutionContextBuilder().sessionId(...).workflowId(...).build()`
-
-**StreamBuilder** (`com.infenia.yukta.service.orchestrator`):
-- Unifies stream construction across all plugin types (Trigger, Processor, Terminal)
-- Handles: timeout wrapping, task status tracking, error handling, context application
-- Eliminates 60+ lines of duplicated code across three assembler methods
-- Usage: `new StreamBuilder(...).withSource(...).withTimeout().withTaskTracking(...).build()`
-
-**HeartbeatBuilder** (`com.infenia.yukta.service.orchestrator`):
-- Manages periodic heartbeat and statistics emissions to the control bus
-- Encapsulates Flux.interval() subscriptions and disposable lifecycle management
-- Replaces 40+ lines of nested loops with a single configuration point
-- Usage: `new HeartbeatBuilder(...).forNodes(...).withHeartbeatInterval(...).build()`
-
-**ResourceManagementBuilder** (`com.infenia.yukta.service.orchestrator`):
-- Wraps Mono.using() pattern for resource lifecycle management
-- Manages timeouts, terminal completion, connector execution, and disposable cleanup
-- Centralizes workflow status event emission (SUCCESS/ERROR)
-- Usage: `new ResourceManagementBuilder(...).withDisposables(...).withTerminals(...).build()`
-
-**Refactoring Benefits**:
-- Node assembler methods reduced from ~70 lines each to ~25 lines (65% reduction)
-- executeTemplate method reduced from ~135 lines to ~50 lines (63% reduction)
-- Eliminates duplication across plugin types (single StreamBuilder path)
-- Improves testability: each builder is independently testable
-- No performance impact: builders are transient; no allocation overhead
-- Preserves all functionality: identical Reactor patterns and semantics
 
 ### Plugin System (Extensible DAG-Based)
 Located in **plugin-api**, plugins are classified into three categories:
@@ -146,6 +101,19 @@ public record WorkflowDefinition(
 
 ### MapStruct Mapping
 Used for DTO mapping: `AppConfigMapper` converts between REST requests/responses and domain models. Processor: `annotationProcessor libs.mapstruct.processor` + `annotationProcessor libs.lombok.mapstruct.binding`.
+
+## Lombok & Coding Standards
+- **Reduce Boilerplate**: Use Lombok annotations instead of manually writing getters, setters, equals, hashCode, or toString methods.
+- **Preferred Annotations**:
+  - **Modern Data Carriers**: Use `record` for immutable data classes instead of `@Value` or `@Data`.
+  - **With-ers for Immutability**: Use `@With` on records or immutable classes to create new instances with one field changed (e.g., `user.withEmail("new@email.com")`).
+  - **Logging**: Always use `@Slf4j` for loggers. Never manually instantiate `private static final Logger log`.
+  - **Complex Object Creation**: Use `@Builder` on records or classes with >3 optional fields.
+  - **Dependency Injection**: Use `@RequiredArgsConstructor` on Spring components to enable constructor injection for `final` fields.
+  - **Utility Classes**: Use `@UtilityClass` for static-only helper classes to enforce finality and private constructors.
+  - **Exception Handling**: Use `@SneakyThrows` for checked exceptions in lambdas or stream operations where appropriate.
+  - **Decision Matrix**: Use Java Records for simple data containers; use Lombok for classes requiring inheritance or complex features like `@Builder` with `@Singular`.
+  - **Validation**: When using `@Data`, ensure important fields for equality are explicitly handled if the default behavior is insufficient.
 
 ## Code Style & Quality Gates
 
@@ -229,17 +197,10 @@ Example: `feat: add reactive DAG workflow engine for plugin orchestration`
 - Quality gates (Checkstyle, PMD, SpotBugs) are disabled for test code
 - Coverage thresholds vary per module (e.g., UI has 5% minimum via `jacocoMinimumCoverage`)
 
-## Common Development Tasks
-
-**Add a new service**: Create in `core/src/main/java/com/infenia/yukta/service/`, use `@Service`, return `Mono`/`Flux`, add tests.
-
-**Add a new plugin**: Extend `WorkflowPlugin`/`ProcessorPlugin`/`TriggerPlugin` in plugin-api, register in `WorkflowRegistry` during bean initialization.
-
-**Modify workflow DAG**: Update `WorkflowDefinition` records and `WorkflowOrchestrator` execution logic.
-
-**Add REST endpoint**: Create controller in `AppController` or new controller, return `Mono<ResponseEntity<T>>`, use validation annotations.
-
-**Update configuration**: Edit `application.yaml` or add Spring `@ConfigurationProperties` class with validation.
+### Test Skill
+Load the below skill for test generation and test improvement.
+ - **Name**: tests
+ - description: "Use when the user asks to generate, create, or write unit tests for code. Analyzes the target code, produces a structured test case list for review, then generates test code. Supports Java (JUnit 5, Mockito, AssertJ)."
 
 ## Troubleshooting
 
@@ -252,7 +213,7 @@ Example: `feat: add reactive DAG workflow engine for plugin orchestration`
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **yukta** (6212 symbols, 17021 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **yukta** (6356 symbols, 18459 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -279,16 +240,5 @@ This project is indexed by GitNexus as **yukta** (6212 symbols, 17021 relationsh
 | `gitnexus://repo/yukta/clusters` | All functional areas |
 | `gitnexus://repo/yukta/processes` | All execution flows |
 | `gitnexus://repo/yukta/process/{name}` | Step-by-step execution trace |
-
-## CLI
-
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->

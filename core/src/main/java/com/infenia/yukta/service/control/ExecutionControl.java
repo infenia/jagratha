@@ -28,9 +28,10 @@ import reactor.core.publisher.Sinks;
 /**
  * Runtime handle for a live workflow execution.
  *
- * <p>Registered in {@link com.infenia.yukta.service.control.store.ExecutionControlRegistry} when an execution starts and removed when it
- * finishes. The {@code DirectiveDispatcher} looks up this record to apply stop, restart, or
- * restart-from-node directives without coupling to the orchestrator's internal state.
+ * <p>Registered in {@link com.infenia.yukta.service.control.store.ExecutionControlRegistry} when an
+ * execution starts and removed when it finishes. The {@code DirectiveDispatcher} looks up this
+ * record to apply stop, restart, or restart-from-node directives without coupling to the
+ * orchestrator's internal state.
  *
  * <p>Control hierarchy:
  *

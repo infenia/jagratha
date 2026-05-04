@@ -21,8 +21,8 @@ import com.infenia.yukta.service.orchestrator.AssemblyContext;
  * A functional interface for reifying a single node's reactive stream during workflow
  * instantiation.
  *
- * <p>Takes a single {@link AssemblyContext} parameter bundling all state, execution context,
- * and control mechanisms needed to assemble the node's stream.
+ * <p>Takes a single {@link AssemblyContext} parameter bundling all state, execution context, and
+ * control mechanisms needed to assemble the node's stream.
  */
 @FunctionalInterface
 public interface NodeAssembler {
