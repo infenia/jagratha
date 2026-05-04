@@ -43,6 +43,13 @@ dependencies {
     testImplementation(libs.awaitility)
 }
 
+tasks.withType<Test>().configureEach {
+    jvmArgs = listOf(
+        "-XX:+EnableDynamicAgentLoading",
+        "-Dnet.bytebuddy.agent.attach=true"
+    )
+}
+
 coverageConfig {
     exceptions.put("com.infenia.yukta.service.TaskTrackerService", mapOf("LINE" to 0.99, "BRANCH" to 0.94, "INSTRUCTION" to 0.98, "METHOD" to 0.97))
     exceptions.put("com.infenia.yukta.service.TaskTrackerService.*WorkflowState", mapOf("BRANCH" to 0.91))

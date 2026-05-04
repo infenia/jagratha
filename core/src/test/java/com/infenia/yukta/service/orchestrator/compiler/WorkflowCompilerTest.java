@@ -60,18 +60,22 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
+@ExtendWith(MockitoExtension.class)
 class WorkflowCompilerTest {
 
-  private WorkflowRegistry registry;
-  private TaskTrackerService tracker;
-  private WorkflowValidator validator;
-  private SessionConfigStore configService;
-  private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
+  @Mock private WorkflowRegistry registry;
+  @Mock private TaskTrackerService tracker;
+  @Mock private WorkflowValidator validator;
+  @Mock private SessionConfigStore configService;
+  @Mock private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
   private WorkflowOrchestrator orchestrator;
   private WorkflowCompiler compiler;
   private ExecutionControlRegistry executionControlRegistry;
