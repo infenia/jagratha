@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.mapper.AppConfigMapper;
 import com.infenia.yukta.model.api.ConfigRequest;
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
 import com.infenia.yukta.service.SessionService;
 import java.util.List;
 import java.util.Map;

@@ -1,6 +1,6 @@
 @import java.util.Map
 @import java.util.List
-@import com.infenia.yukta.model.workflow.WorkflowDefinition
+@import com.infenia.yukta.model.workflow.api.WorkflowDefinition
 @import com.infenia.yukta.model.api.PluginDetails
 @import com.infenia.yukta.model.monitoring.WorkflowProgress
 

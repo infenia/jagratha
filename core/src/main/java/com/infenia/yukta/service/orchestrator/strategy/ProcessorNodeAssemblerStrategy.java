@@ -17,7 +17,7 @@ package com.infenia.yukta.service.orchestrator.strategy;
 
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
-import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
@@ -30,7 +30,6 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -45,7 +44,6 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
   private final TaskTrackerService tracker;
   private final ControlBusGateway controlBusGateway;
 
-  @Qualifier("virtualThreadScheduler")
   private final Scheduler virtualThreadScheduler;
 
   private final StreamTopologyDecorator streamTopologyDecorator;

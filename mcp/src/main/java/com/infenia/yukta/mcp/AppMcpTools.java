@@ -29,7 +29,7 @@ import com.infenia.yukta.model.api.SessionCreationResponse;
 import com.infenia.yukta.model.api.SessionDetails;
 import com.infenia.yukta.model.api.SessionInfo;
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
 import lombok.RequiredArgsConstructor;
 import org.springaicommunity.mcp.annotation.McpArg;
 import org.springaicommunity.mcp.annotation.McpTool;

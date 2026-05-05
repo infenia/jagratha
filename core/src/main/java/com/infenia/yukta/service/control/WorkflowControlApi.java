@@ -16,7 +16,7 @@
 package com.infenia.yukta.service.control;
 
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
 import reactor.core.publisher.Mono;
 
 /**

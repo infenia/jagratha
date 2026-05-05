@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service.orchestrator;
 
-import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;

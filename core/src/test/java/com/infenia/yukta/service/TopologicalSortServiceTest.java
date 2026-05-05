@@ -18,7 +18,7 @@ package com.infenia.yukta.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

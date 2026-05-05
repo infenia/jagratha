@@ -17,8 +17,8 @@ package com.infenia.yukta.service.orchestrator.compiler;
 
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
-import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
+import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.internal.WorkflowEdge;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;

@@ -18,7 +18,7 @@ package com.infenia.yukta.service.control.factory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
-import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import java.util.List;
