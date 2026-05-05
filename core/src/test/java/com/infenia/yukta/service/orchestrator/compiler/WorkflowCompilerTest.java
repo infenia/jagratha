@@ -16,6 +16,7 @@
 package com.infenia.yukta.service.orchestrator.compiler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,10 +31,13 @@ import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.TaskTrackerService;
+import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
+import com.infenia.yukta.service.orchestrator.AssemblyContext;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +49,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
@@ -54,15 +59,14 @@ import reactor.test.StepVerifier;
 class WorkflowCompilerTest {
 
   private WorkflowCompiler compiler;
-  private ExecutionControlRegistry executionControlRegistry;
 
-  @Mock private TaskTrackerService tracker;
+    @Mock private TaskTrackerService tracker;
   @Mock private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
   @Mock private SessionConfigStore configService;
 
   @BeforeEach
   void setUp() {
-    executionControlRegistry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
+      final ExecutionControlRegistry executionControlRegistry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
     compiler =
         new WorkflowCompiler(
             tracker,
@@ -70,7 +74,7 @@ class WorkflowCompilerTest {
             Schedulers.parallel(),
             Duration.ofSeconds(10),
             configService,
-            executionControlRegistry,
+                executionControlRegistry,
             List.of());
   }
 
@@ -229,6 +233,64 @@ class WorkflowCompilerTest {
           .verify();
 
       verify(tracker).startWorkflow(executionId, sessionId, workflowId, List.of("t", "term"));
+    }
+
+    @Test
+    @DisplayName("should invoke tracker.startWorkflow with correct parameters")
+    void shouldInvokeTrackerStartWorkflowWithCorrectParams() {
+      Node t = new Node("t", "trigger", Map.of());
+      Node term = new Node("term", "terminal", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t, term), List.of(new Edge("t", "term")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t", Collections.emptyList());
+      parentsList.put("term", List.of(t));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t", mock(TriggerPlugin.class));
+      pluginCache.put("term", mock(TerminalPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t, term);
+
+      WorkflowTemplate template =
+          compiler.compileTemplate(def, parentsList, pluginCache, topologicalOrder);
+
+      String executionId = "exec-123";
+      String sessionId = "sess-456";
+      String workflowId = "wf-789";
+      Map<String, Object> payload = Map.of("data", "value");
+
+      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of("t", "term")))
+          .thenReturn(Mono.empty());
+
+      Mono<Void> result =
+          template
+              .instantiate(executionId, payload)
+              .contextWrite(c -> c.put("sessionId", sessionId).put("workflowId", workflowId));
+
+      StepVerifier.create(result)
+          .expectErrorMatches(
+              e -> e instanceof IllegalStateException)
+          .verify();
+
+      verify(tracker).startWorkflow(executionId, sessionId, workflowId, List.of("t", "term"));
+    }
+
+    @Test
+    @DisplayName("should handle empty topological order")
+    void shouldHandleEmptyTopologicalOrder() {
+      WorkflowDefinition def = new WorkflowDefinition("Test", List.of(), List.of());
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      List<Node> topologicalOrder = List.of();
+
+      WorkflowTemplate template =
+          compiler.compileTemplate(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(template).isNotNull();
     }
   }
 
@@ -530,6 +592,59 @@ class WorkflowCompilerTest {
 
       assertThat(assemblers).hasSize(2);
     }
+
+    @Test
+    @DisplayName("should prefer timeoutSeconds over legacy timeout when both present")
+    void shouldPreferTimeoutSecondsOverLegacyTimeout() {
+      Node t1 = new Node("t1", "trigger", Map.of("timeoutSeconds", 60L, "timeout", 75L));
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("p1", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("should handle negative timeoutSeconds with plugin default")
+    void shouldHandleNegativeTimeoutSecondsWithPluginDefault() {
+      TriggerPlugin trigger = mock(TriggerPlugin.class);
+      when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(45));
+
+      Node t1 = new Node("t1", "trigger", Map.of("timeoutSeconds", -5L));
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", trigger);
+      pluginCache.put("p1", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+    }
   }
 
   @Nested
@@ -640,6 +755,457 @@ class WorkflowCompilerTest {
           compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("should handle multiple incoming edges with different ports")
+    void shouldHandleMultipleIncomingEdgesWithDifferentPorts() {
+      Node t1 = new Node("t1", "trigger", Map.of());
+      Node t2 = new Node("t2", "trigger", Map.of());
+      Node p = new Node("p", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition(
+              "Test",
+              List.of(t1, t2, p),
+              List.of(new Edge("t1", "p", "output"), new Edge("t2", "p", "error")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("t2", Collections.emptyList());
+      parentsList.put("p", List.of(t1, t2));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("t2", mock(TriggerPlugin.class));
+      pluginCache.put("p", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, t2, p);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(3);
+    }
+
+    @Test
+    @DisplayName("should create correct node index mapping for topological order")
+    void shouldCreateCorrectNodeIndexMappingForTopologicalOrder() {
+      Node t = new Node("t", "trigger", Map.of());
+      Node p1 = new Node("p1", "processor", Map.of());
+      Node p2 = new Node("p2", "processor", Map.of());
+      Node term = new Node("term", "terminal", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition(
+              "Test",
+              List.of(t, p1, p2, term),
+              List.of(new Edge("t", "p1"), new Edge("p1", "p2"), new Edge("p2", "term")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t", Collections.emptyList());
+      parentsList.put("p1", List.of(t));
+      parentsList.put("p2", List.of(p1));
+      parentsList.put("term", List.of(p2));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t", mock(TriggerPlugin.class));
+      pluginCache.put("p1", mock(ProcessorPlugin.class));
+      pluginCache.put("p2", mock(ProcessorPlugin.class));
+      pluginCache.put("term", mock(TerminalPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t, p1, p2, term);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(4);
+    }
+  }
+
+  @Nested
+  @DisplayName("getBufferSize with type conversions")
+  class BufferSizeTypeConversionTests {
+
+    @Test
+    @DisplayName("should handle Double buffer size value")
+    void shouldHandleDoubleBufferSizeValue() {
+      Node t1 = new Node("t1", "trigger", Map.of("bufferSize", 256.7));
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("p1", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("should handle Long buffer size value")
+    void shouldHandleLongBufferSizeValue() {
+      Node t1 = new Node("t1", "trigger", Map.of("bufferSize", 128L));
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("p1", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+    }
+  }
+
+  @Nested
+  @DisplayName("getBufferSize - edge cases")
+  class BufferSizeEdgeCasesTests {
+
+    @Test
+    @DisplayName("should handle null buffer size value")
+    void shouldHandleNullBufferSizeValue() {
+      Node t1 = new Node("t1", "trigger", Map.of());
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("p1", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("should use default buffer size for negative value")
+    void shouldUseDefaultForNegativeValue() {
+      Node t1 = new Node("t1", "trigger", Map.of("bufferSize", -100));
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("p1", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+    }
+  }
+
+  @Nested
+  @DisplayName("getNodeTimeout - comprehensive coverage")
+  class NodeTimeoutComprehensiveTests {
+
+    @Test
+    @DisplayName("should handle null plugin")
+    void shouldHandleNullPlugin() {
+      Node t1 = new Node("t1", "trigger", Map.of());
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", null);
+      pluginCache.put("p1", null);
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("should use fallback timeout when all options exhausted")
+    void shouldUseFallbackTimeoutWhenAllExhausted() {
+      TriggerPlugin trigger = mock(TriggerPlugin.class);
+      when(trigger.getDefaultTimeout()).thenReturn(null);
+
+      Node t1 = new Node("t1", "trigger", Map.of());
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", trigger);
+      pluginCache.put("p1", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("should handle large timeout values")
+    void shouldHandleLargeTimeoutValues() {
+      Node t1 = new Node("t1", "trigger", Map.of("timeoutSeconds", Long.MAX_VALUE));
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("p1", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("should prefer timeoutSeconds key over timeout key")
+    void shouldPreferTimeoutSecondsKey() {
+      Node t1 = new Node("t1", "trigger", Map.of("timeoutSeconds", 30L, "timeout", 60L));
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("p1", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("should use legacy timeout when timeoutSeconds not present")
+    void shouldUseLegacyTimeoutWhenNewKeyAbsent() {
+      Node t1 = new Node("t1", "trigger", Map.of("timeout", 45L));
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("p1", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+    }
+  }
+
+
+  @Nested
+  @DisplayName("createNodeAssembler - strategy matching")
+  class CreateNodeAssemblerStrategyTests {
+
+    @Test
+    @DisplayName("should create assembler for node without parents")
+    void shouldCreateAssemblerForNodeWithoutParents() {
+      Node t = new Node("t", "trigger", Map.of());
+
+      WorkflowDefinition def = new WorkflowDefinition("Test", List.of(t), List.of());
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t", Collections.emptyList());
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t", mock(TriggerPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(1).allMatch(a -> a != null);
+    }
+
+    @Test
+    @DisplayName("should create assembler for node with single parent")
+    void shouldCreateAssemblerForNodeWithSingleParent() {
+      Node t = new Node("t", "trigger", Map.of());
+      Node p = new Node("p", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t", Collections.emptyList());
+      parentsList.put("p", List.of(t));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t", mock(TriggerPlugin.class));
+      pluginCache.put("p", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t, p);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2).allMatch(a -> a != null);
+    }
+
+    @Test
+    @DisplayName("should create assembler for node with multiple parents")
+    void shouldCreateAssemblerForNodeWithMultipleParents() {
+      Node t1 = new Node("t1", "trigger", Map.of());
+      Node t2 = new Node("t2", "trigger", Map.of());
+      Node p = new Node("p", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition(
+              "Test",
+              List.of(t1, t2, p),
+              List.of(new Edge("t1", "p"), new Edge("t2", "p")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("t2", Collections.emptyList());
+      parentsList.put("p", List.of(t1, t2));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("t2", mock(TriggerPlugin.class));
+      pluginCache.put("p", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t1, t2, p);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(3).allMatch(a -> a != null);
+    }
+
+    @Test
+    @DisplayName("should create assembler with named source port")
+    void shouldCreateAssemblerWithNamedSourcePort() {
+      Node t = new Node("t", "trigger", Map.of());
+      Node p = new Node("p", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition(
+              "Test", List.of(t, p), List.of(new Edge("t", "p", "output")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t", Collections.emptyList());
+      parentsList.put("p", List.of(t));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t", mock(TriggerPlugin.class));
+      pluginCache.put("p", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t, p);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2).allMatch(a -> a != null);
+    }
+
+    @Test
+    @DisplayName("should create no-op assembler when no strategy matches")
+    void shouldCreateNoOpAssemblerWhenNoStrategyMatches() {
+      Node t = new Node("t", "unknown-type", Map.of());
+
+      WorkflowDefinition def = new WorkflowDefinition("Test", List.of(t), List.of());
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t", Collections.emptyList());
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t", mock(TriggerPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(1).allMatch(a -> a != null);
+
+      AssemblyContext mockContext = new AssemblyContext(
+          "exec-1",
+          "sess-1",
+          "wf-1",
+          Map.of(),
+          null,
+          new Flux[0],
+          new ArrayList<>(),
+          new ArrayList<>(),
+          new ArrayList<>());
+
+      assemblers[0].assemble(mockContext);
     }
   }
 }

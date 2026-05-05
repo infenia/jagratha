@@ -46,7 +46,7 @@ dependencies {
 tasks.withType<Test>().configureEach {
     jvmArgs = listOf(
         "-XX:+EnableDynamicAgentLoading",
-        "-Dnet.bytebuddy.agent.attach=true"
+        "--add-opens=java.base/java.lang=ALL-UNNAMED"
     )
 }
 
