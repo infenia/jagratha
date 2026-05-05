@@ -17,7 +17,10 @@ package com.infenia.yukta.service.orchestrator.compiler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -64,11 +67,12 @@ class WorkflowCompilerTest {
 
   @Mock private TaskTrackerService tracker;
   @Mock private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
-  @Mock private SessionConfigStore configService;
+  @Mock(lenient = true) private SessionConfigStore configService;
 
   @BeforeEach
   void setUp() {
     executionControlRegistry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
+    doReturn(Mono.just(30L)).when(configService).getExecutionTimeout(any());
     compiler =
         new WorkflowCompiler(
             tracker,
@@ -1236,6 +1240,7 @@ class WorkflowCompilerTest {
     @Test
     @DisplayName("should complete when ExecutionControl is registered")
     void shouldCompleteWhenExecutionControlIsRegistered() {
+
       String executionId = "exec-1";
       String sessionId = "sess-1";
       String workflowId = "wf-1";
@@ -1261,6 +1266,7 @@ class WorkflowCompilerTest {
     @Test
     @DisplayName("should invoke assemblers in order")
     void shouldInvokeAssemblersInOrder() {
+
       String executionId = "exec-assembler";
       String sessionId = "sess-1";
       String workflowId = "wf-1";
@@ -1293,6 +1299,7 @@ class WorkflowCompilerTest {
     @Test
     @DisplayName("should pass correct ExecutionId to assemblers")
     void shouldPassCorrectExecutionIdToAssemblers() {
+
       String executionId = "exec-id-test";
       String sessionId = "sess-1";
       String workflowId = "wf-1";
@@ -1327,6 +1334,7 @@ class WorkflowCompilerTest {
     @Test
     @DisplayName("should pass correct SessionId to assemblers")
     void shouldPassCorrectSessionIdToAssemblers() {
+
       String executionId = "exec-1";
       String sessionId = "sess-id-test";
       String workflowId = "wf-1";
@@ -1361,6 +1369,7 @@ class WorkflowCompilerTest {
     @Test
     @DisplayName("should pass correct WorkflowId to assemblers")
     void shouldPassCorrectWorkflowIdToAssemblers() {
+
       String executionId = "exec-1";
       String sessionId = "sess-1";
       String workflowId = "wf-id-test";
@@ -1395,6 +1404,7 @@ class WorkflowCompilerTest {
     @Test
     @DisplayName("should pass correct payload to assemblers")
     void shouldPassCorrectPayloadToAssemblers() {
+
       String executionId = "exec-1";
       String sessionId = "sess-1";
       String workflowId = "wf-1";
@@ -1429,6 +1439,7 @@ class WorkflowCompilerTest {
     @Test
     @DisplayName("should handle empty assembler array")
     void shouldHandleEmptyAssemblerArray() {
+
       String executionId = "exec-empty";
       String sessionId = "sess-1";
       String workflowId = "wf-1";
@@ -1454,6 +1465,7 @@ class WorkflowCompilerTest {
     @Test
     @DisplayName("should handle large number of assemblers")
     void shouldHandleLargeNumberOfAssemblers() {
+
       String executionId = "exec-large";
       String sessionId = "sess-1";
       String workflowId = "wf-1";
