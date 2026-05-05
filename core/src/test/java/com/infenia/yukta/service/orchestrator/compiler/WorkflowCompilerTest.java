@@ -17,10 +17,9 @@ package com.infenia.yukta.service.orchestrator.compiler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.lenient;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +32,7 @@ import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy;
 import com.infenia.yukta.service.TaskTrackerService;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
@@ -67,12 +67,11 @@ class WorkflowCompilerTest {
 
   @Mock private TaskTrackerService tracker;
   @Mock private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
-  @Mock(lenient = true) private SessionConfigStore configService;
+  @Mock private SessionConfigStore configService;
 
   @BeforeEach
   void setUp() {
     executionControlRegistry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
-    doReturn(Mono.just(30L)).when(configService).getExecutionTimeout(any());
     compiler =
         new WorkflowCompiler(
             tracker,
@@ -1181,6 +1180,52 @@ class WorkflowCompilerTest {
     }
 
     @Test
+    @DisplayName("should create assembler when strategy matches plugin type")
+    void shouldCreateAssemblerWhenStrategyMatches() {
+      NodeAssemblerStrategy matchingStrategy = mock(NodeAssemblerStrategy.class);
+      NodeAssembler mockAssembler = mock(NodeAssembler.class);
+
+      when(matchingStrategy.supports(any(ProcessorPlugin.class), eq(true)))
+          .thenReturn(true);
+      when(matchingStrategy.supports(any(), eq(false)))
+          .thenReturn(false);
+      when(matchingStrategy.createAssembler(any(), any(), any(), anyInt(), anyInt(), any()))
+          .thenReturn(mockAssembler);
+
+      WorkflowCompiler testCompiler =
+          new WorkflowCompiler(
+              tracker,
+              controlBusGateway,
+              Schedulers.parallel(),
+              Duration.ofSeconds(10),
+              configService,
+              executionControlRegistry,
+              List.of(matchingStrategy));
+
+      Node t = new Node("t", "trigger", Map.of());
+      Node p = new Node("p", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p")));
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t", Collections.emptyList());
+      parentsList.put("p", List.of(t));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t", mock(TriggerPlugin.class));
+      pluginCache.put("p", mock(ProcessorPlugin.class));
+
+      List<Node> topologicalOrder = List.of(t, p);
+
+      NodeAssembler[] assemblers =
+          testCompiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+
+      assertThat(assemblers).hasSize(2);
+      assertThat(assemblers[1]).isEqualTo(mockAssembler);
+    }
+
+    @Test
     @DisplayName("should create no-op assembler when no strategy matches")
     void shouldCreateNoOpAssemblerWhenNoStrategyMatches() {
       Node t = new Node("t", "unknown-type", Map.of());
@@ -1246,12 +1291,11 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of("test", "data");
 
+        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
       executionControlRegistry.register(control);
-
-      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of()))
-          .thenReturn(Mono.empty());
 
       NodeAssembler[] assemblers = new NodeAssembler[0];
       List<String> nodeIds = List.of();
@@ -1272,12 +1316,11 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of();
 
+        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
       executionControlRegistry.register(control);
-
-      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of("a1", "a2")))
-          .thenReturn(Mono.empty());
 
       List<String> invocationOrder = new ArrayList<>();
 
@@ -1305,12 +1348,11 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of();
 
+        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
       executionControlRegistry.register(control);
-
-      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of("node")))
-          .thenReturn(Mono.empty());
 
       AtomicBoolean capturedCorrect = new AtomicBoolean(false);
 
@@ -1340,12 +1382,11 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of();
 
+        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
       executionControlRegistry.register(control);
-
-      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of("node")))
-          .thenReturn(Mono.empty());
 
       AtomicBoolean capturedCorrect = new AtomicBoolean(false);
 
@@ -1375,12 +1416,11 @@ class WorkflowCompilerTest {
       String workflowId = "wf-id-test";
       Map<String, Object> payload = Map.of();
 
+        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
       executionControlRegistry.register(control);
-
-      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of("node")))
-          .thenReturn(Mono.empty());
 
       AtomicBoolean capturedCorrect = new AtomicBoolean(false);
 
@@ -1410,12 +1450,11 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of("key1", "value1", "key2", 42);
 
+        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
       executionControlRegistry.register(control);
-
-      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of("node")))
-          .thenReturn(Mono.empty());
 
       AtomicBoolean payloadMatches = new AtomicBoolean(false);
 
@@ -1445,12 +1484,11 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of();
 
+        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
       executionControlRegistry.register(control);
-
-      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of()))
-          .thenReturn(Mono.empty());
 
       NodeAssembler[] assemblers = new NodeAssembler[0];
       List<String> nodeIds = List.of();
@@ -1471,6 +1509,8 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of();
 
+        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
       executionControlRegistry.register(control);
@@ -1484,9 +1524,6 @@ class WorkflowCompilerTest {
         assemblers[i] = ctx -> {};
         nodeIds.add("node-" + i);
       }
-
-      when(tracker.startWorkflow(executionId, sessionId, workflowId, nodeIds))
-          .thenReturn(Mono.empty());
 
       Mono<Void> result =
           compiler.executeTemplate(
