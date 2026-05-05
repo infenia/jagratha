@@ -17,7 +17,7 @@ package com.infenia.yukta.service.orchestrator.strategy;
 
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
@@ -54,7 +54,7 @@ public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   @Override
   public NodeAssembler createAssembler(
-      final Node node,
+      final WorkflowNode node,
       final WorkflowPlugin plugin,
       final Duration timeout,
       final int index,

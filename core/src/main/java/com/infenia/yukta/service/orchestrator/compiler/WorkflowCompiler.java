@@ -18,8 +18,8 @@ package com.infenia.yukta.service.orchestrator.compiler;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.internal.WorkflowEdge;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
@@ -82,15 +82,15 @@ public class WorkflowCompiler {
    */
   public WorkflowTemplate compileTemplate(
       final List<WorkflowEdge> edges,
-      final Map<String, List<Node>> parentsList,
+      final Map<String, List<WorkflowNode>> parentsList,
       final Map<String, WorkflowPlugin> pluginCache,
-      final List<Node> topologicalOrder) {
+      final List<WorkflowNode> topologicalOrder) {
 
     final int nodeCount = topologicalOrder.size();
     final NodeAssembler[] assemblers =
         compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
-    final List<String> nodeIds = topologicalOrder.stream().map(Node::nodeId).toList();
+    final List<String> nodeIds = topologicalOrder.stream().map(WorkflowNode::nodeId).toList();
 
     return (executionId, payload) ->
         Mono.deferContextual(
@@ -124,9 +124,9 @@ public class WorkflowCompiler {
   @SuppressWarnings("PMD.UseConcurrentHashMap")
   public NodeAssembler[] compileAssemblers(
       final List<WorkflowEdge> edges,
-      final Map<String, List<Node>> parentsList,
+      final Map<String, List<WorkflowNode>> parentsList,
       final Map<String, WorkflowPlugin> pluginCache,
-      final List<Node> topologicalOrder) {
+      final List<WorkflowNode> topologicalOrder) {
 
     final int nodeCount = topologicalOrder.size();
     final Map<String, Integer> nodeToIndex = new HashMap<>(nodeCount);
@@ -136,7 +136,7 @@ public class WorkflowCompiler {
 
     final NodeAssembler[] assemblers = new NodeAssembler[nodeCount];
     for (int i = 0; i < nodeCount; i++) {
-      final Node node = topologicalOrder.get(i);
+      final WorkflowNode node = topologicalOrder.get(i);
       assemblers[i] = createNodeAssembler(edges, node, parentsList, pluginCache, nodeToIndex);
     }
     return assemblers;
@@ -242,8 +242,8 @@ public class WorkflowCompiler {
    */
   private NodeAssembler createNodeAssembler(
       final List<WorkflowEdge> edges,
-      final Node node,
-      final Map<String, List<Node>> parentsList,
+      final WorkflowNode node,
+      final Map<String, List<WorkflowNode>> parentsList,
       final Map<String, WorkflowPlugin> pluginCache,
       final Map<String, Integer> nodeToIndex) {
 
@@ -279,7 +279,7 @@ public class WorkflowCompiler {
    * @param node the node
    * @return the buffer size
    */
-  private int getBufferSize(final Node node) {
+  private int getBufferSize(final WorkflowNode node) {
     final Object bufferVal = node.config().get("bufferSize");
     final int result;
     if (bufferVal instanceof Number numValue && numValue.intValue() > 0) {
@@ -297,7 +297,7 @@ public class WorkflowCompiler {
    * @param plugin the plugin
    * @return the timeout duration
    */
-  private Duration getNodeTimeout(final Node node, final WorkflowPlugin plugin) {
+  private Duration getNodeTimeout(final WorkflowNode node, final WorkflowPlugin plugin) {
     final Object timeoutVal =
         node.config().getOrDefault("timeoutSeconds", node.config().get("timeout"));
 

@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service.orchestrator;
 
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
@@ -66,7 +66,7 @@ public class StreamBuilder {
   /** Status constant: FAILURE. */
   private static final String STATUS_FAILURE = "FAILURE";
 
-  private final Node node;
+  private final WorkflowNode node;
   private final Duration timeout;
   private final TaskTrackerService taskTracker;
   private final ControlBusGateway controlBusGateway;
@@ -88,7 +88,7 @@ public class StreamBuilder {
    * @param controlBusGateway the control bus gateway for error emission
    */
   public StreamBuilder(
-      final Node node,
+      final WorkflowNode node,
       final Duration timeout,
       final TaskTrackerService taskTracker,
       final ControlBusGateway controlBusGateway) {

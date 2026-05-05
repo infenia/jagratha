@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,14 +41,14 @@ public class TopologicalSortService {
    * @return the list of nodes in topological order
    * @throws IllegalArgumentException if the workflow DAG contains cycles or is invalid
    */
-  public List<Node> computeTopologicalOrder(
-      final List<Node> nodes,
-      final Map<String, List<Node>> adj,
-      final Map<String, List<Node>> parents) {
+  public List<WorkflowNode> computeTopologicalOrder(
+      final List<WorkflowNode> nodes,
+      final Map<String, List<WorkflowNode>> adj,
+      final Map<String, List<WorkflowNode>> parents) {
     final Map<String, Integer> inDegree = new ConcurrentHashMap<>();
-    final Map<String, Node> nodeMap = new ConcurrentHashMap<>();
+    final Map<String, WorkflowNode> nodeMap = new ConcurrentHashMap<>();
 
-    for (final Node node : nodes) {
+    for (final WorkflowNode node : nodes) {
       nodeMap.put(node.nodeId(), node);
       inDegree.put(node.nodeId(), parents.getOrDefault(node.nodeId(), List.of()).size());
     }
@@ -61,7 +61,7 @@ public class TopologicalSortService {
           }
         });
 
-    final List<Node> result = new ArrayList<>();
+    final List<WorkflowNode> result = new ArrayList<>();
     while (!queue.isEmpty()) {
       final String sourceNodeId = queue.poll();
       result.add(nodeMap.get(sourceNodeId));
@@ -77,9 +77,9 @@ public class TopologicalSortService {
   }
 
   private void processChildren(
-      final List<Node> children, final Map<String, Integer> inDegree, final Queue<String> queue) {
+      final List<WorkflowNode> children, final Map<String, Integer> inDegree, final Queue<String> queue) {
     if (children != null) {
-      for (final Node v : children) {
+      for (final WorkflowNode v : children) {
         final int degree = inDegree.get(v.nodeId()) - 1;
         inDegree.put(v.nodeId(), degree);
         if (degree == 0) {

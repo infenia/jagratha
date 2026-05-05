@@ -19,6 +19,7 @@ import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.internal.WorkflowEdge;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.DefaultMessage;
@@ -71,8 +72,8 @@ public class WorkflowPreparator {
         .addKeyValue(LOG_KEY_NODE_IDS, def.nodes().stream().map(Node::nodeId).toList())
         .log("Preparing workflow with {} nodes", numNodes);
 
-    final Map<String, List<Node>> adjacencyList = new ConcurrentHashMap<>(numNodes);
-    final Map<String, List<Node>> parentsList = new ConcurrentHashMap<>(numNodes);
+    final Map<String, List<WorkflowNode>> adjacencyList = new ConcurrentHashMap<>(numNodes);
+    final Map<String, List<WorkflowNode>> parentsList = new ConcurrentHashMap<>(numNodes);
     final Map<String, WorkflowPlugin> pluginCache = new ConcurrentHashMap<>(numNodes);
     final Map<String, Node> nodeMap = new ConcurrentHashMap<>(numNodes);
 
@@ -100,8 +101,14 @@ public class WorkflowPreparator {
     def.edges()
         .forEach(
             edge -> {
-              adjacencyList.get(edge.source()).add(nodeMap.get(edge.target()));
-              parentsList.get(edge.target()).add(nodeMap.get(edge.source()));
+              final Node targetApiNode = nodeMap.get(edge.target());
+              final Node sourceApiNode = nodeMap.get(edge.source());
+              final WorkflowNode targetNode =
+                  new WorkflowNode(targetApiNode.nodeId(), targetApiNode.type(), targetApiNode.config());
+              final WorkflowNode sourceNode =
+                  new WorkflowNode(sourceApiNode.nodeId(), sourceApiNode.type(), sourceApiNode.config());
+              adjacencyList.get(edge.source()).add(targetNode);
+              parentsList.get(edge.target()).add(sourceNode);
               log.atTrace()
                   .addKeyValue(LOG_KEY_SOURCE, edge.source())
                   .addKeyValue(LOG_KEY_TARGET, edge.target())
@@ -145,9 +152,13 @@ public class WorkflowPreparator {
         .then(
             Mono.fromCallable(
                 () -> {
-                  final List<Node> topologicalOrder =
+                  final List<WorkflowNode> workflowNodes =
+                      def.nodes().stream()
+                          .map(n -> new WorkflowNode(n.nodeId(), n.type(), n.config()))
+                          .toList();
+                  final List<WorkflowNode> topologicalOrder =
                       topologicalSortService.computeTopologicalOrder(
-                          def.nodes(), adjacencyList, parentsList);
+                          workflowNodes, adjacencyList, parentsList);
                   final List<WorkflowEdge> edges =
                       def.edges().stream()
                           .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))

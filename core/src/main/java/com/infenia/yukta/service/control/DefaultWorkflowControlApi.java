@@ -17,7 +17,7 @@ package com.infenia.yukta.service.control;
 
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
@@ -286,7 +286,7 @@ public class DefaultWorkflowControlApi implements WorkflowControlApi {
     return getControl(executionId)
         .flatMap(
             control -> {
-              final List<Node> parentNodes =
+              final List<WorkflowNode> parentNodes =
                   control.prepared().parentsList().getOrDefault(nodeId, List.of());
               final Map<String, Message<?>> parentCheckpoints = new HashMap<>(parentNodes.size());
               final AtomicInteger checkpointsFetched = new AtomicInteger(0);

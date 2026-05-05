@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service.control.directive;
 
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
 import com.infenia.yukta.plugin.message.Message;
@@ -202,7 +202,7 @@ public class DirectiveDispatcher {
       final ExecutionControl control, final WorkflowDirective.RestartFromNode directive) {
     final List<String> parentNodeIds =
         control.prepared().parentsList().getOrDefault(directive.nodeId(), List.of()).stream()
-            .map(Node::nodeId)
+            .map(WorkflowNode::nodeId)
             .toList();
 
     final Map<String, Message<?>> parentCheckpoints = new ConcurrentHashMap<>();

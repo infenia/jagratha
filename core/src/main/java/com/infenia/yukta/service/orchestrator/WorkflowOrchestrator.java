@@ -18,7 +18,7 @@ package com.infenia.yukta.service.orchestrator;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.TaskTrackerService;
@@ -163,7 +163,7 @@ public class WorkflowOrchestrator {
       final String restartNodeId,
       final Map<String, Message<?>> parentCheckpoints) {
 
-    final List<Node> topologicalOrder = prepared.topologicalOrder();
+    final List<WorkflowNode> topologicalOrder = prepared.topologicalOrder();
     final int nodeCount = topologicalOrder.size();
     final Map<String, Integer> nodeToIndex = new HashMap<>(nodeCount);
     for (int i = 0; i < nodeCount; i++) {
@@ -177,7 +177,7 @@ public class WorkflowOrchestrator {
 
     // Replace pre-restart assemblers with bypass or checkpoint-replay variants
     for (int i = 0; i < restartIndex; i++) {
-      final Node node = topologicalOrder.get(i);
+      final WorkflowNode node = topologicalOrder.get(i);
       final int idx = i;
       final Message<?> checkpoint = parentCheckpoints.get(node.nodeId());
       if (checkpoint != null) {
@@ -187,7 +187,7 @@ public class WorkflowOrchestrator {
       }
     }
 
-    final List<String> nodeIds = topologicalOrder.stream().map(Node::nodeId).toList();
+    final List<String> nodeIds = topologicalOrder.stream().map(WorkflowNode::nodeId).toList();
 
     final ExecutionControl control =
         executionControlFactory.create(sessionId, workflowId, newExecutionId, prepared, Map.of());

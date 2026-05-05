@@ -13,23 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.orchestrator.strategy;
+package com.infenia.yukta.model.workflow.internal;
 
-import com.infenia.yukta.model.workflow.NodeAssembler;
-import com.infenia.yukta.model.workflow.ParentEdgeInfo;
-import com.infenia.yukta.model.workflow.internal.WorkflowNode;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
-import java.time.Duration;
+import java.util.Map;
 
-public interface NodeAssemblerStrategy {
+/**
+ * Internal representation of a workflow node for execution.
+ *
+ * @param nodeId unique identifier for the node
+ * @param type the type of plugin to use
+ * @param config configuration for the plugin
+ */
+public record WorkflowNode(String nodeId, String type, Map<String, Object> config) {
 
-  boolean supports(WorkflowPlugin plugin, boolean hasParents);
-
-  NodeAssembler createAssembler(
-      WorkflowNode node,
-      WorkflowPlugin plugin,
-      Duration timeout,
-      int index,
-      int bufferSize,
-      ParentEdgeInfo[] parentEdges);
+  /** Compact constructor. */
+  public WorkflowNode {
+    config = config != null ? Map.copyOf(config) : Map.of();
+  }
 }

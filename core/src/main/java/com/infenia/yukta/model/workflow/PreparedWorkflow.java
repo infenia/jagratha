@@ -15,8 +15,8 @@
  */
 package com.infenia.yukta.model.workflow;
 
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.internal.WorkflowEdge;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import java.util.List;
 import java.util.Map;
@@ -33,10 +33,10 @@ import java.util.Map;
  */
 public record PreparedWorkflow(
     List<WorkflowEdge> edges,
-    Map<String, List<Node>> adjacencyList,
-    Map<String, List<Node>> parentsList,
+    Map<String, List<WorkflowNode>> adjacencyList,
+    Map<String, List<WorkflowNode>> parentsList,
     Map<String, WorkflowPlugin> pluginCache,
-    List<Node> topologicalOrder,
+    List<WorkflowNode> topologicalOrder,
     WorkflowTemplate template) {
 
   /** Compact constructor to ensure immutability. */
