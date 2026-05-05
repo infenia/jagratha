@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -59,14 +60,15 @@ import reactor.test.StepVerifier;
 class WorkflowCompilerTest {
 
   private WorkflowCompiler compiler;
+  private ExecutionControlRegistry executionControlRegistry;
 
-    @Mock private TaskTrackerService tracker;
+  @Mock private TaskTrackerService tracker;
   @Mock private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
   @Mock private SessionConfigStore configService;
 
   @BeforeEach
   void setUp() {
-      final ExecutionControlRegistry executionControlRegistry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
+    executionControlRegistry = new ExecutionControlRegistry(new InMemoryExecutionControlStore());
     compiler =
         new WorkflowCompiler(
             tracker,
@@ -74,7 +76,7 @@ class WorkflowCompilerTest {
             Schedulers.parallel(),
             Duration.ofSeconds(10),
             configService,
-                executionControlRegistry,
+            executionControlRegistry,
             List.of());
   }
 
@@ -1206,6 +1208,279 @@ class WorkflowCompilerTest {
           new ArrayList<>());
 
       assemblers[0].assemble(mockContext);
+    }
+  }
+
+  @Nested
+  @DisplayName("executeTemplate - reactive execution")
+  class ExecuteTemplateReactiveTests {
+
+    @Test
+    @DisplayName("should throw when ExecutionControl not registered")
+    void shouldThrowWhenExecutionControlNotRegistered() {
+      String executionId = "unregistered-exec";
+      String sessionId = "sess-1";
+      String workflowId = "wf-1";
+      Map<String, Object> payload = Map.of();
+
+      NodeAssembler[] assemblers = new NodeAssembler[0];
+      List<String> nodeIds = List.of();
+
+      org.junit.jupiter.api.Assertions.assertThrows(
+          IllegalStateException.class,
+          () ->
+              compiler.executeTemplate(
+                  executionId, payload, 0, assemblers, sessionId, workflowId, nodeIds));
+    }
+
+    @Test
+    @DisplayName("should complete when ExecutionControl is registered")
+    void shouldCompleteWhenExecutionControlIsRegistered() {
+      String executionId = "exec-1";
+      String sessionId = "sess-1";
+      String workflowId = "wf-1";
+      Map<String, Object> payload = Map.of("test", "data");
+
+      ExecutionControl control = mock(ExecutionControl.class);
+      when(control.executionId()).thenReturn(executionId);
+      executionControlRegistry.register(control);
+
+      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of()))
+          .thenReturn(Mono.empty());
+
+      NodeAssembler[] assemblers = new NodeAssembler[0];
+      List<String> nodeIds = List.of();
+
+      Mono<Void> result =
+          compiler.executeTemplate(
+              executionId, payload, 0, assemblers, sessionId, workflowId, nodeIds);
+
+      StepVerifier.create(result).expectComplete().verify();
+    }
+
+    @Test
+    @DisplayName("should invoke assemblers in order")
+    void shouldInvokeAssemblersInOrder() {
+      String executionId = "exec-assembler";
+      String sessionId = "sess-1";
+      String workflowId = "wf-1";
+      Map<String, Object> payload = Map.of();
+
+      ExecutionControl control = mock(ExecutionControl.class);
+      when(control.executionId()).thenReturn(executionId);
+      executionControlRegistry.register(control);
+
+      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of("a1", "a2")))
+          .thenReturn(Mono.empty());
+
+      List<String> invocationOrder = new ArrayList<>();
+
+      NodeAssembler assembler1 = ctx -> invocationOrder.add("a1");
+      NodeAssembler assembler2 = ctx -> invocationOrder.add("a2");
+
+      NodeAssembler[] assemblers = new NodeAssembler[] {assembler1, assembler2};
+      List<String> nodeIds = List.of("a1", "a2");
+
+      Mono<Void> result =
+          compiler.executeTemplate(
+              executionId, payload, 2, assemblers, sessionId, workflowId, nodeIds);
+
+      StepVerifier.create(result).expectComplete().verify();
+
+      assertThat(invocationOrder).containsExactly("a1", "a2");
+    }
+
+    @Test
+    @DisplayName("should pass correct ExecutionId to assemblers")
+    void shouldPassCorrectExecutionIdToAssemblers() {
+      String executionId = "exec-id-test";
+      String sessionId = "sess-1";
+      String workflowId = "wf-1";
+      Map<String, Object> payload = Map.of();
+
+      ExecutionControl control = mock(ExecutionControl.class);
+      when(control.executionId()).thenReturn(executionId);
+      executionControlRegistry.register(control);
+
+      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of("node")))
+          .thenReturn(Mono.empty());
+
+      AtomicBoolean capturedCorrect = new AtomicBoolean(false);
+
+      NodeAssembler assembler =
+          ctx -> {
+            capturedCorrect.set(executionId.equals(ctx.executionId()));
+          };
+
+      NodeAssembler[] assemblers = new NodeAssembler[] {assembler};
+      List<String> nodeIds = List.of("node");
+
+      Mono<Void> result =
+          compiler.executeTemplate(
+              executionId, payload, 1, assemblers, sessionId, workflowId, nodeIds);
+
+      StepVerifier.create(result).expectComplete().verify();
+
+      assertThat(capturedCorrect.get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("should pass correct SessionId to assemblers")
+    void shouldPassCorrectSessionIdToAssemblers() {
+      String executionId = "exec-1";
+      String sessionId = "sess-id-test";
+      String workflowId = "wf-1";
+      Map<String, Object> payload = Map.of();
+
+      ExecutionControl control = mock(ExecutionControl.class);
+      when(control.executionId()).thenReturn(executionId);
+      executionControlRegistry.register(control);
+
+      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of("node")))
+          .thenReturn(Mono.empty());
+
+      AtomicBoolean capturedCorrect = new AtomicBoolean(false);
+
+      NodeAssembler assembler =
+          ctx -> {
+            capturedCorrect.set(sessionId.equals(ctx.sessionId()));
+          };
+
+      NodeAssembler[] assemblers = new NodeAssembler[] {assembler};
+      List<String> nodeIds = List.of("node");
+
+      Mono<Void> result =
+          compiler.executeTemplate(
+              executionId, payload, 1, assemblers, sessionId, workflowId, nodeIds);
+
+      StepVerifier.create(result).expectComplete().verify();
+
+      assertThat(capturedCorrect.get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("should pass correct WorkflowId to assemblers")
+    void shouldPassCorrectWorkflowIdToAssemblers() {
+      String executionId = "exec-1";
+      String sessionId = "sess-1";
+      String workflowId = "wf-id-test";
+      Map<String, Object> payload = Map.of();
+
+      ExecutionControl control = mock(ExecutionControl.class);
+      when(control.executionId()).thenReturn(executionId);
+      executionControlRegistry.register(control);
+
+      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of("node")))
+          .thenReturn(Mono.empty());
+
+      AtomicBoolean capturedCorrect = new AtomicBoolean(false);
+
+      NodeAssembler assembler =
+          ctx -> {
+            capturedCorrect.set(workflowId.equals(ctx.workflowId()));
+          };
+
+      NodeAssembler[] assemblers = new NodeAssembler[] {assembler};
+      List<String> nodeIds = List.of("node");
+
+      Mono<Void> result =
+          compiler.executeTemplate(
+              executionId, payload, 1, assemblers, sessionId, workflowId, nodeIds);
+
+      StepVerifier.create(result).expectComplete().verify();
+
+      assertThat(capturedCorrect.get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("should pass correct payload to assemblers")
+    void shouldPassCorrectPayloadToAssemblers() {
+      String executionId = "exec-1";
+      String sessionId = "sess-1";
+      String workflowId = "wf-1";
+      Map<String, Object> payload = Map.of("key1", "value1", "key2", 42);
+
+      ExecutionControl control = mock(ExecutionControl.class);
+      when(control.executionId()).thenReturn(executionId);
+      executionControlRegistry.register(control);
+
+      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of("node")))
+          .thenReturn(Mono.empty());
+
+      AtomicBoolean payloadMatches = new AtomicBoolean(false);
+
+      NodeAssembler assembler =
+          ctx -> {
+            payloadMatches.set(payload.equals(ctx.payload()));
+          };
+
+      NodeAssembler[] assemblers = new NodeAssembler[] {assembler};
+      List<String> nodeIds = List.of("node");
+
+      Mono<Void> result =
+          compiler.executeTemplate(
+              executionId, payload, 1, assemblers, sessionId, workflowId, nodeIds);
+
+      StepVerifier.create(result).expectComplete().verify();
+
+      assertThat(payloadMatches.get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("should handle empty assembler array")
+    void shouldHandleEmptyAssemblerArray() {
+      String executionId = "exec-empty";
+      String sessionId = "sess-1";
+      String workflowId = "wf-1";
+      Map<String, Object> payload = Map.of();
+
+      ExecutionControl control = mock(ExecutionControl.class);
+      when(control.executionId()).thenReturn(executionId);
+      executionControlRegistry.register(control);
+
+      when(tracker.startWorkflow(executionId, sessionId, workflowId, List.of()))
+          .thenReturn(Mono.empty());
+
+      NodeAssembler[] assemblers = new NodeAssembler[0];
+      List<String> nodeIds = List.of();
+
+      Mono<Void> result =
+          compiler.executeTemplate(
+              executionId, payload, 0, assemblers, sessionId, workflowId, nodeIds);
+
+      StepVerifier.create(result).expectComplete().verify();
+    }
+
+    @Test
+    @DisplayName("should handle large number of assemblers")
+    void shouldHandleLargeNumberOfAssemblers() {
+      String executionId = "exec-large";
+      String sessionId = "sess-1";
+      String workflowId = "wf-1";
+      Map<String, Object> payload = Map.of();
+
+      ExecutionControl control = mock(ExecutionControl.class);
+      when(control.executionId()).thenReturn(executionId);
+      executionControlRegistry.register(control);
+
+      int count = 50;
+      List<String> nodeIds = new ArrayList<>();
+      NodeAssembler[] assemblers = new NodeAssembler[count];
+
+      for (int i = 0; i < count; i++) {
+        final int index = i;
+        assemblers[i] = ctx -> {};
+        nodeIds.add("node-" + i);
+      }
+
+      when(tracker.startWorkflow(executionId, sessionId, workflowId, nodeIds))
+          .thenReturn(Mono.empty());
+
+      Mono<Void> result =
+          compiler.executeTemplate(
+              executionId, payload, count, assemblers, sessionId, workflowId, nodeIds);
+
+      StepVerifier.create(result).expectComplete().verify();
     }
   }
 }
