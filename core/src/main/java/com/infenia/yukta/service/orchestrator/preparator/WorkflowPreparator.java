@@ -18,6 +18,7 @@ package com.infenia.yukta.service.orchestrator.preparator;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.internal.WorkflowEdge;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.DefaultMessage;
@@ -146,14 +147,18 @@ public class WorkflowPreparator {
                 () -> {
                   final List<Node> topologicalOrder =
                       topologicalSortService.computeTopologicalOrder(
-                          def, adjacencyList, parentsList);
+                          def.nodes(), adjacencyList, parentsList);
+                  final List<WorkflowEdge> edges =
+                      def.edges().stream()
+                          .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+                          .toList();
                   return new PreparedWorkflow(
-                      def,
+                      edges,
                       adjacencyList,
                       parentsList,
                       pluginCache,
                       topologicalOrder,
-                      compiler.compileTemplate(def, parentsList, pluginCache, topologicalOrder));
+                      compiler.compileTemplate(edges, parentsList, pluginCache, topologicalOrder));
                 }))
         .onErrorResume(
             e -> {

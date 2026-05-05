@@ -53,7 +53,8 @@ class WorkflowServiceTest {
     String workflowId = "w-success";
     WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
     PreparedWorkflow prepared =
-        new PreparedWorkflow(def, Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+        new PreparedWorkflow(
+            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
     when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
@@ -103,7 +104,8 @@ class WorkflowServiceTest {
     String workflowId = "w-queue";
     WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
     PreparedWorkflow prepared =
-        new PreparedWorkflow(def, Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+        new PreparedWorkflow(
+            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
     // Use a CountDownLatch to control execution timing
     java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
@@ -151,7 +153,8 @@ class WorkflowServiceTest {
     String workflowId = "w-cleanup";
     WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
     PreparedWorkflow prepared =
-        new PreparedWorkflow(def, Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+        new PreparedWorkflow(
+            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
     java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
     java.util.concurrent.CountDownLatch startedLatch = new java.util.concurrent.CountDownLatch(1);
@@ -199,7 +202,8 @@ class WorkflowServiceTest {
     String workflowId = "w-multi";
     WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
     PreparedWorkflow prepared =
-        new PreparedWorkflow(def, Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+        new PreparedWorkflow(
+            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
     when(configService.getWorkflow(anyString(), anyString())).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
@@ -224,7 +228,8 @@ class WorkflowServiceTest {
     String workflowId = "w-single";
     WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
     PreparedWorkflow prepared =
-        new PreparedWorkflow(def, Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+        new PreparedWorkflow(
+            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
     when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
@@ -247,7 +252,8 @@ class WorkflowServiceTest {
     String workflowId = "w-error-queue";
     WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
     PreparedWorkflow prepared =
-        new PreparedWorkflow(def, Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+        new PreparedWorkflow(
+            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
     java.util.concurrent.CountDownLatch firstErrorLatch =
         new java.util.concurrent.CountDownLatch(1);
@@ -308,7 +314,8 @@ class WorkflowServiceTest {
     String workflowId = "w-prep-error";
     WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
     PreparedWorkflow prepared =
-        new PreparedWorkflow(def, Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+        new PreparedWorkflow(
+            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
     when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
@@ -327,7 +334,8 @@ class WorkflowServiceTest {
     String workflowId = "w-multi-cleanup";
     WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
     PreparedWorkflow prepared =
-        new PreparedWorkflow(def, Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+        new PreparedWorkflow(
+            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
     java.util.concurrent.CountDownLatch firstLatch = new java.util.concurrent.CountDownLatch(1);
     java.util.concurrent.CountDownLatch secondLatch = new java.util.concurrent.CountDownLatch(1);

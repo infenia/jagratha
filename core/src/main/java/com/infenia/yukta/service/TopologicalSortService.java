@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -36,20 +35,20 @@ public class TopologicalSortService {
   /**
    * Compute the topological order of nodes using Kahn's algorithm.
    *
-   * @param def the workflow definition
+   * @param nodes the list of nodes in the workflow
    * @param adj the adjacency list map of nodeId to child nodes
    * @param parents the parents list map of nodeId to parent nodes
    * @return the list of nodes in topological order
    * @throws IllegalArgumentException if the workflow DAG contains cycles or is invalid
    */
   public List<Node> computeTopologicalOrder(
-      final WorkflowDefinition def,
+      final List<Node> nodes,
       final Map<String, List<Node>> adj,
       final Map<String, List<Node>> parents) {
     final Map<String, Integer> inDegree = new ConcurrentHashMap<>();
     final Map<String, Node> nodeMap = new ConcurrentHashMap<>();
 
-    for (final Node node : def.nodes()) {
+    for (final Node node : nodes) {
       nodeMap.put(node.nodeId(), node);
       inDegree.put(node.nodeId(), parents.getOrDefault(node.nodeId(), List.of()).size());
     }
@@ -70,7 +69,7 @@ public class TopologicalSortService {
       processChildren(adj.get(sourceNodeId), inDegree, queue);
     }
 
-    if (result.size() != def.nodes().size()) {
+    if (result.size() != nodes.size()) {
       throw new IllegalArgumentException("Workflow DAG contains cycles or is invalid");
     }
 

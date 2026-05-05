@@ -17,9 +17,9 @@ package com.infenia.yukta.service.orchestrator.compiler;
 
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
+import com.infenia.yukta.model.workflow.internal.WorkflowEdge;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
@@ -74,21 +74,21 @@ public class WorkflowCompiler {
   /**
    * Compiles a workflow template for high-performance execution.
    *
-   * @param def the workflow definition
+   * @param edges the workflow edges
    * @param parentsList map of nodeId to parent nodes
    * @param pluginCache map of nodeId to initialized plugin instances
    * @param topologicalOrder list of nodes in topological order
    * @return the compiled workflow template
    */
   public WorkflowTemplate compileTemplate(
-      final WorkflowDefinition def,
+      final List<WorkflowEdge> edges,
       final Map<String, List<Node>> parentsList,
       final Map<String, WorkflowPlugin> pluginCache,
       final List<Node> topologicalOrder) {
 
     final int nodeCount = topologicalOrder.size();
     final NodeAssembler[] assemblers =
-        compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+        compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
     final List<String> nodeIds = topologicalOrder.stream().map(Node::nodeId).toList();
 
@@ -115,7 +115,7 @@ public class WorkflowCompiler {
   /**
    * Builds an assembler array for the given workflow in topological order.
    *
-   * @param def the workflow definition
+   * @param edges the workflow edges
    * @param parentsList map of nodeId to parent nodes
    * @param pluginCache map of nodeId to initialized plugin instances
    * @param topologicalOrder list of nodes in topological order
@@ -123,7 +123,7 @@ public class WorkflowCompiler {
    */
   @SuppressWarnings("PMD.UseConcurrentHashMap")
   public NodeAssembler[] compileAssemblers(
-      final WorkflowDefinition def,
+      final List<WorkflowEdge> edges,
       final Map<String, List<Node>> parentsList,
       final Map<String, WorkflowPlugin> pluginCache,
       final List<Node> topologicalOrder) {
@@ -137,7 +137,7 @@ public class WorkflowCompiler {
     final NodeAssembler[] assemblers = new NodeAssembler[nodeCount];
     for (int i = 0; i < nodeCount; i++) {
       final Node node = topologicalOrder.get(i);
-      assemblers[i] = createNodeAssembler(def, node, parentsList, pluginCache, nodeToIndex);
+      assemblers[i] = createNodeAssembler(edges, node, parentsList, pluginCache, nodeToIndex);
     }
     return assemblers;
   }
@@ -233,7 +233,7 @@ public class WorkflowCompiler {
   /**
    * Creates a NodeAssembler for a specific node.
    *
-   * @param def the workflow definition
+   * @param edges the workflow edges
    * @param node the node to assemble
    * @param parentsList map of nodeId to parent nodes
    * @param pluginCache map of nodeId to initialized plugin instances
@@ -241,7 +241,7 @@ public class WorkflowCompiler {
    * @return the NodeAssembler
    */
   private NodeAssembler createNodeAssembler(
-      final WorkflowDefinition def,
+      final List<WorkflowEdge> edges,
       final Node node,
       final Map<String, List<Node>> parentsList,
       final Map<String, WorkflowPlugin> pluginCache,
@@ -254,7 +254,7 @@ public class WorkflowCompiler {
     final int nodeIndex = nodeToIndex.get(node.nodeId());
 
     final ParentEdgeInfo[] parentEdges =
-        def.edges().stream()
+        edges.stream()
             .filter(e -> e.target().equals(node.nodeId()))
             .map(e -> new ParentEdgeInfo(nodeToIndex.get(e.source()), e.source(), e.sourcePort()))
             .toArray(ParentEdgeInfo[]::new);

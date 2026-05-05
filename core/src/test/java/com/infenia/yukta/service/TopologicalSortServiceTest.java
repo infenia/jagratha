@@ -38,7 +38,8 @@ class TopologicalSortServiceTest {
     Map<String, List<WorkflowDefinition.Node>> adj = Map.of("n1", List.of(n2), "n2", List.of());
     Map<String, List<WorkflowDefinition.Node>> parents = Map.of("n1", List.of(), "n2", List.of(n1));
 
-    List<WorkflowDefinition.Node> order = service.computeTopologicalOrder(def, adj, parents);
+    List<WorkflowDefinition.Node> order =
+        service.computeTopologicalOrder(def.nodes(), adj, parents);
     assertEquals(2, order.size());
     assertEquals("n1", order.get(0).nodeId());
     assertEquals("n2", order.get(1).nodeId());
@@ -56,7 +57,8 @@ class TopologicalSortServiceTest {
     // n2 is missing in adjacency list
     Map<String, List<WorkflowDefinition.Node>> parents = Map.of("n1", List.of(), "n2", List.of(n1));
 
-    List<WorkflowDefinition.Node> order = service.computeTopologicalOrder(def, adjNull, parents);
+    List<WorkflowDefinition.Node> order =
+        service.computeTopologicalOrder(def.nodes(), adjNull, parents);
     assertEquals(2, order.size());
     assertEquals("n1", order.get(0).nodeId());
     assertEquals("n2", order.get(1).nodeId());
@@ -75,7 +77,8 @@ class TopologicalSortServiceTest {
         Map.of("n1", List.of(n2), "n2", List.of(n1));
 
     assertThrows(
-        IllegalArgumentException.class, () -> service.computeTopologicalOrder(def, adj, parents));
+        IllegalArgumentException.class,
+        () -> service.computeTopologicalOrder(def.nodes(), adj, parents));
   }
 
   @Test
@@ -92,7 +95,8 @@ class TopologicalSortServiceTest {
     Map<String, List<WorkflowDefinition.Node>> parents =
         Map.of("n1", List.of(), "n2", List.of(n1), "n3", List.of(n2));
 
-    List<WorkflowDefinition.Node> order = service.computeTopologicalOrder(def, adj, parents);
+    List<WorkflowDefinition.Node> order =
+        service.computeTopologicalOrder(def.nodes(), adj, parents);
     assertEquals(3, order.size());
     assertEquals("n1", order.get(0).nodeId());
     assertEquals("n2", order.get(1).nodeId());
@@ -123,7 +127,8 @@ class TopologicalSortServiceTest {
             "n3", List.of(n1),
             "n4", List.of(n2, n3));
 
-    List<WorkflowDefinition.Node> order = service.computeTopologicalOrder(def, adj, parents);
+    List<WorkflowDefinition.Node> order =
+        service.computeTopologicalOrder(def.nodes(), adj, parents);
     assertEquals(4, order.size());
     assertEquals("n1", order.get(0).nodeId());
     // n2 and n3 can be in any order since they have the same parent

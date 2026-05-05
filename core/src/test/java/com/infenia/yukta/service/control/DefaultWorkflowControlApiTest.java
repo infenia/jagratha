@@ -650,14 +650,14 @@ class DefaultWorkflowControlApiTest {
     final WorkflowDefinition definition =
         new WorkflowDefinition("test workflow", List.of(), List.of());
     final PreparedWorkflow prepared =
-        new PreparedWorkflow(definition, Map.of(), Map.of(), Map.of(), List.of(), null);
+        new PreparedWorkflow(List.of(), Map.of(), Map.of(), Map.of(), List.of(), null);
 
     when(orchestrator.prepareWorkflow(definition)).thenReturn(Mono.just(prepared));
 
     StepVerifier.create(api.prepareWorkflow(definition))
         .assertNext(
             result -> {
-              assertThat(result.definition()).isEqualTo(definition);
+              assertThat(result.edges()).isEmpty();
             })
         .verifyComplete();
   }
@@ -670,7 +670,7 @@ class DefaultWorkflowControlApiTest {
     final WorkflowDefinition definition =
         new WorkflowDefinition("test workflow", List.of(), List.of());
     final PreparedWorkflow prepared =
-        new PreparedWorkflow(definition, Map.of(), Map.of(), Map.of(), List.of(), null);
+        new PreparedWorkflow(List.of(), Map.of(), Map.of(), Map.of(), List.of(), null);
     final Map<String, Object> payload = Map.of("key", "value");
 
     when(orchestrator.execute(sessionId, workflowId, executionId, prepared, payload))
@@ -686,7 +686,7 @@ class DefaultWorkflowControlApiTest {
     final WorkflowDefinition definition =
         new WorkflowDefinition("test workflow", List.of(), List.of());
     final PreparedWorkflow prepared =
-        new PreparedWorkflow(definition, Map.of(), Map.of(), Map.of(), List.of(), null);
+        new PreparedWorkflow(List.of(), Map.of(), Map.of(), Map.of(), List.of(), null);
     final Map<String, Object> payload = Map.of("key", "value");
 
     final ExecutionControl control =
@@ -730,7 +730,7 @@ class DefaultWorkflowControlApiTest {
         new WorkflowDefinition("test workflow", List.of(), List.of());
     final Map<String, List<WorkflowDefinition.Node>> parentsList = Map.of();
     final PreparedWorkflow prepared =
-        new PreparedWorkflow(definition, Map.of(), parentsList, Map.of(), List.of(), null);
+        new PreparedWorkflow(List.of(), Map.of(), parentsList, Map.of(), List.of(), null);
     final Map<String, Object> payload = Map.of("key", "value");
 
     final ExecutionControl control =
@@ -786,7 +786,7 @@ class DefaultWorkflowControlApiTest {
     final Map<String, List<WorkflowDefinition.Node>> parentsList =
         Map.of(nodeId, List.of(parentNode));
     final PreparedWorkflow prepared =
-        new PreparedWorkflow(definition, Map.of(), parentsList, Map.of(), List.of(), null);
+        new PreparedWorkflow(List.of(), Map.of(), parentsList, Map.of(), List.of(), null);
     final Map<String, Object> payload = Map.of("key", "value");
 
     final ExecutionControl control =
@@ -900,7 +900,7 @@ class DefaultWorkflowControlApiTest {
     final Map<String, List<WorkflowDefinition.Node>> parentsList =
         Map.of(nodeId, List.of(parentNode));
     final PreparedWorkflow prepared =
-        new PreparedWorkflow(definition, Map.of(), parentsList, Map.of(), List.of(), null);
+        new PreparedWorkflow(List.of(), Map.of(), parentsList, Map.of(), List.of(), null);
     final Map<String, Object> payload = Map.of("key", "value");
 
     final ExecutionControl control =

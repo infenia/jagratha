@@ -28,16 +28,17 @@ import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Edge;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
+import com.infenia.yukta.model.workflow.internal.WorkflowEdge;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
-import com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy;
 import com.infenia.yukta.service.TaskTrackerService;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
 import com.infenia.yukta.service.orchestrator.AssemblyContext;
+import com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -97,6 +98,10 @@ class WorkflowCompilerTest {
       WorkflowDefinition def =
           new WorkflowDefinition(
               "Test", List.of(t1, p1, term), List.of(new Edge("t1", "p1"), new Edge("p1", "term")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -111,7 +116,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1, term);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(3);
     }
@@ -122,6 +127,10 @@ class WorkflowCompilerTest {
       Node t1 = new Node("t1", "trigger", Map.of());
 
       WorkflowDefinition def = new WorkflowDefinition("Test", List.of(t1), List.of());
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -132,7 +141,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(1);
     }
@@ -150,6 +159,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t, term), List.of(new Edge("t", "term")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -161,7 +174,7 @@ class WorkflowCompilerTest {
 
       List<Node> topologicalOrder = List.of(t, term);
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -179,6 +192,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t, term), List.of(new Edge("t", "term")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -191,7 +208,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, term);
 
       WorkflowTemplate template =
-          compiler.compileTemplate(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileTemplate(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(template).isNotNull();
     }
@@ -204,6 +221,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t, term), List.of(new Edge("t", "term")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -216,7 +237,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, term);
 
       WorkflowTemplate template =
-          compiler.compileTemplate(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileTemplate(edges, parentsList, pluginCache, topologicalOrder);
 
       String executionId = "exec-1";
       String sessionId = "sess-1";
@@ -248,6 +269,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t, term), List.of(new Edge("t", "term")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -260,7 +285,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, term);
 
       WorkflowTemplate template =
-          compiler.compileTemplate(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileTemplate(edges, parentsList, pluginCache, topologicalOrder);
 
       String executionId = "exec-123";
       String sessionId = "sess-456";
@@ -276,8 +301,7 @@ class WorkflowCompilerTest {
               .contextWrite(c -> c.put("sessionId", sessionId).put("workflowId", workflowId));
 
       StepVerifier.create(result)
-          .expectErrorMatches(
-              e -> e instanceof IllegalStateException)
+          .expectErrorMatches(e -> e instanceof IllegalStateException)
           .verify();
 
       verify(tracker).startWorkflow(executionId, sessionId, workflowId, List.of("t", "term"));
@@ -287,13 +311,17 @@ class WorkflowCompilerTest {
     @DisplayName("should handle empty topological order")
     void shouldHandleEmptyTopologicalOrder() {
       WorkflowDefinition def = new WorkflowDefinition("Test", List.of(), List.of());
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
       List<Node> topologicalOrder = List.of();
 
       WorkflowTemplate template =
-          compiler.compileTemplate(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileTemplate(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(template).isNotNull();
     }
@@ -311,6 +339,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -323,7 +355,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -336,6 +368,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -348,7 +384,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -361,6 +397,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -373,7 +413,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -386,6 +426,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -398,7 +442,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -416,6 +460,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -428,7 +476,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -441,6 +489,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -453,7 +505,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -472,6 +524,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -484,7 +540,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -497,6 +553,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -509,7 +569,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -525,6 +585,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -537,7 +601,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -553,6 +617,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -565,7 +633,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -581,6 +649,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -593,7 +665,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -606,6 +678,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -618,7 +694,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -634,6 +710,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -646,7 +726,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -664,6 +744,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -676,7 +760,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
       assertThat(assemblers[0]).isNotNull();
@@ -693,6 +777,10 @@ class WorkflowCompilerTest {
       WorkflowDefinition def =
           new WorkflowDefinition(
               "Test", List.of(t1, t2, p), List.of(new Edge("t1", "p"), new Edge("t2", "p")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -707,7 +795,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, t2, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(3);
     }
@@ -720,6 +808,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p), List.of(new Edge("t1", "p")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -732,7 +824,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -745,6 +837,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p", "output")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -757,7 +853,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -774,6 +870,10 @@ class WorkflowCompilerTest {
               "Test",
               List.of(t1, t2, p),
               List.of(new Edge("t1", "p", "output"), new Edge("t2", "p", "error")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -788,7 +888,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, t2, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(3);
     }
@@ -806,6 +906,10 @@ class WorkflowCompilerTest {
               "Test",
               List.of(t, p1, p2, term),
               List.of(new Edge("t", "p1"), new Edge("p1", "p2"), new Edge("p2", "term")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -822,7 +926,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p1, p2, term);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(4);
     }
@@ -840,6 +944,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -852,7 +960,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -865,6 +973,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -877,7 +989,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -895,6 +1007,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -907,7 +1023,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -920,6 +1036,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -932,7 +1052,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -950,6 +1070,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -962,7 +1086,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -978,6 +1102,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -990,7 +1118,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -1003,6 +1131,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -1015,7 +1147,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -1028,6 +1160,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -1040,7 +1176,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
@@ -1053,6 +1189,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -1065,12 +1205,11 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
     }
   }
-
 
   @Nested
   @DisplayName("createNodeAssembler - strategy matching")
@@ -1082,6 +1221,10 @@ class WorkflowCompilerTest {
       Node t = new Node("t", "trigger", Map.of());
 
       WorkflowDefinition def = new WorkflowDefinition("Test", List.of(t), List.of());
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -1092,7 +1235,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(1).allMatch(a -> a != null);
     }
@@ -1105,6 +1248,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -1117,7 +1264,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2).allMatch(a -> a != null);
     }
@@ -1131,9 +1278,11 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition(
-              "Test",
-              List.of(t1, t2, p),
-              List.of(new Edge("t1", "p"), new Edge("t2", "p")));
+              "Test", List.of(t1, t2, p), List.of(new Edge("t1", "p"), new Edge("t2", "p")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t1", Collections.emptyList());
@@ -1148,7 +1297,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, t2, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(3).allMatch(a -> a != null);
     }
@@ -1160,8 +1309,11 @@ class WorkflowCompilerTest {
       Node p = new Node("p", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition(
-              "Test", List.of(t, p), List.of(new Edge("t", "p", "output")));
+          new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p", "output")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -1174,7 +1326,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2).allMatch(a -> a != null);
     }
@@ -1185,10 +1337,8 @@ class WorkflowCompilerTest {
       NodeAssemblerStrategy matchingStrategy = mock(NodeAssemblerStrategy.class);
       NodeAssembler mockAssembler = mock(NodeAssembler.class);
 
-      when(matchingStrategy.supports(any(ProcessorPlugin.class), eq(true)))
-          .thenReturn(true);
-      when(matchingStrategy.supports(any(), eq(false)))
-          .thenReturn(false);
+      when(matchingStrategy.supports(any(ProcessorPlugin.class), eq(true))).thenReturn(true);
+      when(matchingStrategy.supports(any(), eq(false))).thenReturn(false);
       when(matchingStrategy.createAssembler(any(), any(), any(), anyInt(), anyInt(), any()))
           .thenReturn(mockAssembler);
 
@@ -1207,6 +1357,10 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -1219,7 +1373,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p);
 
       NodeAssembler[] assemblers =
-          testCompiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          testCompiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(2);
       assertThat(assemblers[1]).isEqualTo(mockAssembler);
@@ -1231,6 +1385,10 @@ class WorkflowCompilerTest {
       Node t = new Node("t", "unknown-type", Map.of());
 
       WorkflowDefinition def = new WorkflowDefinition("Test", List.of(t), List.of());
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
 
       Map<String, List<Node>> parentsList = new HashMap<>();
       parentsList.put("t", Collections.emptyList());
@@ -1241,20 +1399,21 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(def, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
       assertThat(assemblers).hasSize(1).allMatch(a -> a != null);
 
-      AssemblyContext mockContext = new AssemblyContext(
-          "exec-1",
-          "sess-1",
-          "wf-1",
-          Map.of(),
-          null,
-          new Flux[0],
-          new ArrayList<>(),
-          new ArrayList<>(),
-          new ArrayList<>());
+      AssemblyContext mockContext =
+          new AssemblyContext(
+              "exec-1",
+              "sess-1",
+              "wf-1",
+              Map.of(),
+              null,
+              new Flux[0],
+              new ArrayList<>(),
+              new ArrayList<>(),
+              new ArrayList<>());
 
       assemblers[0].assemble(mockContext);
     }
@@ -1291,7 +1450,7 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of("test", "data");
 
-        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+      when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
 
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
@@ -1316,7 +1475,7 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of();
 
-        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+      when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
 
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
@@ -1348,7 +1507,7 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of();
 
-        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+      when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
 
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
@@ -1382,7 +1541,7 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of();
 
-        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+      when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
 
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
@@ -1416,7 +1575,7 @@ class WorkflowCompilerTest {
       String workflowId = "wf-id-test";
       Map<String, Object> payload = Map.of();
 
-        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+      when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
 
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
@@ -1450,7 +1609,7 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of("key1", "value1", "key2", 42);
 
-        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+      when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
 
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
@@ -1484,7 +1643,7 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of();
 
-        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+      when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
 
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);
@@ -1509,7 +1668,7 @@ class WorkflowCompilerTest {
       String workflowId = "wf-1";
       Map<String, Object> payload = Map.of();
 
-        when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
+      when(configService.getExecutionTimeout(any())).thenReturn(Mono.just(30L));
 
       ExecutionControl control = mock(ExecutionControl.class);
       when(control.executionId()).thenReturn(executionId);

@@ -173,10 +173,7 @@ public class WorkflowOrchestrator {
     final int restartIndex = nodeToIndex.getOrDefault(restartNodeId, 0);
     final NodeAssembler[] assemblers =
         compiler.compileAssemblers(
-            prepared.definition(),
-            prepared.parentsList(),
-            prepared.pluginCache(),
-            topologicalOrder);
+            prepared.edges(), prepared.parentsList(), prepared.pluginCache(), topologicalOrder);
 
     // Replace pre-restart assemblers with bypass or checkpoint-replay variants
     for (int i = 0; i < restartIndex; i++) {
