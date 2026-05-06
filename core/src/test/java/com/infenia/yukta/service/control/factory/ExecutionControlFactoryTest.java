@@ -18,7 +18,9 @@ package com.infenia.yukta.service.control.factory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import java.util.List;
@@ -47,7 +49,7 @@ class ExecutionControlFactoryTest {
 
     // Mock PreparedWorkflow with single node
     PreparedWorkflow prepared = Mockito.mock(PreparedWorkflow.class);
-    Node node = Mockito.mock(Node.class);
+    Node node = Mockito.mock(WorkflowNode.class);
     Mockito.when(node.nodeId()).thenReturn("node-1");
     Mockito.when(prepared.topologicalOrder()).thenReturn(List.of(node));
 
@@ -98,9 +100,9 @@ class ExecutionControlFactoryTest {
 
     // Mock PreparedWorkflow with multiple nodes
     PreparedWorkflow prepared = Mockito.mock(PreparedWorkflow.class);
-    Node node1 = Mockito.mock(Node.class);
-    Node node2 = Mockito.mock(Node.class);
-    Node node3 = Mockito.mock(Node.class);
+    Node node1 = Mockito.mock(WorkflowNode.class);
+    Node node2 = Mockito.mock(WorkflowNode.class);
+    Node node3 = Mockito.mock(WorkflowNode.class);
 
     Mockito.when(node1.nodeId()).thenReturn("node-1");
     Mockito.when(node2.nodeId()).thenReturn("node-2");
@@ -179,8 +181,8 @@ class ExecutionControlFactoryTest {
   void testNodeControlsAreIndependentInstances() {
     // Given
     PreparedWorkflow prepared = Mockito.mock(PreparedWorkflow.class);
-    Node node1 = Mockito.mock(Node.class);
-    Node node2 = Mockito.mock(Node.class);
+    Node node1 = Mockito.mock(WorkflowNode.class);
+    Node node2 = Mockito.mock(WorkflowNode.class);
 
     Mockito.when(node1.nodeId()).thenReturn("node-1");
     Mockito.when(node2.nodeId()).thenReturn("node-2");

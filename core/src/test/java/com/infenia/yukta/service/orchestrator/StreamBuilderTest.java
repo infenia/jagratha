@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.DefaultMessage;
@@ -36,7 +37,7 @@ import reactor.test.StepVerifier;
 
 class StreamBuilderTest {
 
-  @Mock private Node mockNode;
+  @Mock private WorkflowNode mockNode;
   @Mock private WorkflowPlugin mockPlugin;
   @Mock private ControlBusGateway mockControlBusGateway;
   @Mock private TaskTrackerService mockTracker;
