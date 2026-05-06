@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -121,7 +123,6 @@ public class WorkflowCompiler {
    * @param topologicalOrder list of nodes in topological order
    * @return the node assembler array, indexed by topological position
    */
-  @SuppressWarnings("PMD.UseConcurrentHashMap")
   public NodeAssembler[] compileAssemblers(
       final List<WorkflowEdge> edges,
       final Map<String, List<WorkflowNode>> parentsList,
@@ -129,7 +130,7 @@ public class WorkflowCompiler {
       final List<WorkflowNode> topologicalOrder) {
 
     final int nodeCount = topologicalOrder.size();
-    final Map<String, Integer> nodeToIndex = new HashMap<>(nodeCount);
+    final Map<String, Integer> nodeToIndex = new ConcurrentHashMap<>(nodeCount);
     for (int i = 0; i < nodeCount; i++) {
       nodeToIndex.put(topologicalOrder.get(i).nodeId(), i);
     }
@@ -298,8 +299,7 @@ public class WorkflowCompiler {
    * @return the timeout duration
    */
   private Duration getNodeTimeout(final WorkflowNode node, final WorkflowPlugin plugin) {
-    final Object timeoutVal =
-        node.config().getOrDefault("timeoutSeconds", node.config().get("timeout"));
+    final Object timeoutVal = node.config().get("timeoutSeconds");
 
     final Duration result;
     if (timeoutVal instanceof Number numValue && numValue.longValue() > 0) {
