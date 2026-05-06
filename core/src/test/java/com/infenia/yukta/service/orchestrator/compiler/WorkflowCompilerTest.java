@@ -1089,6 +1089,99 @@ class WorkflowCompilerTest {
 
       assertThat(assemblers).hasSize(2);
     }
+
+    @Test
+    @DisplayName("should use plugin default buffer size when config not specified")
+    void shouldUsePluginDefaultBufferSize() {
+      ProcessorPlugin processor = mock(ProcessorPlugin.class);
+      when(processor.getDefaultBufferSize()).thenReturn(512);
+
+      Node t1 = new Node("t1", "trigger", Map.of());
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("p1", processor);
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
+
+      assertThat(assemblers).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("should use plugin default buffer size when configured value is invalid")
+    void shouldUsePluginDefaultWhenConfigInvalid() {
+      ProcessorPlugin processor = mock(ProcessorPlugin.class);
+      when(processor.getDefaultBufferSize()).thenReturn(256);
+
+      Node t1 = new Node("t1", "trigger", Map.of());
+      Node p1 = new Node("p1", "processor", Map.of("bufferSize", "invalid"));
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", mock(TriggerPlugin.class));
+      pluginCache.put("p1", processor);
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
+
+      assertThat(assemblers).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("should use fallback buffer size when plugin is null")
+    void shouldUseFallbackWhenPluginNull() {
+      Node t1 = new Node("t1", "trigger", Map.of());
+      Node p1 = new Node("p1", "processor", Map.of());
+
+      WorkflowDefinition def =
+          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+      final List<WorkflowEdge> edges =
+          def.edges().stream()
+              .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
+              .toList();
+
+      Map<String, List<Node>> parentsList = new HashMap<>();
+      parentsList.put("t1", Collections.emptyList());
+      parentsList.put("p1", List.of(t1));
+
+      Map<String, WorkflowPlugin> pluginCache = new HashMap<>();
+      pluginCache.put("t1", null);
+      pluginCache.put("p1", null);
+
+      List<Node> topologicalOrder = List.of(t1, p1);
+
+      NodeAssembler[] assemblers =
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
+
+      assertThat(assemblers).hasSize(2);
+    }
   }
 
   @Nested
