@@ -250,7 +250,7 @@ public class WorkflowCompiler {
 
     final WorkflowPlugin plugin = pluginCache.get(node.nodeId());
     final Duration nodeTimeout = getNodeTimeout(node, plugin);
-    final int bufferSize = getBufferSize(node);
+    final int bufferSize = getBufferSize(node, plugin);
     final boolean hasParents = !parentsList.get(node.nodeId()).isEmpty();
     final int nodeIndex = nodeToIndex.get(node.nodeId());
 
@@ -278,15 +278,18 @@ public class WorkflowCompiler {
    * Gets the buffer size for a node.
    *
    * @param node the node
+   * @param plugin the plugin
    * @return the buffer size
    */
-  private int getBufferSize(final WorkflowNode node) {
+  private int getBufferSize(final WorkflowNode node, final WorkflowPlugin plugin) {
     final Object bufferVal = node.config().get("bufferSize");
     final int result;
     if (bufferVal instanceof Number numValue && numValue.intValue() > 0) {
       result = numValue.intValue();
     } else {
-      result = BUFFER_SIZE;
+      final int defaultBufferSize =
+          plugin != null ? plugin.getDefaultBufferSize() : BUFFER_SIZE;
+      result = defaultBufferSize;
     }
     return result;
   }

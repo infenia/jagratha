@@ -63,6 +63,15 @@ public interface WorkflowPlugin {
   }
 
   /**
+   * Get the default buffer size for this plugin.
+   *
+   * @return the default buffer size
+   */
+  default int getDefaultBufferSize() {
+    return 1024;
+  }
+
+  /**
    * Get the unique type string for this plugin.
    *
    * @return the plugin type
