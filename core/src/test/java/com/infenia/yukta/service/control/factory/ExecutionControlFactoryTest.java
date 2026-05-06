@@ -49,7 +49,7 @@ class ExecutionControlFactoryTest {
 
     // Mock PreparedWorkflow with single node
     PreparedWorkflow prepared = Mockito.mock(PreparedWorkflow.class);
-    Node node = Mockito.mock(WorkflowNode.class);
+    WorkflowNode node = Mockito.mock(WorkflowNode.class);
     Mockito.when(node.nodeId()).thenReturn("node-1");
     Mockito.when(prepared.topologicalOrder()).thenReturn(List.of(node));
 
@@ -100,9 +100,9 @@ class ExecutionControlFactoryTest {
 
     // Mock PreparedWorkflow with multiple nodes
     PreparedWorkflow prepared = Mockito.mock(PreparedWorkflow.class);
-    Node node1 = Mockito.mock(WorkflowNode.class);
-    Node node2 = Mockito.mock(WorkflowNode.class);
-    Node node3 = Mockito.mock(WorkflowNode.class);
+    WorkflowNode node1 = Mockito.mock(WorkflowNode.class);
+    WorkflowNode node2 = Mockito.mock(WorkflowNode.class);
+    WorkflowNode node3 = Mockito.mock(WorkflowNode.class);
 
     Mockito.when(node1.nodeId()).thenReturn("node-1");
     Mockito.when(node2.nodeId()).thenReturn("node-2");
@@ -181,8 +181,8 @@ class ExecutionControlFactoryTest {
   void testNodeControlsAreIndependentInstances() {
     // Given
     PreparedWorkflow prepared = Mockito.mock(PreparedWorkflow.class);
-    Node node1 = Mockito.mock(WorkflowNode.class);
-    Node node2 = Mockito.mock(WorkflowNode.class);
+    WorkflowNode node1 = Mockito.mock(WorkflowNode.class);
+    WorkflowNode node2 = Mockito.mock(WorkflowNode.class);
 
     Mockito.when(node1.nodeId()).thenReturn("node-1");
     Mockito.when(node2.nodeId()).thenReturn("node-2");

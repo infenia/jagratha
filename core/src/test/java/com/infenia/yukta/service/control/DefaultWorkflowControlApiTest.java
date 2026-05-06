@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
@@ -51,6 +52,18 @@ class DefaultWorkflowControlApiTest {
     orchestrator = mock(WorkflowOrchestrator.class);
     checkpointStore = mock(NodeCheckpointStore.class);
     api = new DefaultWorkflowControlApi(registry, orchestrator, checkpointStore);
+  }
+
+  private Map<String, List<WorkflowNode>> toWorkflowNodeMap(
+      Map<String, List<WorkflowDefinition.Node>> nodeMap) {
+    return nodeMap.entrySet().stream()
+        .collect(
+            java.util.stream.Collectors.toMap(
+                Map.Entry::getKey,
+                e ->
+                    e.getValue().stream()
+                        .map(n -> new WorkflowNode(n.nodeId(), n.type(), n.config()))
+                        .toList()));
   }
 
   private ExecutionControl createControl() {
@@ -730,7 +743,8 @@ class DefaultWorkflowControlApiTest {
         new WorkflowDefinition("test workflow", List.of(), List.of());
     final Map<String, List<WorkflowDefinition.Node>> parentsList = Map.of();
     final PreparedWorkflow prepared =
-        new PreparedWorkflow(List.of(), Map.of(), parentsList, Map.of(), List.of(), null);
+        new PreparedWorkflow(
+            List.of(), Map.of(), toWorkflowNodeMap(parentsList), Map.of(), List.of(), null);
     final Map<String, Object> payload = Map.of("key", "value");
 
     final ExecutionControl control =
@@ -786,7 +800,8 @@ class DefaultWorkflowControlApiTest {
     final Map<String, List<WorkflowDefinition.Node>> parentsList =
         Map.of(nodeId, List.of(parentNode));
     final PreparedWorkflow prepared =
-        new PreparedWorkflow(List.of(), Map.of(), parentsList, Map.of(), List.of(), null);
+        new PreparedWorkflow(
+            List.of(), Map.of(), toWorkflowNodeMap(parentsList), Map.of(), List.of(), null);
     final Map<String, Object> payload = Map.of("key", "value");
 
     final ExecutionControl control =
@@ -900,7 +915,8 @@ class DefaultWorkflowControlApiTest {
     final Map<String, List<WorkflowDefinition.Node>> parentsList =
         Map.of(nodeId, List.of(parentNode));
     final PreparedWorkflow prepared =
-        new PreparedWorkflow(List.of(), Map.of(), parentsList, Map.of(), List.of(), null);
+        new PreparedWorkflow(
+            List.of(), Map.of(), toWorkflowNodeMap(parentsList), Map.of(), List.of(), null);
     final Map<String, Object> payload = Map.of("key", "value");
 
     final ExecutionControl control =

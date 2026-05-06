@@ -1013,7 +1013,7 @@ class WorkflowOrchestratorTest {
   void testStreamBuilderIntegration() {
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
 
-    Node mockNode = mock(Node.class);
+    WorkflowNode mockNode = mock(WorkflowNode.class);
     when(mockNode.nodeId()).thenReturn("test-node");
 
     WorkflowPlugin mockPlugin = mock(WorkflowPlugin.class);

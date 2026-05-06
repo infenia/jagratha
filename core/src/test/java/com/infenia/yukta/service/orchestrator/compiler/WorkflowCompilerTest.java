@@ -29,6 +29,7 @@ import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Edge;
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.internal.WorkflowEdge;
+import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
@@ -84,6 +85,22 @@ class WorkflowCompilerTest {
             List.of());
   }
 
+  private Map<String, List<WorkflowNode>> toWorkflowNodeMap(Map<String, List<Node>> nodeMap) {
+    return nodeMap.entrySet().stream()
+        .collect(java.util.stream.Collectors.toMap(
+            java.util.Map.Entry::getKey,
+            e -> e.getValue().stream()
+                .map(n -> new WorkflowNode(n.nodeId(), n.type(), n.config()))
+                .toList()
+        ));
+  }
+
+  private List<WorkflowNode> toWorkflowNodeList(List<Node> nodes) {
+    return nodes.stream()
+        .map(n -> new WorkflowNode(n.nodeId(), n.type(), n.config()))
+        .toList();
+  }
+
   @Nested
   @DisplayName("compileAssemblers")
   class CompileAssemblersTests {
@@ -116,7 +133,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1, term);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(3);
     }
@@ -141,7 +158,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(1);
     }
@@ -174,7 +191,7 @@ class WorkflowCompilerTest {
 
       List<Node> topologicalOrder = List.of(t, term);
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -208,7 +225,11 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, term);
 
       WorkflowTemplate template =
-          compiler.compileTemplate(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileTemplate(
+              edges,
+              toWorkflowNodeMap(parentsList),
+              pluginCache,
+              toWorkflowNodeList(topologicalOrder));
 
       assertThat(template).isNotNull();
     }
@@ -237,7 +258,11 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, term);
 
       WorkflowTemplate template =
-          compiler.compileTemplate(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileTemplate(
+              edges,
+              toWorkflowNodeMap(parentsList),
+              pluginCache,
+              toWorkflowNodeList(topologicalOrder));
 
       String executionId = "exec-1";
       String sessionId = "sess-1";
@@ -285,7 +310,11 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, term);
 
       WorkflowTemplate template =
-          compiler.compileTemplate(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileTemplate(
+              edges,
+              toWorkflowNodeMap(parentsList),
+              pluginCache,
+              toWorkflowNodeList(topologicalOrder));
 
       String executionId = "exec-123";
       String sessionId = "sess-456";
@@ -321,7 +350,11 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of();
 
       WorkflowTemplate template =
-          compiler.compileTemplate(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileTemplate(
+              edges,
+              toWorkflowNodeMap(parentsList),
+              pluginCache,
+              toWorkflowNodeList(topologicalOrder));
 
       assertThat(template).isNotNull();
     }
@@ -355,7 +388,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -384,7 +417,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -413,7 +446,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -442,7 +475,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -476,7 +509,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -505,7 +538,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -540,7 +573,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -569,7 +602,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -601,7 +634,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -633,7 +666,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -665,7 +698,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -694,7 +727,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -726,7 +759,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -760,7 +793,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
       assertThat(assemblers[0]).isNotNull();
@@ -795,7 +828,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, t2, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(3);
     }
@@ -824,7 +857,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -853,7 +886,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -888,7 +921,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, t2, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(3);
     }
@@ -926,7 +959,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p1, p2, term);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(4);
     }
@@ -960,7 +993,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -989,7 +1022,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -1023,7 +1056,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -1052,7 +1085,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -1086,7 +1119,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -1118,7 +1151,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -1147,7 +1180,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -1176,7 +1209,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -1205,7 +1238,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, p1);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
     }
@@ -1235,7 +1268,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(1).allMatch(a -> a != null);
     }
@@ -1264,7 +1297,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2).allMatch(a -> a != null);
     }
@@ -1297,7 +1330,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t1, t2, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(3).allMatch(a -> a != null);
     }
@@ -1326,7 +1359,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2).allMatch(a -> a != null);
     }
@@ -1373,7 +1406,11 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t, p);
 
       NodeAssembler[] assemblers =
-          testCompiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          testCompiler.compileAssemblers(
+              edges,
+              toWorkflowNodeMap(parentsList),
+              pluginCache,
+              toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(2);
       assertThat(assemblers[1]).isEqualTo(mockAssembler);
@@ -1399,7 +1436,7 @@ class WorkflowCompilerTest {
       List<Node> topologicalOrder = List.of(t);
 
       NodeAssembler[] assemblers =
-          compiler.compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
+          compiler.compileAssemblers(edges, toWorkflowNodeMap(parentsList), pluginCache, toWorkflowNodeList(topologicalOrder));
 
       assertThat(assemblers).hasSize(1).allMatch(a -> a != null);
 
