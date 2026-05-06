@@ -16,7 +16,7 @@
 package com.infenia.yukta.service.control.factory;
 
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
-import com.infenia.yukta.model.workflow.internal.WorkflowNode;
+import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import java.util.List;

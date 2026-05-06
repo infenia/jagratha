@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.model.workflow.internal.WorkflowNode;
+import com.infenia.yukta.model.workflow.WorkflowNode;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;

@@ -25,11 +25,11 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Edge;
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
-import com.infenia.yukta.model.workflow.internal.WorkflowEdge;
-import com.infenia.yukta.model.workflow.internal.WorkflowNode;
+import com.infenia.yukta.api.WorkflowDefinition;
+import com.infenia.yukta.api.WorkflowDefinition.Edge;
+import com.infenia.yukta.api.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.WorkflowEdge;
+import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;

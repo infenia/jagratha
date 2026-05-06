@@ -16,8 +16,8 @@
 package com.infenia.yukta.service.control;
 
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
-import com.infenia.yukta.model.workflow.internal.WorkflowNode;
+import com.infenia.yukta.api.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;

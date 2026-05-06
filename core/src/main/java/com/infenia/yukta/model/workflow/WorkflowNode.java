@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.model.workflow.internal;
+package com.infenia.yukta.model.workflow;
 
 import java.util.Map;
 

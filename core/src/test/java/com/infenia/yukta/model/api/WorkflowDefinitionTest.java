@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
+import com.infenia.yukta.api.WorkflowDefinition;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

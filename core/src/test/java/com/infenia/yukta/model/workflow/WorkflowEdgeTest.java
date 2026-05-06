@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.model.workflow.internal;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+package com.infenia.yukta.model.workflow;
 
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /** Unit tests for {@link WorkflowEdge}. */
 class WorkflowEdgeTest {
@@ -29,7 +28,7 @@ class WorkflowEdgeTest {
     WorkflowEdge edge1 = new WorkflowEdge("source1", "target1", null);
     assertEquals("source1", edge1.source());
     assertEquals("target1", edge1.target());
-    assertEquals(null, edge1.sourcePort());
+      assertNull(edge1.sourcePort());
 
     // Test with non-null sourcePort
     WorkflowEdge edge2 = new WorkflowEdge("source2", "target2", "port1");

@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.model.api;
 
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
+import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
 import io.swagger.v3.oas.annotations.media.Schema;

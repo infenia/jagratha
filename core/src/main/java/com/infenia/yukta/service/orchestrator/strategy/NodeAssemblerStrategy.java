@@ -17,7 +17,7 @@ package com.infenia.yukta.service.orchestrator.strategy;
 
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
-import com.infenia.yukta.model.workflow.internal.WorkflowNode;
+import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import java.time.Duration;
 

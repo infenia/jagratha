@@ -16,7 +16,7 @@
 package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.model.session.SessionConfigData;
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
+import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
 import jakarta.validation.Valid;

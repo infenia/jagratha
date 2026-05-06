@@ -18,8 +18,7 @@ package com.infenia.yukta.service.orchestrator;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition.Node;
-import com.infenia.yukta.model.workflow.internal.WorkflowNode;
+import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.DefaultMessage;

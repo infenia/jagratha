@@ -15,8 +15,6 @@
  */
 package com.infenia.yukta.model.workflow;
 
-import com.infenia.yukta.model.workflow.internal.WorkflowEdge;
-import com.infenia.yukta.model.workflow.internal.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import java.util.List;
 import java.util.Map;
