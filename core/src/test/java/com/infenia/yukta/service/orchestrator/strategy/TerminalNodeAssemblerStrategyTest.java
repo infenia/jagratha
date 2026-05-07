@@ -43,14 +43,16 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @DisplayName("TerminalNodeAssemblerStrategy")
+@ExtendWith(MockitoExtension.class)
 class TerminalNodeAssemblerStrategyTest {
 
   @Mock private TaskTrackerService tracker;
@@ -61,7 +63,6 @@ class TerminalNodeAssemblerStrategyTest {
 
   @BeforeEach
   void setUp() {
-    MockitoAnnotations.openMocks(this);
     strategy =
         new TerminalNodeAssemblerStrategy(
             tracker, controlBusGateway, Schedulers.parallel(), streamTopologyDecorator);

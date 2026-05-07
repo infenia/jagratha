@@ -37,18 +37,19 @@ import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 @DisplayName("TriggerNodeAssemblerStrategy")
+@ExtendWith(MockitoExtension.class)
 class TriggerNodeAssemblerStrategyTest {
 
   @Mock private TaskTrackerService tracker;
@@ -59,7 +60,6 @@ class TriggerNodeAssemblerStrategyTest {
 
   @BeforeEach
   void setUp() {
-    MockitoAnnotations.openMocks(this);
     strategy =
         new TriggerNodeAssemblerStrategy(
             tracker, controlBusGateway, Schedulers.parallel(), streamTopologyDecorator);

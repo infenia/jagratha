@@ -44,13 +44,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 @DisplayName("ProcessorNodeAssemblerStrategy")
+@ExtendWith(MockitoExtension.class)
 class ProcessorNodeAssemblerStrategyTest {
 
   @Mock private TaskTrackerService tracker;
@@ -61,7 +63,6 @@ class ProcessorNodeAssemblerStrategyTest {
 
   @BeforeEach
   void setUp() {
-    MockitoAnnotations.openMocks(this);
     strategy =
         new ProcessorNodeAssemblerStrategy(
             tracker, controlBusGateway, Schedulers.parallel(), streamTopologyDecorator);
