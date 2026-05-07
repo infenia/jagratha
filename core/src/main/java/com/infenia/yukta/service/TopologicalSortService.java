@@ -77,7 +77,9 @@ public class TopologicalSortService {
   }
 
   private void processChildren(
-      final List<WorkflowNode> children, final Map<String, Integer> inDegree, final Queue<String> queue) {
+      final List<WorkflowNode> children,
+      final Map<String, Integer> inDegree,
+      final Queue<String> queue) {
     if (children != null) {
       for (final WorkflowNode v : children) {
         final int degree = inDegree.get(v.nodeId()) - 1;

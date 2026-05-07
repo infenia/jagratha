@@ -55,7 +55,8 @@ public class ExecutionControlFactory {
       final PreparedWorkflow prepared,
       final Map<String, Object> payload) {
 
-    final List<String> nodeIds = prepared.topologicalOrder().stream().map(WorkflowNode::nodeId).toList();
+    final List<String> nodeIds =
+        prepared.topologicalOrder().stream().map(WorkflowNode::nodeId).toList();
 
     final Map<String, Sinks.One<Void>> nodeImmediateStopSinks = new ConcurrentHashMap<>();
     final Map<String, Sinks.One<Void>> nodeSafeStopSinks = new ConcurrentHashMap<>();

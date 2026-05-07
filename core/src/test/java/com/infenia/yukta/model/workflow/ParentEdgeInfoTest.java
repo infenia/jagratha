@@ -15,69 +15,69 @@
  */
 package com.infenia.yukta.model.workflow;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit tests for {@link ParentEdgeInfo}.
- */
+import org.junit.jupiter.api.Test;
+
+/** Unit tests for {@link ParentEdgeInfo}. */
 class ParentEdgeInfoTest {
 
-    @Test
-    void testConstructorAndGetters() {
-        // Test with null sourcePort
-        ParentEdgeInfo info1 = new ParentEdgeInfo(0, "source1", null);
-        assertEquals(0, info1.parentIndex());
-        assertEquals("source1", info1.sourceNodeId());
-        assertNull(info1.sourcePort());
+  @Test
+  void testConstructorAndGetters() {
+    // Test with null sourcePort
+    ParentEdgeInfo info1 = new ParentEdgeInfo(0, "source1", null);
+    assertEquals(0, info1.parentIndex());
+    assertEquals("source1", info1.sourceNodeId());
+    assertNull(info1.sourcePort());
 
-        // Test with non-null sourcePort
-        ParentEdgeInfo info2 = new ParentEdgeInfo(1, "source2", "port1");
-        assertEquals(1, info2.parentIndex());
-        assertEquals("source2", info2.sourceNodeId());
-        assertEquals("port1", info2.sourcePort());
-    }
+    // Test with non-null sourcePort
+    ParentEdgeInfo info2 = new ParentEdgeInfo(1, "source2", "port1");
+    assertEquals(1, info2.parentIndex());
+    assertEquals("source2", info2.sourceNodeId());
+    assertEquals("port1", info2.sourcePort());
+  }
 
-    @Test
-    void testEqualsAndHashCode() {
-        ParentEdgeInfo info1 = new ParentEdgeInfo(0, "source", null);
-        ParentEdgeInfo info2 = new ParentEdgeInfo(0, "source", null);
-        ParentEdgeInfo info3 = new ParentEdgeInfo(0, "source", "port");
-        ParentEdgeInfo info4 = new ParentEdgeInfo(1, "source", null);
-        ParentEdgeInfo info5 = new ParentEdgeInfo(0, "different", null);
+  @Test
+  void testEqualsAndHashCode() {
+    ParentEdgeInfo info1 = new ParentEdgeInfo(0, "source", null);
+    ParentEdgeInfo info2 = new ParentEdgeInfo(0, "source", null);
+    ParentEdgeInfo info3 = new ParentEdgeInfo(0, "source", "port");
+    ParentEdgeInfo info4 = new ParentEdgeInfo(1, "source", null);
+    ParentEdgeInfo info5 = new ParentEdgeInfo(0, "different", null);
 
-        // Same values should be equal
-        assertEquals(info1, info2);
-        assertEquals(info1.hashCode(), info2.hashCode());
+    // Same values should be equal
+    assertEquals(info1, info2);
+    assertEquals(info1.hashCode(), info2.hashCode());
 
-        // Different sourcePort should not be equal
-        assertNotEquals(info1, info3);
-        assertNotEquals(info1.hashCode(), info3.hashCode());
+    // Different sourcePort should not be equal
+    assertNotEquals(info1, info3);
+    assertNotEquals(info1.hashCode(), info3.hashCode());
 
-        // Different parentIndex should not be equal
-        assertNotEquals(info1, info4);
-        assertNotEquals(info1.hashCode(), info4.hashCode());
+    // Different parentIndex should not be equal
+    assertNotEquals(info1, info4);
+    assertNotEquals(info1.hashCode(), info4.hashCode());
 
-        // Different sourceNodeId should not be equal
-        assertNotEquals(info1, info5);
-        assertNotEquals(info1.hashCode(), info5.hashCode());
+    // Different sourceNodeId should not be equal
+    assertNotEquals(info1, info5);
+    assertNotEquals(info1.hashCode(), info5.hashCode());
 
-        // Reflexive
-        assertEquals(info1, info1);
-        assertEquals(info1.hashCode(), info1.hashCode());
-    }
+    // Reflexive
+    assertEquals(info1, info1);
+    assertEquals(info1.hashCode(), info1.hashCode());
+  }
 
-    @Test
-    void testToString() {
-        ParentEdgeInfo infoWithNullPort = new ParentEdgeInfo(0, "source", null);
-        ParentEdgeInfo infoWithPort = new ParentEdgeInfo(1, "source", "port");
+  @Test
+  void testToString() {
+    ParentEdgeInfo infoWithNullPort = new ParentEdgeInfo(0, "source", null);
+    ParentEdgeInfo infoWithPort = new ParentEdgeInfo(1, "source", "port");
 
-        String toStringWithNull = infoWithNullPort.toString();
-        String toStringWithPort = infoWithPort.toString();
+    String toStringWithNull = infoWithNullPort.toString();
+    String toStringWithPort = infoWithPort.toString();
 
-        // toString should contain all field values
-        assertEquals("ParentEdgeInfo[parentIndex=0, sourceNodeId=source, sourcePort=null]", toStringWithNull);
-        assertEquals("ParentEdgeInfo[parentIndex=1, sourceNodeId=source, sourcePort=port]", toStringWithPort);
-    }
+    // toString should contain all field values
+    assertEquals(
+        "ParentEdgeInfo[parentIndex=0, sourceNodeId=source, sourcePort=null]", toStringWithNull);
+    assertEquals(
+        "ParentEdgeInfo[parentIndex=1, sourceNodeId=source, sourcePort=port]", toStringWithPort);
+  }
 }

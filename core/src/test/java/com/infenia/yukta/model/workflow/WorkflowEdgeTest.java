@@ -15,9 +15,9 @@
  */
 package com.infenia.yukta.model.workflow;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 
 /** Unit tests for {@link WorkflowEdge}. */
 class WorkflowEdgeTest {
@@ -28,7 +28,7 @@ class WorkflowEdgeTest {
     WorkflowEdge edge1 = new WorkflowEdge("source1", "target1", null);
     assertEquals("source1", edge1.source());
     assertEquals("target1", edge1.target());
-      assertNull(edge1.sourcePort());
+    assertNull(edge1.sourcePort());
 
     // Test with non-null sourcePort
     WorkflowEdge edge2 = new WorkflowEdge("source2", "target2", "port1");

@@ -18,7 +18,6 @@ package com.infenia.yukta.model.workflow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.infenia.yukta.api.WorkflowDefinition;
-
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

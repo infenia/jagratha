@@ -17,9 +17,9 @@ package com.infenia.yukta.service.orchestrator.compiler;
 
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
-import com.infenia.yukta.model.workflow.WorkflowTemplate;
 import com.infenia.yukta.model.workflow.WorkflowEdge;
 import com.infenia.yukta.model.workflow.WorkflowNode;
+import com.infenia.yukta.model.workflow.WorkflowTemplate;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
@@ -32,11 +32,9 @@ import com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -287,7 +285,7 @@ public class WorkflowCompiler {
     if (bufferVal instanceof Number numValue && numValue.intValue() > 0) {
       result = numValue.intValue();
     } else {
-        result = plugin != null ? plugin.getDefaultBufferSize() : BUFFER_SIZE;
+      result = plugin != null ? plugin.getDefaultBufferSize() : BUFFER_SIZE;
     }
     return result;
   }

@@ -15,9 +15,9 @@
  */
 package com.infenia.yukta.service.orchestrator.preparator;
 
-import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.api.WorkflowDefinition.Node;
+import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowEdge;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
@@ -104,9 +104,11 @@ public class WorkflowPreparator {
               final Node targetApiNode = nodeMap.get(edge.target());
               final Node sourceApiNode = nodeMap.get(edge.source());
               final WorkflowNode targetNode =
-                  new WorkflowNode(targetApiNode.nodeId(), targetApiNode.type(), targetApiNode.config());
+                  new WorkflowNode(
+                      targetApiNode.nodeId(), targetApiNode.type(), targetApiNode.config());
               final WorkflowNode sourceNode =
-                  new WorkflowNode(sourceApiNode.nodeId(), sourceApiNode.type(), sourceApiNode.config());
+                  new WorkflowNode(
+                      sourceApiNode.nodeId(), sourceApiNode.type(), sourceApiNode.config());
               adjacencyList.get(edge.source()).add(targetNode);
               parentsList.get(edge.target()).add(sourceNode);
               log.atTrace()

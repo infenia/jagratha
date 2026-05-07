@@ -22,9 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.model.api.ConfigRequest;
 import com.infenia.yukta.model.session.SessionConfigData;
-import com.infenia.yukta.api.WorkflowDefinition;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
