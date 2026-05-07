@@ -287,9 +287,7 @@ public class WorkflowCompiler {
     if (bufferVal instanceof Number numValue && numValue.intValue() > 0) {
       result = numValue.intValue();
     } else {
-      final int defaultBufferSize =
-          plugin != null ? plugin.getDefaultBufferSize() : BUFFER_SIZE;
-      result = defaultBufferSize;
+        result = plugin != null ? plugin.getDefaultBufferSize() : BUFFER_SIZE;
     }
     return result;
   }
