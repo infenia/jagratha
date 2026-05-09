@@ -27,6 +27,7 @@ import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
+import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlError;
@@ -636,5 +637,53 @@ class TerminalNodeAssemblerStrategyTest {
 
     assertThat(context.terminals()).hasSize(1);
     assertThat(context.terminals().get(0)).isNotNull();
+  }
+
+  @Test
+  @DisplayName("createAssembler applies resultCollector when present in reactor context")
+  void createAssemblerAppliesResultCollector() {
+    ResultCollector mockCollector = mock(ResultCollector.class);
+    TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.isBlocking()).thenReturn(false);
+    when(terminal.consume(any(), any()))
+        .thenAnswer(
+            inv -> {
+              Flux<Message<?>> inputFlux = inv.getArgument(0);
+              return inputFlux
+                  .contextWrite(ctx -> ctx.put("resultCollector", mockCollector))
+                  .then();
+            });
+
+    WorkflowNode node = new WorkflowNode("term-collector", "terminal-type", Map.of());
+    ExecutionControl control = mock(ExecutionControl.class);
+    when(control.applyPreProcessingControls(anyString(), any()))
+        .thenAnswer(inv -> inv.getArgument(1));
+
+    Flux<Message<?>>[] streams = new Flux[1];
+    AssemblyContext context =
+        new AssemblyContext(
+            "exec-collector",
+            "sess-1",
+            "wf-1",
+            Map.of(),
+            control,
+            streams,
+            new ArrayList<>(),
+            new ArrayList<>(),
+            new ArrayList<>());
+
+    Message<?> inputMessage = DefaultMessage.create(null, "test-data");
+    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
+        .thenReturn(Flux.just(inputMessage));
+
+    NodeAssembler assembler =
+        strategy.createAssembler(
+            node, terminal, Duration.ofSeconds(30), 0, 1024, new ParentEdgeInfo[0]);
+
+    assembler.assemble(context);
+
+    context.terminals().get(0).block();
+
+    verify(mockCollector).add(inputMessage);
   }
 }
