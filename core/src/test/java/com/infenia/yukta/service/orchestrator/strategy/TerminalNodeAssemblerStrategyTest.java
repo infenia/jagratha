@@ -48,15 +48,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @DisplayName("TerminalNodeAssemblerStrategy")
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class TerminalNodeAssemblerStrategyTest {
 
   @Mock private TaskTrackerService tracker;
@@ -70,7 +67,6 @@ class TerminalNodeAssemblerStrategyTest {
     strategy =
         new TerminalNodeAssemblerStrategy(
             tracker, controlBusGateway, Schedulers.parallel(), streamTopologyDecorator);
-    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
   }
 
   @Test
@@ -326,6 +322,7 @@ class TerminalNodeAssemblerStrategyTest {
     when(terminal.isBlocking()).thenReturn(false);
     when(terminal.consume(any(), any()))
         .thenReturn(Mono.error(new RuntimeException("Test error message")));
+    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
 
     WorkflowNode node = new WorkflowNode("term-error", "terminal-type", Map.of());
     ExecutionControl control = mock(ExecutionControl.class);
@@ -640,7 +637,47 @@ class TerminalNodeAssemblerStrategyTest {
   }
 
   @Test
-  @DisplayName("createAssembler applies resultCollector when present in reactor context")
+  @DisplayName("createAssembler handles null resultCollector gracefully")
+  void createAssemblerWithoutResultCollector() {
+    TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.isBlocking()).thenReturn(false);
+    when(terminal.consume(any(), any())).thenReturn(Mono.empty());
+
+    WorkflowNode node = new WorkflowNode("term-no-collector", "terminal-type", Map.of());
+    ExecutionControl control = mock(ExecutionControl.class);
+    when(control.applyPreProcessingControls(anyString(), any()))
+        .thenAnswer(inv -> inv.getArgument(1));
+
+    Flux<Message<?>>[] streams = new Flux[1];
+    AssemblyContext context =
+        new AssemblyContext(
+            "exec-no-collector",
+            "sess-1",
+            "wf-1",
+            Map.of(),
+            control,
+            streams,
+            new ArrayList<>(),
+            new ArrayList<>(),
+            new ArrayList<>());
+
+    Message<?> inputMessage = DefaultMessage.create(null, "test-data");
+    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
+        .thenReturn(Flux.just(inputMessage));
+
+    NodeAssembler assembler =
+        strategy.createAssembler(
+            node, terminal, Duration.ofSeconds(30), 0, 1024, new ParentEdgeInfo[0]);
+
+    assembler.assemble(context);
+
+    context.terminals().get(0).block();
+
+    verify(terminal).consume(any(), any());
+  }
+
+  @Test
+  @DisplayName("createAssembler applies resultCollector when present in context")
   void createAssemblerAppliesResultCollector() {
     ResultCollector mockCollector = mock(ResultCollector.class);
     TerminalPlugin terminal = mock(TerminalPlugin.class);
@@ -651,6 +688,7 @@ class TerminalNodeAssemblerStrategyTest {
               Flux<Message<?>> inputFlux = inv.getArgument(0);
               return inputFlux
                   .contextWrite(ctx -> ctx.put("resultCollector", mockCollector))
+                  .doOnNext(msg -> {})
                   .then();
             });
 
@@ -694,6 +732,7 @@ class TerminalNodeAssemblerStrategyTest {
     when(terminal.isBlocking()).thenReturn(true);
     when(terminal.consume(any(), any()))
         .thenReturn(Mono.error(new RuntimeException("Blocking terminal error")));
+    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
 
     WorkflowNode node = new WorkflowNode("term-blocking-error", "terminal-type", Map.of());
     ExecutionControl control = mock(ExecutionControl.class);
