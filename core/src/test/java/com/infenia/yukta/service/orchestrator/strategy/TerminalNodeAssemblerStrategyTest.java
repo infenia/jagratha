@@ -686,4 +686,100 @@ class TerminalNodeAssemblerStrategyTest {
 
     verify(mockCollector).add(inputMessage);
   }
+
+  @Test
+  @DisplayName("createAssembler applies subscribeOn when terminal is blocking with error")
+  void createAssemblerBlockingTerminalWithError() {
+    TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.isBlocking()).thenReturn(true);
+    when(terminal.consume(any(), any()))
+        .thenReturn(Mono.error(new RuntimeException("Blocking terminal error")));
+
+    WorkflowNode node = new WorkflowNode("term-blocking-error", "terminal-type", Map.of());
+    ExecutionControl control = mock(ExecutionControl.class);
+    when(control.applyPreProcessingControls(anyString(), any()))
+        .thenAnswer(inv -> inv.getArgument(1));
+
+    Flux<Message<?>>[] streams = new Flux[1];
+    AssemblyContext context =
+        new AssemblyContext(
+            "exec-blocking-error",
+            "sess-1",
+            "wf-1",
+            Map.of(),
+            control,
+            streams,
+            new ArrayList<>(),
+            new ArrayList<>(),
+            new ArrayList<>());
+
+    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
+
+    NodeAssembler assembler =
+        strategy.createAssembler(
+            node, terminal, Duration.ofSeconds(30), 0, 1024, new ParentEdgeInfo[0]);
+
+    assembler.assemble(context);
+
+    try {
+      context.terminals().get(0).block();
+    } catch (Exception ignored) {
+      // Expected
+    }
+
+    verify(tracker)
+        .emitTaskStatusEvent(
+            "exec-blocking-error",
+            "term-blocking-error",
+            "default",
+            "FAILURE",
+            Collections.emptyMap());
+    verify(controlBusGateway).emit(any(Message.class));
+  }
+
+  @Test
+  @DisplayName("createAssembler applies subscribeOn when terminal is blocking with success")
+  void createAssemblerBlockingTerminalWithSuccess() {
+    TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.isBlocking()).thenReturn(true);
+    when(terminal.consume(any(), any())).thenReturn(Mono.empty());
+
+    WorkflowNode node = new WorkflowNode("term-blocking-success", "terminal-type", Map.of());
+    ExecutionControl control = mock(ExecutionControl.class);
+    when(control.applyPreProcessingControls(anyString(), any()))
+        .thenAnswer(inv -> inv.getArgument(1));
+
+    Flux<Message<?>>[] streams = new Flux[1];
+    AssemblyContext context =
+        new AssemblyContext(
+            "exec-blocking-success",
+            "sess-1",
+            "wf-1",
+            Map.of(),
+            control,
+            streams,
+            new ArrayList<>(),
+            new ArrayList<>(),
+            new ArrayList<>());
+
+    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
+
+    NodeAssembler assembler =
+        strategy.createAssembler(
+            node, terminal, Duration.ofSeconds(30), 0, 1024, new ParentEdgeInfo[0]);
+
+    assembler.assemble(context);
+
+    context.terminals().get(0).block();
+
+    verify(tracker)
+        .emitTaskStatusEvent(
+            "exec-blocking-success",
+            "term-blocking-success",
+            "default",
+            "SUCCESS",
+            Collections.emptyMap());
+  }
 }
