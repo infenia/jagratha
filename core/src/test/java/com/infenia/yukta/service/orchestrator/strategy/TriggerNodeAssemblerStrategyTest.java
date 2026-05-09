@@ -63,7 +63,6 @@ class TriggerNodeAssemblerStrategyTest {
     strategy =
         new TriggerNodeAssemblerStrategy(
             tracker, controlBusGateway, Schedulers.parallel(), streamTopologyDecorator);
-    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
   }
 
   @Test
