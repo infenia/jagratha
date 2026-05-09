@@ -26,7 +26,6 @@ import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlError;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.service.TaskTrackerService;
-import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import java.time.Duration;
 import java.util.Collections;
@@ -102,14 +101,6 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
                     return collector != null ? flux.doOnNext(collector::add) : flux;
                   });
 
-      final ExecutionContextBuilder contextBuilder =
-          new ExecutionContextBuilder()
-              .sessionId(context.sessionId())
-              .workflowId(context.workflowId())
-              .executionId(context.executionId())
-              .nodeId(node.nodeId())
-              .payload(context.payload());
-
       Mono<Void> completion = terminal.consume(inputToTerminal, node.config());
       if (terminal.isBlocking()) {
         completion = completion.subscribeOn(virtualThreadScheduler);
@@ -134,24 +125,25 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
                           STATUS_SUCCESS,
                           Collections.emptyMap()))
               .doOnError(
-                  e -> {
-                    tracker.emitTaskStatusEvent(
-                        context.executionId(),
-                        node.nodeId(),
-                        DEFAULT_TASK_ID,
-                        STATUS_FAILURE,
-                        Collections.emptyMap());
-                    controlBusGateway
-                        .emit(
-                            DefaultMessage.create(
-                                null,
-                                new ControlError(
-                                    node.nodeId(),
-                                    context.executionId(),
-                                    "Node Failure",
-                                    e.getMessage())))
-                        .subscribe();
-                  });
+                  e ->
+                      tracker.emitTaskStatusEvent(
+                          context.executionId(),
+                          node.nodeId(),
+                          DEFAULT_TASK_ID,
+                          STATUS_FAILURE,
+                          Collections.emptyMap()))
+              .onErrorResume(
+                  e ->
+                      controlBusGateway
+                          .emit(
+                              DefaultMessage.create(
+                                  null,
+                                  new ControlError(
+                                      node.nodeId(),
+                                      context.executionId(),
+                                      "Node Failure",
+                                      e.getMessage())))
+                          .then(Mono.error(e)));
 
       context.terminals().add(completion);
     };

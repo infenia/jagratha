@@ -258,18 +258,21 @@ public class WorkflowCompiler {
             .map(e -> new ParentEdgeInfo(nodeToIndex.get(e.source()), e.source(), e.sourcePort()))
             .toArray(ParentEdgeInfo[]::new);
 
-    for (final NodeAssemblerStrategy strategy : assemblerStrategies) {
-      if (strategy.supports(plugin, hasParents)) {
-        return strategy.createAssembler(
-            node, plugin, nodeTimeout, nodeIndex, bufferSize, parentEdges);
-      }
-    }
-
-    log.atWarn()
-        .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-        .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
-        .log("Unknown plugin type, creating no-op assembler");
-    return context -> {};
+    return assemblerStrategies.stream()
+        .filter(strategy -> strategy.supports(plugin, hasParents))
+        .findFirst()
+        .map(
+            strategy ->
+                strategy.createAssembler(
+                    node, plugin, nodeTimeout, nodeIndex, bufferSize, parentEdges))
+        .orElseGet(
+            () -> {
+              log.atWarn()
+                  .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                  .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
+                  .log("Unknown plugin type, creating no-op assembler");
+              return context -> {};
+            });
   }
 
   /**

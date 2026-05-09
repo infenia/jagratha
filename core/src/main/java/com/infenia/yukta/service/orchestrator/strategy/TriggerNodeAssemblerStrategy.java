@@ -24,16 +24,16 @@ import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.TaskTrackerService;
-import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
-import com.infenia.yukta.service.orchestrator.StreamBuilder;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
+@Slf4j
 @Component
 @Order(1)
 @RequiredArgsConstructor
@@ -70,29 +70,15 @@ public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
         stream = stream.subscribeOn(virtualThreadScheduler);
       }
 
-      final ExecutionContextBuilder contextBuilder =
-          new ExecutionContextBuilder()
-              .sessionId(context.sessionId())
-              .workflowId(context.workflowId())
-              .executionId(context.executionId())
-              .nodeId(node.nodeId())
-              .payload(context.payload());
-
       Flux<Message<?>> built =
-          new StreamBuilder(node, timeout, tracker, controlBusGateway)
-              .withSource(stream)
-              .withTimeout()
-              .withTaskTracking(context.executionId())
-              .withErrorHandling(context.executionId())
-              .build();
+          StreamAssemblyHelper.buildStreamWithContext(
+              node, stream, timeout, tracker, controlBusGateway, context);
 
       final var nodeSafeSink = control.nodeSafeStopSinks().get(node.nodeId());
       if (nodeSafeSink != null) {
         built = built.takeUntilOther(nodeSafeSink.asMono());
       }
 
-      built = control.applyPostProcessingControls(node.nodeId(), built);
-      built = contextBuilder.applyContextTo(built);
       context.streams()[index] =
           streamTopologyDecorator.applyLoggingAndBroadcasting(
               context.executionId(),

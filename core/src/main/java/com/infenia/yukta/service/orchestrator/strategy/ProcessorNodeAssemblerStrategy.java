@@ -23,8 +23,6 @@ import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.service.TaskTrackerService;
-import com.infenia.yukta.service.orchestrator.ExecutionContextBuilder;
-import com.infenia.yukta.service.orchestrator.StreamBuilder;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -91,24 +89,9 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
         }
       }
 
-      final ExecutionContextBuilder contextBuilder =
-          new ExecutionContextBuilder()
-              .sessionId(context.sessionId())
-              .workflowId(context.workflowId())
-              .executionId(context.executionId())
-              .nodeId(node.nodeId())
-              .payload(context.payload());
-
       Flux<Message<?>> built =
-          new StreamBuilder(node, timeout, tracker, controlBusGateway)
-              .withSource(stream)
-              .withTimeout()
-              .withTaskTracking(context.executionId())
-              .withErrorHandling(context.executionId())
-              .build();
-
-      built = control.applyPostProcessingControls(node.nodeId(), built);
-      built = contextBuilder.applyContextTo(built);
+          StreamAssemblyHelper.buildStreamWithContext(
+              node, stream, timeout, tracker, controlBusGateway, context);
       context.streams()[index] =
           streamTopologyDecorator.applyLoggingAndBroadcasting(
               context.executionId(),
