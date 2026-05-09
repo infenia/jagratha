@@ -641,7 +641,12 @@ class TerminalNodeAssemblerStrategyTest {
   void createAssemblerWithoutResultCollector() {
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.isBlocking()).thenReturn(false);
-    when(terminal.consume(any(), any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(
+            inv -> {
+              Flux<Message<?>> inputFlux = inv.getArgument(0);
+              return inputFlux.then();
+            });
 
     WorkflowNode node = new WorkflowNode("term-no-collector", "terminal-type", Map.of());
     ExecutionControl control = mock(ExecutionControl.class);
