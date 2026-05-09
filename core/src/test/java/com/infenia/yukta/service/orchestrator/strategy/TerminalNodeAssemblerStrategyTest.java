@@ -688,7 +688,6 @@ class TerminalNodeAssemblerStrategyTest {
               Flux<Message<?>> inputFlux = inv.getArgument(0);
               return inputFlux
                   .contextWrite(ctx -> ctx.put("resultCollector", mockCollector))
-                  .doOnNext(msg -> {})
                   .then();
             });
 
