@@ -2,7 +2,7 @@
 title: Java Test Template
 impact: HIGH
 impactDescription: ensures consistent test structure and prevents inappropriate annotations
-tags: java, tests, template, junit, structure
+tags: [java, tests, template, junit, structure]
 ---
 
 ## Java Test Template
@@ -106,3 +106,4 @@ class {TestedClassName}Test {
 3. Use `@Mock` for dependencies, `@InjectMocks` for SUT
 4. Follow Given-When-Then pattern with comments
 5. Use AssertJ assertions (`assertThat()`) for better readability
+6. Never use Mockito lenient

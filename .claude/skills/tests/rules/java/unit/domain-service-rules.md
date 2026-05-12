@@ -2,7 +2,7 @@
 title: Domain and Service Unit Test Rules
 impact: HIGH
 impactDescription: ensures fast, isolated unit tests for business logic
-tags: java, tests, unit, domain, service, mockito
+tags: [java, tests, unit, domain, service, mockito]
 ---
 
 ## Domain and Service Unit Test Rules

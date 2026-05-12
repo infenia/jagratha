@@ -39,16 +39,13 @@ import reactor.test.StepVerifier;
 
 class StreamTopologyDecoratorTest {
 
-  private MessageStore messageStore;
-  private TaskTrackerService tracker;
-  private NodeCheckpointStore checkpointStore;
-  private StreamTopologyDecorator decorator;
+    private StreamTopologyDecorator decorator;
 
   @BeforeEach
   void setUp() {
-    messageStore = mock(MessageStore.class);
-    tracker = mock(TaskTrackerService.class);
-    checkpointStore = new InMemoryNodeCheckpointStore();
+      MessageStore messageStore = mock(MessageStore.class);
+      TaskTrackerService tracker = mock(TaskTrackerService.class);
+      NodeCheckpointStore checkpointStore = new InMemoryNodeCheckpointStore();
     decorator = new StreamTopologyDecorator(messageStore, tracker, checkpointStore);
 
     when(messageStore.store(any())).thenReturn(Mono.empty());
