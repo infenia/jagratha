@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
 import com.infenia.yukta.service.SessionService;
-import com.infenia.yukta.service.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

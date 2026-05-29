@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.plugin.gateway;
+package com.infenia.yukta.service.gateway;
 
 import com.infenia.yukta.plugin.message.Message;
 import reactor.core.publisher.Flux;

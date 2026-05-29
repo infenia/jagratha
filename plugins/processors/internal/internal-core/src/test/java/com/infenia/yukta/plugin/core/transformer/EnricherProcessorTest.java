@@ -24,7 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
-import com.infenia.yukta.plugin.gateway.MessagingGateway;
+import com.infenia.yukta.service.gateway.MessagingGateway;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.store.SecretProvider;

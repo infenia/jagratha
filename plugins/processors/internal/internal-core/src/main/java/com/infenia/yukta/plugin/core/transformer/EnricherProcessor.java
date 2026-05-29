@@ -17,7 +17,7 @@ package com.infenia.yukta.plugin.core.transformer;
 
 import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
-import com.infenia.yukta.plugin.gateway.MessagingGateway;
+import com.infenia.yukta.service.gateway.MessagingGateway;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.util.MapUtils;

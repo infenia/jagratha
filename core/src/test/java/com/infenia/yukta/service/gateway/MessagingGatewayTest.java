@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.plugin.gateway;
+package com.infenia.yukta.service.gateway;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -195,7 +195,7 @@ class MessagingGatewayTest {
 
     // We need to use reflection to create PendingReply because it's private record
     Class<?> recordClass =
-        Class.forName("com.infenia.yukta.plugin.gateway.AbstractMessagingGateway$PendingReply");
+        Class.forName("com.infenia.yukta.service.gateway.AbstractMessagingGateway$PendingReply");
     java.lang.reflect.Constructor<?> constructor = recordClass.getDeclaredConstructors()[0];
     constructor.setAccessible(true);
     Object pendingReply = constructor.newInstance(sink, longAgo);
@@ -230,7 +230,7 @@ class MessagingGatewayTest {
         (java.util.Map<String, Object>) field.get(gateway);
 
     Class<?> recordClass =
-        Class.forName("com.infenia.yukta.plugin.gateway.AbstractMessagingGateway$PendingReply");
+        Class.forName("com.infenia.yukta.service.gateway.AbstractMessagingGateway$PendingReply");
     java.lang.reflect.Constructor<?> constructor = recordClass.getDeclaredConstructors()[0];
     constructor.setAccessible(true);
 

@@ -21,7 +21,7 @@ import com.infenia.yukta.model.api.WorkflowTriggerRequest;
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import com.infenia.yukta.service.LogRetrievalService;
-import com.infenia.yukta.service.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.WorkflowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

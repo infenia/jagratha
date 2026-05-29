@@ -19,7 +19,7 @@ import com.infenia.yukta.model.api.PluginDetails;
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.SessionService;
-import com.infenia.yukta.service.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;

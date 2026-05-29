@@ -40,13 +40,13 @@ import reactor.test.StepVerifier;
 
 class StreamTopologyDecoratorTest {
 
-    private StreamTopologyDecorator decorator;
+  private StreamTopologyDecorator decorator;
 
   @BeforeEach
   void setUp() {
-      MessageStore messageStore = mock(MessageStore.class);
-      TaskTrackerService tracker = mock(TaskTrackerService.class);
-      NodeCheckpointStore checkpointStore = new InMemoryNodeCheckpointStore();
+    MessageStore messageStore = mock(MessageStore.class);
+    TaskTrackerService tracker = mock(TaskTrackerService.class);
+    NodeCheckpointStore checkpointStore = new InMemoryNodeCheckpointStore();
     decorator = new StreamTopologyDecorator(messageStore, tracker, checkpointStore);
 
     when(messageStore.store(any())).thenReturn(Mono.empty());
@@ -129,9 +129,7 @@ class StreamTopologyDecoratorTest {
       connector.run();
     }
 
-    StepVerifier.create(output)
-        .expectNextCount(1)
-        .verifyComplete();
+    StepVerifier.create(output).expectNextCount(1).verifyComplete();
 
     // Cleanup
     disposables.forEach(Disposable::dispose);
@@ -181,9 +179,7 @@ class StreamTopologyDecoratorTest {
       connector.run();
     }
 
-    StepVerifier.create(output)
-        .expectNextCount(1)
-        .verifyComplete();
+    StepVerifier.create(output).expectNextCount(1).verifyComplete();
 
     // Cleanup
     disposables.forEach(Disposable::dispose);
@@ -205,9 +201,7 @@ class StreamTopologyDecoratorTest {
       connector.run();
     }
 
-    StepVerifier.create(output)
-        .expectError(RuntimeException.class)
-        .verify();
+    StepVerifier.create(output).expectError(RuntimeException.class).verify();
 
     // Cleanup
     disposables.forEach(Disposable::dispose);
@@ -222,11 +216,11 @@ class StreamTopologyDecoratorTest {
         new Flux[] {Flux.just(msg1), Flux.just(msg2), Flux.just(msg3)};
 
     StepVerifier.create(
-        decorator.mergeParentStreams(
-            streams,
-            new ParentEdgeInfo(0, "parent-1", null),
-            new ParentEdgeInfo(1, "parent-2", null),
-            new ParentEdgeInfo(2, "parent-3", null)))
+            decorator.mergeParentStreams(
+                streams,
+                new ParentEdgeInfo(0, "parent-1", null),
+                new ParentEdgeInfo(1, "parent-2", null),
+                new ParentEdgeInfo(2, "parent-3", null)))
         .expectNextCount(3)
         .verifyComplete();
   }
@@ -239,8 +233,7 @@ class StreamTopologyDecoratorTest {
 
   @Test
   void testHandleEmitFailureWithOtherResult() {
-    assertThat(StreamTopologyDecorator.handleEmitFailure(Sinks.EmitResult.FAIL_OVERFLOW))
-        .isFalse();
+    assertThat(StreamTopologyDecorator.handleEmitFailure(Sinks.EmitResult.FAIL_OVERFLOW)).isFalse();
     assertThat(StreamTopologyDecorator.handleEmitFailure(Sinks.EmitResult.OK)).isFalse();
   }
 }

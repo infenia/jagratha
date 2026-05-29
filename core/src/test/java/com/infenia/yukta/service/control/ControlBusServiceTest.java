@@ -13,43 +13,284 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service;
+package com.infenia.yukta.service.control;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
 import com.infenia.yukta.plugin.message.control.ControlStatistics;
-import com.infenia.yukta.service.control.ControlBusService;
 import com.infenia.yukta.service.control.directive.ControlHeartbeatHandler;
 import com.infenia.yukta.service.control.directive.ControlSignalHandler;
 import com.infenia.yukta.service.control.directive.ControlStatisticsHandler;
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
-class ControlBusServiceIntegrationTest {
+class ControlBusServiceTest {
 
+  private ControlBusService service;
   private ControlBusService controlBusService;
-  private ControlHeartbeatHandler heartbeatHandler;
-  private ControlStatisticsHandler statisticsHandler;
 
   @BeforeEach
   void setUp() {
-    heartbeatHandler = new ControlHeartbeatHandler();
-    statisticsHandler = new ControlStatisticsHandler();
+    final List<ControlSignalHandler> handlers =
+        List.of(new ControlHeartbeatHandler(), new ControlStatisticsHandler());
+    service = new ControlBusService(100, 50, 256, handlers);
+    service.init();
 
-    final List<ControlSignalHandler> handlers = List.of(heartbeatHandler, statisticsHandler);
-    controlBusService = new ControlBusService(100, 50, 256, handlers);
+    final ControlHeartbeatHandler heartbeatHandler = new ControlHeartbeatHandler();
+    final ControlStatisticsHandler statisticsHandler = new ControlStatisticsHandler();
+    final List<ControlSignalHandler> integrationHandlers =
+        List.of(heartbeatHandler, statisticsHandler);
+    controlBusService = new ControlBusService(100, 50, 256, integrationHandlers);
     controlBusService.init();
   }
+
+  // ==================== Basic Tests ====================
+
+  @Test
+  void testEmitAndStream() {
+    Message<String> msg = DefaultMessage.create(null, "test");
+
+    StepVerifier.create(service.getControlStream())
+        .then(() -> service.emit(msg).subscribe())
+        .expectNext(msg)
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  void testHeartbeatAndStatistics() {
+    ControlHeartbeat hb = new ControlHeartbeat("node1", 1000L);
+    Message<ControlHeartbeat> hbMsg = DefaultMessage.create(null, hb).withSourceNodeId("node1");
+
+    ControlStatistics stats = new ControlStatistics("node1", 100.0, 50.0);
+    Message<ControlStatistics> statsMsg =
+        DefaultMessage.create(null, stats).withSourceNodeId("node1");
+
+    service.emit(hbMsg).block();
+    service.emit(statsMsg).block();
+
+    // Loop to wait for state update
+    for (int i = 0; i < 20; i++) {
+      if (service.getLastHeartbeat("node1") != null) break;
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException _) {
+      }
+    }
+
+    assertEquals(hbMsg, service.getLastHeartbeat("node1"));
+    assertTrue(service.getActiveNodes().contains("node1"));
+  }
+
+  @Test
+  void testRegisterAndSendCommand() {
+    WorkflowPlugin plugin = mock(WorkflowPlugin.class);
+    Message<String> cmd = DefaultMessage.create(null, "cmd");
+    Message<String> resp = DefaultMessage.create(null, "resp");
+
+    service.registerPlugin("node1", plugin);
+    when(plugin.onControlSignal(cmd)).thenReturn(Mono.just(resp));
+
+    StepVerifier.create(service.sendCommand("node1", cmd)).expectNext(resp).verifyComplete();
+
+    service.unregisterPlugin("node1");
+    StepVerifier.create(service.sendCommand("node1", cmd))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void testInitCustomBufferSize() {
+    ControlBusService customService = new ControlBusService(10, 10, 512, List.of());
+    customService.init();
+    customService.shutdown();
+  }
+
+  @Test
+  void testInitZeroBufferSize() {
+    ControlBusService zeroBufferService = new ControlBusService(10, 10, 0, List.of());
+    zeroBufferService.init();
+    zeroBufferService.shutdown();
+  }
+
+  @Test
+  void testInitNegativeBufferSize() {
+    ControlBusService negativeBufferService = new ControlBusService(10, 10, -1, List.of());
+    negativeBufferService.init();
+    negativeBufferService.shutdown();
+  }
+
+  @Test
+  void testBatchProcessingError() throws Exception {
+    ControlSignalHandler failingHandler = mock(ControlSignalHandler.class);
+    when(failingHandler.canHandle(any())).thenReturn(true);
+    org.mockito.Mockito.doThrow(new RuntimeException("batch fail"))
+        .when(failingHandler)
+        .handle(any(), any(), any());
+
+    ControlBusService errService = new ControlBusService(1, 1, 256, List.of(failingHandler));
+    errService.init();
+
+    Message<String> msg = DefaultMessage.create(null, "payload").withSourceNodeId("node1");
+    errService.emit(msg).block();
+
+    Thread.sleep(100);
+    errService.shutdown();
+  }
+
+  @Test
+  void testEmitError() throws Exception {
+    ControlBusService serviceWithFullSink = new ControlBusService(100, 50, 256, List.of());
+    java.lang.reflect.Field sinkField = ControlBusService.class.getDeclaredField("controlSink");
+    sinkField.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    Sinks.Many<Message<?>> mockSink = mock(Sinks.Many.class);
+    org.mockito.Mockito.doThrow(new RuntimeException("sink fail"))
+        .when(mockSink)
+        .emitNext(any(), any());
+    sinkField.set(serviceWithFullSink, mockSink);
+
+    StepVerifier.create(serviceWithFullSink.emit(DefaultMessage.create(null, "d")))
+        .expectError(IllegalStateException.class)
+        .verify();
+  }
+
+  @Test
+  void testHandleControlBatchBranches() throws Exception {
+    ControlBusService testService = new ControlBusService(100, 50, 256, List.of());
+    java.lang.reflect.Method handleBatch =
+        ControlBusService.class.getDeclaredMethod("handleControlBatch", List.class);
+    handleBatch.setAccessible(true);
+
+    Message<String> msgNoNode = DefaultMessage.create(null, "p");
+    handleBatch.invoke(testService, List.of(msgNoNode));
+
+    Message<?> mockMsg = mock(Message.class);
+    when(mockMsg.getPayload()).thenReturn(null);
+    when(mockMsg.getSourceNodeId()).thenReturn("node1");
+    handleBatch.invoke(testService, List.of(mockMsg));
+  }
+
+  @Test
+  void testGetActiveNodesEmpty() {
+    ControlBusService emptyService = new ControlBusService(100, 50, 256, List.of());
+    assertTrue(emptyService.getActiveNodes().isEmpty());
+  }
+
+  @Test
+  void testGetHeartbeatAndStatsMissing() {
+    ControlBusService emptyService = new ControlBusService(100, 50, 256, List.of());
+    org.junit.jupiter.api.Assertions.assertNull(emptyService.getLastHeartbeat("n1"));
+    org.junit.jupiter.api.Assertions.assertNull(emptyService.getLastStatistics("n1"));
+  }
+
+  // ==================== Unit Tests (Exception Handling) ====================
+
+  @Test
+  void testEmitWhenSinkThrowsRuntimeException()
+      throws NoSuchFieldException, IllegalAccessException {
+    final ControlBusService testService = new ControlBusService(100, 50, 256, List.of());
+    testService.init();
+
+    @SuppressWarnings("unchecked")
+    final Sinks.Many<Message<?>> mockSink = mock(Sinks.Many.class);
+    doThrow(new RuntimeException("Simulated sink error")).when(mockSink).emitNext(any(), any());
+
+    final Field sinkField = ControlBusService.class.getDeclaredField("controlSink");
+    sinkField.setAccessible(true);
+    sinkField.set(testService, mockSink);
+
+    final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
+
+    StepVerifier.create(testService.emit(msg))
+        .expectErrorMatches(
+            e ->
+                e instanceof IllegalStateException
+                    && e.getMessage().contains("Control bus emit failed"))
+        .verify();
+  }
+
+  @Test
+  void testEmitWhenSinkThrowsIllegalStateException()
+      throws NoSuchFieldException, IllegalAccessException {
+    final ControlBusService testService = new ControlBusService(100, 50, 256, List.of());
+    testService.init();
+
+    @SuppressWarnings("unchecked")
+    final Sinks.Many<Message<?>> mockSink = mock(Sinks.Many.class);
+    doThrow(new IllegalStateException("Sink closed")).when(mockSink).emitNext(any(), any());
+
+    final Field sinkField = ControlBusService.class.getDeclaredField("controlSink");
+    sinkField.setAccessible(true);
+    sinkField.set(testService, mockSink);
+
+    final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
+
+    StepVerifier.create(testService.emit(msg))
+        .expectErrorMatches(
+            e ->
+                e instanceof IllegalStateException
+                    && e.getMessage().contains("Control bus emit failed"))
+        .verify();
+  }
+
+  @Test
+  void testHandleControlBatchExceptionIsHandledGracefully() {
+    final ControlSignalHandler faultyHandler = mock(ControlSignalHandler.class);
+    when(faultyHandler.canHandle(any())).thenReturn(true);
+    doThrow(new RuntimeException("Handler error")).when(faultyHandler).handle(any(), any(), any());
+
+    final ControlBusService testService = new ControlBusService(1, 50, 256, List.of(faultyHandler));
+    testService.init();
+
+    final Message<?> msg =
+        DefaultMessage.create(null, "test").withSourceNodeId("test").withPriority(5);
+
+    StepVerifier.create(testService.emit(msg)).verifyComplete();
+
+    await()
+        .timeout(Duration.ofSeconds(5))
+        .pollInterval(Duration.ofMillis(50))
+        .untilAsserted(
+            () -> {
+              /* allow batch processing delay */
+            });
+
+    final Message<?> followUp =
+        DefaultMessage.create(null, "followup").withSourceNodeId("followup").withPriority(5);
+    StepVerifier.create(testService.emit(followUp)).verifyComplete();
+  }
+
+  @Test
+  void testInitWithExactBufferSize256DoesNotReinitializeSink() {
+    final ControlBusService testService = new ControlBusService(100, 50, 256, List.of());
+    testService.init();
+
+    final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
+
+    StepVerifier.create(testService.emit(msg)).verifyComplete();
+  }
+
+  // ==================== Integration Tests ====================
 
   @Test
   void testHeartbeatSignalDispatch() {
@@ -66,7 +307,7 @@ class ControlBusServiceIntegrationTest {
         .until(() -> controlBusService.getLastHeartbeat("node1") != null);
 
     assertNotNull(controlBusService.getLastHeartbeat("node1"));
-    assertEquals("node1", controlBusService.getActiveNodes().get(0));
+    assertEquals("node1", controlBusService.getActiveNodes().getFirst());
   }
 
   @Test
@@ -167,7 +408,6 @@ class ControlBusServiceIntegrationTest {
 
   @Test
   void testSendCommandSuccess() {
-    // Emit heartbeat to ensure node1 is in activePlugins
     final Message<?> hb =
         DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
             .withSourceNodeId("node1")
@@ -183,7 +423,6 @@ class ControlBusServiceIntegrationTest {
               /* allow batch processing delay */
             });
 
-    // Verify heartbeat was registered (sendCommand only works with registered plugins)
     assertNotNull(controlBusService.getLastHeartbeat("node1"));
   }
 
@@ -215,7 +454,6 @@ class ControlBusServiceIntegrationTest {
               /* allow batch processing delay */
             });
 
-    // Verify heartbeat recorded and node active
     assertNotNull(controlBusService.getLastHeartbeat("node-test"));
     assertTrue(controlBusService.getActiveNodes().contains("node-test"));
   }
@@ -224,28 +462,25 @@ class ControlBusServiceIntegrationTest {
   void testShutdown() {
     controlBusService.shutdown();
 
-    // After shutdown, control stream should complete
     StepVerifier.create(controlBusService.getControlStream()).verifyComplete();
   }
 
   @Test
   void testInitWithCustomBufferSize() {
-    final ControlBusService service = new ControlBusService(50, 30, 512, List.of());
-    service.init();
+    final ControlBusService testService = new ControlBusService(50, 30, 512, List.of());
+    testService.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
-    StepVerifier.create(service.emit(msg)).verifyComplete();
+    StepVerifier.create(testService.emit(msg)).verifyComplete();
   }
 
   @Test
   void testHandleControlBatchWithNullNodeId() {
     final Message<?> msgWithoutNodeId =
         DefaultMessage.create(null, new ControlHeartbeat("ignored", 1000L)).withPriority(5);
-    // Message without sourceNodeId (null)
 
     StepVerifier.create(controlBusService.emit(msgWithoutNodeId)).verifyComplete();
 
-    // Sleep to allow batch processing
     await()
         .timeout(Duration.ofSeconds(5))
         .pollInterval(Duration.ofMillis(50))
@@ -254,7 +489,6 @@ class ControlBusServiceIntegrationTest {
               /* allow batch processing delay */
             });
 
-    // Node should not be registered (null nodeId ignored)
     assertTrue(controlBusService.getActiveNodes().isEmpty());
   }
 
@@ -265,7 +499,6 @@ class ControlBusServiceIntegrationTest {
 
     StepVerifier.create(controlBusService.emit(msgWithoutPayload)).verifyComplete();
 
-    // Sleep to allow batch processing
     await()
         .timeout(Duration.ofSeconds(5))
         .pollInterval(Duration.ofMillis(50))
@@ -274,7 +507,6 @@ class ControlBusServiceIntegrationTest {
               /* allow batch processing delay */
             });
 
-    // Node should not be tracked (null payload ignored)
     assertNull(controlBusService.getLastHeartbeat("node1"));
   }
 
@@ -295,11 +527,12 @@ class ControlBusServiceIntegrationTest {
               /* allow batch processing delay */
             });
 
-    // Verify getLastHeartbeat searches through handlers
     assertNotNull(controlBusService.getLastHeartbeat("node1"));
     assertEquals(
         1000L,
-        ((ControlHeartbeat) controlBusService.getLastHeartbeat("node1").getPayload()).uptime());
+        ((ControlHeartbeat)
+                Objects.requireNonNull(controlBusService.getLastHeartbeat("node1")).getPayload())
+            .uptime());
   }
 
   @Test
@@ -319,7 +552,6 @@ class ControlBusServiceIntegrationTest {
               /* allow batch processing delay */
             });
 
-    // Verify getLastStatistics searches through handlers
     assertNotNull(controlBusService.getLastStatistics("node1"));
     assertEquals(
         75.0,
@@ -344,7 +576,6 @@ class ControlBusServiceIntegrationTest {
               /* allow batch processing delay */
             });
 
-    // Verify getActiveNodes searches through handlers and returns first non-empty list
     final List<String> activeNodes = controlBusService.getActiveNodes();
     assertTrue(activeNodes.contains("node-active"));
   }
@@ -371,29 +602,26 @@ class ControlBusServiceIntegrationTest {
               /* allow batch processing delay */
             });
 
-    // Both messages should be processed regardless of priority
     assertNotNull(controlBusService.getLastHeartbeat("node-low"));
     assertNotNull(controlBusService.getLastHeartbeat("node-high"));
   }
 
   @Test
   void testEmitWithBufferSize256() {
-    // Test default buffer size (256) - should not reinitialize sink
-    final ControlBusService service = new ControlBusService(100, 50, 256, List.of());
-    service.init();
+    final ControlBusService testService = new ControlBusService(100, 50, 256, List.of());
+    testService.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
-    StepVerifier.create(service.emit(msg)).verifyComplete();
+    StepVerifier.create(testService.emit(msg)).verifyComplete();
   }
 
   @Test
   void testEmitWithCustomBufferSizeLessThanSmall() {
-    // Test buffer size smaller than SMALL_BUFFER_SIZE (64) - should use SMALL_BUFFER_SIZE
-    final ControlBusService service = new ControlBusService(100, 50, 32, List.of());
-    service.init();
+    final ControlBusService testService = new ControlBusService(100, 50, 32, List.of());
+    testService.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
-    StepVerifier.create(service.emit(msg)).verifyComplete();
+    StepVerifier.create(testService.emit(msg)).verifyComplete();
   }
 
   @Test
@@ -403,17 +631,15 @@ class ControlBusServiceIntegrationTest {
             .withSourceNodeId("emit-test")
             .withPriority(5);
 
-    // Verify emit completes successfully (returns Mono<Void>)
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
   }
 
   @Test
   void testInitWithBufferSizeZero() {
-    // Test buffer size = 0 - should use SMALL_BUFFER_SIZE
-    final ControlBusService service = new ControlBusService(100, 50, 0, List.of());
-    service.init();
+    final ControlBusService testService = new ControlBusService(100, 50, 0, List.of());
+    testService.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
-    StepVerifier.create(service.emit(msg)).verifyComplete();
+    StepVerifier.create(testService.emit(msg)).verifyComplete();
   }
 }

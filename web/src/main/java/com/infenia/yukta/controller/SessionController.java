@@ -19,7 +19,7 @@ import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.model.api.SessionDetails;
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
 import com.infenia.yukta.service.SessionService;
-import com.infenia.yukta.service.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;

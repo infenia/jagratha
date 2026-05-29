@@ -24,7 +24,7 @@ import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import com.infenia.yukta.model.session.TaskResponse;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.LogRetrievalService;
-import com.infenia.yukta.service.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.WorkflowService;
 import java.time.LocalDateTime;
 import java.util.List;

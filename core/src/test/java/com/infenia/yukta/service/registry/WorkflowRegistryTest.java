@@ -25,8 +25,6 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import java.util.List;
-
-import com.infenia.yukta.service.registry.WorkflowRegistry;
 import org.junit.jupiter.api.Test;
 
 class WorkflowRegistryTest {

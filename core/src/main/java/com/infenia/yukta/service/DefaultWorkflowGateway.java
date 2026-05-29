@@ -17,8 +17,8 @@ package com.infenia.yukta.service;
 
 import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
-import com.infenia.yukta.plugin.gateway.WorkflowGateway;
 import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.service.gateway.WorkflowGateway;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import java.util.List;

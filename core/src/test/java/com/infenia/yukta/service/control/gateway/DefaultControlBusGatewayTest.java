@@ -26,11 +26,9 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.service.control.ControlBusService;
 import java.util.List;
 import java.util.UUID;
-
-import com.infenia.yukta.service.control.ControlBusService;
-import com.infenia.yukta.service.control.gateway.DefaultControlBusGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
