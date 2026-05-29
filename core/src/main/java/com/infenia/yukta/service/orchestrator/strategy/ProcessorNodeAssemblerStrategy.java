@@ -22,7 +22,7 @@ import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
-import com.infenia.yukta.service.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;

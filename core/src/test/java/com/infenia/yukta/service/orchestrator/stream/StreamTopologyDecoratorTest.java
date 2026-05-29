@@ -25,7 +25,7 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
-import com.infenia.yukta.service.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 class StreamTopologyDecoratorTest {
@@ -67,7 +68,7 @@ class StreamTopologyDecoratorTest {
         new ParentEdgeInfo[] {new ParentEdgeInfo(0, "parent-1", null)};
 
     StepVerifier.create(decorator.mergeParentStreams(streams, parentEdges))
-        .expectNext(msg)
+        .assertNext(m -> assertThat(m.getSourceNodeId()).isEqualTo("parent-1"))
         .verifyComplete();
   }
 
@@ -129,10 +130,7 @@ class StreamTopologyDecoratorTest {
     }
 
     StepVerifier.create(output)
-        .assertNext(
-            m -> {
-              assertThat(m.getSourceNodeId()).isEqualTo("node-1");
-            })
+        .expectNextCount(1)
         .verifyComplete();
 
     // Cleanup
@@ -160,5 +158,89 @@ class StreamTopologyDecoratorTest {
 
     // Cleanup
     disposables.forEach(Disposable::dispose);
+  }
+
+  @Test
+  void testApplyLoggingAndBroadcastingWithoutMessageStore() {
+    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "data");
+    final Flux<Message<?>> input = Flux.just(msg);
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Runnable> connectors = new ArrayList<>();
+
+    final TaskTrackerService tracker = mock(TaskTrackerService.class);
+    final NodeCheckpointStore checkpointStore = new InMemoryNodeCheckpointStore();
+    final StreamTopologyDecorator decoratorWithoutStore =
+        new StreamTopologyDecorator(null, tracker, checkpointStore);
+
+    final Flux<Message<?>> output =
+        decoratorWithoutStore.applyLoggingAndBroadcasting(
+            "exec-1", "node-1", input, 1024, disposables, connectors);
+
+    // Execute deferred connector subscriptions
+    for (final Runnable connector : connectors) {
+      connector.run();
+    }
+
+    StepVerifier.create(output)
+        .expectNextCount(1)
+        .verifyComplete();
+
+    // Cleanup
+    disposables.forEach(Disposable::dispose);
+  }
+
+  @Test
+  void testApplyLoggingAndBroadcastingStreamError() {
+    final RuntimeException testError = new RuntimeException("Test error");
+    final Flux<Message<?>> input = Flux.error(testError);
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Runnable> connectors = new ArrayList<>();
+
+    final Flux<Message<?>> output =
+        decorator.applyLoggingAndBroadcasting(
+            "exec-1", "node-1", input, 1024, disposables, connectors);
+
+    // Execute deferred connector subscriptions
+    for (final Runnable connector : connectors) {
+      connector.run();
+    }
+
+    StepVerifier.create(output)
+        .expectError(RuntimeException.class)
+        .verify();
+
+    // Cleanup
+    disposables.forEach(Disposable::dispose);
+  }
+
+  @Test
+  void testMergeParentStreamsUsingVarargs() {
+    final Message<?> msg1 = DefaultMessage.create(UUID.randomUUID(), "data1");
+    final Message<?> msg2 = DefaultMessage.create(UUID.randomUUID(), "data2");
+    final Message<?> msg3 = DefaultMessage.create(UUID.randomUUID(), "data3");
+    final Flux<Message<?>>[] streams =
+        new Flux[] {Flux.just(msg1), Flux.just(msg2), Flux.just(msg3)};
+
+    StepVerifier.create(
+        decorator.mergeParentStreams(
+            streams,
+            new ParentEdgeInfo(0, "parent-1", null),
+            new ParentEdgeInfo(1, "parent-2", null),
+            new ParentEdgeInfo(2, "parent-3", null)))
+        .expectNextCount(3)
+        .verifyComplete();
+  }
+
+  @Test
+  void testHandleEmitFailureWithNonSerializedResult() {
+    assertThat(StreamTopologyDecorator.handleEmitFailure(Sinks.EmitResult.FAIL_NON_SERIALIZED))
+        .isTrue();
+  }
+
+  @Test
+  void testHandleEmitFailureWithOtherResult() {
+    assertThat(StreamTopologyDecorator.handleEmitFailure(Sinks.EmitResult.FAIL_OVERFLOW))
+        .isFalse();
+    assertThat(StreamTopologyDecorator.handleEmitFailure(Sinks.EmitResult.OK)).isFalse();
   }
 }

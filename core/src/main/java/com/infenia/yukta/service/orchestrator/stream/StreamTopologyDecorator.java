@@ -19,7 +19,7 @@ import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
-import com.infenia.yukta.service.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Nullable;
 import java.util.ArrayList;
@@ -47,18 +47,23 @@ import reactor.core.publisher.Sinks;
 @RequiredArgsConstructor
 public class StreamTopologyDecorator {
 
-  private static final Sinks.EmitFailureHandler RETRY_HANDLER =
-      (signalType, emitResult) -> {
-        if (emitResult == Sinks.EmitResult.FAIL_NON_SERIALIZED) {
-          java.util.concurrent.locks.LockSupport.parkNanos(10_000);
-          return true;
-        }
-        return false;
-      };
+  private static final int SINGLE_PARENT = 1;
 
   @Nullable private final MessageStore messageStore;
   private final TaskTrackerService tracker;
   private final NodeCheckpointStore checkpointStore;
+
+  private static final Sinks.EmitFailureHandler RETRY_HANDLER =
+      (unusedSignalType, emitResult) -> handleEmitFailure(emitResult);
+
+  // ~ Package-private visibility
+  /* default */ static boolean handleEmitFailure(final Sinks.EmitResult emitResult) {
+    final boolean shouldRetry = emitResult == Sinks.EmitResult.FAIL_NON_SERIALIZED;
+    if (shouldRetry) {
+      java.util.concurrent.locks.LockSupport.parkNanos(10_000);
+    }
+    return shouldRetry;
+  }
 
   /**
    * Merges parent node streams, applying edge-based routing and port filtering.
@@ -71,19 +76,15 @@ public class StreamTopologyDecorator {
    * @return merged Flux with routed and filtered messages
    */
   public Flux<Message<?>> mergeParentStreams(
-      final Flux<Message<?>>[] streams, final ParentEdgeInfo[] parentEdges) {
-    if (parentEdges.length == 0) {
-      return Flux.empty();
-    }
-    if (parentEdges.length == 1) {
-      return applyEdgeRouting(streams, parentEdges[0]);
-    }
-
+      final Flux<Message<?>>[] streams, final ParentEdgeInfo... parentEdges) {
     final List<Flux<Message<?>>> parentFluxes = new ArrayList<>(parentEdges.length);
     for (final ParentEdgeInfo edge : parentEdges) {
       parentFluxes.add(applyEdgeRouting(streams, edge));
     }
-    return Flux.merge(parentFluxes);
+
+    return parentFluxes.isEmpty()
+        ? Flux.empty()
+        : parentFluxes.size() == SINGLE_PARENT ? parentFluxes.get(0) : Flux.merge(parentFluxes);
   }
 
   /**
@@ -172,10 +173,8 @@ public class StreamTopologyDecorator {
    */
   private Flux<Message<?>> getMessageFlux(
       final String executionId, final String nodeId, final Flux<Message<?>> stream) {
-    Flux<Message<?>> logStream = stream;
-    if (log.isDebugEnabled()) {
-      logStream = logStream.log("Node-" + nodeId);
-    }
+    Flux<Message<?>> logStream =
+        stream.doOnNext(msg -> log.atDebug().log("Node-{}: {}", nodeId, msg));
 
     if (messageStore != null) {
       logStream = logStream.flatMap(msg -> messageStore.store(msg).thenReturn(msg));
@@ -184,14 +183,10 @@ public class StreamTopologyDecorator {
     logStream =
         logStream.flatMap(msg -> checkpointStore.save(executionId, nodeId, msg).thenReturn(msg));
 
-    final Flux<Message<?>> processedStream;
-    if (log.isTraceEnabled()) {
-      processedStream =
-          logStream.doOnNext(
-              msg -> tracker.emitLogEvent(executionId, String.valueOf(msg.getPayload())));
-    } else {
-      processedStream = logStream;
-    }
-    return processedStream;
+    return logStream.doOnNext(
+        msg -> {
+          log.atTrace().log("Processing message: {}", msg.getPayload());
+          tracker.emitLogEvent(executionId, String.valueOf(msg.getPayload()));
+        });
   }
 }
