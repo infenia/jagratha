@@ -90,14 +90,14 @@ class ControlBusServiceTest {
 
     // Loop to wait for state update
     for (int i = 0; i < 20; i++) {
-      if (service.getLastHeartbeat("node1") != null) break;
+      if (service.getLastHeartbeat("test-workflow", "node1") != null) break;
       try {
         Thread.sleep(50);
       } catch (InterruptedException _) {
       }
     }
 
-    assertEquals(hbMsg, service.getLastHeartbeat("node1"));
+    assertEquals(hbMsg, service.getLastHeartbeat("test-workflow", "node1"));
     assertTrue(service.getActiveNodes().contains("node1"));
   }
 
@@ -107,13 +107,13 @@ class ControlBusServiceTest {
     Message<String> cmd = DefaultMessage.create(null, "cmd");
     Message<String> resp = DefaultMessage.create(null, "resp");
 
-    service.registerPlugin("node1", plugin);
+    service.registerPlugin("test-workflow", "node1", plugin);
     when(plugin.onControlSignal(cmd)).thenReturn(Mono.just(resp));
 
-    StepVerifier.create(service.sendCommand("node1", cmd)).expectNext(resp).verifyComplete();
+    StepVerifier.create(service.sendCommand("test-workflow", "node1", cmd)).expectNext(resp).verifyComplete();
 
-    service.unregisterPlugin("node1");
-    StepVerifier.create(service.sendCommand("node1", cmd))
+    service.unregisterPlugin("test-workflow", "node1");
+    StepVerifier.create(service.sendCommand("test-workflow", "node1", cmd))
         .expectError(IllegalArgumentException.class)
         .verify();
   }
@@ -199,8 +199,8 @@ class ControlBusServiceTest {
   @Test
   void testGetHeartbeatAndStatsMissing() {
     ControlBusService emptyService = new ControlBusService(100, 50, 256, List.of());
-    org.junit.jupiter.api.Assertions.assertNull(emptyService.getLastHeartbeat("n1"));
-    org.junit.jupiter.api.Assertions.assertNull(emptyService.getLastStatistics("n1"));
+    org.junit.jupiter.api.Assertions.assertNull(emptyService.getLastHeartbeat("test-workflow", "n1"));
+    org.junit.jupiter.api.Assertions.assertNull(emptyService.getLastStatistics("test-workflow", "n1"));
   }
 
   // ==================== Unit Tests (Exception Handling) ====================
@@ -304,9 +304,9 @@ class ControlBusServiceTest {
     await()
         .timeout(Duration.ofSeconds(5))
         .pollInterval(Duration.ofMillis(50))
-        .until(() -> controlBusService.getLastHeartbeat("node1") != null);
+        .until(() -> controlBusService.getLastHeartbeat("test-workflow", "node1") != null);
 
-    assertNotNull(controlBusService.getLastHeartbeat("node1"));
+    assertNotNull(controlBusService.getLastHeartbeat("test-workflow", "node1"));
     assertEquals("node1", controlBusService.getActiveNodes().getFirst());
   }
 
@@ -322,9 +322,9 @@ class ControlBusServiceTest {
     await()
         .timeout(Duration.ofSeconds(5))
         .pollInterval(Duration.ofMillis(50))
-        .until(() -> controlBusService.getLastStatistics("node2") != null);
+        .until(() -> controlBusService.getLastStatistics("test-workflow", "node2") != null);
 
-    assertNotNull(controlBusService.getLastStatistics("node2"));
+    assertNotNull(controlBusService.getLastStatistics("test-workflow", "node2"));
   }
 
   @Test
@@ -349,13 +349,13 @@ class ControlBusServiceTest {
               /* allow batch processing delay */
             });
 
-    assertNotNull(controlBusService.getLastHeartbeat("node3"));
-    assertNotNull(controlBusService.getLastStatistics("node3"));
+    assertNotNull(controlBusService.getLastHeartbeat("test-workflow", "node3"));
+    assertNotNull(controlBusService.getLastStatistics("test-workflow", "node3"));
 
-    controlBusService.unregisterPlugin("node3");
+    controlBusService.unregisterPlugin("test-workflow", "node3");
 
-    assertNull(controlBusService.getLastHeartbeat("node3"));
-    assertNull(controlBusService.getLastStatistics("node3"));
+    assertNull(controlBusService.getLastHeartbeat("test-workflow", "node3"));
+    assertNull(controlBusService.getLastStatistics("test-workflow", "node3"));
     assertTrue(controlBusService.getActiveNodes().isEmpty());
   }
 
@@ -386,11 +386,11 @@ class ControlBusServiceTest {
     assertTrue(activeNodes.contains("node1"));
     assertTrue(activeNodes.contains("node2"));
 
-    controlBusService.unregisterPlugin("node1");
+    controlBusService.unregisterPlugin("test-workflow", "node1");
 
     assertEquals(1, controlBusService.getActiveNodes().size());
-    assertNull(controlBusService.getLastHeartbeat("node1"));
-    assertNotNull(controlBusService.getLastHeartbeat("node2"));
+    assertNull(controlBusService.getLastHeartbeat("test-workflow", "node1"));
+    assertNotNull(controlBusService.getLastHeartbeat("test-workflow", "node2"));
   }
 
   @Test
@@ -423,7 +423,7 @@ class ControlBusServiceTest {
               /* allow batch processing delay */
             });
 
-    assertNotNull(controlBusService.getLastHeartbeat("node1"));
+    assertNotNull(controlBusService.getLastHeartbeat("test-workflow", "node1"));
   }
 
   @Test
@@ -431,7 +431,7 @@ class ControlBusServiceTest {
     final Message<?> command =
         DefaultMessage.create(null, "command").withSourceNodeId("nonexistent");
 
-    StepVerifier.create(controlBusService.sendCommand("nonexistent", command))
+    StepVerifier.create(controlBusService.sendCommand("test-workflow", "nonexistent", command))
         .expectErrorMatches(
             e -> e instanceof IllegalArgumentException && e.getMessage().contains("Node not found"))
         .verify();
@@ -454,7 +454,7 @@ class ControlBusServiceTest {
               /* allow batch processing delay */
             });
 
-    assertNotNull(controlBusService.getLastHeartbeat("node-test"));
+    assertNotNull(controlBusService.getLastHeartbeat("test-workflow", "node-test"));
     assertTrue(controlBusService.getActiveNodes().contains("node-test"));
   }
 
@@ -507,7 +507,7 @@ class ControlBusServiceTest {
               /* allow batch processing delay */
             });
 
-    assertNull(controlBusService.getLastHeartbeat("node1"));
+    assertNull(controlBusService.getLastHeartbeat("test-workflow", "node1"));
   }
 
   @Test
@@ -527,11 +527,11 @@ class ControlBusServiceTest {
               /* allow batch processing delay */
             });
 
-    assertNotNull(controlBusService.getLastHeartbeat("node1"));
+    assertNotNull(controlBusService.getLastHeartbeat("test-workflow", "node1"));
     assertEquals(
         1000L,
         ((ControlHeartbeat)
-                Objects.requireNonNull(controlBusService.getLastHeartbeat("node1")).getPayload())
+                Objects.requireNonNull(controlBusService.getLastHeartbeat("test-workflow", "node1")).getPayload())
             .uptime());
   }
 
@@ -552,10 +552,10 @@ class ControlBusServiceTest {
               /* allow batch processing delay */
             });
 
-    assertNotNull(controlBusService.getLastStatistics("node1"));
+    assertNotNull(controlBusService.getLastStatistics("test-workflow", "node1"));
     assertEquals(
         75.0,
-        ((ControlStatistics) controlBusService.getLastStatistics("node1").getPayload())
+        ((ControlStatistics) controlBusService.getLastStatistics("test-workflow", "node1").getPayload())
             .throughput());
   }
 
@@ -602,8 +602,8 @@ class ControlBusServiceTest {
               /* allow batch processing delay */
             });
 
-    assertNotNull(controlBusService.getLastHeartbeat("node-low"));
-    assertNotNull(controlBusService.getLastHeartbeat("node-high"));
+    assertNotNull(controlBusService.getLastHeartbeat("test-workflow", "node-low"));
+    assertNotNull(controlBusService.getLastHeartbeat("test-workflow", "node-high"));
   }
 
   @Test

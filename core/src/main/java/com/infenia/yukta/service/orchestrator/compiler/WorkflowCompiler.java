@@ -214,7 +214,7 @@ public class WorkflowCompiler {
         new HeartbeatBuilder(controlBusGateway, heartbeatInterval, virtualThreadScheduler);
     final List<Disposable> heartbeatDisposables =
         heartbeatBuilder
-            .forNodes(nodeIds)
+            .forNodes(workflowId, nodeIds)
             .withHeartbeatInterval(heartbeatInterval)
             .withStatisticsInterval(heartbeatInterval.multipliedBy(2))
             .build();

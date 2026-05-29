@@ -39,28 +39,28 @@ public class ControlStatisticsHandler implements ControlSignalHandler {
   }
 
   @Override
-  public void handle(final String nodeId, final Message<?> message, final Object payload) {
-    lastStatistics.put(nodeId, message);
+  public void handle(final String compositeKey, final Message<?> message, final Object payload) {
+    lastStatistics.put(compositeKey, message);
   }
 
   /**
    * Get the last statistics message for a node.
    *
-   * @param nodeId the node identifier
+   * @param compositeKey the composite key (workflowId + "\0" + nodeId)
    * @return the last statistics message, or null if none
    */
   @Override
-  public Message<?> getLastStatistics(final String nodeId) {
-    return lastStatistics.get(nodeId);
+  public Message<?> getLastStatistics(final String compositeKey) {
+    return lastStatistics.get(compositeKey);
   }
 
   /**
    * Remove a node's statistics record.
    *
-   * @param nodeId the node identifier
+   * @param compositeKey the composite key (workflowId + "\0" + nodeId)
    */
   @Override
-  public void removeNode(final String nodeId) {
-    lastStatistics.remove(nodeId);
+  public void removeNode(final String compositeKey) {
+    lastStatistics.remove(compositeKey);
   }
 }

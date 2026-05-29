@@ -46,6 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @param timestamp time when the message was created
  * @param sourcePort the port from which the message was emitted
  * @param sourceNodeId the ID of the node that emitted the message
+ * @param workflowId the ID of the workflow context
  * @param <T> the type of the payload
  */
 public record DefaultMessage<T>(
@@ -69,7 +70,8 @@ public record DefaultMessage<T>(
     T payload,
     Instant timestamp,
     String sourcePort,
-    String sourceNodeId)
+    String sourceNodeId,
+    String workflowId)
     implements Message<T> {
 
   /** Compact constructor to ensure metadata and history are immutable. */
@@ -124,6 +126,11 @@ public record DefaultMessage<T>(
   @Override
   public String getSourceNodeId() {
     return sourceNodeId;
+  }
+
+  @Override
+  public String getWorkflowId() {
+    return workflowId;
   }
 
   @Override
@@ -214,7 +221,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -240,7 +248,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -266,7 +275,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -292,7 +302,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -318,7 +329,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -344,7 +356,35 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
+  }
+
+  @Override
+  public Message<T> withWorkflowId(final String workflowId) {
+    return new DefaultMessage<>(
+        id,
+        traceId,
+        correlationId,
+        replyTo,
+        expiration,
+        formatIndicator,
+        metadata,
+        messageHistory,
+        sequenceId,
+        sequenceNumber,
+        sequenceSize,
+        priority,
+        controlMessage,
+        origDest,
+        failureReason,
+        exceptionDetail,
+        retryCount,
+        payload,
+        timestamp,
+        sourcePort,
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -370,7 +410,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -396,7 +437,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -424,7 +466,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -450,7 +493,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -476,7 +520,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -502,7 +547,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -528,7 +574,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -554,7 +601,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -585,7 +633,8 @@ public record DefaultMessage<T>(
         newPayload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -611,7 +660,8 @@ public record DefaultMessage<T>(
         payload,
         timestamp,
         sourcePort,
-        sourceNodeId);
+        sourceNodeId,
+        workflowId);
   }
 
   @Override
@@ -651,7 +701,8 @@ public record DefaultMessage<T>(
         newPayload,
         Instant.ofEpochMilli(original.getTimestamp()),
         original.getSourcePort(),
-        original.getSourceNodeId());
+        original.getSourceNodeId(),
+        original.getWorkflowId());
   }
 
   /**
@@ -683,6 +734,7 @@ public record DefaultMessage<T>(
         0,
         payload,
         Instant.now(),
+        null,
         null,
         null);
   }

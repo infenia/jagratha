@@ -18,7 +18,7 @@ package com.infenia.yukta.controller;
 import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.service.ControlBusService;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
@@ -45,54 +45,114 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @Tag(name = "Control Bus API", description = "Endpoints for system management and monitoring")
 public class ControlBusController {
-  private final ControlBusService controlBusService;
+  private final ControlBusGateway controlBusGateway;
 
   /**
-   * Get all active nodes that have emitted heartbeats.
+   * Get all active nodes in a specific workflow that have emitted heartbeats.
    *
-   * @return list of active node IDs
+   * @param workflowId the workflow identifier
+   * @return list of active node IDs in the workflow
    */
-  @GetMapping("/nodes")
+  @GetMapping("/workflows/{workflowId}/nodes")
   @Operation(
-      summary = "Get active nodes",
-      description = "Lists all nodes currently registered on the Control Bus")
-  public Mono<ApiResponse<List<String>>> getActiveNodes() {
-    return Mono.fromCallable(controlBusService::getActiveNodes)
+      summary = "Get active nodes in workflow",
+      description = "Lists all nodes in a specific workflow currently registered on the Control Bus")
+  public Mono<ApiResponse<List<String>>> getActiveNodes(@PathVariable final String workflowId) {
+    return Mono.fromCallable(() -> controlBusGateway.getActiveNodes(workflowId))
         .map(nodes -> ApiResponse.success(200, "Active nodes retrieved", nodes));
   }
 
   /**
-   * Get the last heartbeat for a node.
+   * Get the last heartbeat for a node in a specific workflow.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the node identifier
    * @return the last heartbeat message
    */
-  @GetMapping("/nodes/{nodeId}/heartbeat")
+  @GetMapping("/workflows/{workflowId}/nodes/{nodeId}/heartbeat")
   @Operation(
-      summary = "Get node heartbeat",
-      description = "Retrieves the most recent heartbeat for a specific node")
-  public Mono<ApiResponse<Message<?>>> getLastHeartbeat(@PathVariable final String nodeId) {
-    return Mono.fromCallable(() -> controlBusService.getLastHeartbeat(nodeId))
+      summary = "Get node heartbeat in workflow",
+      description = "Retrieves the most recent heartbeat for a specific node in a workflow")
+  public Mono<ApiResponse<Message<?>>> getLastHeartbeat(
+      @PathVariable final String workflowId, @PathVariable final String nodeId) {
+    return Mono.fromCallable(() -> controlBusGateway.getLastHeartbeat(workflowId, nodeId))
         .map(hb -> ApiResponse.success(200, "Node heartbeat retrieved", hb));
   }
 
   /**
-   * Send a command to a specific node.
+   * Send a command to a specific node in a workflow.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the target node identifier
+   * @param payload the command payload
+   * @return a Mono of the response API response
+   */
+  @PostMapping("/workflows/{workflowId}/nodes/{nodeId}/command")
+  @Operation(
+      summary = "Send command to node in workflow",
+      description = "Sends an administrative command to a specific node in a workflow")
+  public Mono<ApiResponse<Message<?>>> sendCommand(
+      @PathVariable final String workflowId,
+      @PathVariable final String nodeId,
+      @RequestBody final Map<String, Object> payload) {
+    final Message<?> command =
+        DefaultMessage.create(null, payload)
+            .withControl(true)
+            .withSourceNodeId("CONSOLE")
+            .withWorkflowId(workflowId);
+    return controlBusGateway
+        .sendCommand(workflowId, nodeId, command)
+        .map(resp -> ApiResponse.success(200, "Command processed", resp));
+  }
+
+  /**
+   * Get all active nodes across all workflows that have emitted heartbeats.
+   *
+   * @return list of all active node IDs
+   */
+  @GetMapping("/nodes")
+  @Operation(
+      summary = "Get active nodes (global)",
+      description = "Lists all nodes currently registered on the Control Bus across all workflows")
+  public Mono<ApiResponse<List<String>>> getAllActiveNodes() {
+    return Mono.fromCallable(controlBusGateway::getActiveNodes)
+        .map(nodes -> ApiResponse.success(200, "Active nodes retrieved", nodes));
+  }
+
+  /**
+   * Get the last heartbeat for a node (global, for backward compatibility).
+   *
+   * @param nodeId the node identifier (composite key format: workflowId + "\0" + nodeId)
+   * @return the last heartbeat message
+   */
+  @GetMapping("/nodes/{nodeId}/heartbeat")
+  @Operation(
+      summary = "Get node heartbeat (global)",
+      description = "Retrieves the most recent heartbeat for a specific node (legacy global endpoint)")
+  @Deprecated
+  public Mono<ApiResponse<Message<?>>> getLastHeartbeatGlobal(@PathVariable final String nodeId) {
+    return Mono.fromCallable(() -> controlBusGateway.getLastHeartbeat(null, nodeId))
+        .map(hb -> ApiResponse.success(200, "Node heartbeat retrieved", hb));
+  }
+
+  /**
+   * Send a command to a specific node (global, for backward compatibility).
+   *
+   * @param nodeId the target node identifier (composite key format: workflowId + "\0" + nodeId)
    * @param payload the command payload
    * @return a Mono of the response API response
    */
   @PostMapping("/nodes/{nodeId}/command")
   @Operation(
-      summary = "Send command to node",
-      description = "Sends an administrative command to a specific node")
-  public Mono<ApiResponse<Message<?>>> sendCommand(
+      summary = "Send command to node (global)",
+      description = "Sends an administrative command to a specific node (legacy global endpoint)")
+  @Deprecated
+  public Mono<ApiResponse<Message<?>>> sendCommandGlobal(
       @PathVariable final String nodeId, @RequestBody final Map<String, Object> payload) {
     final Message<?> command =
         DefaultMessage.create(null, payload).withControl(true).withSourceNodeId("CONSOLE");
-    return controlBusService
-        .sendCommand(nodeId, command)
+    return controlBusGateway
+        .sendCommand(null, nodeId, command)
         .map(resp -> ApiResponse.success(200, "Command processed", resp));
   }
 

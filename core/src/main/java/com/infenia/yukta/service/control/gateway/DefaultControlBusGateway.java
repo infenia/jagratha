@@ -39,28 +39,33 @@ public class DefaultControlBusGateway implements ControlBusGateway {
   }
 
   @Override
-  public void registerPlugin(final String nodeId, final WorkflowPlugin plugin) {
-    controlBusService.registerPlugin(nodeId, plugin);
+  public void registerPlugin(final String workflowId, final String nodeId, final WorkflowPlugin plugin) {
+    controlBusService.registerPlugin(workflowId, nodeId, plugin);
   }
 
   @Override
-  public void unregisterPlugin(final String nodeId) {
-    controlBusService.unregisterPlugin(nodeId);
+  public void unregisterPlugin(final String workflowId, final String nodeId) {
+    controlBusService.unregisterPlugin(workflowId, nodeId);
   }
 
   @Override
-  public Mono<Message<?>> sendCommand(final String nodeId, final Message<?> command) {
-    return controlBusService.sendCommand(nodeId, command);
+  public Mono<Message<?>> sendCommand(final String workflowId, final String nodeId, final Message<?> command) {
+    return controlBusService.sendCommand(workflowId, nodeId, command);
   }
 
   @Override
-  public Message<?> getLastHeartbeat(final String nodeId) {
-    return controlBusService.getLastHeartbeat(nodeId);
+  public Message<?> getLastHeartbeat(final String workflowId, final String nodeId) {
+    return controlBusService.getLastHeartbeat(workflowId, nodeId);
   }
 
   @Override
-  public Message<?> getLastStatistics(final String nodeId) {
-    return controlBusService.getLastStatistics(nodeId);
+  public Message<?> getLastStatistics(final String workflowId, final String nodeId) {
+    return controlBusService.getLastStatistics(workflowId, nodeId);
+  }
+
+  @Override
+  public List<String> getActiveNodes(final String workflowId) {
+    return controlBusService.getActiveNodes(workflowId);
   }
 
   @Override

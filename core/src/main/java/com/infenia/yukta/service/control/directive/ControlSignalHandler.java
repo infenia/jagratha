@@ -46,27 +46,27 @@ public interface ControlSignalHandler {
   /**
    * Get the last heartbeat for a node (optional, default returns null).
    *
-   * @param nodeId the node identifier
+   * @param compositeKey the composite key (workflowId + "\0" + nodeId)
    * @return the last heartbeat message, or null if not applicable
    */
-  default Message<?> getLastHeartbeat(final String nodeId) {
+  default Message<?> getLastHeartbeat(final String compositeKey) {
     return null;
   }
 
   /**
    * Get the last statistics for a node (optional, default returns null).
    *
-   * @param nodeId the node identifier
+   * @param compositeKey the composite key (workflowId + "\0" + nodeId)
    * @return the last statistics message, or null if not applicable
    */
-  default Message<?> getLastStatistics(final String nodeId) {
+  default Message<?> getLastStatistics(final String compositeKey) {
     return null;
   }
 
   /**
-   * Get all active node IDs (optional, default returns empty list).
+   * Get all active node composite keys (optional, default returns empty list).
    *
-   * @return list of node IDs, or empty list if not applicable
+   * @return list of composite keys, or empty list if not applicable
    */
   default java.util.List<String> getActiveNodes() {
     return java.util.List.of();
@@ -75,9 +75,9 @@ public interface ControlSignalHandler {
   /**
    * Remove a node's state (optional, default is no-op).
    *
-   * @param nodeId the node identifier
+   * @param compositeKey the composite key (workflowId + "\0" + nodeId)
    */
-  default void removeNode(final String nodeId) {
+  default void removeNode(final String compositeKey) {
     // No-op by default
   }
 }

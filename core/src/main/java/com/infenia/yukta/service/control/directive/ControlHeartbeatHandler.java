@@ -39,25 +39,25 @@ public class ControlHeartbeatHandler implements ControlSignalHandler {
   }
 
   @Override
-  public void handle(final String nodeId, final Message<?> message, final Object payload) {
-    lastHeartbeats.put(nodeId, message);
+  public void handle(final String compositeKey, final Message<?> message, final Object payload) {
+    lastHeartbeats.put(compositeKey, message);
   }
 
   /**
    * Get the last heartbeat for a node.
    *
-   * @param nodeId the node identifier
+   * @param compositeKey the composite key (workflowId + "\0" + nodeId)
    * @return the last heartbeat message, or null if none
    */
   @Override
-  public Message<?> getLastHeartbeat(final String nodeId) {
-    return lastHeartbeats.get(nodeId);
+  public Message<?> getLastHeartbeat(final String compositeKey) {
+    return lastHeartbeats.get(compositeKey);
   }
 
   /**
-   * Get all active node IDs.
+   * Get all active node composite keys.
    *
-   * @return list of node IDs that have sent heartbeats
+   * @return list of composite keys that have sent heartbeats
    */
   @Override
   public java.util.List<String> getActiveNodes() {
@@ -67,10 +67,10 @@ public class ControlHeartbeatHandler implements ControlSignalHandler {
   /**
    * Remove a node's heartbeat record.
    *
-   * @param nodeId the node identifier
+   * @param compositeKey the composite key (workflowId + "\0" + nodeId)
    */
   @Override
-  public void removeNode(final String nodeId) {
-    lastHeartbeats.remove(nodeId);
+  public void removeNode(final String compositeKey) {
+    lastHeartbeats.remove(compositeKey);
   }
 }

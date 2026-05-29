@@ -58,7 +58,7 @@ public class DefaultWorkflowControlApi implements WorkflowControlApi {
 
   @Override
   public Mono<PreparedWorkflow> prepareWorkflow(@Valid final WorkflowDefinition def) {
-    return orchestrator.prepareWorkflow(def);
+    return orchestrator.prepareWorkflow("", def);
   }
 
   @Override

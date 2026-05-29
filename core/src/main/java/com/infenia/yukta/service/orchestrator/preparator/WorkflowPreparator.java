@@ -27,6 +27,7 @@ import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
 import com.infenia.yukta.service.orchestrator.validator.WorkflowValidator;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,10 +62,11 @@ public class WorkflowPreparator {
   /**
    * Prepares a workflow for execution.
    *
+   * @param workflowId the workflow identifier
    * @param def the workflow definition
    * @return a Mono containing the prepared workflow
    */
-  public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
+  public Mono<PreparedWorkflow> prepareWorkflow(@NotBlank final String workflowId, @NotNull @Valid final WorkflowDefinition def) {
     final int numNodes = def.nodes().size();
     log.atDebug()
         .addKeyValue(LOG_KEY_NUM_NODES, numNodes)
@@ -141,12 +143,13 @@ public class WorkflowPreparator {
                                     .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
                                     .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
                                     .log("Plugin initialized successfully");
-                                controlBusGateway.registerPlugin(node.nodeId(), plugin);
+                                controlBusGateway.registerPlugin(workflowId, node.nodeId(), plugin);
                               })
                           .then(
                               controlBusGateway.emit(
                                   DefaultMessage.create(null, "Node Online")
                                       .withSourceNodeId(node.nodeId())
+                                      .withWorkflowId(workflowId)
                                       .withControl(true)));
                     })
                 .then())
@@ -187,7 +190,7 @@ public class WorkflowPreparator {
                         log.atDebug()
                             .addKeyValue(LOG_KEY_NODE_ID, nodeId)
                             .log("Unregistering and shutting down plugin");
-                        controlBusGateway.unregisterPlugin(nodeId);
+                        controlBusGateway.unregisterPlugin(workflowId, nodeId);
 
                         final Node node = nodeMap.get(nodeId);
                         final Mono<Void> shutdown = plugin.shutdown(node.config());

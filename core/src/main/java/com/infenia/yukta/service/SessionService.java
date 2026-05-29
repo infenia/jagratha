@@ -55,8 +55,8 @@ public class SessionService {
     return configService
         .applySessionConfig(data)
         .then(
-            Flux.fromIterable(data.workflows().values())
-                .flatMap(orchestrator::prepareWorkflow)
+            Flux.fromIterable(data.workflows().entrySet())
+                .flatMap(e -> orchestrator.prepareWorkflow(e.getKey(), e.getValue()))
                 .collectList()
                 .then());
   }

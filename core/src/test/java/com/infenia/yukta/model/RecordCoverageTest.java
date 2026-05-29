@@ -51,7 +51,7 @@ class RecordCoverageTest {
     assertNotNull(msg.withPriority(10));
     assertNotNull(msg.withSourcePort("port"));
 
-    // Full constructor (21 fields)
+    // Full constructor (22 fields)
     new DefaultMessage<>(
         id.toString(),
         null,
@@ -72,6 +72,7 @@ class RecordCoverageTest {
         0,
         "p",
         Instant.now(),
+        null,
         null,
         null);
   }

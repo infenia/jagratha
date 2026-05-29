@@ -96,7 +96,7 @@ public class DefaultWorkflowGateway implements WorkflowGateway {
                                 desc ->
                                     configService.setDescription(
                                         childSessionId, desc + " (Sub-workflow)")))
-                    .then(orchestrator.prepareWorkflow(def))
+                    .then(orchestrator.prepareWorkflow(workflowId, def))
                     .flatMap(
                         prepared -> {
                           final String executionId = UUID.randomUUID().toString();

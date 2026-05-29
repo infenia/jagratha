@@ -97,7 +97,7 @@ public class WorkflowService {
                                   .flatMap(
                                       def ->
                                           orchestrator
-                                              .prepareWorkflow(def)
+                                              .prepareWorkflow(workflowId, def)
                                               .doOnSuccess(
                                                   prepared ->
                                                       log.atDebug()

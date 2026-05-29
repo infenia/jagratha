@@ -46,6 +46,8 @@ import reactor.util.concurrent.Queues;
 @Service
 public class ControlBusService {
 
+  private static final String COMPOSITE_KEY_SEPARATOR = "\0";
+
   private final int batchSize;
   private final Duration batchTimeout;
   private final int bufferSize;
@@ -55,6 +57,17 @@ public class ControlBusService {
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
       Sinks.EmitFailureHandler.busyLooping(Duration.ofMillis(100));
+
+  /**
+   * Create a composite key from workflow ID and node ID.
+   *
+   * @param workflowId the workflow identifier
+   * @param nodeId the node identifier
+   * @return the composite key
+   */
+  private static String compositeKey(final String workflowId, final String nodeId) {
+    return workflowId + COMPOSITE_KEY_SEPARATOR + nodeId;
+  }
 
   /**
    * Constructor for ControlBusService.
@@ -127,39 +140,62 @@ public class ControlBusService {
   }
 
   /**
-   * Get the last heartbeat for a node.
+   * Get the last heartbeat for a node in a specific workflow.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the node identifier
    * @return the last heartbeat message, or null
    */
   @Nullable
-  public Message<?> getLastHeartbeat(@NotBlank final String nodeId) {
+  public Message<?> getLastHeartbeat(@NotBlank final String workflowId, @NotBlank final String nodeId) {
+    final String key = compositeKey(workflowId, nodeId);
     return handlers.stream()
-        .map(h -> h.getLastHeartbeat(nodeId))
+        .map(h -> h.getLastHeartbeat(key))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
   }
 
   /**
-   * Get the last statistics for a node.
+   * Get the last statistics for a node in a specific workflow.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the node identifier
    * @return the last statistics message, or null
    */
   @Nullable
-  public Message<?> getLastStatistics(@NotBlank final String nodeId) {
+  public Message<?> getLastStatistics(@NotBlank final String workflowId, @NotBlank final String nodeId) {
+    final String key = compositeKey(workflowId, nodeId);
     return handlers.stream()
-        .map(h -> h.getLastStatistics(nodeId))
+        .map(h -> h.getLastStatistics(key))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
   }
 
   /**
-   * List all node IDs that have emitted heartbeats.
+   * List all node IDs in a specific workflow that have emitted heartbeats.
    *
-   * @return list of node IDs
+   * @param workflowId the workflow identifier
+   * @return list of node IDs scoped to the workflow
+   */
+  public List<String> getActiveNodes(@NotBlank final String workflowId) {
+    final String prefix = workflowId + COMPOSITE_KEY_SEPARATOR;
+    return handlers.stream()
+        .map(ControlSignalHandler::getActiveNodes)
+        .filter(list -> !list.isEmpty())
+        .findFirst()
+        .orElse(List.of())
+        .stream()
+        .filter(key -> key.startsWith(prefix))
+        .map(key -> key.substring(prefix.length()))
+        .toList();
+  }
+
+  /**
+   * List all node IDs across all workflows that have emitted heartbeats.
+   *
+   * @return list of all active node IDs
    */
   public List<String> getActiveNodes() {
     return handlers.stream()
@@ -170,37 +206,43 @@ public class ControlBusService {
   }
 
   /**
-   * Register a plugin to receive control signals.
+   * Register a plugin to receive control signals for a specific workflow node.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the node identifier
    * @param plugin the plugin instance
    */
-  public void registerPlugin(@NotBlank final String nodeId, final WorkflowPlugin plugin) {
-    activePlugins.put(nodeId, plugin);
+  public void registerPlugin(@NotBlank final String workflowId, @NotBlank final String nodeId, final WorkflowPlugin plugin) {
+    final String key = compositeKey(workflowId, nodeId);
+    activePlugins.put(key, plugin);
   }
 
   /**
    * Unregister a plugin from the control bus and clean up all state.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the node identifier
    */
-  public void unregisterPlugin(@NotBlank final String nodeId) {
-    activePlugins.remove(nodeId);
-    handlers.forEach(h -> h.removeNode(nodeId));
+  public void unregisterPlugin(@NotBlank final String workflowId, @NotBlank final String nodeId) {
+    final String key = compositeKey(workflowId, nodeId);
+    activePlugins.remove(key);
+    handlers.forEach(h -> h.removeNode(key));
   }
 
   /**
-   * Send a command to a specific node and wait for response.
+   * Send a command to a specific node in a workflow and wait for response.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the target node identifier
    * @param command the command message
    * @return a Mono of the response message
    */
-  public Mono<Message<?>> sendCommand(@NotBlank final String nodeId, final Message<?> command) {
-    final WorkflowPlugin plugin = activePlugins.get(nodeId);
+  public Mono<Message<?>> sendCommand(@NotBlank final String workflowId, @NotBlank final String nodeId, final Message<?> command) {
+    final String key = compositeKey(workflowId, nodeId);
+    final WorkflowPlugin plugin = activePlugins.get(key);
     return plugin != null
         ? plugin.onControlSignal(command)
-        : Mono.error(new IllegalArgumentException("Node not found: " + nodeId));
+        : Mono.error(new IllegalArgumentException("Node not found: " + workflowId + "/" + nodeId));
   }
 
   /**
@@ -222,11 +264,13 @@ public class ControlBusService {
     for (final Message<?> msg : prioritized) {
       final Object payload = msg.getPayload();
       final String nodeId = msg.getSourceNodeId();
+      final String workflowId = msg.getWorkflowId();
 
-      if (nodeId != null && payload != null) {
+      if (nodeId != null && payload != null && workflowId != null) {
+        final String key = compositeKey(workflowId, nodeId);
         for (final ControlSignalHandler handler : handlers) {
           if (handler.canHandle(payload)) {
-            handler.handle(nodeId, msg, payload);
+            handler.handle(key, msg, payload);
             break;
           }
         }

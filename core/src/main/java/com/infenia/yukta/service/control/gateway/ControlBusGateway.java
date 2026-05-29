@@ -38,49 +38,62 @@ public interface ControlBusGateway {
   <T> Mono<Void> emit(Message<T> signal);
 
   /**
-   * Register a plugin to receive control signals.
+   * Register a plugin to receive control signals for a specific workflow node.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the node identifier
    * @param plugin the plugin instance
    */
-  void registerPlugin(String nodeId, WorkflowPlugin plugin);
+  void registerPlugin(String workflowId, String nodeId, WorkflowPlugin plugin);
 
   /**
    * Unregister a plugin from the control bus.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the node identifier
    */
-  void unregisterPlugin(String nodeId);
+  void unregisterPlugin(String workflowId, String nodeId);
 
   /**
-   * Send a command to a specific node and wait for response.
+   * Send a command to a specific node in a workflow and wait for response.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the target node identifier
    * @param command the command message
    * @return a Mono of the response message
    */
-  Mono<Message<?>> sendCommand(String nodeId, Message<?> command);
+  Mono<Message<?>> sendCommand(String workflowId, String nodeId, Message<?> command);
 
   /**
-   * Get the last heartbeat for a node.
+   * Get the last heartbeat for a node in a specific workflow.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the node identifier
    * @return the last heartbeat message, or null if none
    */
-  Message<?> getLastHeartbeat(String nodeId);
+  Message<?> getLastHeartbeat(String workflowId, String nodeId);
 
   /**
-   * Get the last statistics message for a node.
+   * Get the last statistics message for a node in a specific workflow.
    *
+   * @param workflowId the workflow identifier
    * @param nodeId the node identifier
    * @return the last statistics message, or null if none
    */
-  Message<?> getLastStatistics(String nodeId);
+  Message<?> getLastStatistics(String workflowId, String nodeId);
 
   /**
-   * List all node IDs that have emitted heartbeats.
+   * List all node IDs in a specific workflow that have emitted heartbeats.
    *
-   * @return list of node IDs
+   * @param workflowId the workflow identifier
+   * @return list of node IDs scoped to the workflow
+   */
+  List<String> getActiveNodes(String workflowId);
+
+  /**
+   * List all node IDs across all workflows that have emitted heartbeats.
+   *
+   * @return list of all active node IDs
    */
   List<String> getActiveNodes();
 }

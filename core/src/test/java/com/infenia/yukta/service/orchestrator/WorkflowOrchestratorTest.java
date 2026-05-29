@@ -732,7 +732,7 @@ class WorkflowOrchestratorTest {
 
     StepVerifier.create(orchestrator.prepareWorkflow(def)).expectError().verify();
 
-    verify(controlBusGateway).unregisterPlugin("n1");
+    verify(controlBusGateway).unregisterPlugin("test-workflow", "n1");
   }
 
   @Test

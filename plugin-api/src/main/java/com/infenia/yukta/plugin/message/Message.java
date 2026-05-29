@@ -95,6 +95,13 @@ public interface Message<T> {
   String getSourceNodeId();
 
   /**
+   * The ID of the workflow context for this message.
+   *
+   * @return the workflow ID
+   */
+  String getWorkflowId();
+
+  /**
    * Extensible metadata associated with the message.
    *
    * @return the metadata map
@@ -236,6 +243,14 @@ public interface Message<T> {
    * @return a new message instance
    */
   Message<T> withSourceNodeId(String sourceNodeId);
+
+  /**
+   * Create a copy of this message with a new workflow ID.
+   *
+   * @param workflowId the new workflow ID
+   * @return a new message instance
+   */
+  Message<T> withWorkflowId(String workflowId);
 
   /**
    * Create a copy of this message with a new expiration timestamp.

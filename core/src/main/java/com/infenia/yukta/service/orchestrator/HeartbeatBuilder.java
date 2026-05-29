@@ -19,6 +19,7 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
 import com.infenia.yukta.plugin.message.control.ControlStatistics;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +61,8 @@ public class HeartbeatBuilder {
   private final Duration defaultInterval;
   private final Scheduler scheduler;
 
+  @Nullable private String workflowId;
+
   @Nullable private List<String> nodes;
 
   @Nullable private Duration hbInterval;
@@ -83,12 +86,14 @@ public class HeartbeatBuilder {
   }
 
   /**
-   * Sets the list of nodes for which to emit heartbeats and statistics.
+   * Sets the workflow ID and list of nodes for which to emit heartbeats and statistics.
    *
+   * @param wfId the workflow identifier
    * @param nodeList the list of node identifiers
    * @return this builder for fluent chaining
    */
-  public HeartbeatBuilder forNodes(final List<String> nodeList) {
+  public HeartbeatBuilder forNodes(@NotBlank final String wfId, final List<String> nodeList) {
+    this.workflowId = wfId;
     if (nodeList != null) {
       this.nodes = new ArrayList<>(nodeList);
     }
@@ -165,6 +170,7 @@ public class HeartbeatBuilder {
                   return controlBusGateway.emit(
                       DefaultMessage.create(null, heartbeat)
                           .withSourceNodeId(nodeId)
+                          .withWorkflowId(workflowId)
                           .withControl(true));
                 })
             .subscribe();
@@ -190,6 +196,7 @@ public class HeartbeatBuilder {
                   return controlBusGateway.emit(
                       DefaultMessage.create(null, stats)
                           .withSourceNodeId(nodeId)
+                          .withWorkflowId(workflowId)
                           .withControl(true));
                 })
             .subscribe();
