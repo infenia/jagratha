@@ -23,7 +23,7 @@ import com.infenia.yukta.model.api.SessionDetails;
 import com.infenia.yukta.model.api.SessionInfo;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.service.SessionService;
-import com.infenia.yukta.service.WorkflowRegistry;
+import com.infenia.yukta.service.registry.WorkflowRegistry;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;

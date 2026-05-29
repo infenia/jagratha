@@ -23,7 +23,7 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.service.TaskTrackerService;
-import com.infenia.yukta.service.WorkflowRegistry;
+import com.infenia.yukta.service.registry.WorkflowRegistry;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;

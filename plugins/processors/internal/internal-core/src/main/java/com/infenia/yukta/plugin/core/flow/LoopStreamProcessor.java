@@ -20,7 +20,7 @@ import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.service.TaskTrackerService;
-import com.infenia.yukta.service.WorkflowRegistry;
+import com.infenia.yukta.service.registry.WorkflowRegistry;
 import com.infenia.yukta.util.SpelUtils;
 import java.time.Duration;
 import java.util.List;

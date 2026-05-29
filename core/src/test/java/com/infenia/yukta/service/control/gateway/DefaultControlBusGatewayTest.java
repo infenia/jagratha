@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service;
+package com.infenia.yukta.service.control.gateway;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +28,9 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import java.util.List;
 import java.util.UUID;
+
+import com.infenia.yukta.service.control.ControlBusService;
+import com.infenia.yukta.service.control.gateway.DefaultControlBusGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -74,7 +77,6 @@ class DefaultControlBusGatewayTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void testSendCommand() {
     String nodeId = "node1";
     Message<String> command = DefaultMessage.create(UUID.randomUUID(), "cmd");

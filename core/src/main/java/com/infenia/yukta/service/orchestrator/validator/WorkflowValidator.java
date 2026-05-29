@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service;
+package com.infenia.yukta.service.orchestrator.validator;
 
 import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.plugin.core.PluginCategory;
@@ -21,6 +21,7 @@ import com.infenia.yukta.plugin.core.WorkflowContext;
 import com.infenia.yukta.plugin.core.WorkflowContext.WorkflowEdge;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.registry.WorkflowRegistry;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;

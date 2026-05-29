@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
-import com.infenia.yukta.service.WorkflowRegistry;
+import com.infenia.yukta.service.registry.WorkflowRegistry;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;

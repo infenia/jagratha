@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.TaskTrackerService;
-import com.infenia.yukta.service.WorkflowRegistry;
+import com.infenia.yukta.service.registry.WorkflowRegistry;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

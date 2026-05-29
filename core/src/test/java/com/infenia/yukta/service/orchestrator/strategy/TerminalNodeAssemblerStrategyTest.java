@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.plugin.gateway.ControlBusGateway;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;

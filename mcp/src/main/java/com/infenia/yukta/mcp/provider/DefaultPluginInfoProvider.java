@@ -20,7 +20,7 @@ import com.infenia.yukta.model.api.PluginCreationGuide;
 import com.infenia.yukta.model.api.PluginDetails;
 import com.infenia.yukta.model.api.PluginSummary;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
-import com.infenia.yukta.service.WorkflowRegistry;
+import com.infenia.yukta.service.registry.WorkflowRegistry;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

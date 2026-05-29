@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service;
+package com.infenia.yukta.service.registry;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -25,6 +25,8 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import java.util.List;
+
+import com.infenia.yukta.service.registry.WorkflowRegistry;
 import org.junit.jupiter.api.Test;
 
 class WorkflowRegistryTest {

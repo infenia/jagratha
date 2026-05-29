@@ -42,10 +42,10 @@ import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.TopologicalSortService;
-import com.infenia.yukta.service.WorkflowRegistry;
-import com.infenia.yukta.service.WorkflowValidator;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.orchestrator.validator.WorkflowValidator;
 import com.infenia.yukta.service.control.factory.ExecutionControlFactory;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
@@ -76,7 +76,7 @@ class WorkflowOrchestratorTest {
   private TaskTrackerService tracker;
   private WorkflowValidator validator;
   private SessionConfigStore configService;
-  private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
+  private ControlBusGateway controlBusGateway;
   private WorkflowOrchestrator orchestrator;
 
   @BeforeEach
@@ -84,7 +84,7 @@ class WorkflowOrchestratorTest {
     registry = mock(WorkflowRegistry.class);
     tracker = mock(TaskTrackerService.class);
     configService = mock(SessionConfigStore.class);
-    controlBusGateway = mock(com.infenia.yukta.plugin.gateway.ControlBusGateway.class);
+    controlBusGateway = mock(ControlBusGateway.class);
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
     validator = new WorkflowValidator(registry);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), any()))

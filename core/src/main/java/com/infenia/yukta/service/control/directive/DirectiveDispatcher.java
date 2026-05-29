@@ -21,7 +21,7 @@ import com.infenia.yukta.plugin.control.WorkflowDirective;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
-import com.infenia.yukta.service.ControlBusService;
+import com.infenia.yukta.service.control.ControlBusService;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;

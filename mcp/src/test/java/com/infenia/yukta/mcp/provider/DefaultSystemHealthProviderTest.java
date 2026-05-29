@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.model.api.ControlBusStatus;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
-import com.infenia.yukta.service.WorkflowRegistry;
+import com.infenia.yukta.service.registry.WorkflowRegistry;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -16,7 +16,7 @@
 package com.infenia.yukta.service.orchestrator.strategy;
 
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.plugin.gateway.ControlBusGateway;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.orchestrator.AssemblyContext;

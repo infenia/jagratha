@@ -20,7 +20,7 @@ import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
-import com.infenia.yukta.plugin.gateway.ControlBusGateway;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.orchestrator.TaskTrackerService;

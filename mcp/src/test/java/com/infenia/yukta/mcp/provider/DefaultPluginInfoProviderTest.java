@@ -27,7 +27,7 @@ import com.infenia.yukta.model.api.PluginDetails;
 import com.infenia.yukta.model.api.PluginSummary;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
-import com.infenia.yukta.service.WorkflowRegistry;
+import com.infenia.yukta.service.registry.WorkflowRegistry;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;

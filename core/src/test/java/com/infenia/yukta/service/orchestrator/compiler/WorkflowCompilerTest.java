@@ -34,6 +34,7 @@ import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
@@ -68,7 +69,7 @@ class WorkflowCompilerTest {
   private ExecutionControlRegistry executionControlRegistry;
 
   @Mock private TaskTrackerService tracker;
-  @Mock private com.infenia.yukta.plugin.gateway.ControlBusGateway controlBusGateway;
+  @Mock private ControlBusGateway controlBusGateway;
   @Mock private SessionConfigStore configService;
 
   @BeforeEach

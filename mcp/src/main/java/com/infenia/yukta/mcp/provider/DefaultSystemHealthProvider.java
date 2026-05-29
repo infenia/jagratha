@@ -21,7 +21,7 @@ import com.infenia.yukta.model.api.ExecutionRecord;
 import com.infenia.yukta.model.api.PluginRegistryEntry;
 import com.infenia.yukta.model.api.SessionExecutionInfo;
 import com.infenia.yukta.model.api.SystemHealthMetrics;
-import com.infenia.yukta.service.WorkflowRegistry;
+import com.infenia.yukta.service.registry.WorkflowRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

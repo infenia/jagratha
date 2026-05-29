@@ -18,7 +18,7 @@ package com.infenia.yukta.service.orchestrator;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import com.infenia.yukta.plugin.gateway.ControlBusGateway;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
 import com.infenia.yukta.plugin.message.control.ControlStatistics;
 import java.time.Duration;
