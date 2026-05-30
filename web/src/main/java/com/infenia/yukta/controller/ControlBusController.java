@@ -58,7 +58,8 @@ public class ControlBusController {
   @GetMapping("/workflows/{workflowId}/nodes")
   @Operation(
       summary = "Get active nodes in workflow",
-      description = "Lists all nodes in a specific workflow currently registered on the Control Bus")
+      description =
+          "Lists all nodes in a specific workflow currently registered on the Control Bus")
   public Mono<ApiResponse<List<String>>> getActiveNodes(@PathVariable final String workflowId) {
     return Mono.fromCallable(() -> controlBusGateway.getActiveNodes(workflowId))
         .map(nodes -> ApiResponse.success(200, "Active nodes retrieved", nodes));
@@ -130,7 +131,8 @@ public class ControlBusController {
   @GetMapping("/nodes/{nodeId}/heartbeat")
   @Operation(
       summary = "Get node heartbeat (global)",
-      description = "Retrieves the most recent heartbeat for a specific node (legacy global endpoint)")
+      description =
+          "Retrieves the most recent heartbeat for a specific node (legacy global endpoint)")
   @Deprecated
   public Mono<ApiResponse<Message<?>>> getLastHeartbeatGlobal(@PathVariable final String nodeId) {
     return Mono.fromCallable(() -> controlBusGateway.getLastHeartbeat(null, nodeId))
@@ -170,8 +172,7 @@ public class ControlBusController {
   @Operation(
       summary = "Get execution progress",
       description = "Returns the current progress snapshot for an execution")
-  public Mono<ApiResponse<WorkflowProgress>> getProgress(
-      @PathVariable final String executionId) {
+  public Mono<ApiResponse<WorkflowProgress>> getProgress(@PathVariable final String executionId) {
     return Mono.fromCallable(() -> unifiedControlBus.getCurrentProgress(executionId))
         .map(progress -> ApiResponse.success(200, "Progress retrieved", progress));
   }

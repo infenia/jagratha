@@ -86,7 +86,10 @@ public class DirectiveDispatcher {
     this.controlBusService = controlBusService;
   }
 
-  /** Subscribes to the control stream and routes ExecutionControlCommand messages through the pipeline. */
+  /**
+   * Subscribes to the control stream and routes ExecutionControlCommand messages through the
+   * pipeline.
+   */
   @PostConstruct
   public void init() {
     controlBusService
@@ -98,9 +101,7 @@ public class DirectiveDispatcher {
               return dispatch(command)
                   .onErrorResume(
                       e -> {
-                        log.atError()
-                            .setCause(e)
-                            .log("Error dispatching command");
+                        log.atError().setCause(e).log("Error dispatching command");
                         return Mono.empty();
                       });
             })
@@ -108,15 +109,14 @@ public class DirectiveDispatcher {
   }
 
   /**
-   * Dispatches a single {@link ExecutionControlCommand}: finds a processor, produces a directive, applies
-   * it.
+   * Dispatches a single {@link ExecutionControlCommand}: finds a processor, produces a directive,
+   * applies it.
    *
    * @param command the command to dispatch
    * @return a Mono that completes when the directive has been applied
    */
   public Mono<Void> dispatch(final ExecutionControlCommand command) {
-    final Optional<ExecutionControl> controlOpt =
-        registry.findByExecutionId(command.executionId());
+    final Optional<ExecutionControl> controlOpt = registry.findByExecutionId(command.executionId());
 
     if (controlOpt.isEmpty()) {
       log.atWarn()
@@ -139,10 +139,7 @@ public class DirectiveDispatcher {
         .max(Comparator.comparingInt(ControlSignalProcessor::getPriority))
         .map(Mono::just)
         .orElseGet(
-            () ->
-                Mono.error(
-                    new IllegalArgumentException(
-                        "No processor registered for command")));
+            () -> Mono.error(new IllegalArgumentException("No processor registered for command")));
   }
 
   private Mono<Void> applyDirective(

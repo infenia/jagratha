@@ -17,10 +17,8 @@ package com.infenia.yukta.service.control.processor;
 
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
-import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.DisableStepModeCommand;
-import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.TaskTrackerService;
@@ -33,8 +31,8 @@ import reactor.core.publisher.Mono;
 /**
  * Processor for disable step mode commands.
  *
- * <p>Disables debug step-through mode on a node. The node returns to normal pause/resume
- * behavior. Emits an observability event.
+ * <p>Disables debug step-through mode on a node. The node returns to normal pause/resume behavior.
+ * Emits an observability event.
  */
 @Slf4j
 @Component

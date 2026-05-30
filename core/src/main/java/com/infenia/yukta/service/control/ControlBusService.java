@@ -147,7 +147,8 @@ public class ControlBusService {
    * @return the last heartbeat message, or null
    */
   @Nullable
-  public Message<?> getLastHeartbeat(@NotBlank final String workflowId, @NotBlank final String nodeId) {
+  public Message<?> getLastHeartbeat(
+      @NotBlank final String workflowId, @NotBlank final String nodeId) {
     final String key = compositeKey(workflowId, nodeId);
     return handlers.stream()
         .map(h -> h.getLastHeartbeat(key))
@@ -164,7 +165,8 @@ public class ControlBusService {
    * @return the last statistics message, or null
    */
   @Nullable
-  public Message<?> getLastStatistics(@NotBlank final String workflowId, @NotBlank final String nodeId) {
+  public Message<?> getLastStatistics(
+      @NotBlank final String workflowId, @NotBlank final String nodeId) {
     final String key = compositeKey(workflowId, nodeId);
     return handlers.stream()
         .map(h -> h.getLastStatistics(key))
@@ -212,7 +214,10 @@ public class ControlBusService {
    * @param nodeId the node identifier
    * @param plugin the plugin instance
    */
-  public void registerPlugin(@NotBlank final String workflowId, @NotBlank final String nodeId, final WorkflowPlugin plugin) {
+  public void registerPlugin(
+      @NotBlank final String workflowId,
+      @NotBlank final String nodeId,
+      final WorkflowPlugin plugin) {
     final String key = compositeKey(workflowId, nodeId);
     activePlugins.put(key, plugin);
   }
@@ -237,7 +242,8 @@ public class ControlBusService {
    * @param command the command message
    * @return a Mono of the response message
    */
-  public Mono<Message<?>> sendCommand(@NotBlank final String workflowId, @NotBlank final String nodeId, final Message<?> command) {
+  public Mono<Message<?>> sendCommand(
+      @NotBlank final String workflowId, @NotBlank final String nodeId, final Message<?> command) {
     final String key = compositeKey(workflowId, nodeId);
     final WorkflowPlugin plugin = activePlugins.get(key);
     return plugin != null

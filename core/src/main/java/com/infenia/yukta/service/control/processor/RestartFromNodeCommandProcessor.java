@@ -22,7 +22,6 @@ import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.RestartFromNodeCommand;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
-import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
@@ -72,7 +71,8 @@ public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
         .flatMap(
             control -> {
               final List<String> parentNodeIds =
-                  control.prepared()
+                  control
+                      .prepared()
                       .parentsList()
                       .getOrDefault(restart.fromNodeId(), List.of())
                       .stream()

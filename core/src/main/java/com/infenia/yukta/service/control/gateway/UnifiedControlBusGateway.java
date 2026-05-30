@@ -28,6 +28,7 @@ import reactor.core.publisher.Mono;
  *
  * <p>Single entry point for controlling workflow executions. All execution control (pause, stop,
  * skip, step, restart) flows through the ControlBus as typed command signals, ensuring:
+ *
  * <ul>
  *   <li>Single control channel (no dual paths)
  *   <li>Consistent ordering via message queue
@@ -125,8 +126,8 @@ public interface UnifiedControlBusGateway {
   /**
    * Enable step-through debug mode on a node.
    *
-   * <p>Each element must be explicitly stepped via {@link #stepNode}. The node automatically
-   * pauses until step signals are sent.
+   * <p>Each element must be explicitly stepped via {@link #stepNode}. The node automatically pauses
+   * until step signals are sent.
    *
    * @param executionId the execution to target
    * @param nodeId the node to enable step mode on
@@ -159,8 +160,8 @@ public interface UnifiedControlBusGateway {
   // --- Restart & Replay Control ---
 
   /**
-   * Safely stop the current execution and restart the entire workflow from the beginning using
-   * the original payload.
+   * Safely stop the current execution and restart the entire workflow from the beginning using the
+   * original payload.
    *
    * @param executionId the execution to restart
    * @return a Mono containing the newly generated execution ID
@@ -168,8 +169,8 @@ public interface UnifiedControlBusGateway {
   Mono<String> restartWorkflow(String executionId);
 
   /**
-   * Safely stop the current execution and restart the workflow from a specific node, replaying
-   * the last known checkpoints for its parent nodes.
+   * Safely stop the current execution and restart the workflow from a specific node, replaying the
+   * last known checkpoints for its parent nodes.
    *
    * @param executionId the execution to restart
    * @param fromNodeId the node from which to resume execution

@@ -17,7 +17,6 @@ package com.infenia.yukta.service.control.gateway;
 
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.monitoring.WorkflowProgress;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
@@ -25,13 +24,14 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.DisableS
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.EnableStepModeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.PauseNodeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.PauseWorkflowCommand;
-import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.ResumeNodeCommand;
-import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.ResumeWorkflowCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.RestartCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.RestartFromNodeCommand;
+import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.ResumeNodeCommand;
+import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.ResumeWorkflowCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.SkipNodeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StepNodeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopNodeCommand;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -72,7 +72,8 @@ public class DefaultUnifiedControlBusGateway implements UnifiedControlBusGateway
 
   @Override
   public Mono<Void> pauseWorkflow(final String executionId) {
-    return executeCommand(buildCommand(new PauseWorkflowCommand(executionId), CONTROL_COMMAND_PRIORITY));
+    return executeCommand(
+        buildCommand(new PauseWorkflowCommand(executionId), CONTROL_COMMAND_PRIORITY));
   }
 
   @Override
@@ -95,10 +96,7 @@ public class DefaultUnifiedControlBusGateway implements UnifiedControlBusGateway
 
   @Override
   public Mono<Void> stopNode(
-      final String executionId,
-      final String nodeId,
-      final boolean immediate,
-      final String reason) {
+      final String executionId, final String nodeId, final boolean immediate, final String reason) {
     return executeCommand(
         buildCommand(
             new StopNodeCommand(executionId, nodeId, immediate, reason),
@@ -125,7 +123,8 @@ public class DefaultUnifiedControlBusGateway implements UnifiedControlBusGateway
 
   @Override
   public Mono<Void> stepNode(final String executionId, final String nodeId) {
-    return executeCommand(buildCommand(new StepNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY));
+    return executeCommand(
+        buildCommand(new StepNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY));
   }
 
   @Override

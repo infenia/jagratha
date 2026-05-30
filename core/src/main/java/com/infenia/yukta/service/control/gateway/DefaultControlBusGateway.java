@@ -39,7 +39,8 @@ public class DefaultControlBusGateway implements ControlBusGateway {
   }
 
   @Override
-  public void registerPlugin(final String workflowId, final String nodeId, final WorkflowPlugin plugin) {
+  public void registerPlugin(
+      final String workflowId, final String nodeId, final WorkflowPlugin plugin) {
     controlBusService.registerPlugin(workflowId, nodeId, plugin);
   }
 
@@ -49,7 +50,8 @@ public class DefaultControlBusGateway implements ControlBusGateway {
   }
 
   @Override
-  public Mono<Message<?>> sendCommand(final String workflowId, final String nodeId, final Message<?> command) {
+  public Mono<Message<?>> sendCommand(
+      final String workflowId, final String nodeId, final Message<?> command) {
     return controlBusService.sendCommand(workflowId, nodeId, command);
   }
 

@@ -31,9 +31,9 @@ import reactor.core.publisher.Mono;
  * <p><strong>Usage:</strong> Controllers and dispatchers inject this interface for full workflow
  * management without needing separate orchestrator and control API dependencies.
  *
- * @deprecated Use {@link
- *     com.infenia.yukta.service.control.gateway.UnifiedControlBusGateway} instead. All execution
- *     control should flow through the unified ControlBus. This interface will be removed in v3.0.
+ * @deprecated Use {@link com.infenia.yukta.service.control.gateway.UnifiedControlBusGateway}
+ *     instead. All execution control should flow through the unified ControlBus. This interface
+ *     will be removed in v3.0.
  */
 @Deprecated(since = "2.0", forRemoval = true)
 public interface WorkflowControlApi {

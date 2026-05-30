@@ -17,10 +17,8 @@ package com.infenia.yukta.service.control.processor;
 
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
-import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.PauseNodeCommand;
-import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
@@ -33,8 +31,7 @@ import reactor.core.publisher.Mono;
 /**
  * Processor for pause node commands.
  *
- * <p>Applies backpressure to a specific node via its pause valve and emits an observability
- * event.
+ * <p>Applies backpressure to a specific node via its pause valve and emits an observability event.
  */
 @Slf4j
 @Component
