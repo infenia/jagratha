@@ -16,7 +16,7 @@
 package com.infenia.yukta.mcp.provider;
 
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
+import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.WorkflowService;

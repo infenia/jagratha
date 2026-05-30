@@ -32,7 +32,7 @@ import com.infenia.yukta.model.api.SessionCreationResponse;
 import com.infenia.yukta.model.api.SessionDetails;
 import com.infenia.yukta.model.api.SessionInfo;
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
+import com.infenia.yukta.api.WorkflowDefinition;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

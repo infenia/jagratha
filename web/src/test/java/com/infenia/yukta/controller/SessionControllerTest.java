@@ -17,7 +17,7 @@ package com.infenia.yukta.controller;
 
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
+import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import java.util.List;
