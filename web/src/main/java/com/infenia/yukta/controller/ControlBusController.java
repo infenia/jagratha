@@ -16,6 +16,7 @@
 package com.infenia.yukta.controller;
 
 import com.infenia.yukta.model.api.ApiResponse;
+import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
@@ -25,12 +26,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -155,4 +158,68 @@ public class ControlBusController {
         .map(resp -> ApiResponse.success(200, "Command processed", resp));
   }
 
+  // --- Observability Endpoints ---
+
+  /**
+   * Get current execution progress snapshot.
+   *
+   * @param executionId the execution identifier
+   * @return the current progress
+   */
+  @GetMapping("/executions/{executionId}/progress")
+  @Operation(
+      summary = "Get execution progress",
+      description = "Returns the current progress snapshot for an execution")
+  public Mono<ApiResponse<WorkflowProgress>> getProgress(
+      @PathVariable final String executionId) {
+    return Mono.fromCallable(() -> unifiedControlBus.getCurrentProgress(executionId))
+        .map(progress -> ApiResponse.success(200, "Progress retrieved", progress));
+  }
+
+  /**
+   * Stream execution progress in real-time via SSE.
+   *
+   * @param executionId the execution identifier
+   * @return a flux of progress updates
+   */
+  @GetMapping(
+      value = "/executions/{executionId}/progress/stream",
+      produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @Operation(
+      summary = "Stream execution progress",
+      description = "Streams progress updates for an execution in real-time via Server-Sent Events")
+  public Flux<WorkflowProgress> streamProgress(@PathVariable final String executionId) {
+    return unifiedControlBus.watchExecution(executionId);
+  }
+
+  /**
+   * Stream execution logs in real-time via SSE.
+   *
+   * @param executionId the execution identifier
+   * @return a flux of log lines
+   */
+  @GetMapping(
+      value = "/executions/{executionId}/logs/stream",
+      produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @Operation(
+      summary = "Stream execution logs",
+      description = "Streams log lines for an execution in real-time via Server-Sent Events")
+  public Flux<String> streamLogs(@PathVariable final String executionId) {
+    return unifiedControlBus.watchLogs(executionId);
+  }
+
+  /**
+   * Get execution history for a session.
+   *
+   * @param sessionId the session identifier
+   * @return list of execution summaries
+   */
+  @GetMapping("/sessions/{sessionId}/history")
+  @Operation(
+      summary = "Get session execution history",
+      description = "Returns all executions (completed and in-progress) for a session")
+  public Mono<ApiResponse<Object>> getHistory(@PathVariable final String sessionId) {
+    return Mono.fromCallable(() -> unifiedControlBus.getHistory(sessionId))
+        .map(history -> ApiResponse.success(200, "History retrieved", history));
+  }
 }
