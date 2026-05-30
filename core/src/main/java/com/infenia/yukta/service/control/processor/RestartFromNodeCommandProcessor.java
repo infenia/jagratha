@@ -29,12 +29,12 @@ import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 /**
  * Processor for restart from node commands.
@@ -69,7 +69,7 @@ public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
                         () ->
                             new IllegalArgumentException(
                                 "Execution not found: " + restart.executionId())))
-        .flatMapMany(
+        .flatMap(
             control -> {
               final List<String> parentNodeIds =
                   control.prepared()
@@ -96,49 +96,55 @@ public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
                                         .log("No checkpoint for parent node");
                                     return Mono.empty();
                                   }))
-                  .collectMap(Message::getSourceNodeId, m -> m);
-            })
-        .flatMap(
-            parentCheckpoints -> {
-              final ExecutionControl control =
-                  registry
-                      .findByExecutionId(restart.executionId())
-                      .orElseThrow();
+                  .collectMap(Message::getSourceNodeId, m -> m)
+                  .flatMap(
+                      parentCheckpoints -> {
+                        registry.unregister(control.executionId());
+                        control.safeStopSink().emitEmpty(Sinks.EmitFailureHandler.FAIL_FAST);
+                        checkpointStore.clear(control.executionId());
 
-              registry.unregister(control.executionId());
-              control.safeStopSink().emitEmpty();
-              checkpointStore.clear(control.executionId());
-
-              final String newExecutionId = UUID.randomUUID().toString();
-              return orchestrator
-                  .restartFromNode(
-                      control.sessionId(),
-                      control.workflowId(),
-                      control.executionId(),
-                      newExecutionId,
-                      control.prepared(),
-                      restart.fromNodeId(),
-                      parentCheckpoints)
-                  .doOnSuccess(
-                      v -> {
-                        taskTracker.emitWorkflowStatusEvent(newExecutionId, "RUNNING");
-                        log.atInfo()
-                            .addKeyValue("oldExecutionId", restart.executionId())
-                            .addKeyValue("newExecutionId", newExecutionId)
-                            .addKeyValue("fromNodeId", restart.fromNodeId())
-                            .addKeyValue("status", "RUNNING")
-                            .log("Restarted execution from node");
+                        final String newExecutionId = UUID.randomUUID().toString();
+                        @SuppressWarnings("unchecked")
+                        final Map<String, Message<?>> checkpoints =
+                            (Map<String, Message<?>>) (Map<?, ?>) parentCheckpoints;
+                        return orchestrator
+                            .restartFromNode(
+                                control.sessionId(),
+                                control.workflowId(),
+                                control.executionId(),
+                                newExecutionId,
+                                control.prepared(),
+                                restart.fromNodeId(),
+                                checkpoints)
+                            .doOnSuccess(
+                                ignored -> {
+                                  taskTracker.emitWorkflowStatusEvent(newExecutionId, "RUNNING");
+                                  log.atInfo()
+                                      .addKeyValue("oldExecutionId", restart.executionId())
+                                      .addKeyValue("newExecutionId", newExecutionId)
+                                      .addKeyValue("fromNodeId", restart.fromNodeId())
+                                      .addKeyValue("status", "RUNNING")
+                                      .log("Restarted execution from node");
+                                })
+                            .then(Mono.empty());
                       })
-                  .then(Mono.empty());
+                  .onErrorResume(
+                      e -> {
+                        log.atError()
+                            .addKeyValue("executionId", restart.executionId())
+                            .addKeyValue("fromNodeId", restart.fromNodeId())
+                            .setCause(e)
+                            .log("Restart from node failed");
+                        return Mono.empty();
+                      });
             })
         .onErrorResume(
             e -> {
               log.atError()
                   .addKeyValue("executionId", restart.executionId())
-                  .addKeyValue("fromNodeId", restart.fromNodeId())
                   .setCause(e)
-                  .log("Restart from node failed");
-              return Mono.empty();
+                  .log("Failed to find execution for restart");
+              return Mono.<WorkflowDirective>empty();
             });
   }
 
