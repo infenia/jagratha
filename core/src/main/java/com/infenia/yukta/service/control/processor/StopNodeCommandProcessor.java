@@ -21,6 +21,7 @@ import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopNodeCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -30,7 +31,7 @@ import reactor.core.publisher.Sinks;
 /**
  * Processor for stop node commands.
  *
- * <p>Stops a specific node with immediate or safe semantics.
+ * <p>Stops a specific node with immediate or safe semantics and emits an observability event.
  */
 @Slf4j
 @Component
@@ -38,6 +39,7 @@ import reactor.core.publisher.Sinks;
 public class StopNodeCommandProcessor implements ControlSignalProcessor {
 
   private final ExecutionControlRegistry registry;
+  private final TaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ControlCommand command) {
@@ -68,11 +70,15 @@ public class StopNodeCommandProcessor implements ControlSignalProcessor {
           }
 
           sink.emitEmpty(Sinks.EmitFailureHandler.FAIL_FAST);
+
+          taskTracker.emitWorkflowStatusEvent(stop.executionId(), "NODE_STOPPED");
+
           log.atDebug()
               .addKeyValue("executionId", stop.executionId())
               .addKeyValue("nodeId", nodeId)
               .addKeyValue("immediate", stop.immediate())
               .addKeyValue("reason", stop.reason())
+              .addKeyValue("status", "NODE_STOPPED")
               .log("Stopped node");
         });
   }

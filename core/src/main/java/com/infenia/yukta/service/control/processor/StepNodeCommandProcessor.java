@@ -21,6 +21,7 @@ import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StepNodeCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,7 @@ import reactor.core.publisher.Sinks;
  * Processor for step node commands.
  *
  * <p>Signals the next step when a node is in step-through debug mode. Allows exactly one element
- * to pass before blocking again.
+ * to pass before blocking again. Emits an observability event.
  */
 @Slf4j
 @Component
@@ -39,6 +40,7 @@ import reactor.core.publisher.Sinks;
 public class StepNodeCommandProcessor implements ControlSignalProcessor {
 
   private final ExecutionControlRegistry registry;
+  private final TaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ControlCommand command) {
@@ -65,9 +67,13 @@ public class StepNodeCommandProcessor implements ControlSignalProcessor {
           }
 
           stepSink.emitNext(null, Sinks.EmitFailureHandler.FAIL_FAST);
+
+          taskTracker.emitWorkflowStatusEvent(step.executionId(), "NODE_STEPPED");
+
           log.atDebug()
               .addKeyValue("executionId", step.executionId())
               .addKeyValue("nodeId", step.nodeId())
+              .addKeyValue("status", "NODE_STEPPED")
               .log("Stepped node");
         });
   }

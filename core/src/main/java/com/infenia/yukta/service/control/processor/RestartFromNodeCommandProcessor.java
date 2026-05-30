@@ -24,6 +24,7 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.RestartF
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,7 @@ import reactor.core.publisher.Mono;
  * Processor for restart from node commands.
  *
  * <p>Stops the current execution and restarts from a specific node, using the last checkpoint
- * messages from parent nodes.
+ * messages from parent nodes. Emits an observability event for the new execution.
  */
 @Slf4j
 @Component
@@ -49,6 +50,7 @@ public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
   private final ExecutionControlRegistry registry;
   private final WorkflowOrchestrator orchestrator;
   private final NodeCheckpointStore checkpointStore;
+  private final TaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ControlCommand command) {
@@ -118,12 +120,15 @@ public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
                       restart.fromNodeId(),
                       parentCheckpoints)
                   .doOnSuccess(
-                      v ->
-                          log.atInfo()
-                              .addKeyValue("oldExecutionId", restart.executionId())
-                              .addKeyValue("newExecutionId", newExecutionId)
-                              .addKeyValue("fromNodeId", restart.fromNodeId())
-                              .log("Restarted execution from node"))
+                      v -> {
+                        taskTracker.emitWorkflowStatusEvent(newExecutionId, "RUNNING");
+                        log.atInfo()
+                            .addKeyValue("oldExecutionId", restart.executionId())
+                            .addKeyValue("newExecutionId", newExecutionId)
+                            .addKeyValue("fromNodeId", restart.fromNodeId())
+                            .addKeyValue("status", "RUNNING")
+                            .log("Restarted execution from node");
+                      })
                   .then(Mono.empty());
             })
         .onErrorResume(

@@ -21,6 +21,7 @@ import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.EnableStepModeCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +32,7 @@ import reactor.core.publisher.Mono;
  * Processor for enable step mode commands.
  *
  * <p>Enables debug step-through mode on a node. The node automatically pauses until step signals
- * are sent.
+ * are sent. Emits an observability event.
  */
 @Slf4j
 @Component
@@ -39,6 +40,7 @@ import reactor.core.publisher.Mono;
 public class EnableStepModeCommandProcessor implements ControlSignalProcessor {
 
   private final ExecutionControlRegistry registry;
+  private final TaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ControlCommand command) {
@@ -65,9 +67,13 @@ public class EnableStepModeCommandProcessor implements ControlSignalProcessor {
           }
 
           stepMode.set(true);
+
+          taskTracker.emitWorkflowStatusEvent(enable.executionId(), "STEP_MODE_ENABLED");
+
           log.atDebug()
               .addKeyValue("executionId", enable.executionId())
               .addKeyValue("nodeId", enable.nodeId())
+              .addKeyValue("status", "STEP_MODE_ENABLED")
               .log("Enabled step mode");
         });
   }

@@ -22,6 +22,7 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.ResumeNo
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -30,7 +31,8 @@ import reactor.core.publisher.Mono;
 /**
  * Processor for resume node commands.
  *
- * <p>Removes backpressure from a specific node via its pause valve.
+ * <p>Removes backpressure from a specific node via its pause valve and emits an observability
+ * event.
  */
 @Slf4j
 @Component
@@ -38,6 +40,7 @@ import reactor.core.publisher.Mono;
 public class ResumeNodeCommandProcessor implements ControlSignalProcessor {
 
   private final ExecutionControlRegistry registry;
+  private final TaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ControlCommand command) {
@@ -64,9 +67,13 @@ public class ResumeNodeCommandProcessor implements ControlSignalProcessor {
           }
 
           valve.resume();
+
+          taskTracker.emitWorkflowStatusEvent(resume.executionId(), "NODE_RESUMED");
+
           log.atDebug()
               .addKeyValue("executionId", resume.executionId())
               .addKeyValue("nodeId", resume.nodeId())
+              .addKeyValue("status", "NODE_RESUMED")
               .log("Resumed node");
         });
   }

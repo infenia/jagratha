@@ -21,6 +21,7 @@ import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.SkipNodeCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,8 @@ import reactor.core.publisher.Mono;
 /**
  * Processor for skip node commands.
  *
- * <p>Marks a node as skipped (passes through without processing) or unskipped.
+ * <p>Marks a node as skipped (passes through without processing) or unskipped and emits an
+ * observability event.
  */
 @Slf4j
 @Component
@@ -38,6 +40,7 @@ import reactor.core.publisher.Mono;
 public class SkipNodeCommandProcessor implements ControlSignalProcessor {
 
   private final ExecutionControlRegistry registry;
+  private final TaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ControlCommand command) {
@@ -63,10 +66,15 @@ public class SkipNodeCommandProcessor implements ControlSignalProcessor {
           }
 
           flag.set(skip.skip());
+
+          taskTracker.emitWorkflowStatusEvent(
+              skip.executionId(), skip.skip() ? "NODE_SKIPPED" : "NODE_UNSKIPPED");
+
           log.atDebug()
               .addKeyValue("executionId", skip.executionId())
               .addKeyValue("nodeId", skip.nodeId())
               .addKeyValue("skip", skip.skip())
+              .addKeyValue("status", skip.skip() ? "NODE_SKIPPED" : "NODE_UNSKIPPED")
               .log("Node skip flag set");
         });
   }

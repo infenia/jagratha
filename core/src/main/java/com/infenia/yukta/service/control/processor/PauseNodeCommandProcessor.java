@@ -22,6 +22,7 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.PauseNod
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -30,7 +31,8 @@ import reactor.core.publisher.Mono;
 /**
  * Processor for pause node commands.
  *
- * <p>Applies backpressure to a specific node via its pause valve.
+ * <p>Applies backpressure to a specific node via its pause valve and emits an observability
+ * event.
  */
 @Slf4j
 @Component
@@ -38,6 +40,7 @@ import reactor.core.publisher.Mono;
 public class PauseNodeCommandProcessor implements ControlSignalProcessor {
 
   private final ExecutionControlRegistry registry;
+  private final TaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ControlCommand command) {
@@ -63,9 +66,13 @@ public class PauseNodeCommandProcessor implements ControlSignalProcessor {
           }
 
           valve.pause();
+
+          taskTracker.emitWorkflowStatusEvent(pause.executionId(), "NODE_PAUSED");
+
           log.atDebug()
               .addKeyValue("executionId", pause.executionId())
               .addKeyValue("nodeId", pause.nodeId())
+              .addKeyValue("status", "NODE_PAUSED")
               .log("Paused node");
         });
   }
