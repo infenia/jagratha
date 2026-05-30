@@ -19,20 +19,18 @@ import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.control.gateway.UnifiedControlBusGateway;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -46,6 +44,7 @@ import reactor.core.publisher.Mono;
 @Tag(name = "Control Bus API", description = "Endpoints for system management and monitoring")
 public class ControlBusController {
   private final ControlBusGateway controlBusGateway;
+  private final UnifiedControlBusGateway unifiedControlBus;
 
   /**
    * Get all active nodes in a specific workflow that have emitted heartbeats.
@@ -156,18 +155,4 @@ public class ControlBusController {
         .map(resp -> ApiResponse.success(200, "Command processed", resp));
   }
 
-  /**
-   * Stream all control signals via SSE.
-   *
-   * @return a flux of control signals
-   */
-  @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  @Operation(
-      summary = "Stream control signals",
-      description = "Streams all system-wide control signals via SSE")
-  public Flux<ServerSentEvent<Message<?>>> streamControlSignals() {
-    return controlBusService
-        .getControlStream()
-        .map(msg -> ServerSentEvent.<Message<?>>builder().data(msg).build());
-  }
 }

@@ -19,6 +19,7 @@ import com.infenia.yukta.model.api.PluginDetails;
 import com.infenia.yukta.model.workflow.api.WorkflowDefinition;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.SessionService;
+import com.infenia.yukta.service.control.gateway.UnifiedControlBusGateway;
 import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import gg.jte.TemplateEngine;
@@ -53,7 +54,7 @@ public class UiController {
   private final LogRetrievalService retrievalService;
   private final TaskTrackerService tracker;
   private final WorkflowRegistry registry;
-  private final com.infenia.yukta.service.ControlBusService controlBusService;
+  private final UnifiedControlBusGateway controlBus;
   private final TemplateEngine templateEngine;
 
   /**
@@ -135,7 +136,7 @@ public class UiController {
   @GetMapping(value = "/control", produces = MediaType.TEXT_HTML_VALUE)
   @ResponseBody
   public Mono<String> control(final Model model) {
-    return Mono.fromCallable(controlBusService::getActiveNodes)
+    return Mono.fromCallable(controlBus::getActiveNodes)
         .flatMap(
             nodes -> {
               model.addAttribute("nodes", nodes);
