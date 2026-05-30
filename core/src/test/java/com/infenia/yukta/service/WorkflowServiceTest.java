@@ -51,7 +51,10 @@ class WorkflowServiceTest {
   void testRunWorkflowSuccess() {
     String sessionId = "sess-success";
     String workflowId = "w-success";
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "desc",
+            List.of(), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -86,7 +89,10 @@ class WorkflowServiceTest {
   void testRunWorkflowError() {
     String sessionId = "sess-error";
     String workflowId = "w-error";
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "desc",
+            List.of(), List.of());
 
     when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.error(new RuntimeException("Fail")));
@@ -102,7 +108,10 @@ class WorkflowServiceTest {
   void testWorkflowQueueing() throws Exception {
     String sessionId = "sess-queue";
     String workflowId = "w-queue";
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "desc",
+            List.of(), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -151,7 +160,10 @@ class WorkflowServiceTest {
   void testWorkflowQueueCleanup() throws Exception {
     String sessionId = "sess-cleanup";
     String workflowId = "w-cleanup";
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "desc",
+            List.of(), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -200,7 +212,10 @@ class WorkflowServiceTest {
     String sessionId1 = "sess-multi-1";
     String sessionId2 = "sess-multi-2";
     String workflowId = "w-multi";
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "desc",
+            List.of(), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -226,7 +241,10 @@ class WorkflowServiceTest {
   void testWorkflowSingleExecutionCleanup() throws Exception {
     String sessionId = "sess-single";
     String workflowId = "w-single";
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "desc",
+            List.of(), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -250,7 +268,10 @@ class WorkflowServiceTest {
   void testWorkflowQueuedExecutionWithPreviousWorkflowError() throws Exception {
     String sessionId = "sess-error-queue";
     String workflowId = "w-error-queue";
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "desc",
+            List.of(), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -312,7 +333,10 @@ class WorkflowServiceTest {
   void testWorkflowErrorAfterPreparation() {
     String sessionId = "sess-prep-error";
     String workflowId = "w-prep-error";
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "desc",
+            List.of(), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -332,7 +356,10 @@ class WorkflowServiceTest {
   void testMultipleQueuedExecutionsWithSelectiveCleanup() throws Exception {
     String sessionId = "sess-multi-cleanup";
     String workflowId = "w-multi-cleanup";
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "desc",
+            List.of(), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -417,7 +444,10 @@ class WorkflowServiceTest {
   void testWorkflowErrorInTerminalPhase() {
     String sessionId = "sess-terminal-error";
     String workflowId = "w-terminal-error";
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(), List.of());
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "desc",
+            List.of(), List.of());
 
     when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any()))

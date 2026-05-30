@@ -57,7 +57,9 @@ class WorkflowPreparatorTest {
 
   @Test
   void testPrepareWorkflowHappyPath() {
-    doNothing().when(controlBusGateway).registerPlugin(anyString(), anyString(), any(WorkflowPlugin.class));
+    doNothing()
+        .when(controlBusGateway)
+        .registerPlugin(anyString(), anyString(), any(WorkflowPlugin.class));
     when(topologicalSortService.computeTopologicalOrder(any(), any(), any())).thenReturn(List.of());
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
 
@@ -65,7 +67,10 @@ class WorkflowPreparatorTest {
     Node node2 = new Node("node-2", "terminal", Map.of());
     Edge edge = new Edge("node-1", "node-2", "output");
     WorkflowDefinition definition =
-        new WorkflowDefinition("Happy path workflow", List.of(node1, node2), List.of(edge));
+        new WorkflowDefinition(
+            "test-workflow",
+            "Happy path workflow",
+            List.of(node1, node2), List.of(edge));
 
     WorkflowPlugin triggerPlugin = mock(WorkflowPlugin.class);
     WorkflowPlugin terminalPlugin = mock(WorkflowPlugin.class);
@@ -89,12 +94,17 @@ class WorkflowPreparatorTest {
 
   @Test
   void testPrepareWorkflowSingleNode() {
-    doNothing().when(controlBusGateway).registerPlugin(anyString(), anyString(), any(WorkflowPlugin.class));
+    doNothing()
+        .when(controlBusGateway)
+        .registerPlugin(anyString(), anyString(), any(WorkflowPlugin.class));
     when(topologicalSortService.computeTopologicalOrder(any(), any(), any())).thenReturn(List.of());
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
 
     Node node = new Node("node-1", "processor", Map.of());
-    WorkflowDefinition definition = new WorkflowDefinition("Single node", List.of(node), List.of());
+    WorkflowDefinition definition = new WorkflowDefinition(
+            "test-workflow",
+            "Single node",
+            List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
     WorkflowTemplate template = mock(WorkflowTemplate.class);
@@ -115,13 +125,18 @@ class WorkflowPreparatorTest {
 
   @Test
   void testPrepareWorkflowWithConfiguration() {
-    doNothing().when(controlBusGateway).registerPlugin(anyString(), anyString(), any(WorkflowPlugin.class));
+    doNothing()
+        .when(controlBusGateway)
+        .registerPlugin(anyString(), anyString(), any(WorkflowPlugin.class));
     when(topologicalSortService.computeTopologicalOrder(any(), any(), any())).thenReturn(List.of());
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
 
     Map<String, Object> config = Map.of("timeout", 5000, "retries", 3);
     Node node = new Node("node-1", "processor", config);
-    WorkflowDefinition definition = new WorkflowDefinition("With config", List.of(node), List.of());
+    WorkflowDefinition definition = new WorkflowDefinition(
+            "test-workflow",
+            "With config",
+            List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
     WorkflowTemplate template = mock(WorkflowTemplate.class);
@@ -135,14 +150,16 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId",definition))
+    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
         .assertNext(Assertions::assertNotNull)
         .verifyComplete();
   }
 
   @Test
   void testPrepareWorkflowComplexDAG() {
-    doNothing().when(controlBusGateway).registerPlugin(anyString(),anyString(), any(WorkflowPlugin.class));
+    doNothing()
+        .when(controlBusGateway)
+        .registerPlugin(anyString(), anyString(), any(WorkflowPlugin.class));
     when(topologicalSortService.computeTopologicalOrder(any(), any(), any())).thenReturn(List.of());
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
 
@@ -153,7 +170,10 @@ class WorkflowPreparatorTest {
     Edge edge2 = new Edge("node-2", "node-3", "output");
 
     WorkflowDefinition definition =
-        new WorkflowDefinition("Complex DAG", List.of(node1, node2, node3), List.of(edge1, edge2));
+        new WorkflowDefinition(
+            "test-workflow",
+            "Complex DAG",
+            List.of(node1, node2, node3), List.of(edge1, edge2));
 
     WorkflowPlugin triggerPlugin = mock(WorkflowPlugin.class);
     WorkflowPlugin processorPlugin = mock(WorkflowPlugin.class);
@@ -173,7 +193,7 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow(anyString(),definition))
+    StepVerifier.create(preparator.prepareWorkflow(anyString(), definition))
         .assertNext(Assertions::assertNotNull)
         .verifyComplete();
   }
@@ -183,7 +203,10 @@ class WorkflowPreparatorTest {
 
     Node node = new Node("node-1", "unknown-type", Map.of());
     WorkflowDefinition definition =
-        new WorkflowDefinition("Null plugin test", List.of(node), List.of());
+        new WorkflowDefinition(
+            "test-workflow",
+            "Null plugin test",
+            List.of(node), List.of());
 
     when(registry.get("unknown-type")).thenReturn(null);
     when(validator.validate(definition)).thenReturn(Mono.empty());
@@ -192,18 +215,21 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId",definition))
+    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
         .expectError(IllegalArgumentException.class)
         .verify();
   }
 
   @Test
   void testPrepareWorkflowWithValidationFailure() {
-    doNothing().when(controlBusGateway).unregisterPlugin(anyString(),anyString());
+    doNothing().when(controlBusGateway).unregisterPlugin(anyString(), anyString());
 
     Node node = new Node("node-1", "processor", Map.of());
     WorkflowDefinition definition =
-        new WorkflowDefinition("Validation error test", List.of(node), List.of());
+        new WorkflowDefinition(
+            "test-workflow",
+            "Validation error test",
+            List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
     when(registry.get("processor")).thenReturn(plugin);
@@ -215,19 +241,22 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId",definition))
+    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
         .expectError(IllegalStateException.class)
         .verify();
   }
 
   @Test
   void testPrepareWorkflowWithPluginInitializationError() {
-    doNothing().when(controlBusGateway).unregisterPlugin(anyString(),anyString());
+    doNothing().when(controlBusGateway).unregisterPlugin(anyString(), anyString());
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
 
     Node node = new Node("node-1", "processor", Map.of());
     WorkflowDefinition definition =
-        new WorkflowDefinition("Plugin init error test", List.of(node), List.of());
+        new WorkflowDefinition(
+            "test-workflow",
+            "Plugin init error test",
+            List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
     when(registry.get("processor")).thenReturn(plugin);
@@ -240,20 +269,23 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId",definition))
+    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
         .expectError(RuntimeException.class)
         .verify();
   }
 
   @Test
   void testPrepareWorkflowWithPluginShutdownErrorDuringCleanup() {
-    doNothing().when(controlBusGateway).registerPlugin(anyString(),anyString(), any(WorkflowPlugin.class));
-    doNothing().when(controlBusGateway).unregisterPlugin(anyString(),anyString());
+    doNothing()
+        .when(controlBusGateway)
+        .registerPlugin(anyString(), anyString(), any(WorkflowPlugin.class));
+    doNothing().when(controlBusGateway).unregisterPlugin(anyString(), anyString());
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
 
     Node node = new Node("node-1", "processor", Map.of());
     WorkflowDefinition definition =
         new WorkflowDefinition(
+            "test-workflow",
             "Plugin shutdown error during cleanup test", List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
@@ -267,20 +299,25 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId",definition))
+    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
         .expectError(RuntimeException.class)
         .verify();
   }
 
   @Test
   void testPrepareWorkflowWithNullShutdownMono() {
-    doNothing().when(controlBusGateway).registerPlugin(anyString(),anyString(), any(WorkflowPlugin.class));
-    doNothing().when(controlBusGateway).unregisterPlugin(anyString(),anyString());
+    doNothing()
+        .when(controlBusGateway)
+        .registerPlugin(anyString(), anyString(), any(WorkflowPlugin.class));
+    doNothing().when(controlBusGateway).unregisterPlugin(anyString(), anyString());
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
 
     Node node = new Node("node-1", "processor", Map.of());
     WorkflowDefinition definition =
-        new WorkflowDefinition("Null shutdown mono test", List.of(node), List.of());
+        new WorkflowDefinition(
+            "test-workflow",
+            "Null shutdown mono test",
+            List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
     when(registry.get("processor")).thenReturn(plugin);
@@ -293,7 +330,7 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId",definition))
+    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
         .expectError(RuntimeException.class)
         .verify();
   }

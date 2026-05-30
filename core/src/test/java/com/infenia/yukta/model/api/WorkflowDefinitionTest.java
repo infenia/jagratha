@@ -43,13 +43,17 @@ class WorkflowDefinitionTest {
     WorkflowDefinition.Edge edge2 = new WorkflowDefinition.Edge("s", "t");
     assertNull(edge2.sourcePort());
 
-    WorkflowDefinition def = new WorkflowDefinition("d", List.of(node), null);
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "wf-1", "d",
+            List.of(node), null);
+    assertEquals("wf-1", def.workflowId());
     assertEquals("d", def.description());
     assertEquals(1, def.nodes().size());
     assertNotNull(def.edges());
     assertTrue(def.edges().isEmpty());
 
-    WorkflowDefinition defNullNodes = new WorkflowDefinition("d", null, List.of(edge));
+    WorkflowDefinition defNullNodes = new WorkflowDefinition("wf-2", "d", null, List.of(edge));
     assertNotNull(defNullNodes.nodes());
     assertTrue(defNullNodes.nodes().isEmpty());
     assertEquals(1, defNullNodes.edges().size());
@@ -59,7 +63,10 @@ class WorkflowDefinitionTest {
   void testWorkflowDefinitionImmutability() {
     WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "t1", null);
     WorkflowDefinition.Edge edge = new WorkflowDefinition.Edge("n1", "n2");
-    WorkflowDefinition def = new WorkflowDefinition("desc", List.of(node), List.of(edge));
+    WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "desc",
+            List.of(node), List.of(edge));
 
     assertNotNull(def.nodes());
     assertNotNull(def.edges());

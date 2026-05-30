@@ -661,7 +661,10 @@ class DefaultWorkflowControlApiTest {
   @Test
   void testPrepareWorkflow() {
     final WorkflowDefinition definition =
-        new WorkflowDefinition("test workflow", List.of(), List.of());
+        new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "test workflow",
+            List.of(), List.of());
     final PreparedWorkflow prepared =
         new PreparedWorkflow(List.of(), Map.of(), Map.of(), Map.of(), List.of(), null);
 
@@ -681,7 +684,10 @@ class DefaultWorkflowControlApiTest {
     final String workflowId = "workflow-1";
     final String executionId = "exec-1";
     final WorkflowDefinition definition =
-        new WorkflowDefinition("test workflow", List.of(), List.of());
+        new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "test workflow",
+            List.of(), List.of());
     final PreparedWorkflow prepared =
         new PreparedWorkflow(List.of(), Map.of(), Map.of(), Map.of(), List.of(), null);
     final Map<String, Object> payload = Map.of("key", "value");
@@ -697,7 +703,10 @@ class DefaultWorkflowControlApiTest {
   void testRestartWorkflow() {
     final String executionId = "exec-1";
     final WorkflowDefinition definition =
-        new WorkflowDefinition("test workflow", List.of(), List.of());
+        new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "test workflow",
+            List.of(), List.of());
     final PreparedWorkflow prepared =
         new PreparedWorkflow(List.of(), Map.of(), Map.of(), Map.of(), List.of(), null);
     final Map<String, Object> payload = Map.of("key", "value");
@@ -740,7 +749,10 @@ class DefaultWorkflowControlApiTest {
     final String executionId = "exec-1";
     final String nodeId = "node-1";
     final WorkflowDefinition definition =
-        new WorkflowDefinition("test workflow", List.of(), List.of());
+        new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "test workflow",
+            List.of(), List.of());
     final Map<String, List<WorkflowDefinition.Node>> parentsList = Map.of();
     final PreparedWorkflow prepared =
         new PreparedWorkflow(
@@ -794,7 +806,10 @@ class DefaultWorkflowControlApiTest {
     final String parentNodeId = "node-1";
 
     final WorkflowDefinition definition =
-        new WorkflowDefinition("test workflow", List.of(), List.of());
+        new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "test workflow",
+            List.of(), List.of());
     final WorkflowDefinition.Node parentNode =
         new WorkflowDefinition.Node(parentNodeId, "parent-plugin", Map.of());
     final Map<String, List<WorkflowDefinition.Node>> parentsList =
@@ -909,7 +924,10 @@ class DefaultWorkflowControlApiTest {
     final String parentNodeId = "node-1";
 
     final WorkflowDefinition definition =
-        new WorkflowDefinition("test workflow", List.of(), List.of());
+        new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "test workflow",
+            List.of(), List.of());
     final WorkflowDefinition.Node parentNode =
         new WorkflowDefinition.Node(parentNodeId, "parent-plugin", Map.of());
     final Map<String, List<WorkflowDefinition.Node>> parentsList =

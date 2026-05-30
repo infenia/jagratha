@@ -74,6 +74,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "ok",
             List.of(
                 new WorkflowDefinition.Node("n1", "T", Map.of()),
@@ -101,6 +102,7 @@ class WorkflowValidatorTest {
     StepVerifier.create(
             validator.validate(
                 new WorkflowDefinition(
+            "test-workflow",
                     "d",
                     List.of(
                         new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -123,6 +125,7 @@ class WorkflowValidatorTest {
     StepVerifier.create(
             validator.validate(
                 new WorkflowDefinition(
+            "test-workflow",
                     "d",
                     List.of(new WorkflowDefinition.Node("h1", "HYBRID", Map.of())),
                     List.of())))
@@ -133,6 +136,7 @@ class WorkflowValidatorTest {
     StepVerifier.create(
             validator.validate(
                 new WorkflowDefinition(
+            "test-workflow",
                     "d",
                     List.of(
                         new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -148,6 +152,7 @@ class WorkflowValidatorTest {
     StepVerifier.create(
             validator.validate(
                 new WorkflowDefinition(
+            "test-workflow",
                     "d",
                     List.of(
                         new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -176,6 +181,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -201,6 +207,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -222,6 +229,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -240,6 +248,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -258,6 +267,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -282,6 +292,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -302,6 +313,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -325,6 +337,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -349,6 +362,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t1", "T", Map.of()),
@@ -370,6 +384,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("p", "P", Map.of()),
@@ -388,6 +403,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -407,6 +423,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -429,6 +446,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -450,6 +468,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -469,6 +488,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -493,6 +513,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -517,6 +538,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -534,6 +556,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d", List.of(new WorkflowDefinition.Node("t", "T", Map.of())), List.of());
 
     StepVerifier.create(validator.validate(def))
@@ -549,6 +572,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -571,6 +595,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -588,6 +613,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d", List.of(new WorkflowDefinition.Node("term", "TERM", Map.of())), List.of());
 
     StepVerifier.create(validator.validate(def))
@@ -602,6 +628,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -628,6 +655,7 @@ class WorkflowValidatorTest {
     // Trigger with incoming edge - creates orphan nodes since no free entry point
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t1", "T", Map.of()),
@@ -654,6 +682,7 @@ class WorkflowValidatorTest {
     // All nodes with both edges
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -681,6 +710,7 @@ class WorkflowValidatorTest {
     // Terminal with outgoing edge
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -703,6 +733,7 @@ class WorkflowValidatorTest {
     // Processor at endpoint (not terminal)
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -722,6 +753,7 @@ class WorkflowValidatorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t1", "T", Map.of()),
@@ -748,6 +780,7 @@ class WorkflowValidatorTest {
     // p2 is not reachable from t1
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t1", "T", Map.of()),
@@ -776,6 +809,7 @@ class WorkflowValidatorTest {
     // orphan (unreachable - not connected to any trigger)
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t1", "T", Map.of()),
@@ -804,6 +838,7 @@ class WorkflowValidatorTest {
     // Endpoint node that IS terminal - should pass
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -822,6 +857,7 @@ class WorkflowValidatorTest {
     // Non-endpoint node (has outgoing edge) that is NOT terminal - should pass
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -842,6 +878,7 @@ class WorkflowValidatorTest {
     // Node that IS reachable - should pass
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -866,6 +903,7 @@ class WorkflowValidatorTest {
     // Both paths are valid and complete. All nodes are reachable from their respective triggers.
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t1", "T", Map.of()),
@@ -902,6 +940,7 @@ class WorkflowValidatorTest {
     // to create an unreachable node (which will fail earlier validation)
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -956,6 +995,7 @@ class WorkflowValidatorTest {
     // Try to create a trigger with incoming edges - caught by validateEntryPoints
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t_main", "T", Map.of()),
@@ -990,6 +1030,7 @@ class WorkflowValidatorTest {
     // The second TERMINAL should fail because it has an outgoing edge
     WorkflowDefinition def =
         new WorkflowDefinition(
+            "test-workflow",
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),

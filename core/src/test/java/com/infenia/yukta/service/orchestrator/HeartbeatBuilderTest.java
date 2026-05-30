@@ -65,7 +65,10 @@ class HeartbeatBuilderTest {
             mockControlBusGateway, Duration.ofMillis(500), Schedulers.boundedElastic());
 
     List<Disposable> disposables =
-        builder.forNodes("wfId", List.of("node-1")).withHeartbeatInterval(Duration.ofMillis(500)).build();
+        builder
+            .forNodes("wfId", List.of("node-1"))
+            .withHeartbeatInterval(Duration.ofMillis(500))
+            .build();
 
     assert !disposables.isEmpty();
     disposables.forEach(Disposable::dispose);
@@ -78,7 +81,10 @@ class HeartbeatBuilderTest {
             mockControlBusGateway, Duration.ofMillis(100), Schedulers.boundedElastic());
 
     List<Disposable> disposables =
-        builder.forNodes("wfId", List.of("node-1")).withHeartbeatInterval(Duration.ofMillis(100)).build();
+        builder
+            .forNodes("wfId", List.of("node-1"))
+            .withHeartbeatInterval(Duration.ofMillis(100))
+            .build();
 
     // Wait for at least one heartbeat
     try {
@@ -105,7 +111,7 @@ class HeartbeatBuilderTest {
             mockControlBusGateway, Duration.ofMillis(500), Schedulers.boundedElastic());
 
     List<Disposable> disposables =
-        builder.forNodes("wfId",List.of()).withHeartbeatInterval(Duration.ofMillis(500)).build();
+        builder.forNodes("wfId", List.of()).withHeartbeatInterval(Duration.ofMillis(500)).build();
 
     assert disposables.isEmpty();
   }
@@ -117,7 +123,7 @@ class HeartbeatBuilderTest {
             mockControlBusGateway, Duration.ofMillis(500), Schedulers.boundedElastic());
 
     List<Disposable> disposables =
-        builder.forNodes("wfId",null).withHeartbeatInterval(Duration.ofMillis(500)).build();
+        builder.forNodes("wfId", null).withHeartbeatInterval(Duration.ofMillis(500)).build();
 
     assert disposables.isEmpty();
   }
@@ -128,7 +134,7 @@ class HeartbeatBuilderTest {
         new HeartbeatBuilder(
             mockControlBusGateway, Duration.ofMillis(500), Schedulers.boundedElastic());
 
-    List<Disposable> disposables = builder.forNodes("wfId",List.of("node-1")).build();
+    List<Disposable> disposables = builder.forNodes("wfId", List.of("node-1")).build();
 
     assert disposables.size() > 0;
     disposables.forEach(Disposable::dispose);
@@ -142,7 +148,7 @@ class HeartbeatBuilderTest {
 
     List<Disposable> disposables =
         builder
-            .forNodes("wfId",List.of("node-1"))
+            .forNodes("wfId", List.of("node-1"))
             .withHeartbeatInterval(Duration.ofMillis(500))
             .withStatisticsInterval(Duration.ofSeconds(1))
             .build();
@@ -160,7 +166,7 @@ class HeartbeatBuilderTest {
 
     List<Disposable> disposables =
         builder
-            .forNodes("wfId",List.of("node-1", "node-2", "node-3"))
+            .forNodes("wfId", List.of("node-1", "node-2", "node-3"))
             .withHeartbeatInterval(Duration.ofMillis(500))
             .withStatisticsInterval(Duration.ofSeconds(1))
             .build();
@@ -176,7 +182,7 @@ class HeartbeatBuilderTest {
         new HeartbeatBuilder(
             mockControlBusGateway, Duration.ofMillis(1000), Schedulers.boundedElastic());
 
-    List<Disposable> disposables = builder.forNodes("wfId",List.of("node-1")).build();
+    List<Disposable> disposables = builder.forNodes("wfId", List.of("node-1")).build();
 
     assert !disposables.isEmpty();
     disposables.forEach(Disposable::dispose);

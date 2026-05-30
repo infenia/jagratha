@@ -85,6 +85,7 @@ class FileSessionConfigStoreTest {
     String sessionId = "sess-workflow";
     WorkflowDefinition workflow =
         new WorkflowDefinition(
+            "test-workflow",
             "desc", List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
 
     StepVerifier.create(configStore.setWorkflows(sessionId, Map.of("w1", workflow)))
@@ -209,7 +210,10 @@ class FileSessionConfigStoreTest {
     configStore.setTags(sessionId, Map.of("k", "v")).block();
     configStore.setDescription(sessionId, "Sample").block();
     configStore.setProjectPath(sessionId, "/meta/path").block();
-    WorkflowDefinition workflow = new WorkflowDefinition("w", List.of(), List.of());
+    WorkflowDefinition workflow = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "w",
+            List.of(), List.of());
     configStore.setWorkflows(sessionId, Map.of("w1", workflow)).block();
 
     StepVerifier.create(configStore.getAllConfigs(sessionId))
@@ -405,6 +409,7 @@ class FileSessionConfigStoreTest {
     String sessionId = "sess-apply";
     WorkflowDefinition workflow =
         new WorkflowDefinition(
+            "test-workflow",
             "desc", List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
     SessionConfigData data =
         new SessionConfigData(

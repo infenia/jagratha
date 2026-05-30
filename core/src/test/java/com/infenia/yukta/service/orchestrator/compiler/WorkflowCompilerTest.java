@@ -114,6 +114,7 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition(
+            "test-workflow",
               "Test", List.of(t1, p1, term), List.of(new Edge("t1", "p1"), new Edge("p1", "term")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
@@ -147,7 +148,10 @@ class WorkflowCompilerTest {
     void shouldCreateAssemblerForSingleNode() {
       Node t1 = new Node("t1", "trigger", Map.of());
 
-      WorkflowDefinition def = new WorkflowDefinition("Test", List.of(t1), List.of());
+      WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1), List.of());
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -183,7 +187,10 @@ class WorkflowCompilerTest {
       Node term = new Node("term", "terminal", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t, term), List.of(new Edge("t", "term")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t, term), List.of(new Edge("t", "term")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -220,7 +227,10 @@ class WorkflowCompilerTest {
       Node term = new Node("term", "terminal", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t, term), List.of(new Edge("t", "term")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t, term), List.of(new Edge("t", "term")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -253,7 +263,10 @@ class WorkflowCompilerTest {
       Node term = new Node("term", "terminal", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t, term), List.of(new Edge("t", "term")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t, term), List.of(new Edge("t", "term")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -305,7 +318,10 @@ class WorkflowCompilerTest {
       Node term = new Node("term", "terminal", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t, term), List.of(new Edge("t", "term")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t, term), List.of(new Edge("t", "term")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -351,7 +367,10 @@ class WorkflowCompilerTest {
     @Test
     @DisplayName("should handle empty topological order")
     void shouldHandleEmptyTopologicalOrder() {
-      WorkflowDefinition def = new WorkflowDefinition("Test", List.of(), List.of());
+      WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "test-workflow", "Test",
+            List.of(), List.of());
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -383,7 +402,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -416,7 +438,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of("bufferSize", "invalid"));
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -449,7 +474,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of("bufferSize", -1));
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -482,7 +510,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -520,7 +551,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -553,7 +587,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -592,7 +629,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -625,7 +665,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -661,7 +704,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -697,7 +743,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -733,7 +782,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -766,7 +818,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -802,7 +857,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -840,7 +898,10 @@ class WorkflowCompilerTest {
       Node p = new Node("p", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t, p), List.of(new Edge("t", "p")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -877,6 +938,7 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition(
+            "test-workflow",
               "Test", List.of(t1, t2, p), List.of(new Edge("t1", "p"), new Edge("t2", "p")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
@@ -912,7 +974,10 @@ class WorkflowCompilerTest {
       Node p = new Node("p", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p), List.of(new Edge("t1", "p")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p), List.of(new Edge("t1", "p")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -945,7 +1010,10 @@ class WorkflowCompilerTest {
       Node p = new Node("p", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p", "output")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t, p), List.of(new Edge("t", "p", "output")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -980,6 +1048,7 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition(
+            "test-workflow",
               "Test",
               List.of(t1, t2, p),
               List.of(new Edge("t1", "p", "output"), new Edge("t2", "p", "error")));
@@ -1020,6 +1089,7 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition(
+            "test-workflow",
               "Test",
               List.of(t, p1, p2, term),
               List.of(new Edge("t", "p1"), new Edge("p1", "p2"), new Edge("p2", "term")));
@@ -1064,7 +1134,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1097,7 +1170,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1135,7 +1211,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1168,7 +1247,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1204,7 +1286,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1240,7 +1325,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of("bufferSize", "invalid"));
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1273,7 +1361,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1311,7 +1402,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1347,7 +1441,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1380,7 +1477,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1413,7 +1513,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1446,7 +1549,10 @@ class WorkflowCompilerTest {
       Node p1 = new Node("p1", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t1, p1), List.of(new Edge("t1", "p1")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t1, p1), List.of(new Edge("t1", "p1")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1482,7 +1588,10 @@ class WorkflowCompilerTest {
     void shouldCreateAssemblerForNodeWithoutParents() {
       Node t = new Node("t", "trigger", Map.of());
 
-      WorkflowDefinition def = new WorkflowDefinition("Test", List.of(t), List.of());
+      WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t), List.of());
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1513,7 +1622,10 @@ class WorkflowCompilerTest {
       Node p = new Node("p", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t, p), List.of(new Edge("t", "p")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1548,6 +1660,7 @@ class WorkflowCompilerTest {
 
       WorkflowDefinition def =
           new WorkflowDefinition(
+            "test-workflow",
               "Test", List.of(t1, t2, p), List.of(new Edge("t1", "p"), new Edge("t2", "p")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
@@ -1583,7 +1696,10 @@ class WorkflowCompilerTest {
       Node p = new Node("p", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p", "output")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t, p), List.of(new Edge("t", "p", "output")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1634,7 +1750,10 @@ class WorkflowCompilerTest {
       Node p = new Node("p", "processor", Map.of());
 
       WorkflowDefinition def =
-          new WorkflowDefinition("Test", List.of(t, p), List.of(new Edge("t", "p")));
+          new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t, p), List.of(new Edge("t", "p")));
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
@@ -1666,7 +1785,10 @@ class WorkflowCompilerTest {
     void shouldCreateNoOpAssemblerWhenNoStrategyMatches() {
       Node t = new Node("t", "unknown-type", Map.of());
 
-      WorkflowDefinition def = new WorkflowDefinition("Test", List.of(t), List.of());
+      WorkflowDefinition def = new WorkflowDefinition(
+            "test-workflow",
+            "Test",
+            List.of(t), List.of());
       final List<WorkflowEdge> edges =
           def.edges().stream()
               .map(e -> new WorkflowEdge(e.source(), e.target(), e.sourcePort()))
