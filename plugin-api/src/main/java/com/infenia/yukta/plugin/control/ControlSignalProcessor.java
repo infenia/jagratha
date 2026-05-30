@@ -15,11 +15,11 @@
  */
 package com.infenia.yukta.plugin.control;
 
-import com.infenia.yukta.plugin.message.control.ControlCommand;
+import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import reactor.core.publisher.Mono;
 
 /**
- * Plugin interface for converting an inbound {@link ControlCommand} into a {@link
+ * Plugin interface for converting an inbound {@link ExecutionControlCommand} into a {@link
  * WorkflowDirective}.
  *
  * <p>Implementations are discovered by Spring as beans, collected into an ordered list by the
@@ -27,25 +27,26 @@ import reactor.core.publisher.Mono;
  * #canProcess} returns {@code true} handles the command; subsequent processors are skipped.
  *
  * <p>Register a custom processor to intercept commands before the defaults fire – for example, to
- * convert a STOP into a RESTART when a cleanup phase is still active, or to add audit logging.
+ * convert a RESTART into a RESTART_FROM_NODE when specific nodes need recovery, or to add audit
+ * logging.
  */
 public interface ControlSignalProcessor {
 
   /**
    * Returns {@code true} if this processor can handle the given command.
    *
-   * @param command the inbound control command
+   * @param command the inbound execution control command
    * @return {@code true} when this processor should be invoked
    */
-  boolean canProcess(ControlCommand command);
+  boolean canProcess(ExecutionControlCommand command);
 
   /**
    * Converts the command into the directive that the dispatcher will apply.
    *
-   * @param command the inbound control command
+   * @param command the inbound execution control command
    * @return a Mono emitting exactly one {@link WorkflowDirective}, or an error Mono
    */
-  Mono<WorkflowDirective> process(ControlCommand command);
+  Mono<WorkflowDirective> process(ExecutionControlCommand command);
 
   /**
    * Relative priority used to order processors when multiple match.

@@ -43,12 +43,12 @@ public class PauseNodeCommandProcessor implements ControlSignalProcessor {
   private final TaskTrackerService taskTracker;
 
   @Override
-  public boolean canProcess(final ControlCommand command) {
+  public boolean canProcess(final ExecutionControlCommand command) {
     return command instanceof PauseNodeCommand;
   }
 
   @Override
-  public Mono<WorkflowDirective> process(final ControlCommand command) {
+  public Mono<WorkflowDirective> process(final ExecutionControlCommand command) {
     final PauseNodeCommand pause = (PauseNodeCommand) command;
     return Mono.fromRunnable(
         () -> {

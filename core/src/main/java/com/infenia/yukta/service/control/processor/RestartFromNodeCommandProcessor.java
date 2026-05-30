@@ -19,7 +19,7 @@ import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.plugin.message.control.ControlCommand;
+import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.RestartFromNodeCommand;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.ExecutionControl;
@@ -53,12 +53,12 @@ public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
   private final TaskTrackerService taskTracker;
 
   @Override
-  public boolean canProcess(final ControlCommand command) {
+  public boolean canProcess(final ExecutionControlCommand command) {
     return command instanceof RestartFromNodeCommand;
   }
 
   @Override
-  public Mono<WorkflowDirective> process(final ControlCommand command) {
+  public Mono<WorkflowDirective> process(final ExecutionControlCommand command) {
     final RestartFromNodeCommand restart = (RestartFromNodeCommand) command;
 
     return Mono.fromSupplier(

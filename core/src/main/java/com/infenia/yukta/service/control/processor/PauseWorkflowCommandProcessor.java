@@ -42,12 +42,12 @@ public class PauseWorkflowCommandProcessor implements ControlSignalProcessor {
   private final TaskTrackerService taskTracker;
 
   @Override
-  public boolean canProcess(final ControlCommand command) {
+  public boolean canProcess(final ExecutionControlCommand command) {
     return command instanceof PauseWorkflowCommand;
   }
 
   @Override
-  public Mono<WorkflowDirective> process(final ControlCommand command) {
+  public Mono<WorkflowDirective> process(final ExecutionControlCommand command) {
     final PauseWorkflowCommand pause = (PauseWorkflowCommand) command;
     return Mono.fromRunnable(
         () -> {
