@@ -134,7 +134,6 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "desc",
             List.of(triggerNode, terminalNode),
             List.of(new WorkflowDefinition.Edge("n1", "n2")));
@@ -169,7 +168,7 @@ class WorkflowOrchestratorTest {
         new WorkflowDefinition.Node("n1", "processor", Map.of());
     WorkflowDefinition def = new WorkflowDefinition(
             "test-workflow",
-            "test-workflow", "desc",
+            "desc",
             List.of(processorNode), List.of());
 
     ProcessorPlugin processor = mock(ProcessorPlugin.class);
@@ -192,7 +191,6 @@ class WorkflowOrchestratorTest {
         new WorkflowDefinition.Node("n2", "processor", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc",
             List.of(triggerNode, processorNode),
@@ -228,7 +226,6 @@ class WorkflowOrchestratorTest {
   void testValidateStructuralIntegrityEndpointNotTerminal() {
     WorkflowDefinition.Node triggerNode = new WorkflowDefinition.Node("n1", "trigger", Map.of());
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(triggerNode), List.of());
 
@@ -257,7 +254,6 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition.Node p2 = new WorkflowDefinition.Node("p2", "processor", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc",
             List.of(t, p1, p2),
@@ -299,7 +295,6 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "desc", List.of(t1, t2), List.of(new WorkflowDefinition.Edge("t1", "t2")));
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
@@ -322,7 +317,6 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition.Node term2 = new WorkflowDefinition.Node("term2", "terminal", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc",
             List.of(t, term1, term2),
@@ -358,7 +352,6 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition.Node terminalNode = new WorkflowDefinition.Node("n2", "terminal", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc",
             List.of(triggerNode, terminalNode),
@@ -415,7 +408,6 @@ class WorkflowOrchestratorTest {
     Node terminalNode = new Node("term1", "terminal", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "History Test",
             List.of(triggerNode, procNode, terminalNode),
@@ -511,7 +503,6 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "Tap Test", List.of(triggerNode, terminalNode), List.of(new Edge("t1", "term1")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
@@ -555,7 +546,6 @@ class WorkflowOrchestratorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc",
             List.of(triggerNode, term1, term2),
@@ -609,7 +599,6 @@ class WorkflowOrchestratorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc",
             List.of(triggerNode, procNode, termNode),
@@ -667,7 +656,6 @@ class WorkflowOrchestratorTest {
   void testPrepareWorkflowPluginNotFound() {
     WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "unknown", Map.of());
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(node), List.of());
 
@@ -693,7 +681,6 @@ class WorkflowOrchestratorTest {
 
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc",
             List.of(triggerNode, procNode, term1, term2),
@@ -752,7 +739,6 @@ class WorkflowOrchestratorTest {
   void testPrepareWorkflowErrorCleanup() {
     WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "trigger", Map.of());
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(node), List.of());
 
@@ -778,7 +764,6 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition.Node term = new WorkflowDefinition.Node("term", "terminal", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(t, term), List.of(new Edge("t", "term")));
 
@@ -820,7 +805,6 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "d",
             List.of(t, term), List.of(new Edge("t", "term")));
 
@@ -858,7 +842,6 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition.Node terminalNode = new WorkflowDefinition.Node("n2", "terminal", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(node, terminalNode), List.of(new Edge("n1", "n2")));
 
@@ -891,7 +874,6 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition.Node term = new Node("term", "terminal", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "d",
             List.of(t, term), List.of(new Edge("t", "term")));
@@ -964,7 +946,6 @@ class WorkflowOrchestratorTest {
         new WorkflowDefinition.Node("term", "terminal", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc", List.of(triggerNode, terminalNode), List.of(new Edge("t", "term")));
 
@@ -1091,7 +1072,6 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
@@ -1137,7 +1117,6 @@ class WorkflowOrchestratorTest {
     final Node termNode = new Node("term", "terminal", Map.of());
     final WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc",
             List.of(triggerNode, procNode, termNode),
@@ -1197,7 +1176,6 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
@@ -1243,7 +1221,6 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
@@ -1285,7 +1262,6 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
@@ -1326,7 +1302,6 @@ class WorkflowOrchestratorTest {
     final Node termNode = new Node("term", "terminal", Map.of());
     final WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
@@ -1385,7 +1360,6 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
@@ -1426,7 +1400,6 @@ class WorkflowOrchestratorTest {
     final Node termNode = new Node("term", "terminal", Map.of());
     final WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
@@ -1470,7 +1443,6 @@ class WorkflowOrchestratorTest {
     final Node termNode = new Node("term", "terminal", Map.of());
     final WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc",
             List.of(triggerNode, proc1Node, proc2Node, termNode),
@@ -1532,7 +1504,6 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term", "output")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
@@ -1577,7 +1548,6 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term", "output")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
@@ -1620,7 +1590,6 @@ class WorkflowOrchestratorTest {
     final Node termNode = new Node("term", "terminal", Map.of());
     final WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
@@ -1674,7 +1643,6 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
@@ -1726,7 +1694,6 @@ class WorkflowOrchestratorTest {
     final Node termNode = new Node("term", "terminal", Map.of());
     final WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
@@ -1781,7 +1748,6 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
@@ -1829,7 +1795,6 @@ class WorkflowOrchestratorTest {
     final Node termNode = new Node("term", "terminal", Map.of());
     final WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc",
             List.of(triggerNode, procNode, termNode),
@@ -1891,7 +1856,6 @@ class WorkflowOrchestratorTest {
     final Node termNode = new Node("term", "terminal", Map.of());
     final WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
 
@@ -1956,7 +1920,6 @@ class WorkflowOrchestratorTest {
     final Node termNode = new Node("term", "terminal", Map.of());
     final WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow",
             "desc",
             List.of(triggerNode, unknownNode, processorNode, termNode),
