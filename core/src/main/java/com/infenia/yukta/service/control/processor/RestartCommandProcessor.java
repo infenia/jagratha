@@ -21,6 +21,7 @@ import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.RestartCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,7 @@ import reactor.core.publisher.Mono;
  * Processor for restart commands.
  *
  * <p>Stops the current execution and restarts the entire workflow from the beginning with the
- * original payload.
+ * original payload. Emits an observability event for the new execution.
  */
 @Slf4j
 @Component
@@ -41,6 +42,7 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
 
   private final ExecutionControlRegistry registry;
   private final WorkflowOrchestrator orchestrator;
+  private final TaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ControlCommand command) {
@@ -73,12 +75,15 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
                       control.prepared(),
                       control.payload())
                   .doOnSuccess(
-                      v ->
-                          log.atInfo()
-                              .addKeyValue("oldExecutionId", restart.executionId())
-                              .addKeyValue("newExecutionId", newExecutionId)
-                              .addKeyValue("workflowId", control.workflowId())
-                              .log("Restarted execution"))
+                      v -> {
+                        taskTracker.emitWorkflowStatusEvent(newExecutionId, "RUNNING");
+                        log.atInfo()
+                            .addKeyValue("oldExecutionId", restart.executionId())
+                            .addKeyValue("newExecutionId", newExecutionId)
+                            .addKeyValue("workflowId", control.workflowId())
+                            .addKeyValue("status", "RUNNING")
+                            .log("Restarted execution");
+                      })
                   .then(Mono.empty());
             })
         .onErrorResume(

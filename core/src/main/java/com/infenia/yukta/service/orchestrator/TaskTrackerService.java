@@ -307,6 +307,29 @@ public class TaskTrackerService {
   }
 
   /**
+   * Get workflow progress by execution ID only (independent of session).
+   *
+   * <p>Used internally when only the execution ID is known, without session context.
+   *
+   * @param executionId the execution identifier
+   * @return the workflow progress, or null if not found
+   */
+  public WorkflowProgress getProgressByExecutionId(@NotBlank final String executionId) {
+    final WorkflowState state = executionIndex.get(executionId);
+    if (state == null) {
+      return null;
+    }
+    return new WorkflowProgress(
+        state.executionId,
+        state.sessionId,
+        state.workflowId,
+        state.status,
+        state.getTasks(),
+        state.startTime,
+        state.endTime);
+  }
+
+  /**
    * Get the latest execution ID for a workflow in a session.
    *
    * @param sessionId the session identifier

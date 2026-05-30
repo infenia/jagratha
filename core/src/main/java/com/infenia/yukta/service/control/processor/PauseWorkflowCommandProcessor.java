@@ -21,6 +21,7 @@ import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.PauseWorkflowCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,7 +30,8 @@ import reactor.core.publisher.Mono;
 /**
  * Processor for pause workflow commands.
  *
- * <p>Applies backpressure to all nodes in an execution via the global pause valve.
+ * <p>Applies backpressure to all nodes in an execution via the global pause valve and emits an
+ * observability event.
  */
 @Slf4j
 @Component
@@ -37,6 +39,7 @@ import reactor.core.publisher.Mono;
 public class PauseWorkflowCommandProcessor implements ControlSignalProcessor {
 
   private final ExecutionControlRegistry registry;
+  private final TaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ControlCommand command) {
@@ -61,8 +64,12 @@ public class PauseWorkflowCommandProcessor implements ControlSignalProcessor {
           }
 
           control.globalPauseValve().pause();
+
+          taskTracker.emitWorkflowStatusEvent(pause.executionId(), "PAUSED");
+
           log.atDebug()
               .addKeyValue("executionId", pause.executionId())
+              .addKeyValue("status", "PAUSED")
               .log("Paused workflow");
         });
   }

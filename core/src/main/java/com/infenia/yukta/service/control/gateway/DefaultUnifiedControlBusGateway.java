@@ -15,6 +15,9 @@
  */
 package com.infenia.yukta.service.control.gateway;
 
+import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
+import com.infenia.yukta.model.monitoring.WorkflowProgress;
+import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
@@ -34,6 +37,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -51,6 +55,7 @@ public class DefaultUnifiedControlBusGateway implements UnifiedControlBusGateway
   private static final int CONTROL_COMMAND_PRIORITY = 100;
 
   private final ControlBusGateway controlBusGateway;
+  private final TaskTrackerService taskTracker;
 
   private <T extends ExecutionControlCommand> Message<T> buildCommand(
       final T command, final int priority) {
@@ -158,5 +163,25 @@ public class DefaultUnifiedControlBusGateway implements UnifiedControlBusGateway
   @Override
   public Message<?> getLastStatistics(final String workflowId, final String nodeId) {
     return controlBusGateway.getLastStatistics(workflowId, nodeId);
+  }
+
+  @Override
+  public Flux<WorkflowProgress> watchExecution(final String executionId) {
+    return taskTracker.getStatusStream(executionId);
+  }
+
+  @Override
+  public Flux<String> watchLogs(final String executionId) {
+    return taskTracker.getLogStream(executionId);
+  }
+
+  @Override
+  public WorkflowProgress getCurrentProgress(final String executionId) {
+    return taskTracker.getProgressByExecutionId(executionId);
+  }
+
+  @Override
+  public List<WorkflowExecutionSummary> getHistory(final String sessionId) {
+    return taskTracker.getHistory(sessionId);
   }
 }

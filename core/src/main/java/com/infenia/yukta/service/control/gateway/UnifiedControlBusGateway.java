@@ -15,9 +15,12 @@
  */
 package com.infenia.yukta.service.control.gateway;
 
+import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
+import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import java.util.List;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -208,4 +211,50 @@ public interface UnifiedControlBusGateway {
    * @return the last statistics message, or null if none
    */
   Message<?> getLastStatistics(String workflowId, String nodeId);
+
+  // --- Observability Methods ---
+
+  /**
+   * Watch workflow execution progress in real-time.
+   *
+   * <p>Emits progress updates as the execution progresses (status changes, tasks complete, etc.).
+   * Useful for UI streaming, progress tracking, and monitoring.
+   *
+   * @param executionId the execution to watch
+   * @return a Flux of progress updates that completes when execution finishes
+   */
+  Flux<WorkflowProgress> watchExecution(String executionId);
+
+  /**
+   * Watch workflow logs in real-time.
+   *
+   * <p>Emits log lines as they are generated during execution. Useful for live log streaming to
+   * UIs.
+   *
+   * @param executionId the execution to watch
+   * @return a Flux of log lines that completes when execution finishes
+   */
+  Flux<String> watchLogs(String executionId);
+
+  /**
+   * Get current execution progress snapshot.
+   *
+   * <p>Returns the current progress of an execution without subscribing to a stream. Useful for
+   * one-off queries.
+   *
+   * @param executionId the execution to query
+   * @return the current progress, or null if execution not found
+   */
+  WorkflowProgress getCurrentProgress(String executionId);
+
+  /**
+   * Get execution history for a session.
+   *
+   * <p>Returns all completed and in-progress executions for a session. Useful for listing past
+   * runs.
+   *
+   * @param sessionId the session to query
+   * @return list of execution summaries
+   */
+  List<WorkflowExecutionSummary> getHistory(String sessionId);
 }
