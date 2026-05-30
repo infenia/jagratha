@@ -44,7 +44,6 @@ class WorkflowDefinitionTest {
     assertNull(edge2.sourcePort());
 
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "wf-1", "d",
             List.of(node), null);
     assertEquals("wf-1", def.workflowId());
@@ -64,7 +63,7 @@ class WorkflowDefinitionTest {
     WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "t1", null);
     WorkflowDefinition.Edge edge = new WorkflowDefinition.Edge("n1", "n2");
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow", "desc",
+            "wf-3", "desc",
             List.of(node), List.of(edge));
 
     assertNotNull(def.nodes());
