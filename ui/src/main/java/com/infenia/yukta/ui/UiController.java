@@ -216,10 +216,10 @@ public class UiController {
                 .getSessionWorkflow(sessionId, workflowId)
                 .defaultIfEmpty(
                     new WorkflowDefinition(
-                        "No workflow found", java.util.List.of(), java.util.List.of()))
+                        workflowId, "No workflow found", java.util.List.of(), java.util.List.of()))
             : Mono.just(
                 new WorkflowDefinition(
-                    "No workflow defined", java.util.List.of(), java.util.List.of()));
+                    workflowId, "No workflow defined", java.util.List.of(), java.util.List.of()));
 
     return workflowMono.flatMap(workflow -> renderSessionTemplate(workflow, workflowId, model));
   }
