@@ -17,12 +17,14 @@ package com.infenia.yukta.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.service.ControlBusService;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,18 +37,18 @@ import reactor.core.publisher.Mono;
 class ControlBusControllerTest {
 
   private WebTestClient webClient;
-  private ControlBusService controlBusService;
+  private ControlBusGateway controlBusGateway;
 
   @BeforeEach
   void setUp() {
-    controlBusService = mock(ControlBusService.class);
-    ControlBusController controller = new ControlBusController(controlBusService);
+    controlBusGateway = mock(ControlBusGateway.class);
+    ControlBusController controller = new ControlBusController(controlBusGateway);
     webClient = WebTestClient.bindToController(controller).build();
   }
 
   @Test
   void testGetActiveNodes() {
-    when(controlBusService.getActiveNodes()).thenReturn(List.of("node1", "node2"));
+    when(controlBusGateway.getActiveNodes()).thenReturn(List.of("node1", "node2"));
     webClient
         .get()
         .uri("/api/control/nodes")
@@ -61,14 +63,13 @@ class ControlBusControllerTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void testGetLastHeartbeat() {
-    Message hb = DefaultMessage.create(null, "ok").withControl(true);
-    when(controlBusService.getLastHeartbeat("n1")).thenReturn(hb);
+    final Message<?> hb = DefaultMessage.create(null, "ok").withControl(true);
+    doReturn(hb).when(controlBusGateway).getLastHeartbeat("wf1", "n1");
 
     webClient
         .get()
-        .uri("/api/control/nodes/n1/heartbeat")
+        .uri("/api/control/workflows/wf1/nodes/n1/heartbeat")
         .exchange()
         .expectStatus()
         .isOk()
@@ -78,14 +79,13 @@ class ControlBusControllerTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void testSendCommand() {
-    Message resp = DefaultMessage.create(null, "done");
-    when(controlBusService.sendCommand(eq("n1"), any())).thenReturn(Mono.just(resp));
+    final Message<?> resp = DefaultMessage.create(null, "done");
+    when(controlBusGateway.sendCommand(eq("wf1"), eq("n1"), any())).thenReturn(Mono.just(resp));
 
     webClient
         .post()
-        .uri("/api/control/nodes/n1/command")
+        .uri("/api/control/workflows/wf1/nodes/n1/command")
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(Map.of("cmd", "reset"))
         .exchange()
@@ -97,14 +97,13 @@ class ControlBusControllerTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
-  void testStreamControlSignals() {
-    Message m1 = DefaultMessage.create(null, "s1");
-    when(controlBusService.getControlStream()).thenReturn(Flux.just(m1));
+  void testStreamProgress() {
+    WorkflowProgress progress = mock(WorkflowProgress.class);
+    when(controlBusGateway.watchExecution("exec1")).thenReturn(Flux.just(progress));
 
     webClient
         .get()
-        .uri("/api/control/stream")
+        .uri("/api/control/executions/exec1/progress/stream")
         .accept(MediaType.TEXT_EVENT_STREAM)
         .exchange()
         .expectStatus()
