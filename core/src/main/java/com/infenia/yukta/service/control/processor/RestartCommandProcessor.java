@@ -1,0 +1,98 @@
+/*
+ * Copyright 2026 Infenia Private Limited
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.infenia.yukta.service.control.processor;
+
+import com.infenia.yukta.plugin.control.ControlSignalProcessor;
+import com.infenia.yukta.plugin.control.WorkflowDirective;
+import com.infenia.yukta.plugin.message.control.ControlCommand;
+import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.RestartCommand;
+import com.infenia.yukta.service.control.ExecutionControl;
+import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
+import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
+
+/**
+ * Processor for restart commands.
+ *
+ * <p>Stops the current execution and restarts the entire workflow from the beginning with the
+ * original payload.
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class RestartCommandProcessor implements ControlSignalProcessor {
+
+  private final ExecutionControlRegistry registry;
+  private final WorkflowOrchestrator orchestrator;
+
+  @Override
+  public boolean canProcess(final ControlCommand command) {
+    return command instanceof RestartCommand;
+  }
+
+  @Override
+  public Mono<WorkflowDirective> process(final ControlCommand command) {
+    final RestartCommand restart = (RestartCommand) command;
+
+    return Mono.fromSupplier(
+            () ->
+                registry
+                    .findByExecutionId(restart.executionId())
+                    .orElseThrow(
+                        () ->
+                            new IllegalArgumentException(
+                                "Execution not found: " + restart.executionId())))
+        .flatMap(
+            control -> {
+              registry.unregister(control.executionId());
+              control.safeStopSink().emitEmpty();
+
+              final String newExecutionId = UUID.randomUUID().toString();
+              return orchestrator
+                  .execute(
+                      control.sessionId(),
+                      control.workflowId(),
+                      newExecutionId,
+                      control.prepared(),
+                      control.payload())
+                  .doOnSuccess(
+                      v ->
+                          log.atInfo()
+                              .addKeyValue("oldExecutionId", restart.executionId())
+                              .addKeyValue("newExecutionId", newExecutionId)
+                              .addKeyValue("workflowId", control.workflowId())
+                              .log("Restarted execution"))
+                  .then(Mono.empty());
+            })
+        .onErrorResume(
+            e -> {
+              log.atError()
+                  .addKeyValue("executionId", restart.executionId())
+                  .setCause(e)
+                  .log("Restart failed");
+              return Mono.empty();
+            });
+  }
+
+  @Override
+  public int getPriority() {
+    return 20;
+  }
+}
