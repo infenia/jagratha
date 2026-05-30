@@ -211,7 +211,6 @@ class FileSessionConfigStoreTest {
     configStore.setDescription(sessionId, "Sample").block();
     configStore.setProjectPath(sessionId, "/meta/path").block();
     WorkflowDefinition workflow = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "w",
             List.of(), List.of());
     configStore.setWorkflows(sessionId, Map.of("w1", workflow)).block();

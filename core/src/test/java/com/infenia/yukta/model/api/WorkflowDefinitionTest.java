@@ -64,7 +64,6 @@ class WorkflowDefinitionTest {
     WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "t1", null);
     WorkflowDefinition.Edge edge = new WorkflowDefinition.Edge("n1", "n2");
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(node), List.of(edge));
 

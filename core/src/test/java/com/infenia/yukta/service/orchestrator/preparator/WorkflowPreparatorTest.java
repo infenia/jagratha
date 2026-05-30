@@ -87,7 +87,7 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
+    StepVerifier.create(preparator.prepareWorkflow(definition))
         .assertNext(result -> assertInstanceOf(PreparedWorkflow.class, result))
         .verifyComplete();
   }
@@ -118,7 +118,7 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
+    StepVerifier.create(preparator.prepareWorkflow(definition))
         .assertNext(Assertions::assertNotNull)
         .verifyComplete();
   }
@@ -150,7 +150,7 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
+    StepVerifier.create(preparator.prepareWorkflow(definition))
         .assertNext(Assertions::assertNotNull)
         .verifyComplete();
   }
@@ -215,7 +215,7 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
+    StepVerifier.create(preparator.prepareWorkflow(definition))
         .expectError(IllegalArgumentException.class)
         .verify();
   }
@@ -241,7 +241,7 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
+    StepVerifier.create(preparator.prepareWorkflow(definition))
         .expectError(IllegalStateException.class)
         .verify();
   }
@@ -269,7 +269,7 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
+    StepVerifier.create(preparator.prepareWorkflow(definition))
         .expectError(RuntimeException.class)
         .verify();
   }
@@ -299,7 +299,7 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
+    StepVerifier.create(preparator.prepareWorkflow(definition))
         .expectError(RuntimeException.class)
         .verify();
   }
@@ -330,7 +330,7 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow("wfId", definition))
+    StepVerifier.create(preparator.prepareWorkflow(definition))
         .expectError(RuntimeException.class)
         .verify();
   }

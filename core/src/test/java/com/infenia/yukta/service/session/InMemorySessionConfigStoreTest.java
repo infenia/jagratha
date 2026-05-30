@@ -107,7 +107,6 @@ class InMemorySessionConfigStoreTest {
     configService.setProjectPath("s1", "/p1").block();
     configService
         .setWorkflows("s2", Map.of("w1", new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "d",
             List.of(), List.of())))
         .block();
@@ -174,7 +173,6 @@ class InMemorySessionConfigStoreTest {
     configService.setDescription(sessionId, "Sample").block();
     configService.setProjectPath(sessionId, "/meta/path").block();
     WorkflowDefinition workflow = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "w",
             List.of(), List.of());
     configService.setWorkflows(sessionId, Map.of("w1", workflow)).block();

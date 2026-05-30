@@ -662,7 +662,6 @@ class DefaultWorkflowControlApiTest {
   void testPrepareWorkflow() {
     final WorkflowDefinition definition =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "test workflow",
             List.of(), List.of());
     final PreparedWorkflow prepared =
@@ -685,7 +684,6 @@ class DefaultWorkflowControlApiTest {
     final String executionId = "exec-1";
     final WorkflowDefinition definition =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "test workflow",
             List.of(), List.of());
     final PreparedWorkflow prepared =
@@ -704,7 +702,6 @@ class DefaultWorkflowControlApiTest {
     final String executionId = "exec-1";
     final WorkflowDefinition definition =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "test workflow",
             List.of(), List.of());
     final PreparedWorkflow prepared =
@@ -750,7 +747,6 @@ class DefaultWorkflowControlApiTest {
     final String nodeId = "node-1";
     final WorkflowDefinition definition =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "test workflow",
             List.of(), List.of());
     final Map<String, List<WorkflowDefinition.Node>> parentsList = Map.of();
@@ -807,7 +803,6 @@ class DefaultWorkflowControlApiTest {
 
     final WorkflowDefinition definition =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "test workflow",
             List.of(), List.of());
     final WorkflowDefinition.Node parentNode =
@@ -925,7 +920,6 @@ class DefaultWorkflowControlApiTest {
 
     final WorkflowDefinition definition =
         new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "test workflow",
             List.of(), List.of());
     final WorkflowDefinition.Node parentNode =

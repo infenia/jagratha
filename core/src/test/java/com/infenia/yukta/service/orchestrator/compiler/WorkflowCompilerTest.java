@@ -368,7 +368,6 @@ class WorkflowCompilerTest {
     @DisplayName("should handle empty topological order")
     void shouldHandleEmptyTopologicalOrder() {
       WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "Test",
             List.of(), List.of());
       final List<WorkflowEdge> edges =

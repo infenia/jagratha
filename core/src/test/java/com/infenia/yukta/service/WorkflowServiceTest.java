@@ -52,7 +52,6 @@ class WorkflowServiceTest {
     String sessionId = "sess-success";
     String workflowId = "w-success";
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(), List.of());
     PreparedWorkflow prepared =
@@ -90,7 +89,6 @@ class WorkflowServiceTest {
     String sessionId = "sess-error";
     String workflowId = "w-error";
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(), List.of());
 
@@ -109,7 +107,6 @@ class WorkflowServiceTest {
     String sessionId = "sess-queue";
     String workflowId = "w-queue";
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(), List.of());
     PreparedWorkflow prepared =
@@ -161,7 +158,6 @@ class WorkflowServiceTest {
     String sessionId = "sess-cleanup";
     String workflowId = "w-cleanup";
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(), List.of());
     PreparedWorkflow prepared =
@@ -213,7 +209,6 @@ class WorkflowServiceTest {
     String sessionId2 = "sess-multi-2";
     String workflowId = "w-multi";
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(), List.of());
     PreparedWorkflow prepared =
@@ -242,7 +237,6 @@ class WorkflowServiceTest {
     String sessionId = "sess-single";
     String workflowId = "w-single";
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(), List.of());
     PreparedWorkflow prepared =
@@ -269,7 +263,6 @@ class WorkflowServiceTest {
     String sessionId = "sess-error-queue";
     String workflowId = "w-error-queue";
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(), List.of());
     PreparedWorkflow prepared =
@@ -334,7 +327,6 @@ class WorkflowServiceTest {
     String sessionId = "sess-prep-error";
     String workflowId = "w-prep-error";
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(), List.of());
     PreparedWorkflow prepared =
@@ -357,7 +349,6 @@ class WorkflowServiceTest {
     String sessionId = "sess-multi-cleanup";
     String workflowId = "w-multi-cleanup";
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(), List.of());
     PreparedWorkflow prepared =
@@ -445,7 +436,6 @@ class WorkflowServiceTest {
     String sessionId = "sess-terminal-error";
     String workflowId = "w-terminal-error";
     WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
             "test-workflow", "desc",
             List.of(), List.of());
 
