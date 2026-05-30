@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.service;
 
+import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.model.session.TaskResponse;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
@@ -97,7 +98,12 @@ public class WorkflowService {
                                   .flatMap(
                                       def ->
                                           orchestrator
-                                              .prepareWorkflow(workflowId, def)
+                                              .prepareWorkflow(
+                                                  new WorkflowDefinition(
+                                                      workflowId,
+                                                      def.description(),
+                                                      def.nodes(),
+                                                      def.edges()))
                                               .doOnSuccess(
                                                   prepared ->
                                                       log.atDebug()

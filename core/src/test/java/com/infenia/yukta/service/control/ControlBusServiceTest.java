@@ -110,7 +110,9 @@ class ControlBusServiceTest {
     service.registerPlugin("test-workflow", "node1", plugin);
     when(plugin.onControlSignal(cmd)).thenReturn(Mono.just(resp));
 
-    StepVerifier.create(service.sendCommand("test-workflow", "node1", cmd)).expectNext(resp).verifyComplete();
+    StepVerifier.create(service.sendCommand("test-workflow", "node1", cmd))
+        .expectNext(resp)
+        .verifyComplete();
 
     service.unregisterPlugin("test-workflow", "node1");
     StepVerifier.create(service.sendCommand("test-workflow", "node1", cmd))
@@ -199,8 +201,10 @@ class ControlBusServiceTest {
   @Test
   void testGetHeartbeatAndStatsMissing() {
     ControlBusService emptyService = new ControlBusService(100, 50, 256, List.of());
-    org.junit.jupiter.api.Assertions.assertNull(emptyService.getLastHeartbeat("test-workflow", "n1"));
-    org.junit.jupiter.api.Assertions.assertNull(emptyService.getLastStatistics("test-workflow", "n1"));
+    org.junit.jupiter.api.Assertions.assertNull(
+        emptyService.getLastHeartbeat("test-workflow", "n1"));
+    org.junit.jupiter.api.Assertions.assertNull(
+        emptyService.getLastStatistics("test-workflow", "n1"));
   }
 
   // ==================== Unit Tests (Exception Handling) ====================
@@ -531,7 +535,8 @@ class ControlBusServiceTest {
     assertEquals(
         1000L,
         ((ControlHeartbeat)
-                Objects.requireNonNull(controlBusService.getLastHeartbeat("test-workflow", "node1")).getPayload())
+                Objects.requireNonNull(controlBusService.getLastHeartbeat("test-workflow", "node1"))
+                    .getPayload())
             .uptime());
   }
 
@@ -555,7 +560,8 @@ class ControlBusServiceTest {
     assertNotNull(controlBusService.getLastStatistics("test-workflow", "node1"));
     assertEquals(
         75.0,
-        ((ControlStatistics) controlBusService.getLastStatistics("test-workflow", "node1").getPayload())
+        ((ControlStatistics)
+                controlBusService.getLastStatistics("test-workflow", "node1").getPayload())
             .throughput());
   }
 

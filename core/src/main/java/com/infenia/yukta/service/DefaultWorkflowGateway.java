@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.service;
 
+import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.message.Message;
@@ -96,7 +97,8 @@ public class DefaultWorkflowGateway implements WorkflowGateway {
                                 desc ->
                                     configService.setDescription(
                                         childSessionId, desc + " (Sub-workflow)")))
-                    .then(orchestrator.prepareWorkflow(workflowId, def))
+                    .then(orchestrator.prepareWorkflow(
+                        new WorkflowDefinition(workflowId, def.description(), def.nodes(), def.edges())))
                     .flatMap(
                         prepared -> {
                           final String executionId = UUID.randomUUID().toString();

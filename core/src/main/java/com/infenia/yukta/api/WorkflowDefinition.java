@@ -27,12 +27,16 @@ import java.util.Map;
 /**
  * Defines a Directed Acyclic Graph (DAG) of plugins for execution.
  *
+ * @param workflowId unique identifier for the workflow
  * @param description a human-readable description of the workflow
  * @param nodes the list of nodes in the DAG
  * @param edges the list of edges connecting the nodes
  */
 @Schema(description = "Definition of a reactive workflow DAG")
 public record WorkflowDefinition(
+    @Schema(description = "Unique workflow identifier")
+        @NotBlank(message = "Workflow ID is mandatory")
+        String workflowId,
     @Schema(description = "A human-readable description of the workflow", example = "Quality check")
         @NotBlank(message = "Workflow description is mandatory")
         @Size(max = 256, message = "Workflow description must be at most 256 characters")

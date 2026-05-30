@@ -69,12 +69,11 @@ public class WorkflowOrchestrator {
   /**
    * Prepares a workflow for execution.
    *
-   * @param workflowId the workflow identifier
-   * @param def the workflow definition
+   * @param def the workflow definition (includes workflowId)
    * @return a Mono containing the prepared workflow
    */
-  public Mono<PreparedWorkflow> prepareWorkflow(@NotBlank final String workflowId, @NotNull @Valid final WorkflowDefinition def) {
-    return preparator.prepareWorkflow(workflowId, def);
+  public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
+    return preparator.prepareWorkflow(def);
   }
 
   /**

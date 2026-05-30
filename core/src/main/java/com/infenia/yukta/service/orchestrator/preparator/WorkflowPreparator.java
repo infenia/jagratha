@@ -62,11 +62,11 @@ public class WorkflowPreparator {
   /**
    * Prepares a workflow for execution.
    *
-   * @param workflowId the workflow identifier
-   * @param def the workflow definition
+   * @param def the workflow definition (includes workflowId)
    * @return a Mono containing the prepared workflow
    */
-  public Mono<PreparedWorkflow> prepareWorkflow(@NotBlank final String workflowId, @NotNull @Valid final WorkflowDefinition def) {
+  public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
+    @NotBlank final String workflowId = def.workflowId();
     final int numNodes = def.nodes().size();
     log.atDebug()
         .addKeyValue(LOG_KEY_NUM_NODES, numNodes)
