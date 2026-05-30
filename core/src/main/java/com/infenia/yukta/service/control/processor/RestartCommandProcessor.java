@@ -17,10 +17,8 @@ package com.infenia.yukta.service.control.processor;
 
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
-import com.infenia.yukta.plugin.message.control.ControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.RestartCommand;
-import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.TaskTrackerService;
@@ -30,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 /**
  * Processor for restart commands.
@@ -66,7 +65,7 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
         .flatMap(
             control -> {
               registry.unregister(control.executionId());
-              control.safeStopSink().emitEmpty();
+              control.safeStopSink().emitEmpty(Sinks.EmitFailureHandler.FAIL_FAST);
 
               final String newExecutionId = UUID.randomUUID().toString();
               return orchestrator
@@ -77,7 +76,7 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
                       control.prepared(),
                       control.payload())
                   .doOnSuccess(
-                      v -> {
+                      ignored -> {
                         taskTracker.emitWorkflowStatusEvent(newExecutionId, "RUNNING");
                         log.atInfo()
                             .addKeyValue("oldExecutionId", restart.executionId())
@@ -86,7 +85,7 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
                             .addKeyValue("status", "RUNNING")
                             .log("Restarted execution");
                       })
-                  .then(Mono.empty());
+                  .then(Mono.<WorkflowDirective>empty());
             })
         .onErrorResume(
             e -> {
@@ -94,7 +93,7 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
                   .addKeyValue("executionId", restart.executionId())
                   .setCause(e)
                   .log("Restart failed");
-              return Mono.empty();
+              return Mono.<WorkflowDirective>empty();
             });
   }
 

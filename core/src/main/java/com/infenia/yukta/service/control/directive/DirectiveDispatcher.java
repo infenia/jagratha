@@ -19,7 +19,7 @@ import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.plugin.message.control.ControlCommand;
+import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.ControlBusService;
 import com.infenia.yukta.service.control.ExecutionControl;
@@ -86,21 +86,21 @@ public class DirectiveDispatcher {
     this.controlBusService = controlBusService;
   }
 
-  /** Subscribes to the control stream and routes ControlCommand messages through the pipeline. */
+  /** Subscribes to the control stream and routes ExecutionControlCommand messages through the pipeline. */
   @PostConstruct
   public void init() {
     controlBusService
         .getControlStream()
-        .filter(msg -> msg.getPayload() instanceof ControlCommand)
+        .filter(msg -> msg.getPayload() instanceof ExecutionControlCommand)
         .flatMap(
             msg -> {
-              final ControlCommand command = (ControlCommand) msg.getPayload();
+              final ExecutionControlCommand command = (ExecutionControlCommand) msg.getPayload();
               return dispatch(command)
                   .onErrorResume(
                       e -> {
                         log.atError()
                             .setCause(e)
-                            .log("Error dispatching command {}", command.type());
+                            .log("Error dispatching command");
                         return Mono.empty();
                       });
             })
@@ -108,22 +108,20 @@ public class DirectiveDispatcher {
   }
 
   /**
-   * Dispatches a single {@link ControlCommand}: finds a processor, produces a directive, applies
+   * Dispatches a single {@link ExecutionControlCommand}: finds a processor, produces a directive, applies
    * it.
    *
    * @param command the command to dispatch
    * @return a Mono that completes when the directive has been applied
    */
-  public Mono<Void> dispatch(final ControlCommand command) {
+  public Mono<Void> dispatch(final ExecutionControlCommand command) {
     final Optional<ExecutionControl> controlOpt =
-        registry.findActiveByWorkflow(command.sessionId(), command.workflowId());
+        registry.findByExecutionId(command.executionId());
 
     if (controlOpt.isEmpty()) {
       log.atWarn()
-          .log(
-              "No active execution for workflow {} session {}",
-              command.workflowId(),
-              command.sessionId());
+          .addKeyValue("executionId", command.executionId())
+          .log("No active execution found");
     }
 
     return controlOpt
@@ -135,7 +133,7 @@ public class DirectiveDispatcher {
         .orElseGet(Mono::empty);
   }
 
-  private Mono<ControlSignalProcessor> findProcessor(final ControlCommand command) {
+  private Mono<ControlSignalProcessor> findProcessor(final ExecutionControlCommand command) {
     return processors.stream()
         .filter(p -> p.canProcess(command))
         .max(Comparator.comparingInt(ControlSignalProcessor::getPriority))
@@ -144,7 +142,7 @@ public class DirectiveDispatcher {
             () ->
                 Mono.error(
                     new IllegalArgumentException(
-                        "No processor registered for command type: " + command.type())));
+                        "No processor registered for command")));
   }
 
   private Mono<Void> applyDirective(
