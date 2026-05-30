@@ -21,12 +21,25 @@ import java.util.List;
 import reactor.core.publisher.Mono;
 
 /**
- * Interface for components to interact with the system's Control Bus.
+ * Unified gateway for all control bus operations.
  *
- * <p>The Control Bus manages administrative signals such as heartbeats, statistics, and
- * configuration updates. It also provides plugin lifecycle management and command execution.
+ * <p>Single entry point for managing the control bus. Provides three distinct operation groups:
+ *
+ * <ul>
+ *   <li><strong>Plugin & Message Management</strong> (internal use): Low-level plugin lifecycle and
+ *       command routing
+ *   <li><strong>Execution Control</strong> (REST layer): High-level execution control commands
+ *       (pause, resume, stop, skip, step, restart)
+ *   <li><strong>Observability</strong> (REST layer): Real-time progress tracking, logs, and
+ *       execution history
+ * </ul>
+ *
+ * <p>All control commands flow through a single channel ensuring consistent ordering, audit trails,
+ * and no race conditions from multiple access paths.
  */
 public interface ControlBusGateway {
+
+  // --- Plugin & Message Management (Internal) ---
 
   /**
    * Emit a control message to the bus.
@@ -63,6 +76,187 @@ public interface ControlBusGateway {
    * @return a Mono of the response message
    */
   Mono<Message<?>> sendCommand(String workflowId, String nodeId, Message<?> command);
+
+  // --- Execution Control (REST Layer) ---
+
+  /**
+   * Execute a control command through the control bus.
+   *
+   * @param <T> the command type
+   * @param command the control command message to execute
+   * @return a Mono that completes when the command has been routed through the bus
+   */
+  <T extends com.infenia.yukta.plugin.message.control.ExecutionControlCommand>
+      Mono<Void> executeCommand(Message<T> command);
+
+  /**
+   * Pause all nodes in an execution via global backpressure.
+   *
+   * <p>Execution continues to process inflight work but no new elements are pulled from input
+   * streams.
+   *
+   * @param executionId the execution to pause
+   * @return a Mono that completes when the pause command is emitted
+   */
+  Mono<Void> pauseWorkflow(String executionId);
+
+  /**
+   * Resume a paused execution.
+   *
+   * <p>Nodes resume normal backpressure-driven element processing.
+   *
+   * @param executionId the execution to resume
+   * @return a Mono that completes when the resume command is emitted
+   */
+  Mono<Void> resumeWorkflow(String executionId);
+
+  /**
+   * Pause a single node via backpressure.
+   *
+   * <p>The target node stops pulling elements but inflight work continues to completion.
+   *
+   * @param executionId the execution to target
+   * @param nodeId the node to pause
+   * @return a Mono that completes when the pause command is emitted
+   */
+  Mono<Void> pauseNode(String executionId, String nodeId);
+
+  /**
+   * Resume a paused node.
+   *
+   * <p>The node resumes pulling elements and normal processing.
+   *
+   * @param executionId the execution to target
+   * @param nodeId the node to resume
+   * @return a Mono that completes when the resume command is emitted
+   */
+  Mono<Void> resumeNode(String executionId, String nodeId);
+
+  /**
+   * Stop a single node.
+   *
+   * @param executionId the execution to target
+   * @param nodeId the node to stop
+   * @param immediate true for hard stop (cancel upstream), false for drain & stop
+   * @param reason human-readable explanation for logging
+   * @return a Mono that completes when the stop command is emitted
+   */
+  Mono<Void> stopNode(String executionId, String nodeId, boolean immediate, String reason);
+
+  /**
+   * Mark a node as skipped or not.
+   *
+   * <p>When skipped, the node passes messages through without invoking the processor. When not
+   * skipped, normal processing resumes.
+   *
+   * @param executionId the execution to target
+   * @param nodeId the node to skip
+   * @param skip true to skip, false to unskip
+   * @return a Mono that completes when the skip command is emitted
+   */
+  Mono<Void> skipNode(String executionId, String nodeId, boolean skip);
+
+  /**
+   * Enable step-through debug mode on a node.
+   *
+   * <p>Each element must be explicitly stepped via {@link #stepNode}. The node automatically pauses
+   * until step signals are sent.
+   *
+   * @param executionId the execution to target
+   * @param nodeId the node to enable step mode on
+   * @return a Mono that completes when the enable command is emitted
+   */
+  Mono<Void> enableStepMode(String executionId, String nodeId);
+
+  /**
+   * Disable step-through debug mode on a node.
+   *
+   * <p>The node returns to normal pause/resume behavior.
+   *
+   * @param executionId the execution to target
+   * @param nodeId the node to disable step mode on
+   * @return a Mono that completes when the disable command is emitted
+   */
+  Mono<Void> disableStepMode(String executionId, String nodeId);
+
+  /**
+   * Step to the next element when a node is in step-through mode.
+   *
+   * <p>Allows exactly one element to pass through the node before blocking again.
+   *
+   * @param executionId the execution to target
+   * @param nodeId the node to step
+   * @return a Mono that completes when the step command is emitted
+   */
+  Mono<Void> stepNode(String executionId, String nodeId);
+
+  /**
+   * Safely stop the current execution and restart the entire workflow from the beginning using the
+   * original payload.
+   *
+   * @param executionId the execution to restart
+   * @return a Mono containing the newly generated execution ID
+   */
+  Mono<String> restartWorkflow(String executionId);
+
+  /**
+   * Safely stop the current execution and restart the workflow from a specific node, replaying the
+   * last known checkpoints for its parent nodes.
+   *
+   * @param executionId the execution to restart
+   * @param fromNodeId the node from which to resume execution
+   * @return a Mono containing the newly generated execution ID
+   */
+  Mono<String> restartFromNode(String executionId, String fromNodeId);
+
+  // --- Observability ---
+
+  /**
+   * Watch workflow execution progress in real-time.
+   *
+   * <p>Emits progress updates as the execution progresses (status changes, tasks complete, etc.).
+   * Useful for UI streaming, progress tracking, and monitoring.
+   *
+   * @param executionId the execution to watch
+   * @return a Flux of progress updates that completes when execution finishes
+   */
+  reactor.core.publisher.Flux<com.infenia.yukta.model.monitoring.WorkflowProgress> watchExecution(
+      String executionId);
+
+  /**
+   * Watch workflow logs in real-time.
+   *
+   * <p>Emits log lines as they are generated during execution. Useful for live log streaming to
+   * UIs.
+   *
+   * @param executionId the execution to watch
+   * @return a Flux of log lines that completes when execution finishes
+   */
+  reactor.core.publisher.Flux<String> watchLogs(String executionId);
+
+  /**
+   * Get current execution progress snapshot.
+   *
+   * <p>Returns the current progress of an execution without subscribing to a stream. Useful for
+   * one-off queries.
+   *
+   * @param executionId the execution to query
+   * @return the current progress, or null if execution not found
+   */
+  com.infenia.yukta.model.monitoring.WorkflowProgress getCurrentProgress(String executionId);
+
+  /**
+   * Get execution history for a session.
+   *
+   * <p>Returns all completed and in-progress executions for a session. Useful for listing past
+   * runs.
+   *
+   * @param sessionId the session to query
+   * @return list of execution summaries
+   */
+  List<com.infenia.yukta.model.monitoring.WorkflowExecutionSummary> getHistory(String sessionId);
+
+  // --- State Queries ---
 
   /**
    * Get the last heartbeat for a node in a specific workflow.

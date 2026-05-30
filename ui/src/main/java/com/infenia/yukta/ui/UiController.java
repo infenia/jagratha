@@ -19,7 +19,7 @@ import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.model.api.PluginDetails;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.SessionService;
-import com.infenia.yukta.service.control.gateway.UnifiedControlBusGateway;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.orchestrator.TaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import gg.jte.TemplateEngine;
@@ -54,7 +54,7 @@ public class UiController {
   private final LogRetrievalService retrievalService;
   private final TaskTrackerService tracker;
   private final WorkflowRegistry registry;
-  private final UnifiedControlBusGateway controlBus;
+  private final ControlBusGateway controlBus;
   private final TemplateEngine templateEngine;
 
   /**

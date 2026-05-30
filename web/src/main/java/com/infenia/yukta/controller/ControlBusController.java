@@ -20,7 +20,6 @@ import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import com.infenia.yukta.service.control.gateway.UnifiedControlBusGateway;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
@@ -46,8 +45,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @Tag(name = "Control Bus API", description = "Endpoints for system management and monitoring")
 public class ControlBusController {
-  private final ControlBusGateway controlBusGateway;
-  private final UnifiedControlBusGateway unifiedControlBus;
+  private final ControlBusGateway controlBus;
 
   /**
    * Get all active nodes in a specific workflow that have emitted heartbeats.
@@ -61,7 +59,7 @@ public class ControlBusController {
       description =
           "Lists all nodes in a specific workflow currently registered on the Control Bus")
   public Mono<ApiResponse<List<String>>> getActiveNodes(@PathVariable final String workflowId) {
-    return Mono.fromCallable(() -> controlBusGateway.getActiveNodes(workflowId))
+    return Mono.fromCallable(() -> controlBus.getActiveNodes(workflowId))
         .map(nodes -> ApiResponse.success(200, "Active nodes retrieved", nodes));
   }
 
@@ -78,7 +76,7 @@ public class ControlBusController {
       description = "Retrieves the most recent heartbeat for a specific node in a workflow")
   public Mono<ApiResponse<Message<?>>> getLastHeartbeat(
       @PathVariable final String workflowId, @PathVariable final String nodeId) {
-    return Mono.fromCallable(() -> controlBusGateway.getLastHeartbeat(workflowId, nodeId))
+    return Mono.fromCallable(() -> controlBus.getLastHeartbeat(workflowId, nodeId))
         .map(hb -> ApiResponse.success(200, "Node heartbeat retrieved", hb));
   }
 
@@ -103,7 +101,7 @@ public class ControlBusController {
             .withControl(true)
             .withSourceNodeId("CONSOLE")
             .withWorkflowId(workflowId);
-    return controlBusGateway
+    return controlBus
         .sendCommand(workflowId, nodeId, command)
         .map(resp -> ApiResponse.success(200, "Command processed", resp));
   }
@@ -118,7 +116,7 @@ public class ControlBusController {
       summary = "Get active nodes (global)",
       description = "Lists all nodes currently registered on the Control Bus across all workflows")
   public Mono<ApiResponse<List<String>>> getAllActiveNodes() {
-    return Mono.fromCallable(controlBusGateway::getActiveNodes)
+    return Mono.fromCallable(controlBus::getActiveNodes)
         .map(nodes -> ApiResponse.success(200, "Active nodes retrieved", nodes));
   }
 
@@ -135,7 +133,7 @@ public class ControlBusController {
           "Retrieves the most recent heartbeat for a specific node (legacy global endpoint)")
   @Deprecated
   public Mono<ApiResponse<Message<?>>> getLastHeartbeatGlobal(@PathVariable final String nodeId) {
-    return Mono.fromCallable(() -> controlBusGateway.getLastHeartbeat(null, nodeId))
+    return Mono.fromCallable(() -> controlBus.getLastHeartbeat(null, nodeId))
         .map(hb -> ApiResponse.success(200, "Node heartbeat retrieved", hb));
   }
 
@@ -155,7 +153,7 @@ public class ControlBusController {
       @PathVariable final String nodeId, @RequestBody final Map<String, Object> payload) {
     final Message<?> command =
         DefaultMessage.create(null, payload).withControl(true).withSourceNodeId("CONSOLE");
-    return controlBusGateway
+    return controlBus
         .sendCommand(null, nodeId, command)
         .map(resp -> ApiResponse.success(200, "Command processed", resp));
   }
@@ -173,7 +171,7 @@ public class ControlBusController {
       summary = "Get execution progress",
       description = "Returns the current progress snapshot for an execution")
   public Mono<ApiResponse<WorkflowProgress>> getProgress(@PathVariable final String executionId) {
-    return Mono.fromCallable(() -> unifiedControlBus.getCurrentProgress(executionId))
+    return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
         .map(progress -> ApiResponse.success(200, "Progress retrieved", progress));
   }
 
@@ -190,7 +188,7 @@ public class ControlBusController {
       summary = "Stream execution progress",
       description = "Streams progress updates for an execution in real-time via Server-Sent Events")
   public Flux<WorkflowProgress> streamProgress(@PathVariable final String executionId) {
-    return unifiedControlBus.watchExecution(executionId);
+    return controlBus.watchExecution(executionId);
   }
 
   /**
@@ -206,7 +204,7 @@ public class ControlBusController {
       summary = "Stream execution logs",
       description = "Streams log lines for an execution in real-time via Server-Sent Events")
   public Flux<String> streamLogs(@PathVariable final String executionId) {
-    return unifiedControlBus.watchLogs(executionId);
+    return controlBus.watchLogs(executionId);
   }
 
   /**
@@ -220,7 +218,7 @@ public class ControlBusController {
       summary = "Get session execution history",
       description = "Returns all executions (completed and in-progress) for a session")
   public Mono<ApiResponse<Object>> getHistory(@PathVariable final String sessionId) {
-    return Mono.fromCallable(() -> unifiedControlBus.getHistory(sessionId))
+    return Mono.fromCallable(() -> controlBus.getHistory(sessionId))
         .map(history -> ApiResponse.success(200, "History retrieved", history));
   }
 }
