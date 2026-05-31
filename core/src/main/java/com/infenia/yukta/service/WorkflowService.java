@@ -15,8 +15,9 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.model.session.TaskResponse;
+import com.infenia.yukta.model.workflow.PreparedWorkflow;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.session.SessionConfigStore;
@@ -53,6 +54,16 @@ public class WorkflowService {
   private final WorkflowOrchestrator orchestrator;
 
   private final Map<String, Mono<Void>> workflowQueues = new ConcurrentHashMap<>();
+
+  /**
+   * Prepare a workflow for execution without running it.
+   *
+   * @param workflowDefinition the workflow definition to prepare
+   * @return a Mono containing the prepared workflow
+   */
+  public Mono<PreparedWorkflow> prepareWorkflow(final WorkflowDefinition workflowDefinition) {
+    return orchestrator.prepareWorkflow(workflowDefinition);
+  }
 
   /**
    * Run a specific workflow for a session.

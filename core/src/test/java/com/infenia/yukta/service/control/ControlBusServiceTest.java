@@ -30,6 +30,7 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
 import com.infenia.yukta.plugin.message.control.ControlStatistics;
+import com.infenia.yukta.service.WorkflowService;
 import com.infenia.yukta.service.control.directive.ControlHeartbeatHandler;
 import com.infenia.yukta.service.control.directive.ControlSignalHandler;
 import com.infenia.yukta.service.control.directive.ControlStatisticsHandler;
@@ -50,16 +51,18 @@ class ControlBusServiceTest {
 
   @BeforeEach
   void setUp() {
+    final WorkflowService workflowService = mock(WorkflowService.class);
     final List<ControlSignalHandler> handlers =
         List.of(new ControlHeartbeatHandler(), new ControlStatisticsHandler());
-    service = new ControlBusService(100, 50, 256, handlers);
+    service = new ControlBusService(workflowService, 100, 50, 256, handlers);
     service.init();
 
+    final WorkflowService workflowService2 = mock(WorkflowService.class);
     final ControlHeartbeatHandler heartbeatHandler = new ControlHeartbeatHandler();
     final ControlStatisticsHandler statisticsHandler = new ControlStatisticsHandler();
     final List<ControlSignalHandler> integrationHandlers =
         List.of(heartbeatHandler, statisticsHandler);
-    controlBusService = new ControlBusService(100, 50, 256, integrationHandlers);
+    controlBusService = new ControlBusService(workflowService2, 100, 50, 256, integrationHandlers);
     controlBusService.init();
   }
 
@@ -122,21 +125,24 @@ class ControlBusServiceTest {
 
   @Test
   void testInitCustomBufferSize() {
-    ControlBusService customService = new ControlBusService(10, 10, 512, List.of());
+    ControlBusService customService =
+        new ControlBusService(mock(WorkflowService.class), 10, 10, 512, List.of());
     customService.init();
     customService.shutdown();
   }
 
   @Test
   void testInitZeroBufferSize() {
-    ControlBusService zeroBufferService = new ControlBusService(10, 10, 0, List.of());
+    ControlBusService zeroBufferService =
+        new ControlBusService(mock(WorkflowService.class), 10, 10, 0, List.of());
     zeroBufferService.init();
     zeroBufferService.shutdown();
   }
 
   @Test
   void testInitNegativeBufferSize() {
-    ControlBusService negativeBufferService = new ControlBusService(10, 10, -1, List.of());
+    ControlBusService negativeBufferService =
+        new ControlBusService(mock(WorkflowService.class), 10, 10, -1, List.of());
     negativeBufferService.init();
     negativeBufferService.shutdown();
   }
@@ -149,7 +155,8 @@ class ControlBusServiceTest {
         .when(failingHandler)
         .handle(any(), any(), any());
 
-    ControlBusService errService = new ControlBusService(1, 1, 256, List.of(failingHandler));
+    ControlBusService errService =
+        new ControlBusService(mock(WorkflowService.class), 1, 1, 256, List.of(failingHandler));
     errService.init();
 
     Message<String> msg = DefaultMessage.create(null, "payload").withSourceNodeId("node1");
@@ -161,7 +168,8 @@ class ControlBusServiceTest {
 
   @Test
   void testEmitError() throws Exception {
-    ControlBusService serviceWithFullSink = new ControlBusService(100, 50, 256, List.of());
+    ControlBusService serviceWithFullSink =
+        new ControlBusService(mock(WorkflowService.class), 100, 50, 256, List.of());
     java.lang.reflect.Field sinkField = ControlBusService.class.getDeclaredField("controlSink");
     sinkField.setAccessible(true);
     @SuppressWarnings("unchecked")
@@ -178,7 +186,8 @@ class ControlBusServiceTest {
 
   @Test
   void testHandleControlBatchBranches() throws Exception {
-    ControlBusService testService = new ControlBusService(100, 50, 256, List.of());
+    ControlBusService testService =
+        new ControlBusService(mock(WorkflowService.class), 100, 50, 256, List.of());
     java.lang.reflect.Method handleBatch =
         ControlBusService.class.getDeclaredMethod("handleControlBatch", List.class);
     handleBatch.setAccessible(true);
@@ -194,13 +203,15 @@ class ControlBusServiceTest {
 
   @Test
   void testGetActiveNodesEmpty() {
-    ControlBusService emptyService = new ControlBusService(100, 50, 256, List.of());
+    ControlBusService emptyService =
+        new ControlBusService(mock(WorkflowService.class), 100, 50, 256, List.of());
     assertTrue(emptyService.getActiveNodes().isEmpty());
   }
 
   @Test
   void testGetHeartbeatAndStatsMissing() {
-    ControlBusService emptyService = new ControlBusService(100, 50, 256, List.of());
+    ControlBusService emptyService =
+        new ControlBusService(mock(WorkflowService.class), 100, 50, 256, List.of());
     org.junit.jupiter.api.Assertions.assertNull(
         emptyService.getLastHeartbeat("test-workflow", "n1"));
     org.junit.jupiter.api.Assertions.assertNull(
@@ -212,7 +223,8 @@ class ControlBusServiceTest {
   @Test
   void testEmitWhenSinkThrowsRuntimeException()
       throws NoSuchFieldException, IllegalAccessException {
-    final ControlBusService testService = new ControlBusService(100, 50, 256, List.of());
+    final ControlBusService testService =
+        new ControlBusService(mock(WorkflowService.class), 100, 50, 256, List.of());
     testService.init();
 
     @SuppressWarnings("unchecked")
@@ -236,7 +248,8 @@ class ControlBusServiceTest {
   @Test
   void testEmitWhenSinkThrowsIllegalStateException()
       throws NoSuchFieldException, IllegalAccessException {
-    final ControlBusService testService = new ControlBusService(100, 50, 256, List.of());
+    final ControlBusService testService =
+        new ControlBusService(mock(WorkflowService.class), 100, 50, 256, List.of());
     testService.init();
 
     @SuppressWarnings("unchecked")
@@ -263,7 +276,8 @@ class ControlBusServiceTest {
     when(faultyHandler.canHandle(any())).thenReturn(true);
     doThrow(new RuntimeException("Handler error")).when(faultyHandler).handle(any(), any(), any());
 
-    final ControlBusService testService = new ControlBusService(1, 50, 256, List.of(faultyHandler));
+    final ControlBusService testService =
+        new ControlBusService(mock(WorkflowService.class), 1, 50, 256, List.of(faultyHandler));
     testService.init();
 
     final Message<?> msg =
@@ -286,7 +300,8 @@ class ControlBusServiceTest {
 
   @Test
   void testInitWithExactBufferSize256DoesNotReinitializeSink() {
-    final ControlBusService testService = new ControlBusService(100, 50, 256, List.of());
+    final ControlBusService testService =
+        new ControlBusService(mock(WorkflowService.class), 100, 50, 256, List.of());
     testService.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
@@ -471,7 +486,8 @@ class ControlBusServiceTest {
 
   @Test
   void testInitWithCustomBufferSize() {
-    final ControlBusService testService = new ControlBusService(50, 30, 512, List.of());
+    final ControlBusService testService =
+        new ControlBusService(mock(WorkflowService.class), 50, 30, 512, List.of());
     testService.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
@@ -614,7 +630,8 @@ class ControlBusServiceTest {
 
   @Test
   void testEmitWithBufferSize256() {
-    final ControlBusService testService = new ControlBusService(100, 50, 256, List.of());
+    final ControlBusService testService =
+        new ControlBusService(mock(WorkflowService.class), 100, 50, 256, List.of());
     testService.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
@@ -623,7 +640,8 @@ class ControlBusServiceTest {
 
   @Test
   void testEmitWithCustomBufferSizeLessThanSmall() {
-    final ControlBusService testService = new ControlBusService(100, 50, 32, List.of());
+    final ControlBusService testService =
+        new ControlBusService(mock(WorkflowService.class), 100, 50, 32, List.of());
     testService.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");
@@ -642,7 +660,8 @@ class ControlBusServiceTest {
 
   @Test
   void testInitWithBufferSizeZero() {
-    final ControlBusService testService = new ControlBusService(100, 50, 0, List.of());
+    final ControlBusService testService =
+        new ControlBusService(mock(WorkflowService.class), 100, 50, 0, List.of());
     testService.init();
 
     final Message<?> msg = DefaultMessage.create(null, "test").withSourceNodeId("test");

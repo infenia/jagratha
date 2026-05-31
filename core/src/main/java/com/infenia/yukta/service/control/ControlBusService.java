@@ -17,6 +17,8 @@ package com.infenia.yukta.service.control;
 
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.service.WorkflowService;
+import com.infenia.yukta.service.control.command.PrepareWorkflowCommand;
 import com.infenia.yukta.service.control.directive.ControlSignalHandler;
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
@@ -27,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -44,10 +47,12 @@ import reactor.util.concurrent.Queues;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ControlBusService {
 
   private static final String COMPOSITE_KEY_SEPARATOR = "\0";
 
+  private final WorkflowService workflowService;
   private final int batchSize;
   private final Duration batchTimeout;
   private final int bufferSize;
@@ -72,16 +77,19 @@ public class ControlBusService {
   /**
    * Constructor for ControlBusService.
    *
+   * @param workflowService the workflow service for preparing workflows
    * @param batchSize the number of messages to batch before processing
    * @param batchTimeoutMs the timeout in milliseconds for batching
    * @param bufferSize the size of the control sink buffer (uses SMALL_BUFFER_SIZE if too small)
    * @param handlers the list of signal handlers for dispatching messages
    */
   public ControlBusService(
+      final WorkflowService workflowService,
       @Value("${control.bus.batch.size:100}") final int batchSize,
       @Value("${control.bus.batch.timeout.ms:50}") final int batchTimeoutMs,
       @Value("${control.bus.buffer.size:256}") final int bufferSize,
       final List<ControlSignalHandler> handlers) {
+    this.workflowService = workflowService;
     this.batchSize = batchSize;
     this.batchTimeout = Duration.ofMillis(batchTimeoutMs);
     this.bufferSize = Math.max(bufferSize, Queues.SMALL_BUFFER_SIZE);
@@ -137,6 +145,16 @@ public class ControlBusService {
    */
   public Flux<Message<?>> getControlStream() {
     return controlSink.asFlux();
+  }
+
+  /**
+   * Prepare a workflow for execution.
+   *
+   * @param command the prepare workflow command
+   * @return a Mono that completes when the workflow is prepared
+   */
+  public Mono<Void> prepareWorkflow(final PrepareWorkflowCommand command) {
+    return workflowService.prepareWorkflow(command.workflowDefinition()).then();
   }
 
   /**
