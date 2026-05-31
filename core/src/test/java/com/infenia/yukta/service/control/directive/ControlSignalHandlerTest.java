@@ -60,7 +60,7 @@ class ControlSignalHandlerTest {
 
     heartbeatHandler.handle("node1", msg, msg.getPayload());
 
-    assertEquals(msg, heartbeatHandler.getLastHeartbeat("test-workflow", "node1"));
+    assertEquals(msg, heartbeatHandler.getLastHeartbeat("node1"));
     assertEquals(List.of("node1"), heartbeatHandler.getActiveNodes());
   }
 
@@ -70,11 +70,11 @@ class ControlSignalHandlerTest {
         DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L)).withSourceNodeId("node1");
 
     heartbeatHandler.handle("node1", msg, msg.getPayload());
-    assertEquals(msg, heartbeatHandler.getLastHeartbeat("test-workflow", "node1"));
+    assertEquals(msg, heartbeatHandler.getLastHeartbeat("node1"));
 
     heartbeatHandler.removeNode("node1");
 
-    assertNull(heartbeatHandler.getLastHeartbeat("test-workflow", "node1"));
+    assertNull(heartbeatHandler.getLastHeartbeat("node1"));
     assertEquals(List.of(), heartbeatHandler.getActiveNodes());
   }
 
@@ -86,7 +86,7 @@ class ControlSignalHandlerTest {
 
     statisticsHandler.handle("node1", msg, msg.getPayload());
 
-    assertEquals(msg, statisticsHandler.getLastStatistics("test-workflow", "node1"));
+    assertEquals(msg, statisticsHandler.getLastStatistics("node1"));
   }
 
   @Test
@@ -96,11 +96,11 @@ class ControlSignalHandlerTest {
             .withSourceNodeId("node1");
 
     statisticsHandler.handle("node1", msg, msg.getPayload());
-    assertEquals(msg, statisticsHandler.getLastStatistics("test-workflow", "node1"));
+    assertEquals(msg, statisticsHandler.getLastStatistics("node1"));
 
     statisticsHandler.removeNode("node1");
 
-    assertNull(statisticsHandler.getLastStatistics("test-workflow", "node1"));
+    assertNull(statisticsHandler.getLastStatistics("node1"));
   }
 
   @Test
@@ -116,8 +116,8 @@ class ControlSignalHandlerTest {
           public void handle(String nodeId, Message<?> message, Object payload) {}
         };
 
-    assertNull(dummy.getLastHeartbeat("test-workflow", "node1"));
-    assertNull(dummy.getLastStatistics("test-workflow", "node1"));
+    assertNull(dummy.getLastHeartbeat("node1"));
+    assertNull(dummy.getLastStatistics("node1"));
     assertEquals(List.of(), dummy.getActiveNodes());
     dummy.removeNode("node1"); // Cover default no-op
   }

@@ -13,36 +13,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.orchestrator;
+package com.infenia.yukta.service.orchestrator.compiler;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoSettings;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
+@MockitoSettings
 class ResourceManagementBuilderTest {
 
-  @Mock private TaskTrackerService mockTracker;
+  @Mock private DefaultTaskTrackerServiceService mockTracker;
   @Mock private SessionConfigStore mockConfigService;
 
   @BeforeEach
   void setUp() {
-    MockitoAnnotations.openMocks(this);
-    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
+    // Setup default mock behavior
   }
 
   @Test
   void testResourceManagementBuilderBasic() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -63,6 +66,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderEmitsSuccessStatus() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -85,6 +89,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderDisposesResources() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -108,6 +113,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderRunsConnectors() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -131,6 +137,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderWithNullParameters() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -172,6 +179,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderRunsConnectorsInReverseOrder() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -201,6 +209,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderWithoutExecutionId() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -223,6 +232,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderWithMultipleTerminals() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -245,6 +255,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderWithoutTerminals() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -266,6 +277,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderMultipleDisposables() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -294,6 +306,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderEmptyConnectors() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -316,6 +329,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderEmptyDisposables() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -338,6 +352,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderConnectorThrowingException() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -364,6 +379,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderDisposableThrowingException() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -401,14 +417,15 @@ class ResourceManagementBuilderTest {
     ResourceManagementBuilder builder5 = builder4.withExecutionTimeout("session-001", "exec-001");
 
     // All should be the same instance
-    assert builder == builder2;
-    assert builder == builder3;
-    assert builder == builder4;
-    assert builder == builder5;
+    assertSame(builder, builder2);
+    assertSame(builder, builder3);
+    assertSame(builder, builder4);
+    assertSame(builder, builder5);
   }
 
   @Test
   void testResourceManagementBuilderWithEmptyTerminals() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
@@ -431,6 +448,7 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderWithFailingTerminal() {
+    when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 

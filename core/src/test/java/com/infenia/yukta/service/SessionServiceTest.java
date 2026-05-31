@@ -52,9 +52,8 @@ class SessionServiceTest {
   @Test
   void testApplyConfig() {
     String sessionId = "sess-1";
-    WorkflowDefinition workflow = new WorkflowDefinition(
-            "test-workflow", "desc",
-            List.of(), List.of());
+    WorkflowDefinition workflow =
+        new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
     SessionConfigData data =
         new SessionConfigData(
             sessionId, "desc", "initiator-1", Map.of(), "/path", Map.of("w1", workflow));
@@ -90,9 +89,8 @@ class SessionServiceTest {
   void testGetSessionWorkflowFromDisk() {
     String sessionId = "sess-disk";
 
-    WorkflowDefinition workflow = new WorkflowDefinition(
-            "test-workflow", "desc",
-            List.of(), List.of());
+    WorkflowDefinition workflow =
+        new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
     Map<String, Object> configMap = Map.of("workflows", Map.of("w1", workflow));
 
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
@@ -138,9 +136,8 @@ class SessionServiceTest {
 
     SessionService errService = new SessionService(configService, mockMapper, orchestrator);
 
-    WorkflowDefinition workflow = new WorkflowDefinition(
-            "test-workflow", "desc",
-            List.of(), List.of());
+    WorkflowDefinition workflow =
+        new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
     Map<String, Object> configMap = Map.of("workflows", Map.of("w1", workflow));
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
 
@@ -150,15 +147,15 @@ class SessionServiceTest {
   @Test
   void testGetSessionWorkflowNotFoundInMap() {
     String sessionId = "sess-notfound";
-    WorkflowDefinition fallbackWorkflow = new WorkflowDefinition(
-            "test-workflow", "fallback",
-            List.of(), List.of());
+    WorkflowDefinition fallbackWorkflow =
+        new WorkflowDefinition("test-workflow", "fallback", List.of(), List.of());
 
     Map<String, Object> configMap =
         Map.of(
-            "workflows", Map.of("other-wf", new WorkflowDefinition(
-            "test-workflow", "other",
-            List.of(), List.of())));
+            "workflows",
+            Map.of(
+                "other-wf",
+                new WorkflowDefinition("test-workflow", "other", List.of(), List.of())));
 
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
     when(configService.getWorkflow(sessionId, "missing-wf"))

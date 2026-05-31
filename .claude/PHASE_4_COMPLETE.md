@@ -148,7 +148,7 @@ PauseWorkflowCommandProcessor.process()
   • Applies pause control
   • Emits "PAUSED" event to TaskTrackerService
   ↓
-taskTracker.emitWorkflowStatusEvent("PAUSED")
+taskTrackerService.emitWorkflowStatusEvent("PAUSED")
   ↓
 StatusSink emits WorkflowProgress
   ↓
@@ -237,7 +237,7 @@ public class ExecutionController {
 @Test
 void testPauseEmitsEvent() {
   // Verify processor emits PAUSED event after applying pause
-  taskTracker.emitWorkflowStatusEvent(...)
+  taskTrackerService.emitWorkflowStatusEvent(...)
 }
 
 @Test

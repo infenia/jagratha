@@ -17,7 +17,6 @@ package com.infenia.yukta.service.orchestrator.stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
@@ -25,30 +24,39 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class StreamTopologyDecoratorTest {
 
+  @Mock private MessageStore messageStore;
+
+  @Mock private DefaultTaskTrackerServiceService tracker;
+
+  private NodeCheckpointStore checkpointStore;
   private StreamTopologyDecorator decorator;
 
   @BeforeEach
   void setUp() {
-    MessageStore messageStore = mock(MessageStore.class);
-    TaskTrackerService tracker = mock(TaskTrackerService.class);
-    NodeCheckpointStore checkpointStore = new InMemoryNodeCheckpointStore();
+    checkpointStore = new InMemoryNodeCheckpointStore();
     decorator = new StreamTopologyDecorator(messageStore, tracker, checkpointStore);
-
     when(messageStore.store(any())).thenReturn(Mono.empty());
   }
 
@@ -165,7 +173,6 @@ class StreamTopologyDecoratorTest {
     final List<Disposable> disposables = new ArrayList<>();
     final List<Runnable> connectors = new ArrayList<>();
 
-    final TaskTrackerService tracker = mock(TaskTrackerService.class);
     final NodeCheckpointStore checkpointStore = new InMemoryNodeCheckpointStore();
     final StreamTopologyDecorator decoratorWithoutStore =
         new StreamTopologyDecorator(null, tracker, checkpointStore);

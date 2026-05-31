@@ -20,9 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
@@ -33,32 +31,27 @@ import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import com.infenia.yukta.service.orchestrator.AssemblyContext;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 @DisplayName("ProcessorNodeAssemblerStrategy")
-@ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
+@MockitoSettings
 class ProcessorNodeAssemblerStrategyTest {
 
-  @Mock private TaskTrackerService tracker;
+  @Mock private DefaultTaskTrackerServiceService tracker;
   @Mock private ControlBusGateway controlBusGateway;
   @Mock private StreamTopologyDecorator streamTopologyDecorator;
 
@@ -127,7 +120,13 @@ class ProcessorNodeAssemblerStrategyTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
-    when(control.nodeSkipFlags()).thenReturn(Collections.emptyMap());
+    when(control.nodeSkipFlags()).thenReturn(new java.util.HashMap<>());
+
+    when(streamTopologyDecorator.mergeParentStreams(any(Flux[].class), any(ParentEdgeInfo[].class)))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
 
     Flux<Message<?>>[] streams = new Flux[1];
     AssemblyContext context =
@@ -141,12 +140,6 @@ class ProcessorNodeAssemblerStrategyTest {
             new ArrayList<>(),
             new ArrayList<>(),
             new ArrayList<>());
-
-    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
-        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
-    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
-            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
-        .thenAnswer(inv -> inv.getArgument(2));
 
     NodeAssembler assembler =
         strategy.createAssembler(
@@ -171,7 +164,13 @@ class ProcessorNodeAssemblerStrategyTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
-    when(control.nodeSkipFlags()).thenReturn(Collections.emptyMap());
+    when(control.nodeSkipFlags()).thenReturn(new java.util.HashMap<>());
+
+    when(streamTopologyDecorator.mergeParentStreams(any(Flux[].class), any(ParentEdgeInfo[].class)))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
 
     Flux<Message<?>>[] streams = new Flux[1];
     AssemblyContext context =
@@ -185,12 +184,6 @@ class ProcessorNodeAssemblerStrategyTest {
             new ArrayList<>(),
             new ArrayList<>(),
             new ArrayList<>());
-
-    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
-        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
-    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
-            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
-        .thenAnswer(inv -> inv.getArgument(2));
 
     NodeAssembler assembler =
         strategy.createAssembler(
@@ -206,7 +199,6 @@ class ProcessorNodeAssemblerStrategyTest {
   @DisplayName("createAssembler skips processing when node has skip flag set to true")
   void createAssemblerWithNodeSkipFlagTrue() {
     ProcessorPlugin processor = mock(ProcessorPlugin.class);
-    when(processor.isBlocking()).thenReturn(false);
 
     WorkflowNode node = new WorkflowNode("proc-skip", "processor-type", Map.of());
     AtomicBoolean skipFlag = new AtomicBoolean(true);
@@ -215,7 +207,15 @@ class ProcessorNodeAssemblerStrategyTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
-    when(control.nodeSkipFlags()).thenReturn(Map.of("proc-skip", skipFlag));
+    Map<String, AtomicBoolean> skipFlags = new java.util.HashMap<>();
+    skipFlags.put("proc-skip", skipFlag);
+    when(control.nodeSkipFlags()).thenReturn(skipFlags);
+
+    when(streamTopologyDecorator.mergeParentStreams(any(Flux[].class), any(ParentEdgeInfo[].class)))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
 
     Flux<Message<?>>[] streams = new Flux[1];
     AssemblyContext context =
@@ -230,12 +230,6 @@ class ProcessorNodeAssemblerStrategyTest {
             new ArrayList<>(),
             new ArrayList<>());
 
-    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
-        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
-    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
-            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
-        .thenAnswer(inv -> inv.getArgument(2));
-
     NodeAssembler assembler =
         strategy.createAssembler(
             node, processor, Duration.ofSeconds(30), 0, 1024, new ParentEdgeInfo[0]);
@@ -243,8 +237,7 @@ class ProcessorNodeAssemblerStrategyTest {
     assembler.assemble(context);
 
     assertThat(streams[0]).isNotNull();
-    // processor.process should not be called when skip flag is true
-    verify(processor, org.mockito.Mockito.never()).process(any(), any());
+    verify(processor, never()).process(any(), any());
   }
 
   @Test
@@ -262,7 +255,15 @@ class ProcessorNodeAssemblerStrategyTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
-    when(control.nodeSkipFlags()).thenReturn(Map.of("proc-no-skip", skipFlag));
+    Map<String, AtomicBoolean> skipFlags = new java.util.HashMap<>();
+    skipFlags.put("proc-no-skip", skipFlag);
+    when(control.nodeSkipFlags()).thenReturn(skipFlags);
+
+    when(streamTopologyDecorator.mergeParentStreams(any(Flux[].class), any(ParentEdgeInfo[].class)))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
 
     Flux<Message<?>>[] streams = new Flux[1];
     AssemblyContext context =
@@ -276,12 +277,6 @@ class ProcessorNodeAssemblerStrategyTest {
             new ArrayList<>(),
             new ArrayList<>(),
             new ArrayList<>());
-
-    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
-        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
-    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
-            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
-        .thenAnswer(inv -> inv.getArgument(2));
 
     NodeAssembler assembler =
         strategy.createAssembler(
@@ -307,10 +302,17 @@ class ProcessorNodeAssemblerStrategyTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
-    when(control.nodeSkipFlags()).thenReturn(Collections.emptyMap());
+    when(control.nodeSkipFlags()).thenReturn(new java.util.HashMap<>());
 
     Flux<Message<?>>[] streams = new Flux[2];
     ParentEdgeInfo[] parentEdges = new ParentEdgeInfo[2];
+
+    when(streamTopologyDecorator.mergeParentStreams(any(Flux[].class), any(ParentEdgeInfo[].class)))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "merged")));
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
+
     AssemblyContext context =
         new AssemblyContext(
             "exec-merge",
@@ -322,12 +324,6 @@ class ProcessorNodeAssemblerStrategyTest {
             new ArrayList<>(),
             new ArrayList<>(),
             new ArrayList<>());
-
-    when(streamTopologyDecorator.mergeParentStreams(any(), eq(parentEdges)))
-        .thenReturn(Flux.just(DefaultMessage.create(null, "merged")));
-    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
-            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
-        .thenAnswer(inv -> inv.getArgument(2));
 
     NodeAssembler assembler =
         strategy.createAssembler(node, processor, Duration.ofSeconds(30), 0, 1024, parentEdges);
@@ -351,7 +347,13 @@ class ProcessorNodeAssemblerStrategyTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
-    when(control.nodeSkipFlags()).thenReturn(Collections.emptyMap());
+    when(control.nodeSkipFlags()).thenReturn(new java.util.HashMap<>());
+
+    when(streamTopologyDecorator.mergeParentStreams(any(Flux[].class), any(ParentEdgeInfo[].class)))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
 
     Flux<Message<?>>[] streams = new Flux[1];
     AssemblyContext context =
@@ -365,12 +367,6 @@ class ProcessorNodeAssemblerStrategyTest {
             new ArrayList<>(),
             new ArrayList<>(),
             new ArrayList<>());
-
-    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
-        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
-    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
-            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
-        .thenAnswer(inv -> inv.getArgument(2));
 
     NodeAssembler assembler =
         strategy.createAssembler(
@@ -395,7 +391,13 @@ class ProcessorNodeAssemblerStrategyTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
-    when(control.nodeSkipFlags()).thenReturn(Collections.emptyMap());
+    when(control.nodeSkipFlags()).thenReturn(new java.util.HashMap<>());
+
+    when(streamTopologyDecorator.mergeParentStreams(any(Flux[].class), any(ParentEdgeInfo[].class)))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
 
     Flux<Message<?>>[] streams = new Flux[3];
     AssemblyContext context =
@@ -409,12 +411,6 @@ class ProcessorNodeAssemblerStrategyTest {
             new ArrayList<>(),
             new ArrayList<>(),
             new ArrayList<>());
-
-    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
-        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
-    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
-            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
-        .thenAnswer(inv -> inv.getArgument(2));
 
     NodeAssembler assembler =
         strategy.createAssembler(
@@ -441,7 +437,13 @@ class ProcessorNodeAssemblerStrategyTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
-    when(control.nodeSkipFlags()).thenReturn(Collections.emptyMap());
+    when(control.nodeSkipFlags()).thenReturn(new java.util.HashMap<>());
+
+    when(streamTopologyDecorator.mergeParentStreams(any(Flux[].class), any(ParentEdgeInfo[].class)))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
 
     Flux<Message<?>>[] streams = new Flux[1];
     ArrayList<Runnable> connectors = new ArrayList<>();
@@ -456,12 +458,6 @@ class ProcessorNodeAssemblerStrategyTest {
             new ArrayList<>(),
             new ArrayList<>(),
             connectors);
-
-    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
-        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
-    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
-            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
-        .thenAnswer(inv -> inv.getArgument(2));
 
     NodeAssembler assembler =
         strategy.createAssembler(
@@ -488,7 +484,13 @@ class ProcessorNodeAssemblerStrategyTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
-    when(control.nodeSkipFlags()).thenReturn(Collections.emptyMap());
+    when(control.nodeSkipFlags()).thenReturn(new java.util.HashMap<>());
+
+    when(streamTopologyDecorator.mergeParentStreams(any(Flux[].class), any(ParentEdgeInfo[].class)))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
 
     Flux<Message<?>>[] streams = new Flux[1];
     Map<String, Object> payload = Map.of("key", "value");
@@ -503,12 +505,6 @@ class ProcessorNodeAssemblerStrategyTest {
             new ArrayList<>(),
             new ArrayList<>(),
             new ArrayList<>());
-
-    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
-        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
-    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
-            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
-        .thenAnswer(inv -> inv.getArgument(2));
 
     NodeAssembler assembler =
         strategy.createAssembler(
@@ -534,7 +530,13 @@ class ProcessorNodeAssemblerStrategyTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
-    when(control.nodeSkipFlags()).thenReturn(Collections.emptyMap());
+    when(control.nodeSkipFlags()).thenReturn(new java.util.HashMap<>());
+
+    when(streamTopologyDecorator.mergeParentStreams(any(Flux[].class), any(ParentEdgeInfo[].class)))
+        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
 
     Flux<Message<?>>[] streams = new Flux[1];
     AssemblyContext context =
@@ -548,12 +550,6 @@ class ProcessorNodeAssemblerStrategyTest {
             new ArrayList<>(),
             new ArrayList<>(),
             new ArrayList<>());
-
-    when(streamTopologyDecorator.mergeParentStreams(any(), any()))
-        .thenReturn(Flux.just(DefaultMessage.create(null, "input")));
-    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
-            anyString(), anyString(), any(Flux.class), anyInt(), any(), any()))
-        .thenAnswer(inv -> inv.getArgument(2));
 
     NodeAssembler assembler =
         strategy.createAssembler(

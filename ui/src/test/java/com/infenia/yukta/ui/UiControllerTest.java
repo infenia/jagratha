@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.SessionService;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +40,7 @@ class UiControllerTest {
   @MockitoBean private SessionService sessionService;
   @MockitoBean private LogRetrievalService logRetrievalService;
 
-  @MockitoBean private TaskTrackerService taskTrackerService;
+  @MockitoBean private DefaultTaskTrackerServiceService defaultTaskTrackerService;
   @MockitoBean private WorkflowRegistry workflowRegistry;
   @MockitoBean private com.infenia.yukta.service.ControlBusService controlBusService;
 
@@ -48,8 +48,8 @@ class UiControllerTest {
 
   @Test
   void testStreamLogs() {
-    when(taskTrackerService.getLatestExecutionId(anyString(), anyString())).thenReturn("exec-1");
-    when(taskTrackerService.getLogStream(anyString())).thenReturn(Flux.empty());
+    when(defaultTaskTrackerService.getLatestExecutionId(anyString(), anyString())).thenReturn("exec-1");
+    when(defaultTaskTrackerService.getLogStream(anyString())).thenReturn(Flux.empty());
     webTestClient
         .get()
         .uri("/ui/api/sessions/session1/wf1/logs/stream")
@@ -62,8 +62,8 @@ class UiControllerTest {
 
   @Test
   void testStreamStatus() {
-    when(taskTrackerService.getLatestExecutionId(anyString(), anyString())).thenReturn("exec-1");
-    when(taskTrackerService.getStatusStream(anyString())).thenReturn(Flux.empty());
+    when(defaultTaskTrackerService.getLatestExecutionId(anyString(), anyString())).thenReturn("exec-1");
+    when(defaultTaskTrackerService.getStatusStream(anyString())).thenReturn(Flux.empty());
     webTestClient
         .get()
         .uri("/ui/api/sessions/session1/wf1/status/stream")

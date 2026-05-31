@@ -66,6 +66,7 @@ class PluginInterfaceTest {
             "payload",
             java.time.Instant.now(),
             null,
+            null,
             null);
 
     assertEquals("value", msg.getMetadata().get("key"));

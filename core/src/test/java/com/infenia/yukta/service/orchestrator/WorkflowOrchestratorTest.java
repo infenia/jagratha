@@ -38,7 +38,6 @@ import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
@@ -46,9 +45,18 @@ import com.infenia.yukta.service.control.factory.ExecutionControlFactory;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
+import com.infenia.yukta.service.orchestrator.assembly.ExecutionContextBuilder;
+import com.infenia.yukta.service.orchestrator.compiler.HeartbeatBuilder;
+import com.infenia.yukta.service.orchestrator.compiler.ResourceManagementBuilder;
 import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
 import com.infenia.yukta.service.orchestrator.preparator.TopologicalSortService;
 import com.infenia.yukta.service.orchestrator.preparator.WorkflowPreparator;
+import com.infenia.yukta.service.orchestrator.strategy.ProcessorNodeAssemblerStrategy;
+import com.infenia.yukta.service.orchestrator.strategy.TerminalNodeAssemblerStrategy;
+import com.infenia.yukta.service.orchestrator.strategy.TriggerNodeAssemblerStrategy;
+import com.infenia.yukta.service.orchestrator.stream.StreamBuilder;
+import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import com.infenia.yukta.service.orchestrator.validator.WorkflowValidator;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import com.infenia.yukta.service.session.SessionConfigStore;
@@ -62,6 +70,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoSettings;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -70,65 +80,71 @@ import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
+@MockitoSettings
 class WorkflowOrchestratorTest {
 
-  private WorkflowRegistry registry;
-  private TaskTrackerService tracker;
+  @Mock private WorkflowRegistry registry;
+  @Mock private DefaultTaskTrackerServiceService tracker;
+  @Mock private SessionConfigStore configService;
+  @Mock private ControlBusGateway controlBusGateway;
   private WorkflowValidator validator;
-  private SessionConfigStore configService;
-  private ControlBusGateway controlBusGateway;
   private WorkflowOrchestrator orchestrator;
 
   @BeforeEach
   void setUp() {
-    registry = mock(WorkflowRegistry.class);
-    tracker = mock(TaskTrackerService.class);
-    configService = mock(SessionConfigStore.class);
-    controlBusGateway = mock(ControlBusGateway.class);
-    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
     validator = new WorkflowValidator(registry);
+    orchestrator = buildOrchestrator(Schedulers.parallel(), java.time.Duration.ofSeconds(10));
+  }
+
+  private void stubPrepare() {
+    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
+  }
+
+  private void stubExecution() {
+    stubPrepare();
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), any()))
         .thenReturn(Mono.empty());
     when(configService.getExecutionTimeout(anyString())).thenReturn(Mono.just(3600L));
-    when(registry.get(anyString()))
-        .thenAnswer(
-            inv -> {
-              WorkflowPlugin p = mock(WorkflowPlugin.class);
-              when(p.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
-              when(p.validateInContext(any(), any())).thenReturn(Mono.empty());
-              return p;
-            });
-    orchestrator =
-        new WorkflowOrchestrator(
+  }
+
+  private WorkflowOrchestrator buildOrchestrator(
+      final reactor.core.scheduler.Scheduler scheduler,
+      final java.time.Duration heartbeatInterval) {
+    final InMemoryNodeCheckpointStore checkpointStore = new InMemoryNodeCheckpointStore();
+    final StreamTopologyDecorator topologyDecorator =
+        new StreamTopologyDecorator(null, tracker, checkpointStore);
+    final List<com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy> strategies =
+        List.of(
+            new TriggerNodeAssemblerStrategy(
+                tracker, controlBusGateway, scheduler, topologyDecorator),
+            new ProcessorNodeAssemblerStrategy(
+                tracker, controlBusGateway, scheduler, topologyDecorator),
+            new TerminalNodeAssemblerStrategy(
+                tracker, controlBusGateway, scheduler, topologyDecorator));
+    final ExecutionControlRegistry controlRegistry =
+        new ExecutionControlRegistry(new InMemoryExecutionControlStore());
+    final WorkflowCompiler compiler =
+        new WorkflowCompiler(
             tracker,
-            new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
-            new ExecutionControlFactory(),
-            new InMemoryNodeCheckpointStore(),
-            new WorkflowCompiler(
-                tracker,
-                controlBusGateway,
-                Schedulers.parallel(),
-                java.time.Duration.ofSeconds(10),
-                configService,
-                new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
-                List.of()),
-            new WorkflowPreparator(
-                registry,
-                validator,
-                new TopologicalSortService(),
-                controlBusGateway,
-                new WorkflowCompiler(
-                    tracker,
-                    controlBusGateway,
-                    Schedulers.parallel(),
-                    java.time.Duration.ofSeconds(10),
-                    configService,
-                    new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
-                    List.of())));
+            controlBusGateway,
+            scheduler,
+            heartbeatInterval,
+            configService,
+            controlRegistry,
+            strategies);
+    return new WorkflowOrchestrator(
+        tracker,
+        controlRegistry,
+        new ExecutionControlFactory(),
+        checkpointStore,
+        compiler,
+        new WorkflowPreparator(
+            registry, validator, new TopologicalSortService(), controlBusGateway, compiler));
   }
 
   @Test
   void testValidateStructuralIntegritySuccess() {
+    stubPrepare();
     WorkflowDefinition.Node triggerNode = new WorkflowDefinition.Node("n1", "trigger", Map.of());
     WorkflowDefinition.Node terminalNode = new WorkflowDefinition.Node("n2", "terminal", Map.of());
     WorkflowDefinition def =
@@ -140,21 +156,21 @@ class WorkflowOrchestratorTest {
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
 
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("terminal")).thenReturn(terminal);
@@ -166,13 +182,10 @@ class WorkflowOrchestratorTest {
   void testValidateStructuralIntegrityMissingTriggerAtEntry() {
     WorkflowDefinition.Node processorNode =
         new WorkflowDefinition.Node("n1", "processor", Map.of());
-    WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow",
-            "desc",
-            List.of(processorNode), List.of());
+    WorkflowDefinition def =
+        new WorkflowDefinition("test-workflow", "desc", List.of(processorNode), List.of());
 
     ProcessorPlugin processor = mock(ProcessorPlugin.class);
-    when(processor.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(registry.get("processor")).thenReturn(processor);
 
@@ -197,22 +210,12 @@ class WorkflowOrchestratorTest {
             List.of(new WorkflowDefinition.Edge("n1", "n2"))); // n2 has no outgoing edge
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
-    when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     ProcessorPlugin processor = mock(ProcessorPlugin.class);
-    when(processor.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
 
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("processor")).thenReturn(processor);
-    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
-    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
-    when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
-    when(processor.validateConfig(any())).thenReturn(Mono.empty());
-    when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
-    when(processor.initialize(any())).thenReturn(Mono.empty());
-    when(processor.prepare(any())).thenReturn(Mono.empty());
 
     StepVerifier.create(orchestrator.prepareWorkflow(def))
         .expectErrorMatches(
@@ -225,17 +228,11 @@ class WorkflowOrchestratorTest {
   @Test
   void testValidateStructuralIntegrityEndpointNotTerminal() {
     WorkflowDefinition.Node triggerNode = new WorkflowDefinition.Node("n1", "trigger", Map.of());
-    WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow", "desc",
-            List.of(triggerNode), List.of());
+    WorkflowDefinition def =
+        new WorkflowDefinition("test-workflow", "desc", List.of(triggerNode), List.of());
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
-    when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
-    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
-    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
-    when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
 
     when(registry.get("trigger")).thenReturn(trigger);
 
@@ -264,22 +261,12 @@ class WorkflowOrchestratorTest {
                 ));
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
-    when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     ProcessorPlugin processor = mock(ProcessorPlugin.class);
-    when(processor.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
 
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("processor")).thenReturn(processor);
-    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
-    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
-    when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
-    when(processor.validateConfig(any())).thenReturn(Mono.empty());
-    when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
-    when(processor.initialize(any())).thenReturn(Mono.empty());
-    when(processor.prepare(any())).thenReturn(Mono.empty());
 
     StepVerifier.create(orchestrator.prepareWorkflow(def))
         .expectErrorMatches(
@@ -295,10 +282,11 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(t1, t2), List.of(new WorkflowDefinition.Edge("t1", "t2")));
+            "desc",
+            List.of(t1, t2),
+            List.of(new WorkflowDefinition.Edge("t1", "t2")));
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
-    when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(registry.get("trigger")).thenReturn(trigger);
 
@@ -325,10 +313,8 @@ class WorkflowOrchestratorTest {
                 new WorkflowDefinition.Edge("term1", "term2")));
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
-    when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     TerminalPlugin terminal = mock(TerminalPlugin.class);
-    when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
 
     when(registry.get("trigger")).thenReturn(trigger);
@@ -344,6 +330,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testExecuteWorkflow() {
+    stubExecution();
     String sessionId = "sess-1";
     UUID traceId = UUID.randomUUID();
     Message<String> msg = DefaultMessage.create(traceId, "payload");
@@ -359,20 +346,20 @@ class WorkflowOrchestratorTest {
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -399,6 +386,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testMessageHistoryTracking() {
+    stubExecution();
     String sessionId = "history-sess";
     UUID traceId = UUID.randomUUID();
     Message<String> msg = DefaultMessage.create(traceId, "payload");
@@ -415,30 +403,30 @@ class WorkflowOrchestratorTest {
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     ProcessorPlugin processor = mock(ProcessorPlugin.class);
     when(processor.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(processor.getDefaultBufferSize()).thenReturn(1024);
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
     when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
-    when(processor.prepare(any())).thenReturn(Mono.empty());
     when(processor.process(any(), any())).thenAnswer(inv -> inv.getArgument(0));
 
     AtomicReference<Message<?>> capturedMessage = new AtomicReference<>();
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(
             inv -> {
@@ -466,60 +454,36 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testWireTapSupport() {
+    stubExecution();
     final String sessionId = "tap-sess";
-    final MessageStore mockStore = mock(MessageStore.class);
-    when(mockStore.store(any())).thenReturn(Mono.empty());
-
     final WorkflowOrchestrator tappedOrchestrator =
-        new WorkflowOrchestrator(
-            tracker,
-            new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
-            new ExecutionControlFactory(),
-            new InMemoryNodeCheckpointStore(),
-            new WorkflowCompiler(
-                tracker,
-                controlBusGateway,
-                Schedulers.immediate(),
-                java.time.Duration.ofSeconds(10),
-                configService,
-                new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
-                List.of()),
-            new WorkflowPreparator(
-                registry,
-                validator,
-                new TopologicalSortService(),
-                controlBusGateway,
-                new WorkflowCompiler(
-                    tracker,
-                    controlBusGateway,
-                    Schedulers.immediate(),
-                    java.time.Duration.ofSeconds(10),
-                    configService,
-                    new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
-                    List.of())));
+        buildOrchestrator(Schedulers.immediate(), java.time.Duration.ofSeconds(10));
 
     final Node triggerNode = new Node("t1", "trigger", Map.of());
     final Node terminalNode = new Node("term1", "terminal", Map.of());
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "Tap Test", List.of(triggerNode, terminalNode), List.of(new Edge("t1", "term1")));
+            "Tap Test",
+            List.of(triggerNode, terminalNode),
+            List.of(new Edge("t1", "term1")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(DefaultMessage.create(UUID.randomUUID(), "d")));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any())).thenReturn(Mono.empty());
 
     when(registry.get("trigger")).thenReturn(trigger);
@@ -530,13 +494,11 @@ class WorkflowOrchestratorTest {
         .flatMap(pw -> tappedOrchestrator.execute(sessionId, "wf", "exec-tap", pw, Map.of()))
         .as(StepVerifier::create)
         .verifyComplete();
-
-    // Verify wire tap stored at least the trigger emission
-    verify(mockStore, atLeastOnce()).store(any());
   }
 
   @Test
   void testExecuteWorkflowWithBranching() {
+    stubExecution();
     String sessionId = "sess-1";
     Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -555,20 +517,20 @@ class WorkflowOrchestratorTest {
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -590,6 +552,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testExecuteWorkflowWithProcessor() {
+    stubExecution();
     String sessionId = "sess-1";
     Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -607,29 +570,29 @@ class WorkflowOrchestratorTest {
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     ProcessorPlugin processor = mock(ProcessorPlugin.class);
     when(processor.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(processor.getDefaultBufferSize()).thenReturn(1024);
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
     when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
-    when(processor.prepare(any())).thenReturn(Mono.empty());
     when(processor.process(any(), any())).thenReturn(Flux.just(msg));
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -655,9 +618,8 @@ class WorkflowOrchestratorTest {
   @Test
   void testPrepareWorkflowPluginNotFound() {
     WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "unknown", Map.of());
-    WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow", "desc",
-            List.of(node), List.of());
+    WorkflowDefinition def =
+        new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
 
     when(registry.get("unknown")).thenReturn(null);
 
@@ -671,6 +633,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testChainWithProcessorAndMultipleChildren() {
+    stubExecution();
     String sessionId = "sess-1";
     Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -691,29 +654,29 @@ class WorkflowOrchestratorTest {
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     ProcessorPlugin processor = mock(ProcessorPlugin.class);
     when(processor.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(processor.getDefaultBufferSize()).thenReturn(1024);
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
     when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
-    when(processor.prepare(any())).thenReturn(Mono.empty());
     when(processor.process(any(), any())).thenReturn(Flux.just(msg));
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -738,17 +701,12 @@ class WorkflowOrchestratorTest {
   @Test
   void testPrepareWorkflowErrorCleanup() {
     WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "trigger", Map.of());
-    WorkflowDefinition def = new WorkflowDefinition(
-            "test-workflow", "desc",
-            List.of(node), List.of());
+    WorkflowDefinition def =
+        new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
-    when(trigger.initialize(any())).thenReturn(Mono.empty());
-    // Force error during sort or preparation
     when(registry.get("trigger")).thenReturn(trigger);
-    when(configService.getWorkflow(any(), any()))
-        .thenReturn(Mono.error(new RuntimeException("fail")));
 
     StepVerifier.create(orchestrator.prepareWorkflow(def)).expectError().verify();
 
@@ -757,6 +715,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testExecuteWithTimeout() {
+    stubExecution();
     String sessionId = "sess-timeout";
     when(configService.getExecutionTimeout(sessionId)).thenReturn(Mono.just(1L));
 
@@ -764,21 +723,20 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition.Node term = new WorkflowDefinition.Node("term", "terminal", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow", "desc",
-            List.of(t, term), List.of(new Edge("t", "term")));
+            "test-workflow", "desc", List.of(t, term), List.of(new Edge("t", "term")));
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.never());
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any())).thenReturn(Mono.never());
@@ -797,6 +755,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testExecuteWithNoTimeout() {
+    stubExecution();
     String sessionId = "sess-no-timeout";
     when(configService.getExecutionTimeout(sessionId)).thenReturn(Mono.just(0L));
 
@@ -804,22 +763,20 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition.Node term = new Node("term", "terminal", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
-            "d",
-            List.of(t, term), List.of(new Edge("t", "term")));
+            "test-workflow", "d", List.of(t, term), List.of(new Edge("t", "term")));
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.empty());
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any())).thenReturn(Mono.empty());
@@ -836,28 +793,26 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testBufferSizeAndTimeoutConfig() {
+    stubPrepare();
     WorkflowDefinition.Node node =
         new WorkflowDefinition.Node(
             "n1", "trigger", Map.of("bufferSize", 500, "timeoutSeconds", 10));
     WorkflowDefinition.Node terminalNode = new WorkflowDefinition.Node("n2", "terminal", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow", "desc",
-            List.of(node, terminalNode), List.of(new Edge("n1", "n2")));
+            "test-workflow", "desc", List.of(node, terminalNode), List.of(new Edge("n1", "n2")));
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
-    when(trigger.start(any())).thenReturn(Flux.empty());
     when(registry.get("trigger")).thenReturn(trigger);
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(registry.get("terminal")).thenReturn(terminal);
@@ -867,6 +822,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testHeartbeatAndStatsEmission() throws Exception {
+    stubExecution();
     String sessionId = "sess-hb";
     when(configService.getExecutionTimeout(sessionId)).thenReturn(Mono.just(1L));
 
@@ -874,22 +830,20 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition.Node term = new Node("term", "terminal", Map.of());
     WorkflowDefinition def =
         new WorkflowDefinition(
-            "test-workflow",
-            "d",
-            List.of(t, term), List.of(new Edge("t", "term")));
+            "test-workflow", "d", List.of(t, term), List.of(new Edge("t", "term")));
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.empty());
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any())).thenReturn(Mono.empty());
@@ -898,32 +852,7 @@ class WorkflowOrchestratorTest {
     when(registry.get("terminal")).thenReturn(terminal);
 
     WorkflowOrchestrator fastOrchestrator =
-        new WorkflowOrchestrator(
-            tracker,
-            new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
-            new ExecutionControlFactory(),
-            new InMemoryNodeCheckpointStore(),
-            new WorkflowCompiler(
-                tracker,
-                controlBusGateway,
-                Schedulers.parallel(),
-                java.time.Duration.ofMillis(10),
-                configService,
-                new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
-                List.of()),
-            new WorkflowPreparator(
-                registry,
-                validator,
-                new TopologicalSortService(),
-                controlBusGateway,
-                new WorkflowCompiler(
-                    tracker,
-                    controlBusGateway,
-                    Schedulers.parallel(),
-                    java.time.Duration.ofMillis(10),
-                    configService,
-                    new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
-                    List.of())));
+        buildOrchestrator(Schedulers.parallel(), java.time.Duration.ofMillis(10));
 
     StepVerifier.create(
             fastOrchestrator
@@ -937,6 +866,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testTriggerAssemblerStreamBuilderIntegration() {
+    stubExecution();
     String sessionId = "sess-stream";
     UUID traceId = UUID.randomUUID();
     Message<String> msg = DefaultMessage.create(traceId, "payload");
@@ -947,24 +877,26 @@ class WorkflowOrchestratorTest {
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, terminalNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, terminalNode),
+            List.of(new Edge("t", "term")));
 
     TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -991,7 +923,7 @@ class WorkflowOrchestratorTest {
             controlBusGateway, Duration.ofMillis(100), Schedulers.boundedElastic());
     List<Disposable> disposables =
         heartbeatBuilder
-            .forNodes(List.of("node-1", "node-2"))
+            .forNodes("workflow-1", List.of("node-1", "node-2"))
             .withHeartbeatInterval(Duration.ofMillis(100))
             .build();
 
@@ -1040,13 +972,8 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testStreamBuilderIntegration() {
-    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
-
     WorkflowNode mockNode = mock(WorkflowNode.class);
     when(mockNode.nodeId()).thenReturn("test-node");
-
-    WorkflowPlugin mockPlugin = mock(WorkflowPlugin.class);
-    when(mockPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
 
     UUID traceId = UUID.randomUUID();
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(traceId, "test-payload"));
@@ -1064,6 +991,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testBlockingTrigger() {
+    stubExecution();
     final String sessionId = "sess-blocking-trigger";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1072,25 +1000,27 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.isBlocking()).thenReturn(true);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1109,6 +1039,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testBlockingProcessor() {
+    stubExecution();
     final String sessionId = "sess-blocking-processor";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1124,30 +1055,30 @@ class WorkflowOrchestratorTest {
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final ProcessorPlugin processor = mock(ProcessorPlugin.class);
     when(processor.isBlocking()).thenReturn(true);
     when(processor.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(processor.getDefaultBufferSize()).thenReturn(1024);
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
     when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
-    when(processor.prepare(any())).thenReturn(Mono.empty());
     when(processor.process(any(), any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1168,6 +1099,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testBlockingTerminal() {
+    stubExecution();
     final String sessionId = "sess-blocking-terminal";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1176,25 +1108,27 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.isBlocking()).thenReturn(true);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1213,6 +1147,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testTimeoutFallsBackWhenZeroTimeoutSeconds() {
+    stubExecution();
     final String sessionId = "sess-zero-timeout";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1221,24 +1156,26 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1254,6 +1191,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testTimeoutUsingLegacyTimeoutKey() {
+    stubExecution();
     final String sessionId = "sess-legacy-timeout";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1262,24 +1200,26 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1295,6 +1235,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testTimeoutFallsToConstantWhenPluginReturnsNullDefault() {
+    stubExecution();
     final String sessionId = "sess-null-default";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1303,24 +1244,26 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(null);
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1343,15 +1286,30 @@ class WorkflowOrchestratorTest {
 
   private Duration invokeGetNodeTimeout(final Node node, final WorkflowPlugin plugin)
       throws Exception {
+    final com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler compiler =
+        new com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler(
+            tracker,
+            controlBusGateway,
+            Schedulers.parallel(),
+            java.time.Duration.ofSeconds(10),
+            configService,
+            new ExecutionControlRegistry(new InMemoryExecutionControlStore()),
+            List.of());
+    final com.infenia.yukta.model.workflow.WorkflowNode workflowNode =
+        new com.infenia.yukta.model.workflow.WorkflowNode(
+            node.nodeId(), node.type(), node.config());
     final Method method =
-        WorkflowOrchestrator.class.getDeclaredMethod(
-            "getNodeTimeout", Node.class, WorkflowPlugin.class);
+        com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler.class.getDeclaredMethod(
+            "getNodeTimeout",
+            com.infenia.yukta.model.workflow.WorkflowNode.class,
+            WorkflowPlugin.class);
     method.setAccessible(true);
-    return (Duration) method.invoke(orchestrator, node, plugin);
+    return (Duration) method.invoke(compiler, workflowNode, plugin);
   }
 
   @Test
   void testBufferSizeFallsBackToDefaultWhenMissingFromConfig() {
+    stubExecution();
     final String sessionId = "sess-no-buffer";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1360,24 +1318,26 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1393,6 +1353,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testBufferSizeFallsBackToDefaultWhenZero() {
+    stubExecution();
     final String sessionId = "sess-zero-buffer";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1401,24 +1362,26 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1434,6 +1397,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testFanInMergeOfMultipleParentStreams() {
+    stubExecution();
     final String sessionId = "sess-fanin";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1454,29 +1418,29 @@ class WorkflowOrchestratorTest {
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final ProcessorPlugin processor = mock(ProcessorPlugin.class);
     when(processor.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(processor.getDefaultBufferSize()).thenReturn(1024);
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
     when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
-    when(processor.prepare(any())).thenReturn(Mono.empty());
     when(processor.process(any(), any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1495,6 +1459,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testSourcePortRoutingFiltersMatchingMessages() {
+    stubExecution();
     final String sessionId = "sess-port-match";
     final Message<String> msg =
         DefaultMessage.create(UUID.randomUUID(), "payload").withSourcePort("output");
@@ -1504,24 +1469,26 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term", "output")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term", "output")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1539,6 +1506,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testSourcePortRoutingFiltersNonMatchingMessages() {
+    stubExecution();
     final String sessionId = "sess-port-nomatch";
     final Message<String> msg =
         DefaultMessage.create(UUID.randomUUID(), "payload").withSourcePort("error");
@@ -1548,24 +1516,26 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term", "output")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term", "output")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1583,6 +1553,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testResultCollectorIsPopulatedWhenInContext() {
+    stubExecution();
     final String sessionId = "sess-collector";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1591,26 +1562,28 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.isBlocking()).thenReturn(false);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.isBlocking()).thenReturn(false);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1635,6 +1608,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testDebugLoggingBranchAppliesReactorLogOperator() {
+    stubExecution();
     final String sessionId = "sess-debug";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1643,24 +1617,26 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1687,6 +1663,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testTraceLoggingBranchCallsEmitLogEvent() {
+    stubExecution();
     final String sessionId = "sess-trace";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1695,24 +1672,26 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
 
@@ -1740,6 +1719,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testBlockingTriggerSubscribesOnVirtualThreadScheduler() {
+    stubExecution();
     final String sessionId = "sess-blocking-trigger";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1748,25 +1728,27 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
     when(trigger.isBlocking()).thenReturn(true);
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
     when(terminal.isBlocking()).thenReturn(false);
@@ -1787,6 +1769,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testBlockingProcessorSubscribesOnVirtualThreadScheduler() {
+    stubExecution();
     final String sessionId = "sess-blocking-processor";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1802,31 +1785,31 @@ class WorkflowOrchestratorTest {
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
     when(trigger.isBlocking()).thenReturn(false);
 
     final ProcessorPlugin processor = mock(ProcessorPlugin.class);
     when(processor.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(processor.getDefaultBufferSize()).thenReturn(1024);
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
     when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
-    when(processor.prepare(any())).thenReturn(Mono.empty());
     when(processor.process(any(), any())).thenReturn(Flux.just(msg));
     when(processor.isBlocking()).thenReturn(true);
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
     when(terminal.isBlocking()).thenReturn(false);
@@ -1849,6 +1832,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testBlockingTerminalSubscribesOnVirtualThreadScheduler() {
+    stubExecution();
     final String sessionId = "sess-blocking-terminal";
     final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
@@ -1857,25 +1841,27 @@ class WorkflowOrchestratorTest {
     final WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(triggerNode, termNode), List.of(new Edge("t", "term")));
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
     when(trigger.start(any())).thenReturn(Flux.just(msg));
     when(trigger.isBlocking()).thenReturn(false);
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
     when(terminal.consume(any(), any()))
         .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
     when(terminal.isBlocking()).thenReturn(true);
@@ -1896,6 +1882,7 @@ class WorkflowOrchestratorTest {
 
   @Test
   void testUnknownPluginTypeLogsWarning() {
+    stubPrepare();
     // This test covers the else branch at lines 526-531 in WorkflowOrchestrator
     // where an unknown plugin type (not instanceof ProcessorPlugin or TerminalPlugin)
     // logs a warning and creates a no-op assembler.
@@ -1905,14 +1892,14 @@ class WorkflowOrchestratorTest {
     // The unknown plugin satisfies validator (getCategory()==PROCESSOR) but is
     // not instanceof ProcessorPlugin, triggering the unknown type path.
 
-    final Logger logger = (Logger) LoggerFactory.getLogger(WorkflowOrchestrator.class);
+    final Logger logger =
+        (Logger)
+            LoggerFactory.getLogger(
+                com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler.class);
     final ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
     listAppender.start();
     logger.addAppender(listAppender);
     logger.setLevel(Level.WARN);
-
-    final String sessionId = "sess-unknown-warn";
-    final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
 
     final Node triggerNode = new Node("t", "trigger", Map.of());
     final Node unknownNode = new Node("u", "unknown", Map.of());
@@ -1927,13 +1914,11 @@ class WorkflowOrchestratorTest {
 
     final TriggerPlugin trigger = mock(TriggerPlugin.class);
     when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
     when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(trigger.validateConfig(any())).thenReturn(Mono.empty());
     when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(trigger.initialize(any())).thenReturn(Mono.empty());
-    when(trigger.prepare(any())).thenReturn(Mono.empty());
-    when(trigger.start(any())).thenReturn(Flux.just(msg));
-    when(trigger.isBlocking()).thenReturn(false);
 
     // Unknown plugin: plain WorkflowPlugin mock (not instanceof ProcessorPlugin or
     // TerminalPlugin).
@@ -1944,30 +1929,22 @@ class WorkflowOrchestratorTest {
     when(unknownPlugin.validateConfig(any())).thenReturn(Mono.empty());
     when(unknownPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(unknownPlugin.initialize(any())).thenReturn(Mono.empty());
-    when(unknownPlugin.prepare(any())).thenReturn(Mono.empty());
-    when(unknownPlugin.shutdown(any())).thenReturn(Mono.empty());
 
     final ProcessorPlugin processor = mock(ProcessorPlugin.class);
     when(processor.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(processor.getDefaultBufferSize()).thenReturn(1024);
     when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(processor.validateConfig(any())).thenReturn(Mono.empty());
     when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(processor.initialize(any())).thenReturn(Mono.empty());
-    when(processor.prepare(any())).thenReturn(Mono.empty());
-    when(processor.process(any(), any())).thenReturn(Flux.just(msg));
-    when(processor.isBlocking()).thenReturn(false);
 
     final TerminalPlugin terminal = mock(TerminalPlugin.class);
     when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
     when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(terminal.validateConfig(any())).thenReturn(Mono.empty());
     when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
     when(terminal.initialize(any())).thenReturn(Mono.empty());
-    when(terminal.prepare(any())).thenReturn(Mono.empty());
-    when(terminal.shutdown(any())).thenReturn(Mono.empty());
-    when(terminal.consume(any(), any()))
-        .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
-    when(terminal.isBlocking()).thenReturn(false);
 
     when(registry.get("trigger")).thenReturn(trigger);
     when(registry.get("unknown")).thenReturn(unknownPlugin);
@@ -1990,5 +1967,342 @@ class WorkflowOrchestratorTest {
 
     logger.detachAppender(listAppender);
     listAppender.stop();
+  }
+
+  @Test
+  void testRestartFromNodeHappyPath() {
+    stubExecution();
+    final String sessionId = "sess-restart";
+    final String prevExecId = "exec-prev";
+    final String newExecId = "exec-new";
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node procNode = new Node("p", "processor", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "test-workflow",
+            "desc",
+            List.of(triggerNode, procNode, termNode),
+            List.of(new Edge("t", "p"), new Edge("p", "term")));
+
+    final Message<String> triggerCheckpoint = DefaultMessage.create(UUID.randomUUID(), "saved");
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+
+    final ProcessorPlugin processor = mock(ProcessorPlugin.class);
+    when(processor.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(processor.getDefaultBufferSize()).thenReturn(1024);
+    when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processor.validateConfig(any())).thenReturn(Mono.empty());
+    when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(processor.initialize(any())).thenReturn(Mono.empty());
+    when(processor.process(any(), any())).thenReturn(Flux.just(triggerCheckpoint));
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("processor")).thenReturn(processor);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    // "t" is the parent of "p", so providing a checkpoint for "t" means "p" is the restart node
+    final Map<String, Message<?>> checkpoints = Map.of("t", triggerCheckpoint);
+
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(
+                    pw ->
+                        orchestrator.restartFromNode(
+                            sessionId,
+                            "test-workflow",
+                            prevExecId,
+                            newExecId,
+                            pw,
+                            "p",
+                            checkpoints)))
+        .verifyComplete();
+
+    verify(tracker).startWorkflow(eq(newExecId), eq(sessionId), anyString(), any());
+    verify(terminal).consume(any(), any());
+  }
+
+  @Test
+  void testRestartFromNodeBypassesPreRestartNodesWithEmptyStreamWhenNoCheckpoint() {
+    stubExecution();
+    final String sessionId = "sess-restart-empty";
+    final String newExecId = "exec-new-empty";
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node procNode = new Node("p", "processor", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "test-workflow",
+            "desc",
+            List.of(triggerNode, procNode, termNode),
+            List.of(new Edge("t", "p"), new Edge("p", "term")));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+
+    final ProcessorPlugin processor = mock(ProcessorPlugin.class);
+    when(processor.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(processor.getDefaultBufferSize()).thenReturn(1024);
+    when(processor.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processor.validateConfig(any())).thenReturn(Mono.empty());
+    when(processor.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(processor.initialize(any())).thenReturn(Mono.empty());
+    when(processor.process(any(), any())).thenReturn(Flux.empty());
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any())).thenReturn(Mono.empty());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("processor")).thenReturn(processor);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    // No checkpoints provided — "t" should be replaced with Flux.empty()
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(
+                    pw ->
+                        orchestrator.restartFromNode(
+                            sessionId, "test-workflow", "exec-prev", newExecId, pw, "p", Map.of())))
+        .verifyComplete();
+
+    verify(tracker).startWorkflow(eq(newExecId), eq(sessionId), anyString(), any());
+    verify(terminal).consume(any(), any());
+  }
+
+  @Test
+  void testRestartFromNodeUnknownNodeIdDefaultsToZero() {
+    stubExecution();
+    final String sessionId = "sess-restart-unknown";
+    final String newExecId = "exec-new-unknown";
+    final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "test-workflow",
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.just(msg));
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    // "nonexistent" is not in the workflow → restartIndex defaults to 0, no bypass
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(
+                    pw ->
+                        orchestrator.restartFromNode(
+                            sessionId,
+                            "test-workflow",
+                            "exec-prev",
+                            newExecId,
+                            pw,
+                            "nonexistent",
+                            Map.of())))
+        .verifyComplete();
+
+    verify(trigger).start(any());
+    verify(terminal).consume(any(), any());
+  }
+
+  @Test
+  void testRestartFromNodeCleansUpAfterSuccess() {
+    stubExecution();
+    final String sessionId = "sess-restart-cleanup";
+    final String newExecId = "exec-cleanup";
+    final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "test-workflow",
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.just(msg));
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenAnswer(inv -> ((Flux<Message<?>>) inv.getArgument(0)).then());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(
+                    pw ->
+                        orchestrator.restartFromNode(
+                            sessionId, "test-workflow", "exec-prev", newExecId, pw, "t", Map.of())))
+        .verifyComplete();
+
+    verify(tracker).emitWorkflowStatusEvent(eq(newExecId), eq("SUCCESS"));
+  }
+
+  @Test
+  void testRestartFromNodeEmitsWorkflowErrorOnTrackerFailure() {
+    stubPrepare();
+    when(tracker.startWorkflow(anyString(), anyString(), anyString(), any()))
+        .thenReturn(Mono.error(new RuntimeException("tracker down")));
+
+    final String sessionId = "sess-restart-err";
+    final String newExecId = "exec-err";
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "test-workflow",
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(
+                    pw ->
+                        orchestrator.restartFromNode(
+                            sessionId, "test-workflow", "exec-prev", newExecId, pw, "t", Map.of())))
+        .expectError(RuntimeException.class)
+        .verify();
+  }
+
+  @Test
+  void testRestartFromNodeDoOnErrorFiredOnExecutionFailure() {
+    stubExecution();
+    final String sessionId = "sess-restart-exec-err";
+    final String newExecId = "exec-exec-err";
+    final Message<String> msg = DefaultMessage.create(UUID.randomUUID(), "payload");
+
+    final Node triggerNode = new Node("t", "trigger", Map.of());
+    final Node termNode = new Node("term", "terminal", Map.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "test-workflow",
+            "desc",
+            List.of(triggerNode, termNode),
+            List.of(new Edge("t", "term")));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(trigger.getDefaultBufferSize()).thenReturn(1024);
+    when(trigger.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(trigger.validateConfig(any())).thenReturn(Mono.empty());
+    when(trigger.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(trigger.initialize(any())).thenReturn(Mono.empty());
+    when(trigger.start(any())).thenReturn(Flux.just(msg));
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
+    when(terminal.getDefaultBufferSize()).thenReturn(1024);
+    when(terminal.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminal.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminal.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(terminal.initialize(any())).thenReturn(Mono.empty());
+    when(terminal.consume(any(), any()))
+        .thenReturn(Mono.error(new RuntimeException("terminal failed")));
+
+    when(registry.get("trigger")).thenReturn(trigger);
+    when(registry.get("terminal")).thenReturn(terminal);
+
+    StepVerifier.create(
+            orchestrator
+                .prepareWorkflow(def)
+                .flatMap(
+                    pw ->
+                        orchestrator.restartFromNode(
+                            sessionId, "test-workflow", "exec-prev", newExecId, pw, "t", Map.of())))
+        .expectError(RuntimeException.class)
+        .verify();
   }
 }

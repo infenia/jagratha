@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
-import com.infenia.yukta.plugin.message.control.ControlCommand;
+import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.service.control.ControlBusService;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
@@ -89,19 +89,12 @@ class DirectiveDispatcherTest {
   @Test
   void testDispatchStopCommand() {
     final String executionId = "exec-1";
-    final String sessionId = "session-1";
-    final String workflowId = "workflow-1";
 
-    final ExecutionControl control = createControl(sessionId, workflowId, executionId);
+    final ExecutionControl control = createControl("session-1", "workflow-1", executionId);
     registry.register(control);
 
-    final ControlCommand command =
-        new ControlCommand(
-            ControlCommand.CommandType.STOP,
-            workflowId,
-            sessionId,
-            null,
-            Map.of("reason", "User requested"));
+    final ExecutionControlCommand command =
+        new ExecutionControlCommand.StopNodeCommand(executionId, "node-1", false, "User requested");
 
     when(processor.canProcess(command)).thenReturn(true);
     when(processor.getPriority()).thenReturn(0);
@@ -115,9 +108,8 @@ class DirectiveDispatcherTest {
 
   @Test
   void testDispatchNoActiveExecution() {
-    final ControlCommand command =
-        new ControlCommand(
-            ControlCommand.CommandType.STOP, "workflow-1", "session-1", null, Map.of());
+    final ExecutionControlCommand command =
+        new ExecutionControlCommand.StopNodeCommand("exec-no-exist", "node-1", false, null);
 
     when(processor.canProcess(command)).thenReturn(true);
     when(processor.getPriority()).thenReturn(0);
@@ -130,15 +122,11 @@ class DirectiveDispatcherTest {
   @Test
   void testDispatchRestartCommand() {
     final String executionId = "exec-1";
-    final String sessionId = "session-1";
-    final String workflowId = "workflow-1";
 
-    final ExecutionControl control = createControl(sessionId, workflowId, executionId);
+    final ExecutionControl control = createControl("session-1", "workflow-1", executionId);
     registry.register(control);
 
-    final ControlCommand command =
-        new ControlCommand(
-            ControlCommand.CommandType.RESTART, workflowId, sessionId, null, Map.of());
+    final ExecutionControlCommand command = new ExecutionControlCommand.RestartCommand(executionId);
 
     when(processor.canProcess(command)).thenReturn(true);
     when(processor.getPriority()).thenReturn(0);
@@ -151,14 +139,13 @@ class DirectiveDispatcherTest {
 
   @Test
   void testDispatchProcessorNotFound() {
-    final String sessionId = "session-1";
-    final String workflowId = "workflow-1";
+    final String executionId = "exec-1";
 
-    final ExecutionControl control = createControl(sessionId, workflowId, "exec-1");
+    final ExecutionControl control = createControl("session-1", "workflow-1", executionId);
     registry.register(control);
 
-    final ControlCommand command =
-        new ControlCommand(ControlCommand.CommandType.STOP, workflowId, sessionId, null, Map.of());
+    final ExecutionControlCommand command =
+        new ExecutionControlCommand.StopNodeCommand(executionId, "node-1", false, null);
 
     when(processor.canProcess(command)).thenReturn(false);
 
@@ -169,10 +156,9 @@ class DirectiveDispatcherTest {
 
   @Test
   void testDispatchMultipleProcessorsPriority() {
-    final String sessionId = "session-1";
-    final String workflowId = "workflow-1";
+    final String executionId = "exec-1";
 
-    final ExecutionControl control = createControl(sessionId, workflowId, "exec-1");
+    final ExecutionControl control = createControl("session-1", "workflow-1", executionId);
     registry.register(control);
 
     final ControlSignalProcessor lowPriorityProcessor = mock(ControlSignalProcessor.class);
@@ -195,9 +181,7 @@ class DirectiveDispatcherTest {
             new com.infenia.yukta.service.store.InMemoryNodeCheckpointStore(),
             controlBusService);
 
-    final ControlCommand command =
-        new ControlCommand(
-            ControlCommand.CommandType.RESTART, workflowId, sessionId, null, Map.of());
+    final ExecutionControlCommand command = new ExecutionControlCommand.RestartCommand(executionId);
 
     StepVerifier.create(multiDispatcher.dispatch(command)).verifyComplete();
 

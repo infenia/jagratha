@@ -33,7 +33,7 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.SkipNode
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StepNodeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopNodeCommand;
 import com.infenia.yukta.service.control.ControlBusService;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +46,8 @@ import reactor.core.publisher.Mono;
  * Default implementation of the {@link ControlBusGateway}.
  *
  * <p>Delegates low-level plugin management and message operations to {@link ControlBusService}, and
- * high-level control commands and observability operations to {@link TaskTrackerService}.
+ * high-level control commands and observability operations to {@link
+ * DefaultTaskTrackerServiceService}.
  */
 @Slf4j
 @Service
@@ -57,7 +58,7 @@ public class DefaultControlBusGateway implements ControlBusGateway {
   private static final int CONTROL_COMMAND_PRIORITY = 100;
 
   private final ControlBusService controlBusService;
-  private final TaskTrackerService taskTracker;
+  private final DefaultTaskTrackerServiceService taskTracker;
 
   private <T extends ExecutionControlCommand> Message<T> buildCommand(
       final T command, final int priority) {

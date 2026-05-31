@@ -21,7 +21,7 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.DisableStepModeCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +40,7 @@ import reactor.core.publisher.Mono;
 public class DisableStepModeCommandProcessor implements ControlSignalProcessor {
 
   private final ExecutionControlRegistry registry;
-  private final TaskTrackerService taskTracker;
+  private final DefaultTaskTrackerServiceService taskTracker;
 
   @Override
   public boolean canProcess(final ExecutionControlCommand command) {

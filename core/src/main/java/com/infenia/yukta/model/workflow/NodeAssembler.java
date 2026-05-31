@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.model.workflow;
 
-import com.infenia.yukta.service.orchestrator.AssemblyContext;
+import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
 
 /**
  * A functional interface for reifying a single node's reactive stream during workflow

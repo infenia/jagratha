@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.orchestrator;
+package com.infenia.yukta.service.orchestrator.compiler;
 
+import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
@@ -31,8 +32,8 @@ import reactor.core.scheduler.Scheduler;
  *
  * <p>ResourceManagementBuilder manages the Mono.using() pattern for resource lifecycle, handling
  * disposables collection, timeouts, terminal completion, and cleanup. It emits workflow status
- * events to TaskTrackerService on completion or error, and executes connector runnables on
- * subscription in reverse order.
+ * events to DefaultTaskTrackerServiceService on completion or error, and executes connector
+ * runnables on subscription in reverse order.
  *
  * <p>Example usage:
  *

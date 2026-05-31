@@ -86,7 +86,9 @@ class InMemorySessionConfigStoreTest {
     WorkflowDefinition workflow =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
+            "desc",
+            List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())),
+            List.of());
     StepVerifier.create(configService.setWorkflows(sessionId, Map.of("w1", workflow)))
         .verifyComplete();
 
@@ -106,9 +108,8 @@ class InMemorySessionConfigStoreTest {
   void testGetSessionIds() {
     configService.setProjectPath("s1", "/p1").block();
     configService
-        .setWorkflows("s2", Map.of("w1", new WorkflowDefinition(
-            "test-workflow", "d",
-            List.of(), List.of())))
+        .setWorkflows(
+            "s2", Map.of("w1", new WorkflowDefinition("test-workflow", "d", List.of(), List.of())))
         .block();
     configService.setInitiator("s3", "i1").block();
     configService.setInitiatedTime("s4", "t1").block();
@@ -172,9 +173,8 @@ class InMemorySessionConfigStoreTest {
     configService.setTags(sessionId, Map.of("k", "v")).block();
     configService.setDescription(sessionId, "Sample").block();
     configService.setProjectPath(sessionId, "/meta/path").block();
-    WorkflowDefinition workflow = new WorkflowDefinition(
-            "test-workflow", "w",
-            List.of(), List.of());
+    WorkflowDefinition workflow =
+        new WorkflowDefinition("test-workflow", "w", List.of(), List.of());
     configService.setWorkflows(sessionId, Map.of("w1", workflow)).block();
 
     StepVerifier.create(configService.getAllConfigs(sessionId))
@@ -198,7 +198,9 @@ class InMemorySessionConfigStoreTest {
     WorkflowDefinition workflow =
         new WorkflowDefinition(
             "test-workflow",
-            "desc", List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
+            "desc",
+            List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())),
+            List.of());
     SessionConfigData data =
         new SessionConfigData(
             sessionId,

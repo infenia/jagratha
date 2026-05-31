@@ -28,7 +28,7 @@ import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.ControlBusService;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,14 +40,14 @@ import reactor.test.StepVerifier;
 class DefaultControlBusGatewayTest {
 
   private ControlBusService controlBusService;
-  private TaskTrackerService taskTrackerService;
+  private DefaultTaskTrackerServiceService defaultTaskTrackerService;
   private DefaultControlBusGateway gateway;
 
   @BeforeEach
   void setUp() {
     controlBusService = mock(ControlBusService.class);
-    taskTrackerService = mock(TaskTrackerService.class);
-    gateway = new DefaultControlBusGateway(controlBusService, taskTrackerService);
+    defaultTaskTrackerService = mock(DefaultTaskTrackerServiceService.class);
+    gateway = new DefaultControlBusGateway(controlBusService, defaultTaskTrackerService);
   }
 
   @Test
@@ -161,22 +161,22 @@ class DefaultControlBusGatewayTest {
   void testWatchExecution() {
     String executionId = "exec-1";
     WorkflowProgress progress = mock(WorkflowProgress.class);
-    when(taskTrackerService.getStatusStream(executionId)).thenReturn(Flux.just(progress));
+    when(defaultTaskTrackerService.getStatusStream(executionId)).thenReturn(Flux.just(progress));
 
     StepVerifier.create(gateway.watchExecution(executionId)).expectNext(progress).verifyComplete();
 
-    verify(taskTrackerService).getStatusStream(executionId);
+    verify(defaultTaskTrackerService).getStatusStream(executionId);
   }
 
   @Test
   void testGetCurrentProgress() {
     String executionId = "exec-1";
     WorkflowProgress progress = mock(WorkflowProgress.class);
-    doReturn(progress).when(taskTrackerService).getProgressByExecutionId(executionId);
+    doReturn(progress).when(defaultTaskTrackerService).getProgressByExecutionId(executionId);
 
     WorkflowProgress result = gateway.getCurrentProgress(executionId);
 
     assertEquals(progress, result);
-    verify(taskTrackerService).getProgressByExecutionId(executionId);
+    verify(defaultTaskTrackerService).getProgressByExecutionId(executionId);
   }
 }

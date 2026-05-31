@@ -59,7 +59,8 @@ class DefaultMessageTest {
             payload,
             now,
             "port",
-            "node");
+            "node",
+            "wf1");
 
     assertEquals(id, msg.getMessageId());
     assertEquals(traceId, msg.getTraceId());
@@ -141,7 +142,7 @@ class DefaultMessageTest {
     DefaultMessage<String> msg =
         new DefaultMessage<>(
             "id", null, null, null, 0, null, null, null, null, 0, 0, 0, false, null, null, null, 0,
-            "p", null, null, null);
+            "p", null, null, null, null);
 
     assertNotNull(msg.getMetadata());
     assertNotNull(msg.getMessageHistory());

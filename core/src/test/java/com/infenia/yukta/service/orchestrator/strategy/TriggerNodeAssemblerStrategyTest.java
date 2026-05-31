@@ -31,27 +31,26 @@ import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import com.infenia.yukta.service.orchestrator.AssemblyContext;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 @DisplayName("TriggerNodeAssemblerStrategy")
-@ExtendWith(MockitoExtension.class)
+@MockitoSettings
 class TriggerNodeAssemblerStrategyTest {
 
-  @Mock private TaskTrackerService tracker;
+  @Mock private DefaultTaskTrackerServiceService tracker;
   @Mock private ControlBusGateway controlBusGateway;
   @Mock private StreamTopologyDecorator streamTopologyDecorator;
 

@@ -16,12 +16,10 @@
 package com.infenia.yukta.service.orchestrator.validator;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.plugin.core.PluginCategory;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
@@ -30,19 +28,19 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-@ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
+@MockitoSettings
 class WorkflowValidatorTest {
 
   @Mock private WorkflowRegistry registry;
+  @Mock private TriggerPlugin triggerPlugin;
+  @Mock private ProcessorPlugin processorPlugin;
+  @Mock private TerminalPlugin terminalPlugin;
+
   private WorkflowValidator validator;
 
   @BeforeEach
@@ -50,27 +48,22 @@ class WorkflowValidatorTest {
     validator = new WorkflowValidator(registry);
   }
 
-  private void mockPlugin(String type, PluginCategory category) {
-    WorkflowPlugin plugin;
-    if (category == PluginCategory.TRIGGER) {
-      plugin = mock(TriggerPlugin.class);
-    } else if (category == PluginCategory.TERMINAL) {
-      plugin = mock(TerminalPlugin.class);
-    } else {
-      plugin = mock(ProcessorPlugin.class);
-    }
-    when(plugin.getCategory()).thenReturn(category);
-    when(plugin.getType()).thenReturn(type);
-    when(plugin.validateConfig(any())).thenReturn(Mono.empty());
-    when(plugin.validateInContext(any(), any())).thenReturn(Mono.empty());
-    when(registry.get(type)).thenReturn(plugin);
-  }
-
   @Test
   void testValidateSuccess() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
+
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -88,21 +81,16 @@ class WorkflowValidatorTest {
 
   @Test
   void testValidateErrors() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
-
-    // Processor without outgoing (via Guard)
-    WorkflowPlugin guardPlugin = mock(ProcessorPlugin.class);
-    when(guardPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
-    when(guardPlugin.getType()).thenReturn("GUARD");
-    when(guardPlugin.validateConfig(any())).thenReturn(Mono.empty());
-    when(guardPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
-    when(registry.get("GUARD")).thenReturn(guardPlugin);
+    // Sub-case 1: Processor without outgoing (via Guard) — fails at validateProcessors
+    // Only needs getCategory; validateConfig/validateInContext are NOT reached
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("GUARD")).thenReturn(processorPlugin);
     StepVerifier.create(
             validator.validate(
                 new WorkflowDefinition(
-            "test-workflow",
+                    "test-workflow",
                     "d",
                     List.of(
                         new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -111,32 +99,35 @@ class WorkflowValidatorTest {
         .expectError()
         .verify();
 
-    // Endpoint but not terminal (Line 215)
+    // Sub-case 2: Endpoint but not terminal (Hybrid is PROCESSOR + TriggerPlugin)
+    // Fails at validateEntryPoints (no incoming → entry point but not canBeTrigger)
+    // Only needs getCategory
     interface Hybrid extends TriggerPlugin, ProcessorPlugin {
       @Override
       default PluginCategory getCategory() {
         return PluginCategory.PROCESSOR;
       }
     }
-    Hybrid hybrid = mock(Hybrid.class);
+    Hybrid hybrid = org.mockito.Mockito.mock(Hybrid.class);
     when(hybrid.getCategory()).thenReturn(PluginCategory.PROCESSOR);
-    when(hybrid.validateConfig(any())).thenReturn(Mono.empty());
     when(registry.get("HYBRID")).thenReturn(hybrid);
     StepVerifier.create(
             validator.validate(
                 new WorkflowDefinition(
-            "test-workflow",
+                    "test-workflow",
                     "d",
                     List.of(new WorkflowDefinition.Node("h1", "HYBRID", Map.of())),
                     List.of())))
         .expectError()
         .verify();
 
-    // Terminal with outgoing (Line 220)
+    // Sub-case 3: Terminal with outgoing — fails at validateEndpoints, only getCategory needed
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
     StepVerifier.create(
             validator.validate(
                 new WorkflowDefinition(
-            "test-workflow",
+                    "test-workflow",
                     "d",
                     List.of(
                         new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -148,11 +139,11 @@ class WorkflowValidatorTest {
         .expectError()
         .verify();
 
-    // Orphan (Line 263)
+    // Sub-case 4: Orphan — fails at validateEntryPoints ("o" has no incoming, not a trigger)
     StepVerifier.create(
             validator.validate(
                 new WorkflowDefinition(
-            "test-workflow",
+                    "test-workflow",
                     "d",
                     List.of(
                         new WorkflowDefinition.Node("t", "T", Map.of()),
@@ -165,19 +156,22 @@ class WorkflowValidatorTest {
 
   @Test
   void testMapperAndFilter() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("MAPPER", PluginCategory.PROCESSOR);
-    mockPlugin("FILTER", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
 
-    WorkflowDefinition.Node m1 =
-        new WorkflowDefinition.Node("m1", "MAPPER", Map.of("mode", "SCRIPT", "mapping", "payload"));
-    WorkflowDefinition.Node m2 =
-        new WorkflowDefinition.Node(
-            "m2", "MAPPER", Map.of("mode", "SCRIPT", "mapping", "if(1)for(;;);"));
-    WorkflowDefinition.Node f1 = new WorkflowDefinition.Node("f1", "FILTER", Map.of());
-    WorkflowDefinition.Node m4 =
-        new WorkflowDefinition.Node("m4", "MAPPER", Map.of("mode", "PROJECTION"));
+    // MAPPER and FILTER share the same ProcessorPlugin mock — same type, same stubs
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("MAPPER")).thenReturn(processorPlugin);
+    when(registry.get("FILTER")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -185,10 +179,12 @@ class WorkflowValidatorTest {
             "d",
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
-                m1,
-                m2,
-                m4,
-                f1,
+                new WorkflowDefinition.Node(
+                    "m1", "MAPPER", Map.of("mode", "SCRIPT", "mapping", "payload")),
+                new WorkflowDefinition.Node(
+                    "m2", "MAPPER", Map.of("mode", "SCRIPT", "mapping", "if(1)for(;;);")),
+                new WorkflowDefinition.Node("m4", "MAPPER", Map.of("mode", "PROJECTION")),
+                new WorkflowDefinition.Node("f1", "FILTER", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
                 new WorkflowDefinition.Edge("t", "m1"),
@@ -202,8 +198,10 @@ class WorkflowValidatorTest {
 
   @Test
   void testProcessorNullPluginContinues() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // Fails at validatePluginsRegistered — "UNKNOWN" returns null
+    // flatMap may not reach "TERM" before error propagates, so don't stub it
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(registry.get("UNKNOWN")).thenReturn(null);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -223,9 +221,20 @@ class WorkflowValidatorTest {
 
   @Test
   void testProcessorWithBothIncomingAndOutgoing() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
+
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -243,8 +252,9 @@ class WorkflowValidatorTest {
 
   @Test
   void testEndpointNullPluginContinues() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // Fails at validatePluginsRegistered — "UNKNOWN_TYPE" returns null
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(registry.get("UNKNOWN_TYPE")).thenReturn(null);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -262,8 +272,15 @@ class WorkflowValidatorTest {
 
   @Test
   void testEndpointIsTerminal() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -279,16 +296,20 @@ class WorkflowValidatorTest {
 
   @Test
   void testNodeContextsCallsPluginValidation() {
-    WorkflowPlugin mockPlugin = mock(ProcessorPlugin.class);
-    when(mockPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
-    when(mockPlugin.getType()).thenReturn("CUSTOM");
-    when(mockPlugin.validateConfig(any())).thenReturn(Mono.empty());
-    when(mockPlugin.validateInContext(any(), any()))
-        .thenReturn(Mono.error(new IllegalArgumentException("Context validation failed")));
-    when(registry.get("CUSTOM")).thenReturn(mockPlugin);
+    // validateNodeContexts calls validateInContext on ALL nodes (flatMap processes all).
+    // validatePluginConfigs (step 8) is NEVER reached because step 7 errors.
+    // So: validateInContext is needed; validateConfig is NOT needed for T and TERM.
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
 
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
+
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateInContext(any(), any()))
+        .thenReturn(Mono.error(new IllegalArgumentException("Context validation failed")));
+    when(registry.get("CUSTOM")).thenReturn(processorPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -308,8 +329,11 @@ class WorkflowValidatorTest {
 
   @Test
   void testCycleDetection() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
+    // Cycle p1→p2→p1 — fails at validateNoCycles, before validateNodeContexts/validatePluginConfigs
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -331,9 +355,14 @@ class WorkflowValidatorTest {
 
   @Test
   void testMultipleOrphans() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // p2, term2 are orphans — fails at validateEntryPoints ("p2" is entry but not trigger)
+    // flatMap order: t, p1, p2, term1, term2 — error fires when p2 is found as entry non-trigger
+    // TERM plugin's getCategory may not be reached, so don't stub it
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -356,9 +385,20 @@ class WorkflowValidatorTest {
 
   @Test
   void testMultipleTriggers() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
+
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -379,8 +419,11 @@ class WorkflowValidatorTest {
 
   @Test
   void testProcessorAsEntryPoint() {
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // "p" has no incoming — fails at validateEntryPoints immediately when p is processed
+    // "term" may not be reached in flatMap, so don't stub its getCategory
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -398,8 +441,11 @@ class WorkflowValidatorTest {
 
   @Test
   void testProcessorWithoutOutgoing() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
+    // Fails at validateProcessors — "p" is a processor without outgoing edges
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -417,9 +463,13 @@ class WorkflowValidatorTest {
 
   @Test
   void testProcessorWithoutIncoming() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // "p" has no incoming — fails at validateEntryPoints (entry point but not a trigger)
+    // validateEntryPoints uses flatMap so only stubs for nodes actually processed are needed
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -440,9 +490,13 @@ class WorkflowValidatorTest {
 
   @Test
   void testTerminalNotAsEndpoint() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // Fails at validateEndpoints — "term" is terminal but has outgoing edge
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -463,8 +517,11 @@ class WorkflowValidatorTest {
 
   @Test
   void testNonTerminalAsEndpoint() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
+    // Fails at validateEndpoints — "p" is an endpoint but not terminal
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -482,9 +539,20 @@ class WorkflowValidatorTest {
 
   @Test
   void testComplexValidWorkflow() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
+
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -507,9 +575,20 @@ class WorkflowValidatorTest {
 
   @Test
   void testDiamondWorkflow() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
+
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -533,8 +612,11 @@ class WorkflowValidatorTest {
 
   @Test
   void testSelfCycle() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
+    // p→p self-cycle — fails at validateNoCycles before validateNodeContexts/validatePluginConfigs
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -552,12 +634,16 @@ class WorkflowValidatorTest {
 
   @Test
   void testTriggerWithoutOutgoing() {
-    mockPlugin("T", PluginCategory.TRIGGER);
+    // Fails at validateEndpoints — trigger is also an endpoint but not terminal
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "d", List.of(new WorkflowDefinition.Node("t", "T", Map.of())), List.of());
+            "d",
+            List.of(new WorkflowDefinition.Node("t", "T", Map.of())),
+            List.of());
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -566,9 +652,9 @@ class WorkflowValidatorTest {
 
   @Test
   void testMissingPluginInProcessors() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
-    // Intentionally don't mock "UNKNOWN"
+    // Fails at validatePluginsRegistered — "UNKNOWN" returns null
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(registry.get("UNKNOWN")).thenReturn(null);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -589,9 +675,9 @@ class WorkflowValidatorTest {
 
   @Test
   void testMissingPluginInEndpoints() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
-    // Intentionally don't mock "UNKNOWN"
+    // Fails at validatePluginsRegistered — "UNKNOWN" returns null
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(registry.get("UNKNOWN")).thenReturn(null);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -609,12 +695,16 @@ class WorkflowValidatorTest {
 
   @Test
   void testEntryPointIsTerminal() {
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // Fails at validateEntryPoints — terminal is an entry point but not a trigger
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
-            "d", List.of(new WorkflowDefinition.Node("term", "TERM", Map.of())), List.of());
+            "d",
+            List.of(new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of());
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -623,8 +713,11 @@ class WorkflowValidatorTest {
 
   @Test
   void testComplexCyclePath() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
+    // p1→p2→p3→p1 cycle — fails at validateNoCycles before validate*Config/Context
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -648,11 +741,13 @@ class WorkflowValidatorTest {
 
   @Test
   void testTriggerWithIncomingEdge() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // t2 has incoming edge — fails at validateEntryPoints ("t2 cannot have incoming edges")
+    // P and TERM getCategory may not be reached in flatMap before error
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(registry.get("P")).thenReturn(processorPlugin);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
-    // Trigger with incoming edge - creates orphan nodes since no free entry point
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -663,8 +758,7 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge(
-                    "t1", "t2"), // t2 is a trigger with incoming edge - invalid
+                new WorkflowDefinition.Edge("t1", "t2"),
                 new WorkflowDefinition.Edge("t2", "p"),
                 new WorkflowDefinition.Edge("p", "term")));
 
@@ -675,11 +769,21 @@ class WorkflowValidatorTest {
 
   @Test
   void testAllProcessorsValidStructure() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
 
-    // All nodes with both edges
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
+
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -703,11 +807,14 @@ class WorkflowValidatorTest {
 
   @Test
   void testTerminalAsEndpointWithOutgoing() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
-    mockPlugin("P", PluginCategory.PROCESSOR);
+    // terminal has outgoing — fails at validateEndpoints
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
 
-    // Terminal with outgoing edge
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -727,10 +834,12 @@ class WorkflowValidatorTest {
 
   @Test
   void testProcessorAsEndpoint() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
+    // "p" is endpoint but not terminal — fails at validateEndpoints
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
 
-    // Processor at endpoint (not terminal)
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -747,9 +856,20 @@ class WorkflowValidatorTest {
 
   @Test
   void testMultipleNodes() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
+
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
         new WorkflowDefinition(
@@ -773,11 +893,21 @@ class WorkflowValidatorTest {
 
   @Test
   void testUnreachableProcessorFromDifferentTrigger() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
 
-    // p2 is not reachable from t1
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
+
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -800,13 +930,14 @@ class WorkflowValidatorTest {
 
   @Test
   void testMixedReachableAndUnreachableNodes() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // "orphan" has no incoming — fails at validateEntryPoints
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
-    // t1 → p1 → term1 (reachable)
-    // t2 → p2 → term2 (reachable)
-    // orphan (unreachable - not connected to any trigger)
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -832,10 +963,16 @@ class WorkflowValidatorTest {
 
   @Test
   void testEndpointNodeWithTerminal() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
 
-    // Endpoint node that IS terminal - should pass
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
+
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -850,11 +987,21 @@ class WorkflowValidatorTest {
 
   @Test
   void testNonEndpointNodeWithoutTerminal() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
 
-    // Non-endpoint node (has outgoing edge) that is NOT terminal - should pass
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
+
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -871,11 +1018,21 @@ class WorkflowValidatorTest {
 
   @Test
   void testOrphanNodeReachable() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
 
-    // Node that IS reachable - should pass
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
+
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -892,15 +1049,21 @@ class WorkflowValidatorTest {
 
   @Test
   void testOrphanNodeReachableFromDifferentTrigger() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(triggerPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(triggerPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("T")).thenReturn(triggerPlugin);
 
-    // Create a workflow with multiple triggers, each with its own path.
-    // All nodes are reachable from at least one trigger, so no orphan errors.
-    // Path 1: t1 -> p1 -> term1
-    // Path 2: t2 -> p2 -> term2
-    // Both paths are valid and complete. All nodes are reachable from their respective triggers.
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(processorPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(processorPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(terminalPlugin.validateConfig(any())).thenReturn(Mono.empty());
+    when(terminalPlugin.validateInContext(any(), any())).thenReturn(Mono.empty());
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
+
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -918,26 +1081,19 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Edge("t2", "p2"),
                 new WorkflowDefinition.Edge("p2", "term2")));
 
-    // This should pass validation because all nodes are reachable from at least one trigger
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
 
   @Test
   void testValidateOrphanNodeLogic() {
-    // This test directly verifies the validateOrphanNode logic by checking
-    // that it correctly identifies reachable nodes. The true branch
-    // (!reachable.contains(nodeId)) is exercised when a node is NOT in the
-    // reachable set, which should cause an error. However, in practice,
-    // this condition should never occur in valid workflows because:
-    // 1. All trigger nodes are always reachable (they're entry points)
-    // 2. Any non-trigger node can only exist if reachable from a trigger
-    // The test validates the error message to ensure the logic works correctly
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
+    // "p2" has no incoming — fails at validateEntryPoints (entry point but not a TRIGGER)
+    // TERM getCategory may not be reached in flatMap before error
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
-    // Use the existing testOrphanNodeUnreachable flow that attempts
-    // to create an unreachable node (which will fail earlier validation)
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -950,8 +1106,6 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Edge("t", "p1"), new WorkflowDefinition.Edge("p1", "term")));
 
-    // p2 is not connected to anything, so it's an entry point without being
-    // a TRIGGER - caught by validateEntryPoints before validateOrphanNode
     StepVerifier.create(validator.validate(def))
         .expectErrorMatches(
             error ->
@@ -963,36 +1117,15 @@ class WorkflowValidatorTest {
 
   @Test
   void testOrphanNodeUnreachableTheoryProof() {
-    // This test proves that the !reachable.contains(nodeId) branch in validateOrphanNode
-    // is THEORETICALLY unreachable in valid workflows.
-    //
-    // PROOF: For a node to be unreachable:
-    // Case 1: Node has NO incoming edges
-    //   -> It's an entry point (not in targetIds)
-    //   -> validateEntryPoints checks: must be TRIGGER or MUST BE CAUGHT
-    //   -> If TRIGGER: caught by "mustBeTrigger" rule if it has outgoing to non-endpoint
-    //   -> If not TRIGGER: caught immediately as "entry point but not TRIGGER"
-    //
-    // Case 2: Node HAS incoming edges
-    //   -> Not an entry point, so passes validateEntryPoints
-    //   -> But if its source is unreachable, source falls into Case 1 or 2...
-    //   -> Following chain backwards, always hits a node without incoming (Case 1)
-    //   -> Case 1 nodes are always caught
-    //
-    // Case 3: Node is a TRIGGER with incoming edges
-    //   -> validateEntryPoints has rule: "if (!isEntryPoint && mustBeTrigger)"
-    //   -> Returns error: "Trigger node X cannot have incoming edges"
-    //
-    // CONCLUSION: All paths that could create an unreachable node are caught by
-    // earlier validation rules. validateOrphanNode's !reachable.contains(nodeId) check
-    // is defensive code that protects against logical errors, but cannot be reached
-    // in correctly validated workflows.
+    // t_hidden has an incoming edge from a terminal — fails at validateEntryPoints
+    // ("Trigger node t_hidden cannot have incoming edges")
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
 
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERM", PluginCategory.TERMINAL);
-
-    // Try to create a trigger with incoming edges - caught by validateEntryPoints
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",
@@ -1006,7 +1139,6 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Edge("t_main", "p1"),
                 new WorkflowDefinition.Edge("p1", "term1"),
-                // This edge makes t_hidden have incoming - will be caught as invalid
                 new WorkflowDefinition.Edge("term1", "t_hidden"),
                 new WorkflowDefinition.Edge("t_hidden", "term_unreachable")));
 
@@ -1021,13 +1153,14 @@ class WorkflowValidatorTest {
 
   @Test
   void testTerminalNodeWithOutgoingEdge() {
-    mockPlugin("T", PluginCategory.TRIGGER);
-    mockPlugin("P", PluginCategory.PROCESSOR);
-    mockPlugin("TERMINAL", PluginCategory.TERMINAL);
+    // term1 has outgoing edge — fails at validateEndpoints
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(registry.get("TERMINAL")).thenReturn(terminalPlugin);
 
-    // Terminal node that has an outgoing edge (not an endpoint) - should fail
-    // Workflow: T -> P -> TERMINAL -> P2 -> TERMINAL2
-    // The second TERMINAL should fail because it has an outgoing edge
     WorkflowDefinition def =
         new WorkflowDefinition(
             "test-workflow",

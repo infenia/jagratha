@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.orchestrator;
+package com.infenia.yukta.service.orchestrator.tracker;
 
 import com.infenia.yukta.event.TaskStatusEvent;
 import com.infenia.yukta.event.WorkflowLogEvent;
@@ -54,7 +54,7 @@ import reactor.util.concurrent.Queues;
 @Service
 @Validated
 @SuppressWarnings({"PMD.TooManyMethods", "PMD.ExcessiveImports", "PMD.CouplingBetweenObjects"})
-public class TaskTrackerService {
+public class DefaultTaskTrackerServiceService implements TaskTrackerService {
 
   private static final int BATCH_SIZE = 100;
   private static final Duration BATCH_TIMEOUT = Duration.ofMillis(50);
@@ -77,11 +77,12 @@ public class TaskTrackerService {
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
 
   /**
-   * Create a new TaskTrackerService with configurable cleanup TTL.
+   * Create a new DefaultTaskTrackerServiceService with configurable cleanup TTL.
    *
    * @param cleanupTtl the time to live for execution data after terminal status
    */
-  public TaskTrackerService(@Value("${yukta.tracker.cleanup-ttl:10m}") final Duration cleanupTtl) {
+  public DefaultTaskTrackerServiceService(
+      @Value("${yukta.tracker.cleanup-ttl:10m}") final Duration cleanupTtl) {
     this.cleanupTtl = cleanupTtl;
   }
 

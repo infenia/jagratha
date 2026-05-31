@@ -28,28 +28,24 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import com.infenia.yukta.service.orchestrator.AssemblyContext;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 @DisplayName("StreamAssemblyHelper")
-@ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
+@MockitoSettings
 class StreamAssemblyHelperTest {
 
-  @Mock private TaskTrackerService tracker;
+  @Mock private DefaultTaskTrackerServiceService tracker;
   @Mock private ControlBusGateway controlBusGateway;
 
   @Test
@@ -59,8 +55,6 @@ class StreamAssemblyHelperTest {
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "data"));
     Duration timeout = Duration.ofSeconds(30);
     ExecutionControl control = mock(ExecutionControl.class);
-    when(control.applyPreProcessingControls(anyString(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
 
@@ -92,8 +86,6 @@ class StreamAssemblyHelperTest {
     Flux<Message<?>> sourceStream = Flux.just(testMessage);
     Duration timeout = Duration.ofSeconds(10);
     ExecutionControl control = mock(ExecutionControl.class);
-    when(control.applyPreProcessingControls(anyString(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
 
@@ -130,8 +122,6 @@ class StreamAssemblyHelperTest {
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "data"));
     Duration timeout = Duration.ofSeconds(30);
     ExecutionControl control = mock(ExecutionControl.class);
-    when(control.applyPreProcessingControls(anyString(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
 
@@ -162,8 +152,6 @@ class StreamAssemblyHelperTest {
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "data"));
     Duration timeout = Duration.ofSeconds(30);
     ExecutionControl control = mock(ExecutionControl.class);
-    when(control.applyPreProcessingControls(anyString(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
 
@@ -194,8 +182,6 @@ class StreamAssemblyHelperTest {
     Flux<Message<?>> sourceStream = Flux.just(testMessage);
     Duration timeout = Duration.ofSeconds(30);
     ExecutionControl control = mock(ExecutionControl.class);
-    when(control.applyPreProcessingControls(anyString(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
 
@@ -229,14 +215,10 @@ class StreamAssemblyHelperTest {
     Duration timeout = Duration.ofSeconds(30);
 
     ExecutionControl control1 = mock(ExecutionControl.class);
-    when(control1.applyPreProcessingControls(anyString(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
     when(control1.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
 
     ExecutionControl control2 = mock(ExecutionControl.class);
-    when(control2.applyPreProcessingControls(anyString(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
     when(control2.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
 
@@ -282,14 +264,12 @@ class StreamAssemblyHelperTest {
   }
 
   @Test
-  @DisplayName("buildStreamWithContext passes TaskTrackerService to StreamBuilder")
+  @DisplayName("buildStreamWithContext passes DefaultTaskTrackerServiceService to StreamBuilder")
   void buildStreamWithContext_taskTrackerPassedToStreamBuilder_passedCorrectly() {
     WorkflowNode node = new WorkflowNode("node-1", "type", Map.of());
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "data"));
     Duration timeout = Duration.ofSeconds(30);
     ExecutionControl control = mock(ExecutionControl.class);
-    when(control.applyPreProcessingControls(anyString(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
 
@@ -321,8 +301,6 @@ class StreamAssemblyHelperTest {
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "data"));
     Duration timeout = Duration.ofSeconds(30);
     ExecutionControl control = mock(ExecutionControl.class);
-    when(control.applyPreProcessingControls(anyString(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
 
@@ -354,8 +332,6 @@ class StreamAssemblyHelperTest {
     Flux<Message<?>> sourceStream = Flux.empty();
     Duration timeout = Duration.ofSeconds(30);
     ExecutionControl control = mock(ExecutionControl.class);
-    when(control.applyPreProcessingControls(anyString(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
 
@@ -389,8 +365,6 @@ class StreamAssemblyHelperTest {
     Flux<Message<?>> sourceStream = Flux.just(msg1, msg2, msg3);
     Duration timeout = Duration.ofSeconds(30);
     ExecutionControl control = mock(ExecutionControl.class);
-    when(control.applyPreProcessingControls(anyString(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
     when(control.applyPostProcessingControls(anyString(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
 

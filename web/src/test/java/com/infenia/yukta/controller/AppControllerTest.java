@@ -25,7 +25,7 @@ import com.infenia.yukta.model.session.TaskResponse;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.WorkflowService;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +45,7 @@ class AppControllerTest {
 
   @MockitoBean private WorkflowService workflowService;
   @MockitoBean private LogRetrievalService logRetrievalService;
-  @MockitoBean private TaskTrackerService trackerService;
+  @MockitoBean private DefaultTaskTrackerServiceService trackerService;
 
   @Test
   void testTriggerWorkflowSuccess() {

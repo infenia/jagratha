@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.orchestrator;
+package com.infenia.yukta.service.orchestrator.compiler;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -23,23 +23,17 @@ import com.infenia.yukta.plugin.message.control.ControlStatistics;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import java.time.Duration;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import reactor.core.Disposable;
-import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+@MockitoSettings(strictness = Strictness.STRICT_STUBS)
 class HeartbeatBuilderTest {
 
   @Mock private ControlBusGateway mockControlBusGateway;
-
-  @BeforeEach
-  void setUp() {
-    MockitoAnnotations.openMocks(this);
-    when(mockControlBusGateway.emit(any())).thenReturn(Mono.empty());
-  }
 
   @Test
   void testHeartbeatBuilderCreateDisposables() {
@@ -54,7 +48,7 @@ class HeartbeatBuilderTest {
             .withStatisticsInterval(Duration.ofSeconds(1))
             .build();
 
-    assert disposables.size() > 0;
+    assert !disposables.isEmpty();
     disposables.forEach(Disposable::dispose);
   }
 
@@ -136,7 +130,7 @@ class HeartbeatBuilderTest {
 
     List<Disposable> disposables = builder.forNodes("wfId", List.of("node-1")).build();
 
-    assert disposables.size() > 0;
+    assert !disposables.isEmpty();
     disposables.forEach(Disposable::dispose);
   }
 

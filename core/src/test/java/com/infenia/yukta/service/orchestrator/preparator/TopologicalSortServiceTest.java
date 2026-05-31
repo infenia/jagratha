@@ -23,7 +23,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.mockito.junit.jupiter.MockitoSettings;
 
+@MockitoSettings
 class TopologicalSortServiceTest {
 
   private final TopologicalSortService service = new TopologicalSortService();

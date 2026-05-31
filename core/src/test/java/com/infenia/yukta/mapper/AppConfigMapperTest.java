@@ -38,9 +38,8 @@ class AppConfigMapperTest {
 
   @Test
   void testMapping() {
-    WorkflowDefinition workflow = new WorkflowDefinition(
-            "test-workflow", "desc-w",
-            List.of(), List.of());
+    WorkflowDefinition workflow =
+        new WorkflowDefinition("test-workflow", "desc-w", List.of(), List.of());
     Map<String, String> tags = Map.of("key", "value");
     java.util.Map<String, WorkflowDefinition> workflows = java.util.Map.of("w1", workflow);
     ConfigRequest request =

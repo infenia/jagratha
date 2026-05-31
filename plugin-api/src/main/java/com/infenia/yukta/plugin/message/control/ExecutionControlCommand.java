@@ -25,6 +25,7 @@ import jakarta.annotation.Nullable;
  * the unified control layer.
  *
  * <p>This unified approach ensures:
+ *
  * <ul>
  *   <li>Single channel for all control operations
  *   <li>Full audit trail and observability
@@ -34,10 +35,14 @@ import jakarta.annotation.Nullable;
  */
 public interface ExecutionControlCommand {
 
-  /** @return the execution identifier this command targets */
+  /**
+   * @return the execution identifier this command targets
+   */
   String executionId();
 
-  /** @return the command type identifier */
+  /**
+   * @return the command type identifier
+   */
   String commandType();
 
   /**
@@ -97,7 +102,8 @@ public interface ExecutionControlCommand {
    * @param immediate true for hard stop (cancel upstream), false for drain & stop
    * @param reason human-readable explanation for logging
    */
-  record StopNodeCommand(String executionId, String nodeId, boolean immediate, @Nullable String reason)
+  record StopNodeCommand(
+      String executionId, String nodeId, boolean immediate, @Nullable String reason)
       implements ExecutionControlCommand {
     @Override
     public String commandType() {
@@ -125,7 +131,8 @@ public interface ExecutionControlCommand {
    * <p>Each element must be explicitly stepped via {@link StepNodeCommand}. The node automatically
    * pauses until step signals are sent.
    */
-  record EnableStepModeCommand(String executionId, String nodeId) implements ExecutionControlCommand {
+  record EnableStepModeCommand(String executionId, String nodeId)
+      implements ExecutionControlCommand {
     @Override
     public String commandType() {
       return "execution.enable-step-mode";
@@ -148,8 +155,7 @@ public interface ExecutionControlCommand {
   /**
    * Step to the next element when a node is in step-through mode.
    *
-   * <p>Allows exactly one element to pass before blocking again. No-op if node is not in step
-   * mode.
+   * <p>Allows exactly one element to pass before blocking again. No-op if node is not in step mode.
    */
   record StepNodeCommand(String executionId, String nodeId) implements ExecutionControlCommand {
     @Override

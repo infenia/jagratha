@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **yukta** (6355 symbols, 18340 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **yukta** (6870 symbols, 20572 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -39,26 +39,6 @@ This project is indexed by GitNexus as **yukta** (6355 symbols, 18340 relationsh
 | Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-| Work in the Service area (343 symbols) | `.claude/skills/generated/service/SKILL.md` |
-| Work in the Orchestrator area (211 symbols) | `.claude/skills/generated/orchestrator/SKILL.md` |
-| Work in the Router area (184 symbols) | `.claude/skills/generated/router/SKILL.md` |
-| Work in the Api area (149 symbols) | `.claude/skills/generated/api/SKILL.md` |
-| Work in the Util area (137 symbols) | `.claude/skills/generated/util/SKILL.md` |
-| Work in the Control area (88 symbols) | `.claude/skills/generated/control/SKILL.md` |
-| Work in the Session area (85 symbols) | `.claude/skills/generated/session/SKILL.md` |
-| Work in the Directive area (76 symbols) | `.claude/skills/generated/directive/SKILL.md` |
-| Work in the Provider area (74 symbols) | `.claude/skills/generated/provider/SKILL.md` |
-| Work in the Transformer area (58 symbols) | `.claude/skills/generated/transformer/SKILL.md` |
-| Work in the Aggregate area (58 symbols) | `.claude/skills/generated/aggregate/SKILL.md` |
-| Work in the Flow area (55 symbols) | `.claude/skills/generated/flow/SKILL.md` |
-| Work in the Message area (48 symbols) | `.claude/skills/generated/message/SKILL.md` |
-| Work in the Resequence area (48 symbols) | `.claude/skills/generated/resequence/SKILL.md` |
-| Work in the Store area (44 symbols) | `.claude/skills/generated/store/SKILL.md` |
-| Work in the Join area (44 symbols) | `.claude/skills/generated/join/SKILL.md` |
-| Work in the Process area (38 symbols) | `.claude/skills/generated/process/SKILL.md` |
-| Work in the Valve area (35 symbols) | `.claude/skills/generated/valve/SKILL.md` |
-| Work in the Ui area (31 symbols) | `.claude/skills/generated/ui/SKILL.md` |
-| Work in the Compiler area (23 symbols) | `.claude/skills/generated/compiler/SKILL.md` |
 
 <!-- gitnexus:end -->
 

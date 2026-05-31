@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.orchestrator;
+package com.infenia.yukta.service.orchestrator.stream;
 
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ControlError;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.util.Collections;
@@ -41,7 +42,7 @@ import reactor.core.publisher.Flux;
  * Flux<Message<?>> stream = new StreamBuilder(
  *     node,
  *     Duration.ofSeconds(10),
- *     taskTracker,
+ *     taskTrackerService,
  *     controlBus)
  *   .withSource(sourceFlux)
  *   .withTimeout()
@@ -67,7 +68,7 @@ public class StreamBuilder {
 
   private final WorkflowNode node;
   private final Duration timeout;
-  private final TaskTrackerService taskTracker;
+  private final TaskTrackerService taskTrackerService;
   private final ControlBusGateway controlBusGateway;
 
   @Nullable private Flux<Message<?>> sourceStream;
@@ -83,17 +84,17 @@ public class StreamBuilder {
    *
    * @param node the workflow node
    * @param timeout the operation timeout duration
-   * @param taskTracker the task tracker service for status events
+   * @param taskTrackerService the task tracker service for status events
    * @param controlBusGateway the control bus gateway for error emission
    */
   public StreamBuilder(
       final WorkflowNode node,
       final Duration timeout,
-      final TaskTrackerService taskTracker,
+      final TaskTrackerService taskTrackerService,
       final ControlBusGateway controlBusGateway) {
     this.node = node;
     this.timeout = timeout;
-    this.taskTracker = taskTracker;
+    this.taskTrackerService = taskTrackerService;
     this.controlBusGateway = controlBusGateway;
   }
 
@@ -192,7 +193,7 @@ public class StreamBuilder {
   private Flux<Message<?>> applyTaskTrackingTransform(final Flux<Message<?>> flux) {
     return flux.doOnSubscribe(
             sub ->
-                taskTracker.emitTaskStatusEvent(
+                taskTrackerService.emitTaskStatusEvent(
                     executionId,
                     node.nodeId(),
                     DEFAULT_TASK_ID,
@@ -200,7 +201,7 @@ public class StreamBuilder {
                     Collections.emptyMap()))
         .doOnComplete(
             () ->
-                taskTracker.emitTaskStatusEvent(
+                taskTrackerService.emitTaskStatusEvent(
                     executionId,
                     node.nodeId(),
                     DEFAULT_TASK_ID,
@@ -208,7 +209,7 @@ public class StreamBuilder {
                     Collections.emptyMap()))
         .doOnError(
             error ->
-                taskTracker.emitTaskStatusEvent(
+                taskTrackerService.emitTaskStatusEvent(
                     executionId,
                     node.nodeId(),
                     DEFAULT_TASK_ID,
@@ -226,7 +227,7 @@ public class StreamBuilder {
     return flux.doOnError(
         error -> {
           // Emit FAILURE status to task tracker
-          taskTracker.emitTaskStatusEvent(
+          taskTrackerService.emitTaskStatusEvent(
               executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_FAILURE, Collections.emptyMap());
 
           // Emit control error to control bus

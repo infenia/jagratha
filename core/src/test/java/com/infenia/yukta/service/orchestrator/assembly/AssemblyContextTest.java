@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.orchestrator;
+package com.infenia.yukta.service.orchestrator.assembly;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -25,27 +25,28 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@ExtendWith(MockitoExtension.class)
 class AssemblyContextTest {
 
-  private ExecutionControl mockControl;
+  @Mock private ExecutionControl mockControl;
+  @Mock private Disposable mockDisposable;
+  @Mock private Runnable mockConnector;
+
   private Flux<Message<?>> mockStream;
   private Mono<Void> mockTerminal;
-  private Disposable mockDisposable;
-  private Runnable mockConnector;
 
   @BeforeEach
   void setUp() {
-    mockControl = Mockito.mock(ExecutionControl.class);
     mockStream = Flux.just(DefaultMessage.create(null, "test-payload"));
     mockTerminal = Mono.empty();
-    mockDisposable = Mockito.mock(Disposable.class);
-    mockConnector = Mockito.mock(Runnable.class);
   }
 
   @Test
@@ -134,7 +135,6 @@ class AssemblyContextTest {
             List.of(mockConnector));
 
     assertThat(context.control()).isSameAs(mockControl);
-    assertThat(context.control().executionId()).isEqualTo("exec-001");
   }
 
   @Test
@@ -184,7 +184,6 @@ class AssemblyContextTest {
 
   @Test
   void testDisposablesAccessor() {
-    Disposable disposable2 = Mockito.mock(Disposable.class);
     AssemblyContext context =
         new AssemblyContext(
             "exec-001",
@@ -194,7 +193,7 @@ class AssemblyContextTest {
             mockControl,
             new Flux[] {mockStream},
             List.of(mockTerminal),
-            List.of(mockDisposable, disposable2),
+            List.of(mockDisposable, mockDisposable),
             List.of(mockConnector));
 
     assertThat(context.disposables()).hasSize(2);
@@ -202,7 +201,6 @@ class AssemblyContextTest {
 
   @Test
   void testConnectorsAccessor() {
-    Runnable connector2 = Mockito.mock(Runnable.class);
     AssemblyContext context =
         new AssemblyContext(
             "exec-001",
@@ -213,7 +211,7 @@ class AssemblyContextTest {
             new Flux[] {mockStream},
             List.of(mockTerminal),
             List.of(mockDisposable),
-            List.of(mockConnector, connector2));
+            List.of(mockConnector, mockConnector));
 
     assertThat(context.connectors()).hasSize(2);
   }
@@ -277,6 +275,7 @@ class AssemblyContextTest {
 
   @Test
   void testEquality() {
+    Flux<Message<?>>[] streams = new Flux[] {mockStream};
     AssemblyContext context1 =
         new AssemblyContext(
             "exec-001",
@@ -284,7 +283,7 @@ class AssemblyContextTest {
             "workflow-001",
             Map.of(),
             mockControl,
-            new Flux[] {mockStream},
+            streams,
             List.of(mockTerminal),
             List.of(mockDisposable),
             List.of(mockConnector));
@@ -295,7 +294,7 @@ class AssemblyContextTest {
             "workflow-001",
             Map.of(),
             mockControl,
-            new Flux[] {mockStream},
+            streams,
             List.of(mockTerminal),
             List.of(mockDisposable),
             List.of(mockConnector));

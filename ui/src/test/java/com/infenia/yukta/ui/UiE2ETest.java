@@ -23,7 +23,7 @@ import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.service.ControlBusService;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.SessionService;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
@@ -54,7 +54,7 @@ class UiE2ETest {
 
   @MockitoBean private SessionService sessionService;
   @MockitoBean private LogRetrievalService logRetrievalService;
-  @MockitoBean private TaskTrackerService taskTrackerService;
+  @MockitoBean private DefaultTaskTrackerServiceService defaultTaskTrackerService;
   @MockitoBean private WorkflowRegistry workflowRegistry;
   @MockitoBean private ControlBusService controlBusService;
 
@@ -86,7 +86,7 @@ class UiE2ETest {
     when(sessionService.getSessionWorkflow(anyString(), anyString()))
         .thenReturn(Mono.just(new WorkflowDefinition("test", List.of(), List.of())));
     when(logRetrievalService.listLogs(anyString())).thenReturn(Mono.just(List.of()));
-    when(taskTrackerService.getLatestExecutionId(anyString(), anyString())).thenReturn("exec-1");
+    when(defaultTaskTrackerService.getLatestExecutionId(anyString(), anyString())).thenReturn("exec-1");
 
     context = browser.newContext();
     page = context.newPage();

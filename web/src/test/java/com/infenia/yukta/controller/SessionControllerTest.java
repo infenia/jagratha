@@ -19,9 +19,11 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.service.SessionService;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
+
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
@@ -35,7 +37,7 @@ class SessionControllerTest {
   @Autowired private WebTestClient webTestClient;
 
   @MockitoBean private SessionService sessionService;
-  @MockitoBean private TaskTrackerService trackerService;
+  @MockitoBean private DefaultTaskTrackerServiceService trackerService;
 
   @Test
   void testGetSessionDetails() {

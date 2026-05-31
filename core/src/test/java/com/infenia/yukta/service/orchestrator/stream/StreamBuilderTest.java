@@ -13,38 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.orchestrator;
+package com.infenia.yukta.service.orchestrator.stream;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import java.time.Duration;
 import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoSettings;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@MockitoSettings
 class StreamBuilderTest {
 
   @Mock private WorkflowNode mockNode;
-  @Mock private WorkflowPlugin mockPlugin;
   @Mock private ControlBusGateway mockControlBusGateway;
-  @Mock private TaskTrackerService mockTracker;
+  @Mock private DefaultTaskTrackerServiceService mockTracker;
 
   @BeforeEach
   void setUp() {
-    MockitoAnnotations.openMocks(this);
-    when(mockNode.nodeId()).thenReturn("node-001");
-    when(mockControlBusGateway.emit(any())).thenReturn(Mono.empty());
+    // Stubs are set up per-test to avoid unnecessary stubbing exceptions
   }
 
   @Test
@@ -63,6 +61,7 @@ class StreamBuilderTest {
 
   @Test
   void testStreamBuilderWithTaskTracking() {
+    when(mockNode.nodeId()).thenReturn("node-001");
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "test"));
 
     StreamBuilder builder =
@@ -80,6 +79,7 @@ class StreamBuilderTest {
 
   @Test
   void testStreamBuilderChaining() {
+    when(mockNode.nodeId()).thenReturn("node-001");
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "test"));
 
     StreamBuilder builder =
@@ -94,6 +94,7 @@ class StreamBuilderTest {
 
   @Test
   void testStreamBuilderErrorHandling() {
+    when(mockNode.nodeId()).thenReturn("node-001");
     Flux<Message<?>> sourceStream = Flux.error(new RuntimeException("Test error"));
 
     StreamBuilder builder =
@@ -119,6 +120,7 @@ class StreamBuilderTest {
 
   @Test
   void testStreamBuilderWithTimeoutAndTaskTracking() {
+    when(mockNode.nodeId()).thenReturn("node-001");
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "test"));
 
     StreamBuilder builder =
@@ -137,6 +139,8 @@ class StreamBuilderTest {
 
   @Test
   void testStreamBuilderErrorHandlingWithControlBus() {
+    when(mockNode.nodeId()).thenReturn("node-001");
+    when(mockControlBusGateway.emit(any())).thenReturn(Mono.empty());
     Flux<Message<?>> sourceStream = Flux.error(new IllegalArgumentException("Invalid arg"));
 
     StreamBuilder builder =
@@ -153,6 +157,7 @@ class StreamBuilderTest {
 
   @Test
   void testStreamBuilderAllTransformations() {
+    when(mockNode.nodeId()).thenReturn("node-001");
     Flux<Message<?>> sourceStream = Flux.just(DefaultMessage.create(null, "test"));
 
     StreamBuilder builder =
@@ -176,6 +181,7 @@ class StreamBuilderTest {
 
   @Test
   void testStreamBuilderErrorDuringTaskTracking() {
+    when(mockNode.nodeId()).thenReturn("node-001");
     Flux<Message<?>> sourceStream = Flux.error(new NullPointerException("Null error"));
 
     StreamBuilder builder =
@@ -205,6 +211,8 @@ class StreamBuilderTest {
 
   @Test
   void testStreamBuilderErrorHandlingOnly() {
+    when(mockNode.nodeId()).thenReturn("node-001");
+    when(mockControlBusGateway.emit(any())).thenReturn(Mono.empty());
     Flux<Message<?>> sourceStream = Flux.error(new Exception("Test exception"));
 
     StreamBuilder builder =
@@ -221,6 +229,7 @@ class StreamBuilderTest {
 
   @Test
   void testStreamBuilderMultipleElements() {
+    when(mockNode.nodeId()).thenReturn("node-001");
     Flux<Message<?>> sourceStream =
         Flux.just(
             DefaultMessage.create(null, "msg1"),

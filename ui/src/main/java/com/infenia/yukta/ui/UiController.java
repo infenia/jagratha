@@ -20,7 +20,7 @@ import com.infenia.yukta.model.api.PluginDetails;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import com.infenia.yukta.service.orchestrator.TaskTrackerService;
+import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;

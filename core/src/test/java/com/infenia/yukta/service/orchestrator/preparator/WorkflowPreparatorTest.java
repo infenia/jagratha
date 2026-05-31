@@ -37,13 +37,12 @@ import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-@ExtendWith(MockitoExtension.class)
+@MockitoSettings
 class WorkflowPreparatorTest {
 
   @Mock private WorkflowRegistry registry;
@@ -68,9 +67,7 @@ class WorkflowPreparatorTest {
     Edge edge = new Edge("node-1", "node-2", "output");
     WorkflowDefinition definition =
         new WorkflowDefinition(
-            "test-workflow",
-            "Happy path workflow",
-            List.of(node1, node2), List.of(edge));
+            "test-workflow", "Happy path workflow", List.of(node1, node2), List.of(edge));
 
     WorkflowPlugin triggerPlugin = mock(WorkflowPlugin.class);
     WorkflowPlugin terminalPlugin = mock(WorkflowPlugin.class);
@@ -101,10 +98,8 @@ class WorkflowPreparatorTest {
     when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
 
     Node node = new Node("node-1", "processor", Map.of());
-    WorkflowDefinition definition = new WorkflowDefinition(
-            "test-workflow",
-            "Single node",
-            List.of(node), List.of());
+    WorkflowDefinition definition =
+        new WorkflowDefinition("test-workflow", "Single node", List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
     WorkflowTemplate template = mock(WorkflowTemplate.class);
@@ -133,10 +128,8 @@ class WorkflowPreparatorTest {
 
     Map<String, Object> config = Map.of("timeout", 5000, "retries", 3);
     Node node = new Node("node-1", "processor", config);
-    WorkflowDefinition definition = new WorkflowDefinition(
-            "test-workflow",
-            "With config",
-            List.of(node), List.of());
+    WorkflowDefinition definition =
+        new WorkflowDefinition("test-workflow", "With config", List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
     WorkflowTemplate template = mock(WorkflowTemplate.class);
@@ -171,9 +164,7 @@ class WorkflowPreparatorTest {
 
     WorkflowDefinition definition =
         new WorkflowDefinition(
-            "test-workflow",
-            "Complex DAG",
-            List.of(node1, node2, node3), List.of(edge1, edge2));
+            "test-workflow", "Complex DAG", List.of(node1, node2, node3), List.of(edge1, edge2));
 
     WorkflowPlugin triggerPlugin = mock(WorkflowPlugin.class);
     WorkflowPlugin processorPlugin = mock(WorkflowPlugin.class);
@@ -193,7 +184,7 @@ class WorkflowPreparatorTest {
         new WorkflowPreparator(
             registry, validator, topologicalSortService, controlBusGateway, compiler);
 
-    StepVerifier.create(preparator.prepareWorkflow(anyString(), definition))
+    StepVerifier.create(preparator.prepareWorkflow(definition))
         .assertNext(Assertions::assertNotNull)
         .verifyComplete();
   }
@@ -203,10 +194,7 @@ class WorkflowPreparatorTest {
 
     Node node = new Node("node-1", "unknown-type", Map.of());
     WorkflowDefinition definition =
-        new WorkflowDefinition(
-            "test-workflow",
-            "Null plugin test",
-            List.of(node), List.of());
+        new WorkflowDefinition("test-workflow", "Null plugin test", List.of(node), List.of());
 
     when(registry.get("unknown-type")).thenReturn(null);
     when(validator.validate(definition)).thenReturn(Mono.empty());
@@ -226,10 +214,7 @@ class WorkflowPreparatorTest {
 
     Node node = new Node("node-1", "processor", Map.of());
     WorkflowDefinition definition =
-        new WorkflowDefinition(
-            "test-workflow",
-            "Validation error test",
-            List.of(node), List.of());
+        new WorkflowDefinition("test-workflow", "Validation error test", List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
     when(registry.get("processor")).thenReturn(plugin);
@@ -253,10 +238,7 @@ class WorkflowPreparatorTest {
 
     Node node = new Node("node-1", "processor", Map.of());
     WorkflowDefinition definition =
-        new WorkflowDefinition(
-            "test-workflow",
-            "Plugin init error test",
-            List.of(node), List.of());
+        new WorkflowDefinition("test-workflow", "Plugin init error test", List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
     when(registry.get("processor")).thenReturn(plugin);
@@ -285,8 +267,7 @@ class WorkflowPreparatorTest {
     Node node = new Node("node-1", "processor", Map.of());
     WorkflowDefinition definition =
         new WorkflowDefinition(
-            "test-workflow",
-            "Plugin shutdown error during cleanup test", List.of(node), List.of());
+            "test-workflow", "Plugin shutdown error during cleanup test", List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
     when(registry.get("processor")).thenReturn(plugin);
@@ -315,9 +296,7 @@ class WorkflowPreparatorTest {
     Node node = new Node("node-1", "processor", Map.of());
     WorkflowDefinition definition =
         new WorkflowDefinition(
-            "test-workflow",
-            "Null shutdown mono test",
-            List.of(node), List.of());
+            "test-workflow", "Null shutdown mono test", List.of(node), List.of());
 
     WorkflowPlugin plugin = mock(WorkflowPlugin.class);
     when(registry.get("processor")).thenReturn(plugin);
