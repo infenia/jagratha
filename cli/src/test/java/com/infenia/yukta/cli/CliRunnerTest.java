@@ -27,6 +27,8 @@ import com.infenia.yukta.cli.command.control.LogsStreamCommand;
 import com.infenia.yukta.cli.command.control.ProgressCommand;
 import com.infenia.yukta.cli.command.control.ProgressStreamCommand;
 import com.infenia.yukta.cli.command.control.SendCommandCommand;
+import com.infenia.yukta.cli.command.control.SessionApplyCommand;
+import com.infenia.yukta.cli.command.control.WorkflowTriggerCommand;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -45,6 +47,8 @@ class CliRunnerTest {
   @Mock private ProgressStreamCommand progressStreamCommand;
   @Mock private LogsStreamCommand logsStreamCommand;
   @Mock private HistoryCommand historyCommand;
+  @Mock private SessionApplyCommand sessionApplyCommand;
+  @Mock private WorkflowTriggerCommand workflowTriggerCommand;
   @Mock private SystemExitHandler exitHandler;
 
   @Mock private com.infenia.yukta.cli.command.control.NodesCommand nodesCommand;
@@ -63,6 +67,8 @@ class CliRunnerTest {
             progressStreamCommand,
             logsStreamCommand,
             historyCommand,
+            sessionApplyCommand,
+            workflowTriggerCommand,
             exitHandler);
     final DefaultApplicationArguments appArgs = new DefaultApplicationArguments();
     cliRunner.run(appArgs);
@@ -83,6 +89,8 @@ class CliRunnerTest {
             progressStreamCommand,
             logsStreamCommand,
             historyCommand,
+            sessionApplyCommand,
+            workflowTriggerCommand,
             exitHandler);
     final DefaultApplicationArguments appArgs = new DefaultApplicationArguments("server");
     cliRunner.run(appArgs);

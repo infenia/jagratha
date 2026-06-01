@@ -25,6 +25,8 @@ import com.infenia.yukta.cli.command.control.NodesCommand;
 import com.infenia.yukta.cli.command.control.ProgressCommand;
 import com.infenia.yukta.cli.command.control.ProgressStreamCommand;
 import com.infenia.yukta.cli.command.control.SendCommandCommand;
+import com.infenia.yukta.cli.command.control.SessionApplyCommand;
+import com.infenia.yukta.cli.command.control.WorkflowTriggerCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -45,6 +47,8 @@ public class CliRunner implements ApplicationRunner {
   private final ProgressStreamCommand progressStreamCommand;
   private final LogsStreamCommand logsStreamCommand;
   private final HistoryCommand historyCommand;
+  private final SessionApplyCommand sessionApplyCommand;
+  private final WorkflowTriggerCommand workflowTriggerCommand;
   private final SystemExitHandler exitHandler;
 
   @Override
@@ -71,6 +75,8 @@ public class CliRunner implements ApplicationRunner {
     controlCmd.addSubcommand(progressStreamCommand);
     controlCmd.addSubcommand(logsStreamCommand);
     controlCmd.addSubcommand(historyCommand);
+    controlCmd.addSubcommand(sessionApplyCommand);
+    controlCmd.addSubcommand(workflowTriggerCommand);
 
     final CommandLine rootCmd = new CommandLine(new YuktaCli());
     rootCmd.addSubcommand(controlCmd);
