@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.api;
+package com.infenia.yukta.model.api;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -25,7 +25,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Defines a Directed Acyclic Graph (DAG) of plugins for execution.
+ * API request DTO for workflow definitions.
+ *
+ * <p>Represents a Directed Acyclic Graph (DAG) of plugins for execution. This DTO is used for API
+ * input and is independent of the internal {@link
+ * com.infenia.yukta.model.workflow.WorkflowDefinition} domain model.
  *
  * @param workflowId unique identifier for the workflow
  * @param description a human-readable description of the workflow
@@ -33,7 +37,7 @@ import java.util.Map;
  * @param edges the list of edges connecting the nodes
  */
 @Schema(description = "Definition of a reactive workflow DAG")
-public record WorkflowDefinition(
+public record WorkflowDefinitionRequest(
     @Schema(description = "Unique workflow identifier")
         @NotBlank(message = "Workflow ID is mandatory")
         String workflowId,
@@ -43,13 +47,13 @@ public record WorkflowDefinition(
         String description,
     @Schema(description = "Nodes in the workflow")
         @NotEmpty(message = "Workflow must contain at least one node")
-        List<@Valid @NotNull(message = "Node cannot be null") Node> nodes,
+        List<@Valid @NotNull(message = "Node cannot be null") NodeRequest> nodes,
     @Schema(description = "Edges connecting the nodes")
         @NotNull(message = "Edges list cannot be null")
-        List<@Valid @NotNull(message = "Edge cannot be null") Edge> edges) {
+        List<@Valid @NotNull(message = "Edge cannot be null") EdgeRequest> edges) {
 
   /** Compact constructor to ensure immutability. */
-  public WorkflowDefinition {
+  public WorkflowDefinitionRequest {
     nodes = nodes != null ? List.copyOf(nodes) : List.of();
     edges = edges != null ? List.copyOf(edges) : List.of();
   }
@@ -62,7 +66,7 @@ public record WorkflowDefinition(
    * @param config configuration for the plugin
    */
   @Schema(description = "A single node in the workflow DAG")
-  public record Node(
+  public record NodeRequest(
       @Schema(description = "Unique ID for the node")
           @NotNull(message = "Node ID cannot be null")
           @NotBlank(message = "Node ID cannot be blank")
@@ -73,7 +77,7 @@ public record WorkflowDefinition(
           String type,
       @Schema(description = "Plugin configuration") Map<String, Object> config) {
     /** Compact constructor. */
-    public Node {
+    public NodeRequest {
       config = config != null ? Map.copyOf(config) : Map.of();
     }
   }
@@ -86,7 +90,7 @@ public record WorkflowDefinition(
    * @param sourcePort the source port name
    */
   @Schema(description = "A connection between two nodes")
-  public record Edge(
+  public record EdgeRequest(
       @Schema(description = "Source node ID")
           @NotNull(message = "Source node ID cannot be null")
           @NotBlank(message = "Source node ID cannot be blank")
@@ -102,7 +106,7 @@ public record WorkflowDefinition(
      * @param source source node ID
      * @param target target node ID
      */
-    public Edge(final String source, final String target) {
+    public EdgeRequest(final String source, final String target) {
       this(source, target, null);
     }
   }

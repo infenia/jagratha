@@ -2,7 +2,7 @@
 @import java.util.List
 @import com.infenia.yukta.model.monitoring.WorkflowProgress
 @import com.infenia.yukta.model.api.PluginDetails
-@import com.infenia.yukta.api.WorkflowDefinition
+@import com.infenia.yukta.model.workflow.WorkflowDefinition
 
 @param String sessionId
 @param String actualWorkflowId

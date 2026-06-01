@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.api.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.message.Message;

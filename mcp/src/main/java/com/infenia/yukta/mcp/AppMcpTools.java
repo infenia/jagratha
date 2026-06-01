@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.mcp;
 
-import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.mcp.provider.DefaultLogProvider;
 import com.infenia.yukta.mcp.provider.DefaultPluginInfoProvider;
 import com.infenia.yukta.mcp.provider.DefaultSessionInfoProvider;
@@ -30,6 +29,7 @@ import com.infenia.yukta.model.api.SessionCreationResponse;
 import com.infenia.yukta.model.api.SessionDetails;
 import com.infenia.yukta.model.api.SessionInfo;
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import lombok.RequiredArgsConstructor;
 import org.springaicommunity.mcp.annotation.McpArg;
 import org.springaicommunity.mcp.annotation.McpTool;

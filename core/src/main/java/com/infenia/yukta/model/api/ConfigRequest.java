@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.model.api;
 
-import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -36,7 +35,7 @@ import java.util.Map;
  * @param initiator the user or system name that initiated the session
  * @param tags additional key-value metadata to categorize the session
  * @param projectPath the absolute path to the project root being managed
- * @param workflows map of workflow definitions (DAGs) keyed by their unique workflow IDs
+ * @param workflows map of workflow definition requests (DAGs) keyed by their unique workflow IDs
  */
 @Schema(
     description =
@@ -66,10 +65,10 @@ public record ConfigRequest(
             example = "/home/user/workspace/project-alpha")
         @ProjectPath
         String projectPath,
-    @Schema(description = "A map of workflow definitions keyed by workflow ID")
+    @Schema(description = "A map of workflow definition requests keyed by workflow ID")
         @NotEmpty(message = "At least one workflow definition is required")
         @Valid
-        Map<String, WorkflowDefinition> workflows) {
+        Map<String, WorkflowDefinitionRequest> workflows) {
 
   /** Compact constructor to ensure immutability. */
   public ConfigRequest {

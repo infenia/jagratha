@@ -22,6 +22,7 @@ plugins {
 dependencies {
     implementation(project(":core"))
     implementation(project(":web"))
+    implementation(project(":cli"))
     implementation(project(":mcp"))
     implementation(project(":ui"))
     implementation(project(":plugins:processors:internal:internal-core"))

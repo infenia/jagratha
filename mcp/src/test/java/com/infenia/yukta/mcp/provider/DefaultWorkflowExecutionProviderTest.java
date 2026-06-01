@@ -21,13 +21,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
-import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.WorkflowService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
-
+import com.infenia.yukta.service.session.SessionService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;

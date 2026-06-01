@@ -19,12 +19,12 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.api.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.ControlBusService;
 import com.infenia.yukta.service.LogRetrievalService;
-import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.session.SessionService;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
@@ -86,7 +86,8 @@ class UiE2ETest {
     when(sessionService.getSessionWorkflow(anyString(), anyString()))
         .thenReturn(Mono.just(new WorkflowDefinition("test", List.of(), List.of())));
     when(logRetrievalService.listLogs(anyString())).thenReturn(Mono.just(List.of()));
-    when(defaultTaskTrackerService.getLatestExecutionId(anyString(), anyString())).thenReturn("exec-1");
+    when(defaultTaskTrackerService.getLatestExecutionId(anyString(), anyString()))
+        .thenReturn("exec-1");
 
     context = browser.newContext();
     page = context.newPage();

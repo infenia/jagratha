@@ -33,6 +33,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
+/** Strategy for assembling processor nodes with transformation logic. */
 @Slf4j
 @Component
 @Order(2)

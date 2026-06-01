@@ -15,9 +15,9 @@
  */
 package com.infenia.yukta.service.orchestrator.preparator;
 
-import com.infenia.yukta.api.WorkflowDefinition;
-import com.infenia.yukta.api.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.WorkflowEdge;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
@@ -38,6 +38,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/** Prepares workflow definitions for execution by validating and initializing plugins. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

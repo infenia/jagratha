@@ -18,16 +18,18 @@ package com.infenia.yukta.controller;
 import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.model.api.TriggerResponse;
 import com.infenia.yukta.model.api.WorkflowTriggerRequest;
-import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.monitoring.WorkflowProgress;
+import com.infenia.yukta.plugin.message.DefaultMessage;
+import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.WorkflowService;
-import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -43,19 +45,22 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * REST controller for app operations. Provides endpoints for file management and task execution.
+ * REST controller for execution management and control bus operations.
+ *
+ * <p>Provides endpoints for workflow execution, execution monitoring, log management, and control
+ * bus operations across distributed workflow nodes.
  */
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
 @Tag(
-    name = "Yukta API",
-    description = "Endpoints for file management, task execution, and configuration")
-public class AppController {
-
+    name = "Execution Management API",
+    description =
+        "Endpoints for workflow execution, monitoring, logging, and distributed node control")
+public class ExecutionManagementController {
+  private final ControlBusGateway controlBus;
   private final WorkflowService workflowService;
-  private final LogRetrievalService retrievalService;
-  private final TaskTrackerService trackerService;
+  private final LogRetrievalService logs;
 
   private static final String HTTP_200 = "200";
   private static final String SESSION_ID_PARAM = "Session ID";
@@ -109,7 +114,7 @@ public class AppController {
   public Mono<ResponseEntity<ApiResponse<WorkflowProgress>>> getWorkflowStatus(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Execution ID") @PathVariable final String executionId) {
-    return Mono.fromCallable(() -> trackerService.getProgress(sessionId, executionId))
+    return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
         .flatMap(progress -> Mono.justOrEmpty(progress))
         .map(
             progress ->
@@ -136,8 +141,8 @@ public class AppController {
   public Flux<ServerSentEvent<WorkflowProgress>> streamWorkflowStatus(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Execution ID") @PathVariable final String executionId) {
-    return trackerService
-        .getStatusStream(executionId)
+    return controlBus
+        .watchExecution(executionId)
         .map(progress -> ServerSentEvent.<WorkflowProgress>builder().data(progress).build());
   }
 
@@ -154,9 +159,9 @@ public class AppController {
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = HTTP_200,
       description = "Workflow history retrieved successfully")
-  public Mono<ApiResponse<List<WorkflowExecutionSummary>>> getWorkflowHistory(
+  public Mono<ApiResponse<Object>> getWorkflowHistory(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId) {
-    return Mono.fromCallable(() -> trackerService.getHistory(sessionId))
+    return Mono.fromCallable(() -> controlBus.getHistory(sessionId))
         .map(
             history ->
                 ApiResponse.success(200, "Workflow history retrieved successfully", history));
@@ -177,8 +182,7 @@ public class AppController {
       description = "List of log filenames")
   public Mono<ApiResponse<List<String>>> listLogs(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId) {
-    return retrievalService
-        .listLogs(sessionId)
+    return logs.listLogs(sessionId)
         .map(logs -> ApiResponse.success(200, "List of log filenames", logs));
   }
 
@@ -202,8 +206,7 @@ public class AppController {
   public Mono<ResponseEntity<ApiResponse<String>>> getLogContent(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Log filename") @PathVariable final String filename) {
-    return retrievalService
-        .getLogContent(sessionId, filename)
+    return logs.getLogContent(sessionId, filename)
         .map(
             content ->
                 ResponseEntity.ok(
@@ -237,9 +240,147 @@ public class AppController {
   public Mono<ResponseEntity<String>> getRawLogContent(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Log filename") @PathVariable final String filename) {
-    return retrievalService
-        .getLogContent(sessionId, filename)
+    return logs.getLogContent(sessionId, filename)
         .map(ResponseEntity::ok)
         .onErrorResume(e -> Mono.just(ResponseEntity.notFound().build()));
+  }
+
+  // --- Control Bus Endpoints ---
+
+  /**
+   * Get all active nodes in a specific workflow that have emitted heartbeats.
+   *
+   * @param workflowId the workflow identifier
+   * @return list of active node IDs in the workflow
+   */
+  @GetMapping("/control/workflows/{workflowId}/nodes")
+  @Operation(
+      summary = "Get active nodes in workflow",
+      description =
+          "Lists all nodes in a specific workflow currently registered on the Control Bus")
+  public Mono<ApiResponse<List<String>>> getActiveNodes(@PathVariable final String workflowId) {
+    return Mono.fromCallable(() -> controlBus.getActiveNodes(workflowId))
+        .map(nodes -> ApiResponse.success(200, "Active nodes retrieved", nodes));
+  }
+
+  /**
+   * Get the last heartbeat for a node in a specific workflow.
+   *
+   * @param workflowId the workflow identifier
+   * @param nodeId the node identifier
+   * @return the last heartbeat message
+   */
+  @GetMapping("/control/workflows/{workflowId}/nodes/{nodeId}/heartbeat")
+  @Operation(
+      summary = "Get node heartbeat in workflow",
+      description = "Retrieves the most recent heartbeat for a specific node in a workflow")
+  public Mono<ApiResponse<Message<?>>> getLastHeartbeat(
+      @PathVariable final String workflowId, @PathVariable final String nodeId) {
+    return Mono.fromCallable(() -> controlBus.getLastHeartbeat(workflowId, nodeId))
+        .map(hb -> ApiResponse.success(200, "Node heartbeat retrieved", hb));
+  }
+
+  /**
+   * Send a command to a specific node in a workflow.
+   *
+   * @param workflowId the workflow identifier
+   * @param nodeId the target node identifier
+   * @param payload the command payload
+   * @return a Mono of the response API response
+   */
+  @PostMapping("/control/workflows/{workflowId}/nodes/{nodeId}/command")
+  @Operation(
+      summary = "Send command to node in workflow",
+      description = "Sends an administrative command to a specific node in a workflow")
+  public Mono<ApiResponse<Message<?>>> sendCommand(
+      @PathVariable final String workflowId,
+      @PathVariable final String nodeId,
+      @RequestBody final Map<String, Object> payload) {
+    final Message<?> command =
+        DefaultMessage.create(null, payload)
+            .withControl(true)
+            .withSourceNodeId("CONSOLE")
+            .withWorkflowId(workflowId);
+    return controlBus
+        .sendCommand(workflowId, nodeId, command)
+        .map(resp -> ApiResponse.success(200, "Command processed", resp));
+  }
+
+  /**
+   * Get all active nodes across all workflows that have emitted heartbeats.
+   *
+   * @return list of all active node IDs
+   */
+  @GetMapping("/control/nodes")
+  @Operation(
+      summary = "Get active nodes (global)",
+      description = "Lists all nodes currently registered on the Control Bus across all workflows")
+  public Mono<ApiResponse<List<String>>> getAllActiveNodes() {
+    return Mono.fromCallable(controlBus::getActiveNodes)
+        .map(nodes -> ApiResponse.success(200, "Active nodes retrieved", nodes));
+  }
+
+  // --- Observability Endpoints ---
+
+  /**
+   * Get current execution progress snapshot.
+   *
+   * @param executionId the execution identifier
+   * @return the current progress
+   */
+  @GetMapping("/control/executions/{executionId}/progress")
+  @Operation(
+      summary = "Get execution progress",
+      description = "Returns the current progress snapshot for an execution")
+  public Mono<ApiResponse<WorkflowProgress>> getProgress(@PathVariable final String executionId) {
+    return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
+        .map(progress -> ApiResponse.success(200, "Progress retrieved", progress));
+  }
+
+  /**
+   * Stream execution progress in real-time via SSE.
+   *
+   * @param executionId the execution identifier
+   * @return a flux of progress updates
+   */
+  @GetMapping(
+      value = "/control/executions/{executionId}/progress/stream",
+      produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @Operation(
+      summary = "Stream execution progress",
+      description = "Streams progress updates for an execution in real-time via Server-Sent Events")
+  public Flux<WorkflowProgress> streamProgress(@PathVariable final String executionId) {
+    return controlBus.watchExecution(executionId);
+  }
+
+  /**
+   * Stream execution logs in real-time via SSE.
+   *
+   * @param executionId the execution identifier
+   * @return a flux of log lines
+   */
+  @GetMapping(
+      value = "/control/executions/{executionId}/logs/stream",
+      produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @Operation(
+      summary = "Stream execution logs",
+      description = "Streams log lines for an execution in real-time via Server-Sent Events")
+  public Flux<String> streamLogs(@PathVariable final String executionId) {
+    return controlBus.watchLogs(executionId);
+  }
+
+  /**
+   * Get execution history for a session.
+   *
+   * @param sessionId the session identifier
+   * @return list of execution summaries
+   */
+  @GetMapping("/control/sessions/{sessionId}/history")
+  @Operation(
+      summary = "Get session execution history",
+      description = "Returns all executions (completed and in-progress) for a session")
+  public Mono<ApiResponse<Object>> getHistory(@PathVariable final String sessionId) {
+    return Mono.fromCallable(() -> controlBus.getHistory(sessionId))
+        .map(history -> ApiResponse.success(200, "History retrieved", history));
   }
 }

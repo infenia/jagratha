@@ -38,6 +38,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
+/** Strategy for assembling terminal nodes that finalize workflow execution. */
 @Slf4j
 @Component
 @Order(3)

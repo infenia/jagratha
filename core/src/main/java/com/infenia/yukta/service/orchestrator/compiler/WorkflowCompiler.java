@@ -41,6 +41,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
+/** Compiles workflow templates into executable reactive streams with plugin integration. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

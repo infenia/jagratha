@@ -41,7 +41,17 @@ public class YuktaApplication {
     if (isNativeImage() && !hasProfileArgument(args)) {
       System.setProperty("spring.profiles.active", "prod");
     }
-    SpringApplication.run(YuktaApplication.class, args);
+
+    final SpringApplication app = new SpringApplication(YuktaApplication.class);
+    if (isCli(args)) {
+      app.setWebApplicationType(org.springframework.boot.WebApplicationType.NONE);
+    }
+    app.run(args);
+  }
+
+  @SuppressWarnings({"PMD.LocalVariableCouldBeFinal", "PMD.OnlyOneReturn"})
+  private static boolean isCli(final String[] args) {
+    return args.length > 0 && "control".equals(args[0]);
   }
 
   @SuppressWarnings("PMD.LocalVariableCouldBeFinal")

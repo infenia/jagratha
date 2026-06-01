@@ -111,7 +111,7 @@ public interface Message<T> {
   // --- Message History ---
 
   /**
-   * The list of component IDs this message has traversed.
+   * The list of node IDs this message has traversed.
    *
    * @return the message history list
    */

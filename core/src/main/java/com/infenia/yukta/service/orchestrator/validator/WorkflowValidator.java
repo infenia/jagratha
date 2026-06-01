@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service.orchestrator.validator;
 
-import com.infenia.yukta.api.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowContext;
 import com.infenia.yukta.plugin.core.WorkflowContext.WorkflowEdge;

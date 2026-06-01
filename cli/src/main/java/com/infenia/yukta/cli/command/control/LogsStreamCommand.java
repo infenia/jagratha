@@ -1,0 +1,49 @@
+/*
+ * Copyright 2026 Infenia Private Limited
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.infenia.yukta.cli.command.control;
+
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import java.util.concurrent.CountDownLatch;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Parameters;
+
+@Component
+@RequiredArgsConstructor
+@Command(name = "logs-stream", description = "Stream execution logs in real-time")
+public class LogsStreamCommand implements Runnable {
+
+  private final ControlBusGateway controlBus;
+
+  @Parameters(index = "0", description = "Execution ID")
+  private String executionId;
+
+  @Override
+  public void run() {
+    final CountDownLatch latch = new CountDownLatch(1);
+    controlBus
+        .watchLogs(executionId)
+        .doOnTerminate(latch::countDown)
+        .subscribe(System.out::println);
+    try {
+      latch.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      System.err.println("Stream interrupted: " + e.getMessage());
+    }
+  }
+}

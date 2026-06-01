@@ -16,10 +16,16 @@
 package com.infenia.yukta.mapper;
 
 import com.infenia.yukta.model.api.ConfigRequest;
+import com.infenia.yukta.model.api.WorkflowDefinitionRequest;
+import com.infenia.yukta.model.api.WorkflowDefinitionRequest.EdgeRequest;
+import com.infenia.yukta.model.api.WorkflowDefinitionRequest.NodeRequest;
 import com.infenia.yukta.model.session.SessionConfigData;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition.Edge;
+import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import org.mapstruct.Mapper;
 
-/** Mapper for converting between ConfigRequest DTO and SessionConfigData service record. */
+/** Mapper for converting between API DTOs and internal domain models. */
 @Mapper(componentModel = "spring")
 @SuppressWarnings("PMD.ImplicitFunctionalInterface")
 public interface AppConfigMapper {
@@ -31,4 +37,28 @@ public interface AppConfigMapper {
    * @return the session config data
    */
   SessionConfigData toData(ConfigRequest request);
+
+  /**
+   * Map WorkflowDefinitionRequest to WorkflowDefinition.
+   *
+   * @param request the workflow definition request
+   * @return the workflow definition
+   */
+  WorkflowDefinition toWorkflowDefinition(WorkflowDefinitionRequest request);
+
+  /**
+   * Map NodeRequest to Node.
+   *
+   * @param nodeRequest the node request
+   * @return the node
+   */
+  Node toNode(NodeRequest nodeRequest);
+
+  /**
+   * Map EdgeRequest to Edge.
+   *
+   * @param edgeRequest the edge request
+   * @return the edge
+   */
+  Edge toEdge(EdgeRequest edgeRequest);
 }

@@ -19,10 +19,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.mapper.AppConfigMapper;
 import com.infenia.yukta.model.api.ConfigRequest;
-import com.infenia.yukta.service.SessionService;
+import com.infenia.yukta.model.api.WorkflowDefinitionRequest;
+import com.infenia.yukta.model.api.WorkflowDefinitionRequest.NodeRequest;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.service.session.SessionService;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -33,8 +35,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
-@WebFluxTest(ConfigController.class)
-class ConfigControllerTest {
+@WebFluxTest(SessionConfigController.class)
+class SessionConfigControllerTest {
 
   @Autowired private WebTestClient webTestClient;
 
@@ -42,10 +44,53 @@ class ConfigControllerTest {
   @MockitoBean private AppConfigMapper configMapper;
 
   @Test
+  void testGetSessionDetails() {
+    Map<String, Object> config = Map.of("workflows", Map.of("wf1", Map.of()));
+    when(sessionService.getSessionConfig("s1")).thenReturn(Mono.just(config));
+
+    webTestClient
+        .get()
+        .uri("/api/sessions/s1")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.data.workflowIds[0]")
+        .isEqualTo("wf1");
+
+    when(sessionService.getSessionConfig("unknown")).thenReturn(Mono.empty());
+    webTestClient.get().uri("/api/sessions/unknown").exchange().expectStatus().isNotFound();
+  }
+
+  @Test
+  void testGetWorkflow() {
+    WorkflowDefinition def = new WorkflowDefinition("wf1", "desc", List.of(), List.of());
+    when(sessionService.getSessionWorkflow("s1", "wf1")).thenReturn(Mono.just(def));
+
+    webTestClient
+        .get()
+        .uri("/api/sessions/s1/workflows/wf1")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.data.description")
+        .isEqualTo("desc");
+
+    when(sessionService.getSessionWorkflow("s1", "unknown")).thenReturn(Mono.empty());
+    webTestClient
+        .get()
+        .uri("/api/sessions/s1/workflows/unknown")
+        .exchange()
+        .expectStatus()
+        .isNotFound();
+  }
+
+  @Test
   void testApplyConfig() {
-    WorkflowDefinition workflow =
-        new WorkflowDefinition(
-            "desc", List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())), List.of());
+    WorkflowDefinitionRequest workflow =
+        new WorkflowDefinitionRequest(
+            "w1", "Test workflow", List.of(new NodeRequest("n1", "gradle", Map.of())), List.of());
     ConfigRequest request =
         new ConfigRequest(
             "session-1", "desc", "initiator-1", Map.of(), "/new/path", Map.of("w1", workflow));
@@ -54,7 +99,7 @@ class ConfigControllerTest {
 
     webTestClient
         .post()
-        .uri("/api/config")
+        .uri("/api/sessions")
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(request)
         .exchange()

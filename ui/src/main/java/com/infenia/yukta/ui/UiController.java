@@ -15,13 +15,13 @@
  */
 package com.infenia.yukta.ui;
 
-import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.model.api.PluginDetails;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.LogRetrievalService;
-import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.session.SessionService;
 import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
 import java.time.LocalTime;

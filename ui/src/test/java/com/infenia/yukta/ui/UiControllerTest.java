@@ -19,9 +19,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.service.LogRetrievalService;
-import com.infenia.yukta.service.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.session.SessionService;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -48,7 +48,8 @@ class UiControllerTest {
 
   @Test
   void testStreamLogs() {
-    when(defaultTaskTrackerService.getLatestExecutionId(anyString(), anyString())).thenReturn("exec-1");
+    when(defaultTaskTrackerService.getLatestExecutionId(anyString(), anyString()))
+        .thenReturn("exec-1");
     when(defaultTaskTrackerService.getLogStream(anyString())).thenReturn(Flux.empty());
     webTestClient
         .get()
@@ -62,7 +63,8 @@ class UiControllerTest {
 
   @Test
   void testStreamStatus() {
-    when(defaultTaskTrackerService.getLatestExecutionId(anyString(), anyString())).thenReturn("exec-1");
+    when(defaultTaskTrackerService.getLatestExecutionId(anyString(), anyString()))
+        .thenReturn("exec-1");
     when(defaultTaskTrackerService.getStatusStream(anyString())).thenReturn(Flux.empty());
     webTestClient
         .get()

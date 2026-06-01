@@ -17,11 +17,11 @@ package com.infenia.yukta;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.infenia.yukta.api.WorkflowDefinition;
-import com.infenia.yukta.api.WorkflowDefinition.Edge;
-import com.infenia.yukta.api.WorkflowDefinition.Node;
 import com.infenia.yukta.harness.WorkflowTestHarness;
 import com.infenia.yukta.model.api.ConfigRequest;
+import com.infenia.yukta.model.api.WorkflowDefinitionRequest;
+import com.infenia.yukta.model.api.WorkflowDefinitionRequest.EdgeRequest;
+import com.infenia.yukta.model.api.WorkflowDefinitionRequest.NodeRequest;
 import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import java.util.List;
 import java.util.Map;
@@ -52,21 +52,22 @@ class FullStackWorkflowIntegrationTest {
     final String sessionId = "test-session-" + UUID.randomUUID();
 
     // Define a complex workflow
-    final Node trigger = new Node("trigger", "api-trigger", Map.of());
+    final NodeRequest trigger = new NodeRequest("trigger", "api-trigger", Map.of());
 
     // Mapper to add a field
-    final Node mapper =
-        new Node(
+    final NodeRequest mapper =
+        new NodeRequest(
             "mapper",
             "MAPPER",
             Map.of("mode", "PROJECTION", "mapping", Map.of("value", "payload.input * 2")));
 
     // Filter to check value
-    final Node filter = new Node("filter", "FILTER", Map.of("condition", "payload.value > 10"));
+    final NodeRequest filter =
+        new NodeRequest("filter", "FILTER", Map.of("condition", "payload.value > 10"));
 
     // Branch to route
-    final Node branch =
-        new Node(
+    final NodeRequest branch =
+        new NodeRequest(
             "branch",
             "BRANCH",
             Map.of(
@@ -78,8 +79,8 @@ class FullStackWorkflowIntegrationTest {
                         "low", "lowPort")));
 
     // Aggregator to collect results
-    final Node aggregator =
-        new Node(
+    final NodeRequest aggregator =
+        new NodeRequest(
             "aggregator",
             "AGGREGATOR",
             Map.of(
@@ -88,19 +89,20 @@ class FullStackWorkflowIntegrationTest {
                 "aggregation", Map.of("type", "SUM", "field", "payload.value")));
 
     // Terminal
-    final Node terminal = new Node("terminal", "console", Map.of());
+    final NodeRequest terminal = new NodeRequest("terminal", "console", Map.of());
 
-    final WorkflowDefinition workflow =
-        new WorkflowDefinition(
+    final WorkflowDefinitionRequest workflow =
+        new WorkflowDefinitionRequest(
             "Complex Workflow",
+            "A complex workflow with multiple stages",
             List.of(trigger, mapper, filter, branch, aggregator, terminal),
             List.of(
-                new Edge("trigger", "mapper"),
-                new Edge("mapper", "filter"),
-                new Edge("filter", "branch"),
-                new Edge("branch", "aggregator", "highPort"),
-                new Edge("branch", "aggregator", "lowPort"),
-                new Edge("aggregator", "terminal")));
+                new EdgeRequest("trigger", "mapper"),
+                new EdgeRequest("mapper", "filter"),
+                new EdgeRequest("filter", "branch"),
+                new EdgeRequest("branch", "aggregator", "highPort"),
+                new EdgeRequest("branch", "aggregator", "lowPort"),
+                new EdgeRequest("aggregator", "terminal")));
 
     final ConfigRequest configRequest =
         new ConfigRequest(
@@ -135,10 +137,10 @@ class FullStackWorkflowIntegrationTest {
   void testLoopPlugin() {
     final String sessionId = "loop-session-" + UUID.randomUUID();
 
-    final Node trigger = new Node("trigger", "api-trigger", Map.of());
+    final NodeRequest trigger = new NodeRequest("trigger", "api-trigger", Map.of());
 
-    final Node loop =
-        new Node(
+    final NodeRequest loop =
+        new NodeRequest(
             "loop",
             "LOOP_STREAM",
             Map.of(
@@ -154,13 +156,15 @@ class FullStackWorkflowIntegrationTest {
                 "timeoutSeconds",
                 3600));
 
-    final Node terminal = new Node("terminal", "console", Map.of("timeoutSeconds", 3600));
+    final NodeRequest terminal =
+        new NodeRequest("terminal", "console", Map.of("timeoutSeconds", 3600));
 
-    final WorkflowDefinition workflow =
-        new WorkflowDefinition(
+    final WorkflowDefinitionRequest workflow =
+        new WorkflowDefinitionRequest(
             "Loop Workflow",
+            "A workflow with loop support",
             List.of(trigger, loop, terminal),
-            List.of(new Edge("trigger", "loop"), new Edge("loop", "terminal")));
+            List.of(new EdgeRequest("trigger", "loop"), new EdgeRequest("loop", "terminal")));
 
     final ConfigRequest configRequest =
         new ConfigRequest(
@@ -183,11 +187,11 @@ class FullStackWorkflowIntegrationTest {
     final String sessionId = "adv-session-" + UUID.randomUUID();
 
     // 1. Trigger
-    final Node trigger = new Node("trigger", "api-trigger", Map.of());
+    final NodeRequest trigger = new NodeRequest("trigger", "api-trigger", Map.of());
 
     // 2. Guard (using BRANCH in EXPRESSION mode)
-    final Node guard =
-        new Node(
+    final NodeRequest guard =
+        new NodeRequest(
             "guard",
             "BRANCH",
             Map.of(
@@ -197,20 +201,20 @@ class FullStackWorkflowIntegrationTest {
                 Map.of("payload.amount > 100", "true", "payload.amount <= 100", "false")));
 
     // 3. Branches
-    final Node mapperTrue =
-        new Node(
+    final NodeRequest mapperTrue =
+        new NodeRequest(
             "mapperTrue",
             "MAPPER",
             Map.of("mode", "PROJECTION", "mapping", Map.of("processed", "true")));
-    final Node mapperFalse =
-        new Node(
+    final NodeRequest mapperFalse =
+        new NodeRequest(
             "mapperFalse",
             "MAPPER",
             Map.of("mode", "PROJECTION", "mapping", Map.of("processed", "false")));
 
     // 4. Join (using AGGREGATOR)
-    final Node join =
-        new Node(
+    final NodeRequest join =
+        new NodeRequest(
             "join",
             "AGGREGATOR",
             Map.of(
@@ -219,38 +223,40 @@ class FullStackWorkflowIntegrationTest {
                 "aggregation", Map.of("type", "LAST", "field", "payload")));
 
     // 5. Sub-workflow Node
-    final Node subWorkflowNode =
-        new Node("sub", "SUB_WORKFLOW", Map.of("subWorkflowId", "child-flow"));
+    final NodeRequest subWorkflowNode =
+        new NodeRequest("sub", "SUB_WORKFLOW", Map.of("subWorkflowId", "child-flow"));
 
     // 6. Terminal
-    final Node terminal = new Node("terminal", "console", Map.of());
+    final NodeRequest terminal = new NodeRequest("terminal", "console", Map.of());
 
     // Main workflow
-    final WorkflowDefinition mainWorkflow =
-        new WorkflowDefinition(
+    final WorkflowDefinitionRequest mainWorkflow =
+        new WorkflowDefinitionRequest(
             "Main Flow",
+            "Main workflow with guard and subworkflow",
             List.of(trigger, guard, mapperTrue, mapperFalse, join, subWorkflowNode, terminal),
             List.of(
-                new Edge("trigger", "guard"),
-                new Edge("guard", "mapperTrue", "true"),
-                new Edge("guard", "mapperFalse", "false"),
-                new Edge("mapperTrue", "join"),
-                new Edge("mapperFalse", "join"),
-                new Edge("join", "sub"),
-                new Edge("sub", "terminal")));
+                new EdgeRequest("trigger", "guard"),
+                new EdgeRequest("guard", "mapperTrue", "true"),
+                new EdgeRequest("guard", "mapperFalse", "false"),
+                new EdgeRequest("mapperTrue", "join"),
+                new EdgeRequest("mapperFalse", "join"),
+                new EdgeRequest("join", "sub"),
+                new EdgeRequest("sub", "terminal")));
 
     // Child workflow
-    final WorkflowDefinition childWorkflow =
-        new WorkflowDefinition(
+    final WorkflowDefinitionRequest childWorkflow =
+        new WorkflowDefinitionRequest(
             "Child Flow",
+            "Child workflow executed by main workflow",
             List.of(
-                new Node("t1", "api-trigger", Map.of()),
-                new Node(
+                new NodeRequest("t1", "api-trigger", Map.of()),
+                new NodeRequest(
                     "m1",
                     "MAPPER",
                     Map.of("mode", "PROJECTION", "mapping", Map.of("subResult", "'done'"))),
-                new Node("term", "console", Map.of())),
-            List.of(new Edge("t1", "m1"), new Edge("m1", "term")));
+                new NodeRequest("term", "console", Map.of())),
+            List.of(new EdgeRequest("t1", "m1"), new EdgeRequest("m1", "term")));
 
     final ConfigRequest configRequest =
         new ConfigRequest(

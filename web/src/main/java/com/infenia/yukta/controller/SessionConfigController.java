@@ -15,32 +15,39 @@
  */
 package com.infenia.yukta.controller;
 
-import com.infenia.yukta.api.WorkflowDefinition;
+import com.infenia.yukta.mapper.AppConfigMapper;
 import com.infenia.yukta.model.api.ApiResponse;
+import com.infenia.yukta.model.api.ConfigRequest;
 import com.infenia.yukta.model.api.SessionDetails;
-import com.infenia.yukta.service.SessionService;
-import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
+import com.infenia.yukta.model.session.SessionConfigData;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.service.session.SessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-/** Controller for session management. */
+/** Controller for session management and configuration. */
 @RestController
 @RequestMapping("/api/sessions")
 @RequiredArgsConstructor
-@Tag(name = "Session API", description = "Endpoints for session and workflow discovery")
-public class SessionController {
+@Tag(
+    name = "Session API",
+    description = "Endpoints for session and workflow discovery, configuration management")
+public class SessionConfigController {
 
   private final SessionService sessionService;
-  private final TaskTrackerService trackerService;
+  private final AppConfigMapper configMapper;
 
   /**
    * Get details of a specific session.
@@ -86,5 +93,37 @@ public class SessionController {
         .getSessionWorkflow(sessionId, workflowId)
         .map(def -> ResponseEntity.ok(ApiResponse.success(200, "Workflow retrieved", def)))
         .defaultIfEmpty(ResponseEntity.notFound().build());
+  }
+
+  /**
+   * Initialize a new session or update an existing one with the provided configuration.
+   *
+   * <p>This endpoint allows callers to dynamically configure project paths, workflows, and session
+   * metadata. If the session ID already exists, it overrides the current configuration; otherwise,
+   * it creates a new session context.
+   *
+   * @param request the config request containing session identifiers and configuration values
+   * @return response entity with success message indicating the configuration has been applied
+   */
+  @PostMapping
+  @Operation(
+      summary = "Apply session configuration",
+      description =
+          "Initializes a new session or updates an existing session's configuration at runtime. "
+              + "Configures project paths, workflow definitions, and session metadata.")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Session configuration applied successfully")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "400",
+      description = "Invalid configuration data provided in the request")
+  public Mono<ResponseEntity<ApiResponse<Void>>> applyConfig(
+      @Valid @RequestBody final ConfigRequest request) {
+    final SessionConfigData configData = configMapper.toData(request);
+    return sessionService
+        .applyConfig(configData)
+        .thenReturn(
+            ResponseEntity.ok(
+                ApiResponse.success(200, "Configuration applied successfully", null)));
   }
 }
