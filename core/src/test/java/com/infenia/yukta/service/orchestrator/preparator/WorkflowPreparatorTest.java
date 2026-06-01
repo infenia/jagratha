@@ -22,10 +22,10 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.api.WorkflowDefinition;
-import com.infenia.yukta.api.WorkflowDefinition.Edge;
-import com.infenia.yukta.api.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition.Edge;
+import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;

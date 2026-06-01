@@ -17,6 +17,7 @@ package com.infenia.yukta.service.control.gateway;
 
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.monitoring.WorkflowProgress;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
@@ -33,6 +34,7 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.SkipNode
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StepNodeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopNodeCommand;
 import com.infenia.yukta.service.control.ControlBusService;
+import com.infenia.yukta.service.control.command.PrepareWorkflowCommand;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import java.util.List;
 import java.util.UUID;
@@ -90,6 +92,13 @@ public class DefaultControlBusGateway implements ControlBusGateway {
   public Mono<Message<?>> sendCommand(
       final String workflowId, final String nodeId, final Message<?> command) {
     return controlBusService.sendCommand(workflowId, nodeId, command);
+  }
+
+  // --- Configuration & Preparation ---
+
+  @Override
+  public Mono<Void> prepareWorkflow(final WorkflowDefinition workflowDefinition) {
+    return controlBusService.prepareWorkflow(new PrepareWorkflowCommand(workflowDefinition));
   }
 
   // --- Execution Control ---

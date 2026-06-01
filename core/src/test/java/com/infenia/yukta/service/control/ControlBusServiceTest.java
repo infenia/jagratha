@@ -82,11 +82,14 @@ class ControlBusServiceTest {
   @Test
   void testHeartbeatAndStatistics() {
     ControlHeartbeat hb = new ControlHeartbeat("node1", 1000L);
-    Message<ControlHeartbeat> hbMsg = DefaultMessage.create(null, hb).withSourceNodeId("node1");
+    Message<ControlHeartbeat> hbMsg =
+        DefaultMessage.create(null, hb).withSourceNodeId("node1").withWorkflowId("test-workflow");
 
     ControlStatistics stats = new ControlStatistics("node1", 100.0, 50.0);
     Message<ControlStatistics> statsMsg =
-        DefaultMessage.create(null, stats).withSourceNodeId("node1");
+        DefaultMessage.create(null, stats)
+            .withSourceNodeId("node1")
+            .withWorkflowId("test-workflow");
 
     service.emit(hbMsg).block();
     service.emit(statsMsg).block();
@@ -101,7 +104,7 @@ class ControlBusServiceTest {
     }
 
     assertEquals(hbMsg, service.getLastHeartbeat("test-workflow", "node1"));
-    assertTrue(service.getActiveNodes().contains("node1"));
+    assertTrue(service.getActiveNodes("test-workflow").contains("node1"));
   }
 
   @Test
@@ -316,6 +319,7 @@ class ControlBusServiceTest {
     final Message<?> hb =
         DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
             .withSourceNodeId("node1")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
 
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
@@ -326,7 +330,7 @@ class ControlBusServiceTest {
         .until(() -> controlBusService.getLastHeartbeat("test-workflow", "node1") != null);
 
     assertNotNull(controlBusService.getLastHeartbeat("test-workflow", "node1"));
-    assertEquals("node1", controlBusService.getActiveNodes().getFirst());
+    assertEquals("node1", controlBusService.getActiveNodes("test-workflow").getFirst());
   }
 
   @Test
@@ -334,6 +338,7 @@ class ControlBusServiceTest {
     final Message<?> stats =
         DefaultMessage.create(null, new ControlStatistics("node2", 100.0, 50.0))
             .withSourceNodeId("node2")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
 
     StepVerifier.create(controlBusService.emit(stats)).verifyComplete();
@@ -351,10 +356,12 @@ class ControlBusServiceTest {
     final Message<?> hb =
         DefaultMessage.create(null, new ControlHeartbeat("node3", 1000L))
             .withSourceNodeId("node3")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
     final Message<?> stats =
         DefaultMessage.create(null, new ControlStatistics("node3", 100.0, 50.0))
             .withSourceNodeId("node3")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
 
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
@@ -375,7 +382,7 @@ class ControlBusServiceTest {
 
     assertNull(controlBusService.getLastHeartbeat("test-workflow", "node3"));
     assertNull(controlBusService.getLastStatistics("test-workflow", "node3"));
-    assertTrue(controlBusService.getActiveNodes().isEmpty());
+    assertTrue(controlBusService.getActiveNodes("test-workflow").isEmpty());
   }
 
   @Test
@@ -383,10 +390,12 @@ class ControlBusServiceTest {
     final Message<?> hb1 =
         DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
             .withSourceNodeId("node1")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
     final Message<?> hb2 =
         DefaultMessage.create(null, new ControlHeartbeat("node2", 1000L))
             .withSourceNodeId("node2")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
 
     StepVerifier.create(controlBusService.emit(hb1)).verifyComplete();
@@ -400,14 +409,14 @@ class ControlBusServiceTest {
               /* allow batch processing delay */
             });
 
-    final List<String> activeNodes = controlBusService.getActiveNodes();
+    final List<String> activeNodes = controlBusService.getActiveNodes("test-workflow");
     assertEquals(2, activeNodes.size());
     assertTrue(activeNodes.contains("node1"));
     assertTrue(activeNodes.contains("node2"));
 
     controlBusService.unregisterPlugin("test-workflow", "node1");
 
-    assertEquals(1, controlBusService.getActiveNodes().size());
+    assertEquals(1, controlBusService.getActiveNodes("test-workflow").size());
     assertNull(controlBusService.getLastHeartbeat("test-workflow", "node1"));
     assertNotNull(controlBusService.getLastHeartbeat("test-workflow", "node2"));
   }
@@ -417,6 +426,7 @@ class ControlBusServiceTest {
     final Message<?> hb =
         DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
             .withSourceNodeId("node1")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
 
     StepVerifier.create(controlBusService.getControlStream().take(1))
@@ -430,6 +440,7 @@ class ControlBusServiceTest {
     final Message<?> hb =
         DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
             .withSourceNodeId("node1")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
 
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
@@ -461,6 +472,7 @@ class ControlBusServiceTest {
     final Message<?> hb =
         DefaultMessage.create(null, new ControlHeartbeat("node-test", 1000L))
             .withSourceNodeId("node-test")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
 
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
@@ -474,7 +486,7 @@ class ControlBusServiceTest {
             });
 
     assertNotNull(controlBusService.getLastHeartbeat("test-workflow", "node-test"));
-    assertTrue(controlBusService.getActiveNodes().contains("node-test"));
+    assertTrue(controlBusService.getActiveNodes("test-workflow").contains("node-test"));
   }
 
   @Test
@@ -497,7 +509,9 @@ class ControlBusServiceTest {
   @Test
   void testHandleControlBatchWithNullNodeId() {
     final Message<?> msgWithoutNodeId =
-        DefaultMessage.create(null, new ControlHeartbeat("ignored", 1000L)).withPriority(5);
+        DefaultMessage.create(null, new ControlHeartbeat("ignored", 1000L))
+            .withWorkflowId("test-workflow")
+            .withPriority(5);
 
     StepVerifier.create(controlBusService.emit(msgWithoutNodeId)).verifyComplete();
 
@@ -509,13 +523,16 @@ class ControlBusServiceTest {
               /* allow batch processing delay */
             });
 
-    assertTrue(controlBusService.getActiveNodes().isEmpty());
+    assertTrue(controlBusService.getActiveNodes("test-workflow").isEmpty());
   }
 
   @Test
   void testHandleControlBatchWithNullPayload() {
     final Message<?> msgWithoutPayload =
-        DefaultMessage.create(null, null).withSourceNodeId("node1").withPriority(5);
+        DefaultMessage.create(null, null)
+            .withSourceNodeId("node1")
+            .withWorkflowId("test-workflow")
+            .withPriority(5);
 
     StepVerifier.create(controlBusService.emit(msgWithoutPayload)).verifyComplete();
 
@@ -535,6 +552,7 @@ class ControlBusServiceTest {
     final Message<?> hb =
         DefaultMessage.create(null, new ControlHeartbeat("node1", 1000L))
             .withSourceNodeId("node1")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
 
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
@@ -561,6 +579,7 @@ class ControlBusServiceTest {
     final Message<?> stats =
         DefaultMessage.create(null, new ControlStatistics("node1", 75.0, 25.0))
             .withSourceNodeId("node1")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
 
     StepVerifier.create(controlBusService.emit(stats)).verifyComplete();
@@ -586,6 +605,7 @@ class ControlBusServiceTest {
     final Message<?> hb =
         DefaultMessage.create(null, new ControlHeartbeat("node-active", 1000L))
             .withSourceNodeId("node-active")
+            .withWorkflowId("test-workflow")
             .withPriority(5);
 
     StepVerifier.create(controlBusService.emit(hb)).verifyComplete();
@@ -598,7 +618,7 @@ class ControlBusServiceTest {
               /* allow batch processing delay */
             });
 
-    final List<String> activeNodes = controlBusService.getActiveNodes();
+    final List<String> activeNodes = controlBusService.getActiveNodes("test-workflow");
     assertTrue(activeNodes.contains("node-active"));
   }
 
@@ -607,10 +627,12 @@ class ControlBusServiceTest {
     final Message<?> lowPriority =
         DefaultMessage.create(null, new ControlHeartbeat("node-low", 1000L))
             .withSourceNodeId("node-low")
+            .withWorkflowId("test-workflow")
             .withPriority(1);
     final Message<?> highPriority =
         DefaultMessage.create(null, new ControlHeartbeat("node-high", 2000L))
             .withSourceNodeId("node-high")
+            .withWorkflowId("test-workflow")
             .withPriority(10);
 
     StepVerifier.create(controlBusService.emit(lowPriority)).verifyComplete();

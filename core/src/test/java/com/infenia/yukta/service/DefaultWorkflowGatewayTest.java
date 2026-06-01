@@ -21,8 +21,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
@@ -59,6 +59,10 @@ class DefaultWorkflowGatewayTest {
     WorkflowDefinition def = mock(WorkflowDefinition.class);
     PreparedWorkflow prepared = mock(PreparedWorkflow.class);
 
+    when(def.description()).thenReturn("test desc");
+    when(def.nodes()).thenReturn(List.of());
+    when(def.edges()).thenReturn(List.of());
+
     when(configService.getWorkflow(anyString(), anyString())).thenReturn(Mono.just(def));
     when(configService.getProjectPath(anyString())).thenReturn(Mono.just("path"));
     when(configService.setProjectPath(anyString(), anyString())).thenReturn(Mono.empty());
@@ -68,7 +72,8 @@ class DefaultWorkflowGatewayTest {
     when(configService.setInitiator(anyString(), anyString())).thenReturn(Mono.empty());
     when(configService.getDescription(anyString())).thenReturn(Mono.just("desc"));
     when(configService.setDescription(anyString(), anyString())).thenReturn(Mono.empty());
-    when(orchestrator.prepareWorkflow(def)).thenReturn(Mono.just(prepared));
+    when(orchestrator.prepareWorkflow(any(WorkflowDefinition.class)))
+        .thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), eq(prepared), any()))
         .thenReturn(Mono.empty());
 
@@ -115,6 +120,10 @@ class DefaultWorkflowGatewayTest {
 
     WorkflowDefinition def = mock(WorkflowDefinition.class);
     PreparedWorkflow prepared = mock(PreparedWorkflow.class);
+    when(def.description()).thenReturn("test desc");
+    when(def.nodes()).thenReturn(List.of());
+    when(def.edges()).thenReturn(List.of());
+
     when(configService.getWorkflow(anyString(), anyString())).thenReturn(Mono.just(def));
     when(configService.getProjectPath(anyString())).thenReturn(Mono.just("path"));
     when(configService.setProjectPath(anyString(), anyString())).thenReturn(Mono.empty());
@@ -124,7 +133,8 @@ class DefaultWorkflowGatewayTest {
     when(configService.setInitiator(anyString(), anyString())).thenReturn(Mono.empty());
     when(configService.getDescription(anyString())).thenReturn(Mono.just("desc"));
     when(configService.setDescription(anyString(), anyString())).thenReturn(Mono.empty());
-    when(orchestrator.prepareWorkflow(def)).thenReturn(Mono.just(prepared));
+    when(orchestrator.prepareWorkflow(any(WorkflowDefinition.class)))
+        .thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), eq(prepared), any()))
         .thenReturn(Mono.empty());
 
@@ -158,6 +168,10 @@ class DefaultWorkflowGatewayTest {
 
     WorkflowDefinition def = mock(WorkflowDefinition.class);
     PreparedWorkflow prepared = mock(PreparedWorkflow.class);
+    when(def.description()).thenReturn("test desc");
+    when(def.nodes()).thenReturn(List.of());
+    when(def.edges()).thenReturn(List.of());
+
     when(configService.getWorkflow(anyString(), anyString())).thenReturn(Mono.just(def));
     when(configService.getProjectPath(anyString())).thenReturn(Mono.just("path"));
     when(configService.setProjectPath(anyString(), anyString())).thenReturn(Mono.empty());
@@ -167,7 +181,8 @@ class DefaultWorkflowGatewayTest {
     when(configService.setInitiator(anyString(), anyString())).thenReturn(Mono.empty());
     when(configService.getDescription(anyString())).thenReturn(Mono.just("desc"));
     when(configService.setDescription(anyString(), anyString())).thenReturn(Mono.empty());
-    when(orchestrator.prepareWorkflow(def)).thenReturn(Mono.just(prepared));
+    when(orchestrator.prepareWorkflow(any(WorkflowDefinition.class)))
+        .thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), eq(prepared), any()))
         .thenReturn(Mono.empty());
 

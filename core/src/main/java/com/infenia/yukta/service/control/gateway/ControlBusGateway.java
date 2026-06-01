@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.service.control.gateway;
 
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
 import java.util.List;
@@ -76,6 +77,16 @@ public interface ControlBusGateway {
    * @return a Mono of the response message
    */
   Mono<Message<?>> sendCommand(String workflowId, String nodeId, Message<?> command);
+
+  // --- Configuration & Preparation ---
+
+  /**
+   * Prepare a workflow for execution.
+   *
+   * @param workflowDefinition the workflow definition to prepare
+   * @return a Mono that completes when the workflow is prepared
+   */
+  Mono<Void> prepareWorkflow(WorkflowDefinition workflowDefinition);
 
   // --- Execution Control (REST Layer) ---
 

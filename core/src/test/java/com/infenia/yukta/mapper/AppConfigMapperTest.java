@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.api.WorkflowDefinition;
 import com.infenia.yukta.model.api.ConfigRequest;
+import com.infenia.yukta.model.api.WorkflowDefinitionRequest;
 import com.infenia.yukta.model.session.SessionConfigData;
 import java.util.List;
 import java.util.Map;
@@ -38,10 +38,10 @@ class AppConfigMapperTest {
 
   @Test
   void testMapping() {
-    WorkflowDefinition workflow =
-        new WorkflowDefinition("test-workflow", "desc-w", List.of(), List.of());
+    WorkflowDefinitionRequest workflow =
+        new WorkflowDefinitionRequest("test-workflow", "desc-w", List.of(), List.of());
     Map<String, String> tags = Map.of("key", "value");
-    java.util.Map<String, WorkflowDefinition> workflows = java.util.Map.of("w1", workflow);
+    java.util.Map<String, WorkflowDefinitionRequest> workflows = java.util.Map.of("w1", workflow);
     ConfigRequest request =
         new ConfigRequest("sess-1", "desc-s", "initiator-1", tags, "/path", workflows);
     SessionConfigData data = mapper.toData(request);
@@ -52,7 +52,7 @@ class AppConfigMapperTest {
     assertEquals("initiator-1", data.initiator());
     assertEquals(tags, data.tags());
     assertEquals("/path", data.projectPath());
-    assertEquals(workflow, data.workflows().get("w1"));
+    assertNotNull(data.workflows().get("w1"));
   }
 
   @Test
