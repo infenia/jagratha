@@ -40,33 +40,42 @@ import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+import reactor.util.concurrent.Queues;
 
 /**
- * Default implementation of the {@link ControlBusGateway}.
+ * Default implementation of the {@link ControlBusGateway} and {@link ExecutionStatusPublisher}.
  *
- * <p>Delegates low-level plugin management and message operations to {@link ControlBusService}, and
- * high-level control commands and observability operations to {@link
- * DefaultTaskTrackerServiceService}.
+ * <p>Combines control bus gateway functionality with execution status publishing. Delegates
+ * low-level plugin management and message operations to {@link ControlBusService}, and high-level
+ * control commands and observability operations to {@link DefaultTaskTrackerServiceService}.
+ * Manages status event publication via internal Reactor Sinks.
  */
 @Slf4j
 @Service
+@Primary
 @RequiredArgsConstructor
 public class DefaultControlBusGateway implements ControlBusGateway, ExecutionStatusPublisher {
 
   private static final String CONTROL_BUS_SOURCE = "CONTROL_BUS";
   private static final int CONTROL_COMMAND_PRIORITY = 100;
+  private static final Sinks.EmitFailureHandler RETRY_HANDLER =
+      Sinks.EmitFailureHandler.busyLooping(Duration.ofMillis(100));
 
   private final ControlBusService controlBusService;
   private final DefaultTaskTrackerServiceService taskTracker;
-  private final ExecutionStatusPublisher statusPublisher;
+  private final Sinks.Many<ExecutionStatusEvent> statusSink =
+      Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
 
   private <T extends ExecutionControlCommand> Message<T> buildCommand(
       final T command, final int priority) {
@@ -78,8 +87,8 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
 
   @PostConstruct
   public void subscribeToStatusEvents() {
-    statusPublisher
-        .statusStream()
+    statusSink
+        .asFlux()
         .subscribe(
             event -> {
               // Forward status updates to task tracker
@@ -255,11 +264,23 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
 
   @Override
   public Mono<Void> publishStatus(@NotNull final ExecutionStatusEvent event) {
-    return statusPublisher.publishStatus(event);
+    return Mono.create(
+        sink -> {
+          try {
+            statusSink.emitNext(event, RETRY_HANDLER);
+            sink.success();
+          } catch (final RuntimeException e) {
+            log.atError()
+                .setCause(e)
+                .addKeyValue("executionId", event.executionId())
+                .log("Failed to publish status event");
+            sink.error(new IllegalStateException("Status event publish failed", e));
+          }
+        });
   }
 
   @Override
   public Flux<ExecutionStatusEvent> statusStream() {
-    return statusPublisher.statusStream();
+    return statusSink.asFlux();
   }
 }
