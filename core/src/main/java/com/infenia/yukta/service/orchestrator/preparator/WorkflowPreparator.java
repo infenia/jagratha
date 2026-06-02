@@ -21,8 +21,7 @@ import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.WorkflowEdge;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
-import com.infenia.yukta.plugin.message.DefaultMessage;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
 import com.infenia.yukta.service.orchestrator.validator.WorkflowValidator;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
@@ -56,7 +55,7 @@ public class WorkflowPreparator {
   private final WorkflowRegistry registry;
   private final WorkflowValidator validator;
   private final TopologicalSortService topologicalSortService;
-  private final ControlBusGateway controlBusGateway;
+  private final ExecutionStatusPublisher statusPublisher;
   private final WorkflowCompiler compiler;
 
   /**
@@ -143,14 +142,17 @@ public class WorkflowPreparator {
                                     .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
                                     .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
                                     .log("Plugin initialized successfully");
-                                controlBusGateway.registerPlugin(workflowId, node.nodeId(), plugin);
+                                // TODO(#XXX): Plugin registration decoupled to break circular
+                                // dependency.
+                                // Plugin lifecycle will be managed through ExecutionStatusPublisher
+                                // once
+                                // the control bus bridge is established.
                               })
                           .then(
-                              controlBusGateway.emit(
-                                  DefaultMessage.create(null, "Node Online")
-                                      .withSourceNodeId(node.nodeId())
-                                      .withWorkflowId(workflowId)
-                                      .withControl(true)));
+                              // TODO(#XXX): Node Online message emission decoupled from
+                              // orchestrator.
+                              // Will be re-enabled through a separate observability channel.
+                              reactor.core.publisher.Mono.empty());
                     })
                 .then())
         .then(
@@ -190,7 +192,9 @@ public class WorkflowPreparator {
                         log.atDebug()
                             .addKeyValue(LOG_KEY_NODE_ID, nodeId)
                             .log("Unregistering and shutting down plugin");
-                        controlBusGateway.unregisterPlugin(workflowId, nodeId);
+                        // TODO(#XXX): Plugin unregistration decoupled to break circular dependency.
+                        // Will be re-enabled through ExecutionStatusPublisher once the control bus
+                        // bridge is established.
 
                         final Node node = nodeMap.get(nodeId);
                         final Mono<Void> shutdown = plugin.shutdown(node.config());
