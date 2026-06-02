@@ -20,11 +20,9 @@ import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
-import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.plugin.message.control.ControlError;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import java.time.Duration;
@@ -54,7 +52,7 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
   private static final String LOG_KEY_PARENT_EDGE_COUNT = "parentEdgeCount";
 
   private final TaskTrackerService tracker;
-  private final ControlBusGateway controlBusGateway;
+  private final ExecutionStatusPublisher statusPublisher;
 
   private final Scheduler virtualThreadScheduler;
 
@@ -132,19 +130,7 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
                           node.nodeId(),
                           DEFAULT_TASK_ID,
                           STATUS_FAILURE,
-                          Collections.emptyMap()))
-              .onErrorResume(
-                  e ->
-                      controlBusGateway
-                          .emit(
-                              DefaultMessage.create(
-                                  null,
-                                  new ControlError(
-                                      node.nodeId(),
-                                      context.executionId(),
-                                      "Node Failure",
-                                      e.getMessage())))
-                          .then(Mono.error(e)));
+                          Collections.emptyMap()));
 
       context.terminals().add(completion);
     };
