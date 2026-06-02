@@ -22,7 +22,7 @@ import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import java.time.Duration;
@@ -41,7 +41,7 @@ import reactor.core.scheduler.Scheduler;
 public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   private final TaskTrackerService tracker;
-  private final ControlBusGateway controlBusGateway;
+  private final ExecutionStatusPublisher statusPublisher;
 
   private final Scheduler virtualThreadScheduler;
 
@@ -73,7 +73,7 @@ public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
       Flux<Message<?>> built =
           StreamAssemblyHelper.buildStreamWithContext(
-              node, stream, timeout, tracker, controlBusGateway, context);
+              node, stream, timeout, tracker, statusPublisher, context);
 
       final var nodeSafeSink = control.nodeSafeStopSinks().get(node.nodeId());
       if (nodeSafeSink != null) {
