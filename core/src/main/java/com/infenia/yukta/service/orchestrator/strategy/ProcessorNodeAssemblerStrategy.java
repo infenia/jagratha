@@ -21,7 +21,7 @@ import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import java.time.Duration;
@@ -41,7 +41,7 @@ import reactor.core.scheduler.Scheduler;
 public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   private final TaskTrackerService tracker;
-  private final ControlBusGateway controlBusGateway;
+  private final ExecutionStatusPublisher statusPublisher;
 
   private final Scheduler virtualThreadScheduler;
 
@@ -92,7 +92,7 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
       Flux<Message<?>> built =
           StreamAssemblyHelper.buildStreamWithContext(
-              node, stream, timeout, tracker, controlBusGateway, context);
+              node, stream, timeout, tracker, statusPublisher, context);
       context.streams()[index] =
           streamTopologyDecorator.applyLoggingAndBroadcasting(
               context.executionId(),
