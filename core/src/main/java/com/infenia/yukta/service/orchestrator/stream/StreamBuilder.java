@@ -16,10 +16,8 @@
 package com.infenia.yukta.service.orchestrator.stream;
 
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.plugin.message.control.ControlError;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
@@ -34,7 +32,7 @@ import reactor.core.publisher.Flux;
  *
  * <p>StreamBuilder encapsulates common stream transformation patterns: timeout handling with
  * TimeoutException mapping, task status tracking (RUNNING → SUCCESS/FAILURE), and error handling
- * with ControlBusGateway emission.
+ * with ExecutionStatusPublisher emission.
  *
  * <p>Example usage:
  *
@@ -69,7 +67,7 @@ public class StreamBuilder {
   private final WorkflowNode node;
   private final Duration timeout;
   private final TaskTrackerService taskTrackerService;
-  private final ControlBusGateway controlBusGateway;
+  private final ExecutionStatusPublisher statusPublisher;
 
   @Nullable private Flux<Message<?>> sourceStream;
 
@@ -85,17 +83,17 @@ public class StreamBuilder {
    * @param node the workflow node
    * @param timeout the operation timeout duration
    * @param taskTrackerService the task tracker service for status events
-   * @param controlBusGateway the control bus gateway for error emission
+   * @param statusPublisher the execution status publisher for error emission
    */
   public StreamBuilder(
       final WorkflowNode node,
       final Duration timeout,
       final TaskTrackerService taskTrackerService,
-      final ControlBusGateway controlBusGateway) {
+      final ExecutionStatusPublisher statusPublisher) {
     this.node = node;
     this.timeout = timeout;
     this.taskTrackerService = taskTrackerService;
-    this.controlBusGateway = controlBusGateway;
+    this.statusPublisher = statusPublisher;
   }
 
   /**
@@ -132,7 +130,7 @@ public class StreamBuilder {
   }
 
   /**
-   * Enables error handling with ControlBusGateway emission of errors.
+   * Enables error handling with ExecutionStatusPublisher emission of errors.
    *
    * @param execId the execution identifier for error tracking
    * @return this builder for fluent chaining
@@ -229,18 +227,6 @@ public class StreamBuilder {
           // Emit FAILURE status to task tracker
           taskTrackerService.emitTaskStatusEvent(
               executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_FAILURE, Collections.emptyMap());
-
-          // Emit control error to control bus
-          final ControlError controlError =
-              new ControlError(
-                  node.nodeId(), executionId, error.getClass().getSimpleName(), error.getMessage());
-          controlBusGateway
-              .emit(
-                  DefaultMessage.create(null, controlError)
-                      .withSourceNodeId(node.nodeId())
-                      .withControl(true)
-                      .withPriority(10))
-              .subscribe();
         });
   }
 }
