@@ -27,7 +27,6 @@ import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.ExecutionControl;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import java.time.Duration;
@@ -46,7 +45,7 @@ import reactor.test.StepVerifier;
 class StreamAssemblyHelperTest {
 
   @Mock private DefaultTaskTrackerServiceService tracker;
-  @Mock private ControlBusGateway controlBusGateway;
+  @Mock private com.infenia.yukta.service.execution.status.ExecutionStatusPublisher statusPublisher;
 
   @Test
   @DisplayName("buildStreamWithContext returns non-null Flux")
@@ -73,7 +72,7 @@ class StreamAssemblyHelperTest {
 
     Flux<Message<?>> result =
         StreamAssemblyHelper.buildStreamWithContext(
-            node, sourceStream, timeout, tracker, controlBusGateway, context);
+            node, sourceStream, timeout, tracker, statusPublisher, context);
 
     assertThat(result).isNotNull();
   }
@@ -104,7 +103,7 @@ class StreamAssemblyHelperTest {
 
     Flux<Message<?>> result =
         StreamAssemblyHelper.buildStreamWithContext(
-            node, sourceStream, timeout, tracker, controlBusGateway, context);
+            node, sourceStream, timeout, tracker, statusPublisher, context);
 
     StepVerifier.create(result).expectNext(testMessage).verifyComplete();
   }
@@ -140,7 +139,7 @@ class StreamAssemblyHelperTest {
 
     Flux<Message<?>> result =
         StreamAssemblyHelper.buildStreamWithContext(
-            node, sourceStream, timeout, tracker, controlBusGateway, context);
+            node, sourceStream, timeout, tracker, statusPublisher, context);
 
     assertThat(result).isNotNull();
   }
@@ -169,7 +168,7 @@ class StreamAssemblyHelperTest {
             new ArrayList<>());
 
     StreamAssemblyHelper.buildStreamWithContext(
-        node, sourceStream, timeout, tracker, controlBusGateway, context);
+        node, sourceStream, timeout, tracker, statusPublisher, context);
 
     verify(control).applyPostProcessingControls(eq("node-1"), any(Flux.class));
   }
@@ -201,7 +200,7 @@ class StreamAssemblyHelperTest {
 
     Flux<Message<?>> result =
         StreamAssemblyHelper.buildStreamWithContext(
-            node, sourceStream, timeout, tracker, controlBusGateway, context);
+            node, sourceStream, timeout, tracker, statusPublisher, context);
 
     StepVerifier.create(result).expectNext(testMessage).verifyComplete();
   }
@@ -251,11 +250,11 @@ class StreamAssemblyHelperTest {
 
     Flux<Message<?>> result1 =
         StreamAssemblyHelper.buildStreamWithContext(
-            node1, sourceStream, timeout, tracker, controlBusGateway, context1);
+            node1, sourceStream, timeout, tracker, statusPublisher, context1);
 
     Flux<Message<?>> result2 =
         StreamAssemblyHelper.buildStreamWithContext(
-            node2, sourceStream, timeout, tracker, controlBusGateway, context2);
+            node2, sourceStream, timeout, tracker, statusPublisher, context2);
 
     assertThat(result1).isNotNull();
     assertThat(result2).isNotNull();
@@ -288,7 +287,7 @@ class StreamAssemblyHelperTest {
 
     Flux<Message<?>> result =
         StreamAssemblyHelper.buildStreamWithContext(
-            node, sourceStream, timeout, tracker, controlBusGateway, context);
+            node, sourceStream, timeout, tracker, statusPublisher, context);
 
     assertThat(result).isNotNull();
   }
@@ -318,7 +317,7 @@ class StreamAssemblyHelperTest {
             new ArrayList<>());
 
     StreamAssemblyHelper.buildStreamWithContext(
-        node, sourceStream, timeout, tracker, controlBusGateway, context);
+        node, sourceStream, timeout, tracker, statusPublisher, context);
 
     ArgumentCaptor<String> nodeIdCaptor = ArgumentCaptor.forClass(String.class);
     verify(control).applyPostProcessingControls(nodeIdCaptor.capture(), any(Flux.class));
@@ -350,7 +349,7 @@ class StreamAssemblyHelperTest {
 
     Flux<Message<?>> result =
         StreamAssemblyHelper.buildStreamWithContext(
-            node, sourceStream, timeout, tracker, controlBusGateway, context);
+            node, sourceStream, timeout, tracker, statusPublisher, context);
 
     StepVerifier.create(result).verifyComplete();
   }
@@ -383,7 +382,7 @@ class StreamAssemblyHelperTest {
 
     Flux<Message<?>> result =
         StreamAssemblyHelper.buildStreamWithContext(
-            node, sourceStream, timeout, tracker, controlBusGateway, context);
+            node, sourceStream, timeout, tracker, statusPublisher, context);
 
     StepVerifier.create(result).expectNext(msg1, msg2, msg3).verifyComplete();
   }

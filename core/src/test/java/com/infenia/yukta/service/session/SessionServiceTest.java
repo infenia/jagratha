@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,13 +39,13 @@ class SessionServiceTest {
 
   @Mock private SessionConfigStore configService;
   private final ObjectMapper objectMapper = new ObjectMapper();
-  @Mock private ControlBusGateway controlBus;
+  @Mock private ExecutionStatusPublisher statusPublisher;
 
   private SessionService sessionService;
 
   @BeforeEach
   void setUp() {
-    sessionService = new SessionService(configService, objectMapper, controlBus);
+    sessionService = new SessionService(configService, objectMapper, statusPublisher);
   }
 
   @Test
@@ -58,7 +58,6 @@ class SessionServiceTest {
             sessionId, "desc", "initiator-1", Map.of(), "/path", Map.of("w1", workflow));
 
     when(configService.applySessionConfig(any())).thenReturn(Mono.empty());
-    when(controlBus.prepareWorkflow(any())).thenReturn(Mono.empty());
 
     StepVerifier.create(sessionService.applyConfig(data)).verifyComplete();
   }
@@ -133,7 +132,7 @@ class SessionServiceTest {
     ObjectMapper mockMapper = mock(ObjectMapper.class);
     when(mockMapper.writeValueAsString(any())).thenThrow(new RuntimeException("json fail"));
 
-    SessionService errService = new SessionService(configService, mockMapper, controlBus);
+    SessionService errService = new SessionService(configService, mockMapper, statusPublisher);
 
     WorkflowDefinition workflow =
         new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());

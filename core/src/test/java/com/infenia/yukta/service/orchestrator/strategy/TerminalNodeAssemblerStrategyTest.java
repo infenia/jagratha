@@ -33,7 +33,6 @@ import com.infenia.yukta.plugin.message.control.ControlError;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.service.control.ExecutionControl;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
@@ -56,7 +55,7 @@ import reactor.core.scheduler.Schedulers;
 class TerminalNodeAssemblerStrategyTest {
 
   @Mock private DefaultTaskTrackerServiceService tracker;
-  @Mock private ControlBusGateway controlBusGateway;
+  @Mock private com.infenia.yukta.service.execution.status.ExecutionStatusPublisher statusPublisher;
   @Mock private StreamTopologyDecorator streamTopologyDecorator;
 
   private TerminalNodeAssemblerStrategy strategy;
@@ -65,7 +64,7 @@ class TerminalNodeAssemblerStrategyTest {
   void setUp() {
     strategy =
         new TerminalNodeAssemblerStrategy(
-            tracker, controlBusGateway, Schedulers.parallel(), streamTopologyDecorator);
+            tracker, statusPublisher, Schedulers.parallel(), streamTopologyDecorator);
     // Reset mocks for each test to avoid unnecessary stubbing issues
   }
 
@@ -322,7 +321,7 @@ class TerminalNodeAssemblerStrategyTest {
     when(terminal.isBlocking()).thenReturn(false);
     when(terminal.consume(any(), any()))
         .thenReturn(Mono.error(new RuntimeException("Test error message")));
-    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
+    when(statusPublisher.emit(any())).thenReturn(Mono.empty());
 
     WorkflowNode node = new WorkflowNode("term-error", "terminal-type", Map.of());
     ExecutionControl control = mock(ExecutionControl.class);
@@ -358,9 +357,9 @@ class TerminalNodeAssemblerStrategyTest {
       // Expected
     }
 
-    // Verify controlBusGateway.emit was called with a message
+    // Verify statusPublisher.emit was called with a message
     ArgumentCaptor<Message<?>> messageCaptor = ArgumentCaptor.forClass(Message.class);
-    verify(controlBusGateway).emit(messageCaptor.capture());
+    verify(statusPublisher).emit(messageCaptor.capture());
     Message<?> emittedMessage = messageCaptor.getValue();
     assertThat(emittedMessage.getPayload()).isInstanceOf(ControlError.class);
     ControlError error = (ControlError) emittedMessage.getPayload();
@@ -734,7 +733,7 @@ class TerminalNodeAssemblerStrategyTest {
     when(terminal.isBlocking()).thenReturn(true);
     when(terminal.consume(any(), any()))
         .thenReturn(Mono.error(new RuntimeException("Blocking terminal error")));
-    when(controlBusGateway.emit(any())).thenReturn(Mono.empty());
+    when(statusPublisher.emit(any())).thenReturn(Mono.empty());
 
     WorkflowNode node = new WorkflowNode("term-blocking-error", "terminal-type", Map.of());
     ExecutionControl control = mock(ExecutionControl.class);
@@ -776,7 +775,7 @@ class TerminalNodeAssemblerStrategyTest {
             "default",
             "FAILURE",
             Collections.emptyMap());
-    verify(controlBusGateway).emit(any(Message.class));
+    verify(statusPublisher).emit(any(Message.class));
   }
 
   @Test

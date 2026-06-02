@@ -35,9 +35,9 @@ import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.control.ExecutionControl;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
+import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
 import com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
@@ -68,7 +68,7 @@ class WorkflowCompilerTest {
   private ExecutionControlRegistry executionControlRegistry;
 
   @Mock private DefaultTaskTrackerServiceService tracker;
-  @Mock private ControlBusGateway controlBusGateway;
+  @Mock private ExecutionStatusPublisher statusPublisher;
   @Mock private SessionConfigStore configService;
 
   @BeforeEach
@@ -77,7 +77,7 @@ class WorkflowCompilerTest {
     compiler =
         new WorkflowCompiler(
             tracker,
-            controlBusGateway,
+            statusPublisher,
             Schedulers.parallel(),
             Duration.ofSeconds(10),
             configService,
@@ -1670,7 +1670,7 @@ class WorkflowCompilerTest {
       WorkflowCompiler testCompiler =
           new WorkflowCompiler(
               tracker,
-              controlBusGateway,
+              statusPublisher,
               Schedulers.parallel(),
               Duration.ofSeconds(10),
               configService,

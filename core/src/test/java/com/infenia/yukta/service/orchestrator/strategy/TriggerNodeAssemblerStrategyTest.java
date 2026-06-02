@@ -30,7 +30,6 @@ import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.control.ExecutionControl;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
@@ -51,7 +50,7 @@ import reactor.core.scheduler.Schedulers;
 class TriggerNodeAssemblerStrategyTest {
 
   @Mock private DefaultTaskTrackerServiceService tracker;
-  @Mock private ControlBusGateway controlBusGateway;
+  @Mock private com.infenia.yukta.service.execution.status.ExecutionStatusPublisher statusPublisher;
   @Mock private StreamTopologyDecorator streamTopologyDecorator;
 
   private TriggerNodeAssemblerStrategy strategy;
@@ -60,7 +59,7 @@ class TriggerNodeAssemblerStrategyTest {
   void setUp() {
     strategy =
         new TriggerNodeAssemblerStrategy(
-            tracker, controlBusGateway, Schedulers.parallel(), streamTopologyDecorator);
+            tracker, statusPublisher, Schedulers.parallel(), streamTopologyDecorator);
   }
 
   @Test

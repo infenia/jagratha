@@ -21,7 +21,6 @@ import static org.mockito.Mockito.*;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
 import java.time.Duration;
 import java.util.Collections;
@@ -37,7 +36,10 @@ import reactor.test.StepVerifier;
 class StreamBuilderTest {
 
   @Mock private WorkflowNode mockNode;
-  @Mock private ControlBusGateway mockControlBusGateway;
+
+  @Mock
+  private com.infenia.yukta.service.execution.status.ExecutionStatusPublisher mockControlBusGateway;
+
   @Mock private DefaultTaskTrackerServiceService mockTracker;
 
   @BeforeEach
