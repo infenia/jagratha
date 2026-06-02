@@ -19,6 +19,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -33,6 +34,7 @@ import reactor.util.concurrent.Queues;
  */
 @Slf4j
 @Service
+@Primary
 @RequiredArgsConstructor
 public class DefaultExecutionStatusPublisher implements ExecutionStatusPublisher {
 
