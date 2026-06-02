@@ -225,7 +225,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
   @SuppressWarnings("PMD.UseObjectForClearerAPI")
   public void emitTaskStatusEvent(
       @NotBlank final String executionId,
-      @NodeId final String nodeId,
+      @NotBlank final String nodeId,
       @NotBlank @Size(max = 256) final String module,
       @NotBlank @Size(max = 256) final String status,
       @NotNull final Map<String, Object> metadata) {

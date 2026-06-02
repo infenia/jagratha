@@ -7,8 +7,15 @@ WORKFLOW_ID="cli-spotless-workflow"
 PROJECT_PATH=$(pwd)
 
 # Function to run Yukta CLI
+# Properly escape arguments for gradle --args parameter
 yukta_cli() {
-    ./gradlew :boot:bootRun --args="control $*" -q
+    local args=("$@")
+    local escaped_args=""
+    for arg in "${args[@]}"; do
+        # Escape single quotes and wrap in single quotes for gradle
+        escaped_args="$escaped_args '$(echo "$arg" | sed "s/'/'\\\\''/g")'"
+    done
+    ./gradlew :boot:bootRun --args="control$escaped_args" -q
 }
 
 echo "Checking if workflow is already created (checking history)..."
@@ -54,7 +61,6 @@ else
 fi
 
 echo "Triggering workflow execution..."
-EXECUTION_INFO=$(yukta_cli trigger "$SESSION_ID" "$WORKFLOW_ID" "{}" --output json)
-echo "Triggered: $EXECUTION_INFO"
-
+# Call trigger with properly escaped JSON - use single quotes to prevent shell expansion
+yukta_cli trigger "$SESSION_ID" "$WORKFLOW_ID" '{"action":"run"}' --output json
 echo -e "\nWorkflow triggered successfully via CLI."
