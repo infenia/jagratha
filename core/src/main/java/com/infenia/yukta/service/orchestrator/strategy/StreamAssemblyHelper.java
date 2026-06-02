@@ -18,7 +18,6 @@ package com.infenia.yukta.service.orchestrator.strategy;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.ExecutionControl;
-import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
 import com.infenia.yukta.service.orchestrator.assembly.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.stream.StreamBuilder;
@@ -37,7 +36,6 @@ class StreamAssemblyHelper {
    * @param stream the source stream
    * @param timeout the node timeout duration
    * @param tracker the task tracker service
-   * @param statusPublisher the execution status publisher
    * @param context the assembly context
    * @return the built stream with context applied
    */
@@ -46,7 +44,6 @@ class StreamAssemblyHelper {
       final Flux<Message<?>> stream,
       final Duration timeout,
       final TaskTrackerService tracker,
-      final ExecutionStatusPublisher statusPublisher,
       final AssemblyContext context) {
 
     final ExecutionControl control = context.control();
@@ -59,7 +56,7 @@ class StreamAssemblyHelper {
             .payload(context.payload());
 
     Flux<Message<?>> built =
-        new StreamBuilder(node, timeout, tracker, statusPublisher)
+        new StreamBuilder(node, timeout, tracker, null)
             .withSource(stream)
             .withTimeout()
             .withTaskTracking(context.executionId())

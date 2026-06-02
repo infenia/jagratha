@@ -21,7 +21,6 @@ import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.WorkflowEdge;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
-import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
 import com.infenia.yukta.service.orchestrator.validator.WorkflowValidator;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
@@ -55,7 +54,6 @@ public class WorkflowPreparator {
   private final WorkflowRegistry registry;
   private final WorkflowValidator validator;
   private final TopologicalSortService topologicalSortService;
-  private final ExecutionStatusPublisher statusPublisher;
   private final WorkflowCompiler compiler;
 
   /**

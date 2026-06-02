@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.service.orchestrator.compiler;
 
-import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -54,7 +53,6 @@ import reactor.core.scheduler.Scheduler;
 @Slf4j
 public class HeartbeatBuilder {
 
-  private final ExecutionStatusPublisher statusPublisher;
   private final Duration defaultInterval;
   private final Scheduler scheduler;
 
@@ -73,11 +71,7 @@ public class HeartbeatBuilder {
    * @param defaultInterval the default interval for heartbeat emissions
    * @param scheduler the scheduler for Flux.interval() operations
    */
-  public HeartbeatBuilder(
-      final ExecutionStatusPublisher statusPublisher,
-      final Duration defaultInterval,
-      final Scheduler scheduler) {
-    this.statusPublisher = statusPublisher;
+  public HeartbeatBuilder(final Duration defaultInterval, final Scheduler scheduler) {
     this.defaultInterval = defaultInterval;
     this.scheduler = scheduler;
   }

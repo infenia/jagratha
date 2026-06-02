@@ -22,7 +22,6 @@ import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
-import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import java.time.Duration;
@@ -52,7 +51,6 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
   private static final String LOG_KEY_PARENT_EDGE_COUNT = "parentEdgeCount";
 
   private final TaskTrackerService tracker;
-  private final ExecutionStatusPublisher statusPublisher;
 
   private final Scheduler virtualThreadScheduler;
 
