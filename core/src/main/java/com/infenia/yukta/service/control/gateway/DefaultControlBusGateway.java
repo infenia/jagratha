@@ -35,8 +35,13 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StepNode
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopNodeCommand;
 import com.infenia.yukta.service.control.ControlBusService;
 import com.infenia.yukta.service.control.command.PrepareWorkflowCommand;
+import com.infenia.yukta.service.execution.status.ExecutionStatusEvent;
+import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
+import jakarta.annotation.PostConstruct;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,13 +59,14 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DefaultControlBusGateway implements ControlBusGateway {
+public class DefaultControlBusGateway implements ControlBusGateway, ExecutionStatusPublisher {
 
   private static final String CONTROL_BUS_SOURCE = "CONTROL_BUS";
   private static final int CONTROL_COMMAND_PRIORITY = 100;
 
   private final ControlBusService controlBusService;
   private final DefaultTaskTrackerServiceService taskTracker;
+  private final ExecutionStatusPublisher statusPublisher;
 
   private <T extends ExecutionControlCommand> Message<T> buildCommand(
       final T command, final int priority) {
@@ -68,6 +74,25 @@ public class DefaultControlBusGateway implements ControlBusGateway {
         .withSourceNodeId(CONTROL_BUS_SOURCE)
         .withPriority(priority)
         .withControl(true);
+  }
+
+  @PostConstruct
+  public void subscribeToStatusEvents() {
+    statusPublisher
+        .statusStream()
+        .subscribe(
+            event -> {
+              // Forward status updates to task tracker
+              taskTracker
+                  .updateTaskStatus(
+                      event.executionId(),
+                      event.nodeId(),
+                      event.module(),
+                      event.status(),
+                      event.metadata() != null ? event.metadata() : Map.of())
+                  .subscribe();
+            },
+            error -> log.atError().setCause(error).log("Status event stream error"));
   }
 
   // --- Plugin & Message Management ---
@@ -224,5 +249,17 @@ public class DefaultControlBusGateway implements ControlBusGateway {
   @Override
   public List<String> getActiveNodes() {
     return controlBusService.getActiveNodes();
+  }
+
+  // --- ExecutionStatusPublisher Implementation ---
+
+  @Override
+  public Mono<Void> publishStatus(@NotNull final ExecutionStatusEvent event) {
+    return statusPublisher.publishStatus(event);
+  }
+
+  @Override
+  public Flux<ExecutionStatusEvent> statusStream() {
+    return statusPublisher.statusStream();
   }
 }
