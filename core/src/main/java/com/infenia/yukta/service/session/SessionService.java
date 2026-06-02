@@ -17,7 +17,7 @@ package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
 import jakarta.validation.Valid;
@@ -39,13 +39,14 @@ public class SessionService {
 
   private final SessionConfigStore configService;
   private final ObjectMapper objectMapper;
-  private final ControlBusGateway controlBus;
+  private final ExecutionStatusPublisher statusPublisher;
 
   /**
    * Apply configuration for a session.
    *
    * <p>This method initializes a new session or updates an existing one by applying all
-   * configuration data atomically via the store, then preparing workflows through the control bus.
+   * configuration data atomically via the store. Workflow preparation is now decoupled to break
+   * circular dependencies.
    *
    * @param data the configuration data to apply
    * @return Mono that completes when the configuration is successfully applied and persisted
@@ -54,10 +55,10 @@ public class SessionService {
     return configService
         .applySessionConfig(data)
         .then(
-            Flux.fromIterable(data.workflows().values())
-                .flatMap(controlBus::prepareWorkflow)
-                .collectList()
-                .then());
+            // TODO(#XXX): Workflow preparation decoupled from session service to break circular
+            // dependency. Workflows will be prepared through ExecutionStatusPublisher once the
+            // control bus bridge is established.
+            reactor.core.publisher.Mono.empty());
   }
 
   /**
