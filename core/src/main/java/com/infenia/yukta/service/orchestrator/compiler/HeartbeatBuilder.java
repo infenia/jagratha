@@ -15,10 +15,7 @@
  */
 package com.infenia.yukta.service.orchestrator.compiler;
 
-import com.infenia.yukta.plugin.message.DefaultMessage;
-import com.infenia.yukta.plugin.message.control.ControlHeartbeat;
-import com.infenia.yukta.plugin.message.control.ControlStatistics;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -57,7 +54,7 @@ import reactor.core.scheduler.Scheduler;
 @Slf4j
 public class HeartbeatBuilder {
 
-  private final ControlBusGateway controlBusGateway;
+  private final ExecutionStatusPublisher statusPublisher;
   private final Duration defaultInterval;
   private final Scheduler scheduler;
 
@@ -72,15 +69,15 @@ public class HeartbeatBuilder {
   /**
    * Creates a new HeartbeatBuilder instance.
    *
-   * @param controlBusGateway the control bus gateway for emitting heartbeats and statistics
+   * @param statusPublisher the status publisher for emitting heartbeats and statistics
    * @param defaultInterval the default interval for heartbeat emissions
    * @param scheduler the scheduler for Flux.interval() operations
    */
   public HeartbeatBuilder(
-      final ControlBusGateway controlBusGateway,
+      final ExecutionStatusPublisher statusPublisher,
       final Duration defaultInterval,
       final Scheduler scheduler) {
-    this.controlBusGateway = controlBusGateway;
+    this.statusPublisher = statusPublisher;
     this.defaultInterval = defaultInterval;
     this.scheduler = scheduler;
   }
@@ -165,13 +162,10 @@ public class HeartbeatBuilder {
         Flux.interval(interval, scheduler)
             .flatMap(
                 tick -> {
-                  final long uptime = System.currentTimeMillis();
-                  final ControlHeartbeat heartbeat = new ControlHeartbeat(nodeId, uptime);
-                  return controlBusGateway.emit(
-                      DefaultMessage.create(null, heartbeat)
-                          .withSourceNodeId(nodeId)
-                          .withWorkflowId(workflowId)
-                          .withControl(true));
+                  // TODO(#XXX): Heartbeat emission decoupled from orchestrator to break circular
+                  // dependency. Heartbeats will be handled through ExecutionStatusPublisher once
+                  // the control bus bridge is established.
+                  return reactor.core.publisher.Mono.empty();
                 })
             .subscribe();
 
@@ -191,13 +185,10 @@ public class HeartbeatBuilder {
         Flux.interval(interval, scheduler)
             .flatMap(
                 tick -> {
-                  final ControlStatistics stats =
-                      new ControlStatistics(nodeId, 0.0, 0.0, java.util.Map.of());
-                  return controlBusGateway.emit(
-                      DefaultMessage.create(null, stats)
-                          .withSourceNodeId(nodeId)
-                          .withWorkflowId(workflowId)
-                          .withControl(true));
+                  // TODO(#XXX): Statistics emission decoupled from orchestrator to break circular
+                  // dependency. Statistics will be handled through ExecutionStatusPublisher once
+                  // the control bus bridge is established.
+                  return reactor.core.publisher.Mono.empty();
                 })
             .subscribe();
 

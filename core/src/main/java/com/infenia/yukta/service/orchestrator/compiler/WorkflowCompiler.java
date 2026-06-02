@@ -22,8 +22,8 @@ import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
+import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
 import com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
@@ -63,7 +63,7 @@ public class WorkflowCompiler {
   private static final String LOG_KEY_PLUGIN_TYPE = "pluginType";
 
   private final TaskTrackerService tracker;
-  private final ControlBusGateway controlBusGateway;
+  private final ExecutionStatusPublisher statusPublisher;
   private final Scheduler virtualThreadScheduler;
   private final Duration heartbeatInterval;
   private final SessionConfigStore configService;
@@ -210,7 +210,7 @@ public class WorkflowCompiler {
         .log("Starting heartbeat and statistics emission for {} nodes", nodeIds.size());
 
     final HeartbeatBuilder heartbeatBuilder =
-        new HeartbeatBuilder(controlBusGateway, heartbeatInterval, virtualThreadScheduler);
+        new HeartbeatBuilder(statusPublisher, heartbeatInterval, virtualThreadScheduler);
     final List<Disposable> heartbeatDisposables =
         heartbeatBuilder
             .forNodes(workflowId, nodeIds)
