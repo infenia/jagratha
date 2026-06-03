@@ -38,6 +38,10 @@ yukta:
     store-type: in-memory
   tracker:
     cleanup-ttl: 10m
+  daemon:
+    port: 8080
+    startup-timeout-seconds: 30
+    health-check-interval-ms: 500
 
 control:
   bus:

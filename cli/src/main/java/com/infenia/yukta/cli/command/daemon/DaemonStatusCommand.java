@@ -13,41 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.cli.command.control;
+package com.infenia.yukta.cli.command.daemon;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.cli.YuktaDaemonClient;
-import java.util.List;
+import com.infenia.yukta.cli.DaemonManager;
+import com.infenia.yukta.cli.DaemonStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
 
 @Component
 @RequiredArgsConstructor
-@Command(name = "get-all", description = "Get all active nodes across workflows")
-public class GetAllNodesCommand implements Runnable {
+@Command(name = "status", description = "Show daemon status")
+public class DaemonStatusCommand implements Runnable {
 
-  private final YuktaDaemonClient daemonClient;
+  private final DaemonManager daemonManager;
   private final CliFormatter formatter;
-
-  @Option(
-      names = {"-o", "--output"},
-      description = "Output format: table (default), json",
-      defaultValue = "table")
-  private String outputFormat;
 
   @Override
   public void run() {
-    final List<String> nodes = daemonClient.getAllActiveNodes();
     try {
-      if ("json".equals(outputFormat)) {
-        formatter.printJson(nodes);
-      } else {
-        formatter.printTable(nodes);
-      }
+      DaemonStatus status = daemonManager.status();
+      formatter.printJson(java.util.Map.of(
+          "running", status.running(),
+          "pid", status.pid(),
+          "url", status.url() != null ? status.url() : "N/A"));
     } catch (Exception e) {
-      System.err.println("Error formatting output: " + e.getMessage());
+      System.err.println("Error checking daemon status: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
       throw new RuntimeException(e);
     }
   }

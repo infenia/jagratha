@@ -22,6 +22,7 @@ dependencies {
 
     implementation(libs.picocli)
     implementation(libs.spring.boot.starter)
+    implementation(libs.spring.boot.starter.webclient)
     implementation(libs.jackson.databind)
 
     annotationProcessor(libs.picocli.codegen)

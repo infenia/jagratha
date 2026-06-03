@@ -16,9 +16,7 @@
 package com.infenia.yukta.cli.command.control;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.plugin.message.DefaultMessage;
-import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.cli.YuktaDaemonClient;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
@@ -31,13 +29,13 @@ import tools.jackson.databind.ObjectMapper;
 @Command(name = "send-command", description = "Send a command to a node")
 public class SendCommandCommand implements Runnable {
 
-  private final ControlBusGateway controlBus;
+  private final YuktaDaemonClient daemonClient;
   private final ObjectMapper objectMapper;
   private final CliFormatter formatter;
 
   public SendCommandCommand(
-      ControlBusGateway controlBus, ObjectMapper objectMapper, CliFormatter formatter) {
-    this.controlBus = controlBus;
+      YuktaDaemonClient daemonClient, ObjectMapper objectMapper, CliFormatter formatter) {
+    this.daemonClient = daemonClient;
     this.objectMapper = objectMapper;
     this.formatter = formatter;
   }
@@ -62,12 +60,7 @@ public class SendCommandCommand implements Runnable {
     try {
       final Map<String, Object> payload =
           objectMapper.readValue(jsonPayload, new TypeReference<Map<String, Object>>() {});
-      final Message<?> command =
-          DefaultMessage.create(null, payload)
-              .withControl(true)
-              .withSourceNodeId("CONSOLE")
-              .withWorkflowId(workflowId);
-      final Message<?> response = controlBus.sendCommand(workflowId, nodeId, command).block();
+      final Map<String, Object> response = daemonClient.sendCommand(workflowId, nodeId, payload);
       if ("json".equals(outputFormat)) {
         formatter.printJson(response);
       } else {

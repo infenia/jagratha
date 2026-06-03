@@ -13,26 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.cli.command.control;
+package com.infenia.yukta.cli.command;
 
-import com.infenia.yukta.cli.YuktaDaemonClient;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Parameters;
 
 @Component
-@RequiredArgsConstructor
-@Command(name = "progress-stream", description = "Stream execution progress in real-time")
-public class ProgressStreamCommand implements Runnable {
-
-  private final YuktaDaemonClient daemonClient;
-
-  @Parameters(index = "0", description = "Execution ID")
-  private String executionId;
+@Command(name = "daemon", mixinStandardHelpOptions = true,
+    description = "Manage the Yukta background daemon")
+public class DaemonCommand implements Runnable {
 
   @Override
   public void run() {
-    daemonClient.streamProgress(executionId, System.out::println);
+    throw new picocli.CommandLine.ExecutionException(
+        new picocli.CommandLine("daemon"), "Missing subcommand");
   }
 }

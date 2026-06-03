@@ -2,54 +2,43 @@
 set -e
 
 # Configuration
-API_BASE_URL="http://localhost:8080/api"
 SESSION_ID="cli-spotless-session"
-WORKFLOW_ID="cli-spotless-workflow"
-PROJECT_PATH=$(pwd)
+JAR_PATH="./boot/build/libs/boot-0.0.1-SNAPSHOT.jar"
 
-echo "Checking if workflow is already created..."
-STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API_BASE_URL/sessions/$SESSION_ID")
+echo "Building the fat JAR..."
+./gradlew :boot:bootJar > /dev/null 2>&1
+echo "✓ Build complete"
 
-if [ "$STATUS_CODE" != "200" ]; then
-    echo "Workflow not found. Creating workflow..."
-    curl -s -X POST "$API_BASE_URL/sessions" \
-        -H "Content-Type: application/json" \
-        -d "{
-            \"sessionId\": \"$SESSION_ID\",
-            \"description\": \"Session for running spotlessApply on CLI module\",
-            \"initiator\": \"bash-script\",
-            \"projectPath\": \"$PROJECT_PATH\",
-            \"workflows\": {
-                \"$WORKFLOW_ID\": {
-                    \"workflowId\": \"$WORKFLOW_ID\",
-                    \"description\": \"Runs spotlessApply on the cli module\",
-                    \"nodes\": [
-                        {
-                            \"nodeId\": \"run-spotless\",
-                            \"type\": \"PROCESS_EXECUTOR\",
-                            \"config\": {
-                                \"command\": [\"./gradlew\", \":cli:spotlessApply\"],
-                                \"workingDir\": \"$PROJECT_PATH\",
-                                \"streamOutput\": true
-                            }
-                        }
-                    ],
-                    \"edges\": []
-                }
-            }
-        }" > /dev/null
-    echo "Workflow created."
-else
-    echo "Workflow already exists. Skipping creation."
-fi
+echo "Applying spotlessApply via CLI (daemon auto-starts if needed)..."
+java -jar $JAR_PATH control session-apply "{
+  \"sessionId\": \"$SESSION_ID\",
+  \"description\": \"CLI Spotless formatting workflow\",
+  \"initiator\": \"spotless-cli\",
+  \"projectPath\": \"$(pwd)\",
+  \"workflows\": {
+    \"spotless-check\": {
+      \"workflowId\": \"spotless-check\",
+      \"description\": \"Apply spotless code formatting\",
+      \"nodes\": [
+        {
+          \"nodeId\": \"spotless\",
+          \"type\": \"spotless\",
+          \"config\": {}
+        }
+      ],
+      \"edges\": []
+    }
+  }
+}"
 
-echo "Triggering workflow execution..."
-curl -s -X POST "$API_BASE_URL/workflow/trigger" \
-    -H "Content-Type: application/json" \
-    -d "{
-        \"sessionId\": \"$SESSION_ID\",
-        \"workflowId\": \"$WORKFLOW_ID\",
-        \"payload\": {}
-    }"
+echo -e "\n✓ Session configured successfully"
 
-echo -e "\n\nWorkflow triggered successfully."
+echo "Triggering spotlessApply workflow..."
+java -jar $JAR_PATH control trigger "$SESSION_ID" "spotless-check" "{}"
+
+echo -e "\n✓ Workflow triggered successfully"
+
+echo -e "\nTo view daemon status, run:"
+echo "  java -jar $JAR_PATH daemon status"
+echo -e "\nTo stop the daemon, run:"
+echo "  java -jar $JAR_PATH daemon stop"

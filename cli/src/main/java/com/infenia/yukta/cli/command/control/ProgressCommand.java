@@ -16,8 +16,8 @@
 package com.infenia.yukta.cli.command.control;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.model.monitoring.WorkflowProgress;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.cli.YuktaDaemonClient;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
@@ -29,7 +29,7 @@ import picocli.CommandLine.Parameters;
 @Command(name = "progress", description = "Get execution progress snapshot")
 public class ProgressCommand implements Runnable {
 
-  private final ControlBusGateway controlBus;
+  private final YuktaDaemonClient daemonClient;
   private final CliFormatter formatter;
 
   @Parameters(index = "0", description = "Execution ID")
@@ -43,7 +43,7 @@ public class ProgressCommand implements Runnable {
 
   @Override
   public void run() {
-    final WorkflowProgress progress = controlBus.getCurrentProgress(executionId);
+    final Map<String, Object> progress = daemonClient.getProgress(executionId);
     try {
       if ("json".equals(outputFormat)) {
         formatter.printJson(progress);

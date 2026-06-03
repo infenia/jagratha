@@ -15,24 +15,13 @@
  */
 package com.infenia.yukta.cli;
 
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.reactive.function.client.WebClient;
+public class DaemonStartupException extends RuntimeException {
 
-@Configuration
-@EnableConfigurationProperties(DaemonProperties.class)
-public class CliConfiguration {
-
-  @Bean
-  public SystemExitHandler systemExitHandler() {
-    return System::exit;
+  public DaemonStartupException(String message) {
+    super(message);
   }
 
-  @Bean
-  public WebClient daemonWebClient(DaemonProperties props) {
-    return WebClient.builder()
-        .baseUrl("http://localhost:" + props.getPort())
-        .build();
+  public DaemonStartupException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

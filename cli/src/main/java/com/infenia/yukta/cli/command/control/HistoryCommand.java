@@ -16,9 +16,9 @@
 package com.infenia.yukta.cli.command.control;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.cli.YuktaDaemonClient;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
@@ -30,7 +30,7 @@ import picocli.CommandLine.Parameters;
 @Command(name = "history", description = "Get session execution history")
 public class HistoryCommand implements Runnable {
 
-  private final ControlBusGateway controlBus;
+  private final YuktaDaemonClient daemonClient;
   private final CliFormatter formatter;
 
   @Parameters(index = "0", description = "Session ID")
@@ -44,13 +44,13 @@ public class HistoryCommand implements Runnable {
 
   @Override
   public void run() {
-    final List<WorkflowExecutionSummary> history = controlBus.getHistory(sessionId);
+    final List<Map<String, Object>> history = daemonClient.getHistory(sessionId);
     try {
       if ("json".equals(outputFormat)) {
         formatter.printJson(history);
       } else {
         final List<String> summaries =
-            history.stream().map(WorkflowExecutionSummary::toString).toList();
+            history.stream().map(Map::toString).toList();
         formatter.printTable(summaries);
       }
     } catch (Exception e) {

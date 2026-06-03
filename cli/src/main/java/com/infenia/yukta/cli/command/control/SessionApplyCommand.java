@@ -16,9 +16,8 @@
 package com.infenia.yukta.cli.command.control;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.mapper.AppConfigMapper;
+import com.infenia.yukta.cli.YuktaDaemonClient;
 import com.infenia.yukta.model.api.ConfigRequest;
-import com.infenia.yukta.service.session.SessionService;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -34,18 +33,15 @@ import tools.jackson.databind.ObjectMapper;
     description = "Apply session configuration from JSON file or string")
 public class SessionApplyCommand implements Runnable {
 
-  private final SessionService sessionService;
-  private final AppConfigMapper configMapper;
+  private final YuktaDaemonClient daemonClient;
   private final ObjectMapper objectMapper;
   private final CliFormatter formatter;
 
   public SessionApplyCommand(
-      SessionService sessionService,
-      AppConfigMapper configMapper,
+      YuktaDaemonClient daemonClient,
       ObjectMapper objectMapper,
       CliFormatter formatter) {
-    this.sessionService = sessionService;
-    this.configMapper = configMapper;
+    this.daemonClient = daemonClient;
     this.objectMapper = objectMapper;
     this.formatter = formatter;
   }
@@ -66,7 +62,7 @@ public class SessionApplyCommand implements Runnable {
     try {
       final String jsonContent = readConfigInput(configInput);
       final ConfigRequest request = objectMapper.readValue(jsonContent, ConfigRequest.class);
-      sessionService.applyConfig(configMapper.toData(request)).block();
+      daemonClient.applySession(request);
 
       final String message = "Session applied: " + request.sessionId();
       if ("json".equals(outputFormat)) {

@@ -16,7 +16,7 @@
 package com.infenia.yukta.cli.command.control;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.service.WorkflowService;
+import com.infenia.yukta.cli.YuktaDaemonClient;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Component;
@@ -30,13 +30,13 @@ import tools.jackson.databind.ObjectMapper;
 @Command(name = "trigger", description = "Trigger a workflow execution")
 public class WorkflowTriggerCommand implements Runnable {
 
-  private final WorkflowService workflowService;
+  private final YuktaDaemonClient daemonClient;
   private final ObjectMapper objectMapper;
   private final CliFormatter formatter;
 
   public WorkflowTriggerCommand(
-      WorkflowService workflowService, ObjectMapper objectMapper, CliFormatter formatter) {
-    this.workflowService = workflowService;
+      YuktaDaemonClient daemonClient, ObjectMapper objectMapper, CliFormatter formatter) {
+    this.daemonClient = daemonClient;
     this.objectMapper = objectMapper;
     this.formatter = formatter;
   }
@@ -61,8 +61,7 @@ public class WorkflowTriggerCommand implements Runnable {
     try {
       final Map<String, Object> payload =
           objectMapper.readValue(jsonPayload, new TypeReference<Map<String, Object>>() {});
-      final var execution = workflowService.runWorkflow(sessionId, workflowId, payload);
-      final String executionId = execution.executionId();
+      final String executionId = daemonClient.triggerWorkflow(sessionId, workflowId, payload);
 
       if ("json".equals(outputFormat)) {
         formatter.printJson(java.util.Map.of("executionId", executionId));

@@ -16,8 +16,8 @@
 package com.infenia.yukta.cli.command.control;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.cli.YuktaDaemonClient;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
@@ -29,7 +29,7 @@ import picocli.CommandLine.Parameters;
 @Command(name = "heartbeat", description = "Get last heartbeat for a node in a workflow")
 public class HeartbeatCommand implements Runnable {
 
-  private final ControlBusGateway controlBus;
+  private final YuktaDaemonClient daemonClient;
   private final CliFormatter formatter;
 
   @Parameters(index = "0", description = "Workflow ID")
@@ -46,7 +46,7 @@ public class HeartbeatCommand implements Runnable {
 
   @Override
   public void run() {
-    final Message<?> hb = controlBus.getLastHeartbeat(workflowId, nodeId);
+    final Map<String, Object> hb = daemonClient.getLastHeartbeat(workflowId, nodeId);
     try {
       if ("json".equals(outputFormat)) {
         formatter.printJson(hb);

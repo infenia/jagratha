@@ -16,7 +16,7 @@
 package com.infenia.yukta.cli.command.control;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.cli.YuktaDaemonClient;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -29,7 +29,7 @@ import picocli.CommandLine.Parameters;
 @Command(name = "get", description = "Get active nodes in a workflow")
 public class GetNodesCommand implements Runnable {
 
-  private final ControlBusGateway controlBus;
+  private final YuktaDaemonClient daemonClient;
   private final CliFormatter formatter;
 
   @Parameters(index = "0", description = "Workflow ID")
@@ -43,7 +43,7 @@ public class GetNodesCommand implements Runnable {
 
   @Override
   public void run() {
-    final List<String> nodes = controlBus.getActiveNodes(workflowId);
+    final List<String> nodes = daemonClient.getActiveNodes(workflowId);
     try {
       if ("json".equals(outputFormat)) {
         formatter.printJson(nodes);

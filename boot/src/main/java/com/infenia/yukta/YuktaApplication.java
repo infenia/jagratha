@@ -51,7 +51,7 @@ public class YuktaApplication {
 
   @SuppressWarnings({"PMD.LocalVariableCouldBeFinal", "PMD.OnlyOneReturn"})
   private static boolean isCli(final String[] args) {
-    return args.length > 0 && "control".equals(args[0]);
+    return args.length > 0 && ("control".equals(args[0]) || "daemon".equals(args[0]));
   }
 
   @SuppressWarnings("PMD.LocalVariableCouldBeFinal")

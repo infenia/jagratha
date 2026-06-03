@@ -15,8 +15,7 @@
  */
 package com.infenia.yukta.cli.command.control;
 
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import java.util.concurrent.CountDownLatch;
+import com.infenia.yukta.cli.YuktaDaemonClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
@@ -27,23 +26,13 @@ import picocli.CommandLine.Parameters;
 @Command(name = "logs-stream", description = "Stream execution logs in real-time")
 public class LogsStreamCommand implements Runnable {
 
-  private final ControlBusGateway controlBus;
+  private final YuktaDaemonClient daemonClient;
 
   @Parameters(index = "0", description = "Execution ID")
   private String executionId;
 
   @Override
   public void run() {
-    final CountDownLatch latch = new CountDownLatch(1);
-    controlBus
-        .watchLogs(executionId)
-        .doOnTerminate(latch::countDown)
-        .subscribe(System.out::println);
-    try {
-      latch.await();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      System.err.println("Stream interrupted: " + e.getMessage());
-    }
+    daemonClient.streamLogs(executionId, System.out::println);
   }
 }

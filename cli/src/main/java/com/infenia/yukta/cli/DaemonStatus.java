@@ -15,24 +15,4 @@
  */
 package com.infenia.yukta.cli;
 
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.reactive.function.client.WebClient;
-
-@Configuration
-@EnableConfigurationProperties(DaemonProperties.class)
-public class CliConfiguration {
-
-  @Bean
-  public SystemExitHandler systemExitHandler() {
-    return System::exit;
-  }
-
-  @Bean
-  public WebClient daemonWebClient(DaemonProperties props) {
-    return WebClient.builder()
-        .baseUrl("http://localhost:" + props.getPort())
-        .build();
-  }
-}
+public record DaemonStatus(boolean running, long pid, String url) {}

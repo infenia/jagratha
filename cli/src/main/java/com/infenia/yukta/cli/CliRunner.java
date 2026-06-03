@@ -16,6 +16,7 @@
 package com.infenia.yukta.cli;
 
 import com.infenia.yukta.cli.command.ControlCommand;
+import com.infenia.yukta.cli.command.DaemonCommand;
 import com.infenia.yukta.cli.command.control.GetAllNodesCommand;
 import com.infenia.yukta.cli.command.control.GetNodesCommand;
 import com.infenia.yukta.cli.command.control.HeartbeatCommand;
@@ -27,6 +28,9 @@ import com.infenia.yukta.cli.command.control.ProgressStreamCommand;
 import com.infenia.yukta.cli.command.control.SendCommandCommand;
 import com.infenia.yukta.cli.command.control.SessionApplyCommand;
 import com.infenia.yukta.cli.command.control.WorkflowTriggerCommand;
+import com.infenia.yukta.cli.command.daemon.DaemonStartCommand;
+import com.infenia.yukta.cli.command.daemon.DaemonStatusCommand;
+import com.infenia.yukta.cli.command.daemon.DaemonStopCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -49,6 +53,11 @@ public class CliRunner implements ApplicationRunner {
   private final HistoryCommand historyCommand;
   private final SessionApplyCommand sessionApplyCommand;
   private final WorkflowTriggerCommand workflowTriggerCommand;
+  private final DaemonCommand daemonCommand;
+  private final DaemonStartCommand daemonStartCommand;
+  private final DaemonStopCommand daemonStopCommand;
+  private final DaemonStatusCommand daemonStatusCommand;
+  private final DaemonManager daemonManager;
   private final SystemExitHandler exitHandler;
 
   @Override
@@ -61,6 +70,17 @@ public class CliRunner implements ApplicationRunner {
     final String[] rawArgs = args.getSourceArgs();
     if (!isCli(rawArgs)) {
       return;
+    }
+
+    // Ensure daemon is running for control commands
+    if (rawArgs.length > 0 && "control".equals(rawArgs[0])) {
+      try {
+        daemonManager.ensureRunning();
+      } catch (Exception e) {
+        System.err.println("Failed to start daemon: " + e.getMessage());
+        exitHandler.exit(1);
+        return;
+      }
     }
 
     final CommandLine nodesCmd = new CommandLine(nodesCommand);
@@ -78,14 +98,20 @@ public class CliRunner implements ApplicationRunner {
     controlCmd.addSubcommand(sessionApplyCommand);
     controlCmd.addSubcommand(workflowTriggerCommand);
 
+    final CommandLine daemonCmd = new CommandLine(daemonCommand);
+    daemonCmd.addSubcommand(daemonStartCommand);
+    daemonCmd.addSubcommand(daemonStopCommand);
+    daemonCmd.addSubcommand(daemonStatusCommand);
+
     final CommandLine rootCmd = new CommandLine(new YuktaCli());
     rootCmd.addSubcommand(controlCmd);
+    rootCmd.addSubcommand(daemonCmd);
 
     final int exitCode = rootCmd.execute(rawArgs);
     exitHandler.exit(exitCode);
   }
 
   private boolean isCli(final String[] args) {
-    return args.length > 0 && "control".equals(args[0]);
+    return args.length > 0 && ("control".equals(args[0]) || "daemon".equals(args[0]));
   }
 }
