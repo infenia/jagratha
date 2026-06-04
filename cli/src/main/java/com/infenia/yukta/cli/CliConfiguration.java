@@ -15,10 +15,13 @@
  */
 package com.infenia.yukta.cli;
 
+import java.time.Duration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
 
 @Configuration
 @EnableConfigurationProperties(DaemonProperties.class)
@@ -31,8 +34,13 @@ public class CliConfiguration {
 
   @Bean
   public WebClient daemonWebClient(DaemonProperties props) {
+    HttpClient httpClient =
+        HttpClient.create()
+            .responseTimeout(Duration.ofSeconds(30));
+
     return WebClient.builder()
-        .baseUrl("http://localhost:" + props.getPort())
+        .baseUrl("http://127.0.0.1:" + props.getPort())
+        .clientConnector(new ReactorClientHttpConnector(httpClient))
         .build();
   }
 }
