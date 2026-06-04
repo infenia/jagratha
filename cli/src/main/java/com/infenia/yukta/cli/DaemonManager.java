@@ -73,10 +73,11 @@ public class DaemonManager {
         return null;
       }
 
-      // Launch process (no redirect - let background process handle its own I/O)
+      // Launch daemon detached from parent I/O (logs to file, not stdout)
       ProcessBuilder pb = new ProcessBuilder(buildDaemonCommand());
       pb.directory(new File("."));
-      pb.inheritIO(); // Inherit parent I/O for background process
+      pb.redirectOutput(ProcessBuilder.Redirect.to(logFilePath.toFile()));
+      pb.redirectError(ProcessBuilder.Redirect.to(logFilePath.toFile()));
 
       Process process = pb.start();
       long pid = process.pid();
