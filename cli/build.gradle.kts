@@ -13,9 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
+
 plugins {
     `java-library`
-    id("com.infenia.yukta.spring-conventions")
+    id("com.infenia.yukta.java-conventions")
+    id("com.infenia.yukta.quality-conventions")
+    id("com.infenia.yukta.jacoco-conventions")
+    id("io.spring.dependency-management") version "1.1.7"
+}
+
+configure<DependencyManagementExtension> {
+    imports {
+        // Spring Boot version is managed in libs.versions.toml
+        mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.3")
+    }
 }
 
 dependencies {
