@@ -43,15 +43,7 @@ public class YuktaApplication {
     }
 
     final SpringApplication app = new SpringApplication(YuktaApplication.class);
-    if (isCli(args)) {
-      app.setWebApplicationType(org.springframework.boot.WebApplicationType.NONE);
-    }
     app.run(args);
-  }
-
-  @SuppressWarnings({"PMD.LocalVariableCouldBeFinal", "PMD.OnlyOneReturn"})
-  private static boolean isCli(final String[] args) {
-    return args.length > 0 && ("control".equals(args[0]) || "daemon".equals(args[0]));
   }
 
   @SuppressWarnings("PMD.LocalVariableCouldBeFinal")
@@ -60,7 +52,7 @@ public class YuktaApplication {
     return "runtime".equals(nativeImageProp);
   }
 
-  @SuppressWarnings({"PMD.UseVarargs", "PMD.LocalVariableCouldBeFinal", "PMD.OnlyOneReturn"})
+  @SuppressWarnings({"PMD.UseVarargs", "PMD.OnlyOneReturn", "PMD.LocalVariableCouldBeFinal"})
   private static boolean hasProfileArgument(final String[] args) {
     for (String arg : args) {
       if (arg.startsWith("--spring.profiles.active=")
