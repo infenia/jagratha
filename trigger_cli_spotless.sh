@@ -3,18 +3,18 @@ set -e
 
 # Configuration
 SESSION_ID="cli-spotless-session"
-JAR_PATH="./boot/build/libs/boot-0.0.1-SNAPSHOT.jar"
+CLI_JAR_PATH="./cli-boot/build/libs/cli-boot-0.0.1-SNAPSHOT.jar"
 
-echo "Building the fat JAR..."
-./gradlew :boot:bootJar > /dev/null 2>&1
+echo "Building the CLI JAR..."
+./gradlew :cli-boot:bootJar > /dev/null 2>&1
 echo "✓ Build complete"
 
 echo "Ensuring daemon is running..."
-java -jar $JAR_PATH daemon start > /dev/null 2>&1
+java -jar $CLI_JAR_PATH daemon start > /dev/null 2>&1
 echo "✓ Daemon is ready"
 
 echo "Applying spotlessApply via CLI..."
-java -jar $JAR_PATH control session-apply "$(cat <<'EOF'
+java -jar $CLI_JAR_PATH control session-apply "$(cat <<'EOF'
 {
   "sessionId": "cli-spotless-session",
   "description": "CLI Spotless formatting workflow",
@@ -44,11 +44,11 @@ EOF
 echo "✓ Session configured successfully"
 
 echo "Triggering spotlessApply workflow..."
-java -jar $JAR_PATH control trigger "$SESSION_ID" "spotless-check" "{}" 2>&1 | tail -5
+java -jar $CLI_JAR_PATH control trigger "$SESSION_ID" "spotless-check" "{}" 2>&1 | tail -5
 
 echo "✓ Workflow triggered successfully"
 
 echo -e "\nTo view daemon status, run:"
-echo "  java -jar $JAR_PATH daemon status"
+echo "  java -jar $CLI_JAR_PATH daemon status"
 echo -e "\nTo stop the daemon, run:"
-echo "  java -jar $JAR_PATH daemon stop"
+echo "  java -jar $CLI_JAR_PATH daemon stop"
