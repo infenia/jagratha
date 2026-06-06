@@ -28,7 +28,6 @@ import com.infenia.yukta.cli.CliFormatter;
 import com.infenia.yukta.cli.YuktaDaemonClient;
 import com.infenia.yukta.model.api.ConfigRequest;
 import com.infenia.yukta.model.api.WorkflowDefinitionRequest;
-import com.infenia.yukta.model.api.WorkflowDefinitionRequest.EdgeRequest;
 import com.infenia.yukta.model.api.WorkflowDefinitionRequest.NodeRequest;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -66,8 +65,7 @@ class SessionApplyCommandTest {
   }
 
   @Test
-  void run_validInlineJsonWithDefaultTableFormat_appliesSessionAndPrintsTable()
-      throws Exception {
+  void run_validInlineJsonWithDefaultTableFormat_appliesSessionAndPrintsTable() throws Exception {
     // Given
     final var configRequest = createValidConfigRequest("session1");
     final var jsonInput = "{\"sessionId\":\"session1\"}";
@@ -277,8 +275,7 @@ class SessionApplyCommandTest {
   // ============== Helper Methods ==============
 
   private ConfigRequest createValidConfigRequest(String sessionId) {
-    final var node =
-        new NodeRequest("node-1", "quality-check", Map.of("timeout", "5000"));
+    final var node = new NodeRequest("node-1", "quality-check", Map.of("timeout", "5000"));
     final var workflow =
         new WorkflowDefinitionRequest(
             "workflow-1", "Quality check workflow", List.of(node), List.of());

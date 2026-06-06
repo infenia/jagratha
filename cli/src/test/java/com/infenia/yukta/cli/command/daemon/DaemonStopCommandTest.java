@@ -78,9 +78,7 @@ class DaemonStopCommandTest {
     when(mockDaemonManager.stopDaemon()).thenThrow(exception);
 
     // When-Then
-    assertThatThrownBy(command::run)
-        .isInstanceOf(RuntimeException.class)
-        .hasCause(exception);
+    assertThatThrownBy(command::run).isInstanceOf(RuntimeException.class).hasCause(exception);
   }
 
   @Test
@@ -90,9 +88,7 @@ class DaemonStopCommandTest {
     when(mockDaemonManager.stopDaemon()).thenThrow(exception);
 
     // When-Then
-    assertThatThrownBy(command::run)
-        .isInstanceOf(RuntimeException.class)
-        .hasCause(exception);
+    assertThatThrownBy(command::run).isInstanceOf(RuntimeException.class).hasCause(exception);
   }
 
   @Test

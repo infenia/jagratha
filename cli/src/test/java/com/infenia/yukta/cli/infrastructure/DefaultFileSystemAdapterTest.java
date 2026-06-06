@@ -76,8 +76,7 @@ class DefaultFileSystemAdapterTest {
     Path filePath = tempDir.resolve("testfile.txt");
     String content = "Hello, World!";
 
-    adapter.writeString(filePath, content, StandardOpenOption.CREATE,
-        StandardOpenOption.WRITE);
+    adapter.writeString(filePath, content, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
 
     assertThat(filePath).exists();
     assertThat(Files.readString(filePath)).isEqualTo(content);
@@ -89,10 +88,10 @@ class DefaultFileSystemAdapterTest {
     String originalContent = "Original content";
     String newContent = "New content";
 
-    Files.writeString(filePath, originalContent, StandardOpenOption.CREATE,
-        StandardOpenOption.WRITE);
-    adapter.writeString(filePath, newContent, StandardOpenOption.TRUNCATE_EXISTING,
-        StandardOpenOption.WRITE);
+    Files.writeString(
+        filePath, originalContent, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+    adapter.writeString(
+        filePath, newContent, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
 
     assertThat(Files.readString(filePath)).isEqualTo(newContent);
   }
@@ -102,8 +101,12 @@ class DefaultFileSystemAdapterTest {
     Path filePath = tempDir.resolve("testfile.txt");
     String content = "Test content";
 
-    adapter.writeString(filePath, content, StandardOpenOption.CREATE,
-        StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+    adapter.writeString(
+        filePath,
+        content,
+        StandardOpenOption.CREATE,
+        StandardOpenOption.WRITE,
+        StandardOpenOption.TRUNCATE_EXISTING);
 
     assertThat(filePath).exists();
     assertThat(Files.readString(filePath)).isEqualTo(content);
@@ -114,8 +117,8 @@ class DefaultFileSystemAdapterTest {
     Path filePath = tempDir.resolve("emptyfile.txt");
     String emptyContent = "";
 
-    adapter.writeString(filePath, emptyContent, StandardOpenOption.CREATE,
-        StandardOpenOption.WRITE);
+    adapter.writeString(
+        filePath, emptyContent, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
 
     assertThat(filePath).exists();
     assertThat(Files.readString(filePath)).isEmpty();
@@ -148,8 +151,7 @@ class DefaultFileSystemAdapterTest {
   void readString_fileNotFound_throwsException() {
     Path nonExistentFile = tempDir.resolve("nonexistent.txt");
 
-    assertThatThrownBy(() -> adapter.readString(nonExistentFile))
-        .isInstanceOf(IOException.class);
+    assertThatThrownBy(() -> adapter.readString(nonExistentFile)).isInstanceOf(IOException.class);
   }
 
   @Test
@@ -180,8 +182,7 @@ class DefaultFileSystemAdapterTest {
   void delete_fileNotFound_throwsException() {
     Path nonExistentFile = tempDir.resolve("nonexistent.txt");
 
-    assertThatThrownBy(() -> adapter.delete(nonExistentFile))
-        .isInstanceOf(IOException.class);
+    assertThatThrownBy(() -> adapter.delete(nonExistentFile)).isInstanceOf(IOException.class);
   }
 
   @Test
@@ -190,8 +191,7 @@ class DefaultFileSystemAdapterTest {
     Files.createDirectory(dirPath);
     Files.createFile(dirPath.resolve("file.txt"));
 
-    assertThatThrownBy(() -> adapter.delete(dirPath))
-        .isInstanceOf(IOException.class);
+    assertThatThrownBy(() -> adapter.delete(dirPath)).isInstanceOf(IOException.class);
   }
 
   // deleteIfExists() tests

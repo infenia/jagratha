@@ -81,8 +81,7 @@ class DefaultProcessProviderTest {
     File stderr = new File(tempDir, "stderr.txt");
     List<String> command = List.of("nonexistent_command_xyz123");
 
-    assertThatThrownBy(
-            () -> provider.startProcess(command, tempDir, stdout, stderr))
+    assertThatThrownBy(() -> provider.startProcess(command, tempDir, stdout, stderr))
         .isInstanceOf(Exception.class);
   }
 
@@ -92,8 +91,7 @@ class DefaultProcessProviderTest {
     File stderr = new File(tempDir, "stderr.txt");
     List<String> command = List.of();
 
-    assertThatThrownBy(
-            () -> provider.startProcess(command, tempDir, stdout, stderr))
+    assertThatThrownBy(() -> provider.startProcess(command, tempDir, stdout, stderr))
         .isInstanceOf(Exception.class);
   }
 

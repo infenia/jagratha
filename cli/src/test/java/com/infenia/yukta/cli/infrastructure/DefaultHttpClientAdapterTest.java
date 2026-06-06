@@ -47,10 +47,12 @@ class DefaultHttpClientAdapterTest {
     mockServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     int port = mockServer.getAddress().getPort();
 
-    mockServer.createContext("/actuator/health", exchange -> {
-      exchange.sendResponseHeaders(200, 0);
-      exchange.close();
-    });
+    mockServer.createContext(
+        "/actuator/health",
+        exchange -> {
+          exchange.sendResponseHeaders(200, 0);
+          exchange.close();
+        });
     mockServer.start();
 
     boolean result = adapter.healthCheck(port);
@@ -63,10 +65,12 @@ class DefaultHttpClientAdapterTest {
     mockServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     int port = mockServer.getAddress().getPort();
 
-    mockServer.createContext("/actuator/health", exchange -> {
-      exchange.sendResponseHeaders(503, 0);
-      exchange.close();
-    });
+    mockServer.createContext(
+        "/actuator/health",
+        exchange -> {
+          exchange.sendResponseHeaders(503, 0);
+          exchange.close();
+        });
     mockServer.start();
 
     boolean result = adapter.healthCheck(port);
@@ -79,10 +83,12 @@ class DefaultHttpClientAdapterTest {
     mockServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     int port = mockServer.getAddress().getPort();
 
-    mockServer.createContext("/actuator/health", exchange -> {
-      exchange.sendResponseHeaders(500, 0);
-      exchange.close();
-    });
+    mockServer.createContext(
+        "/actuator/health",
+        exchange -> {
+          exchange.sendResponseHeaders(500, 0);
+          exchange.close();
+        });
     mockServer.start();
 
     boolean result = adapter.healthCheck(port);
@@ -101,8 +107,7 @@ class DefaultHttpClientAdapterTest {
 
   @Test
   void healthCheck_invalidPort_throwsException() {
-    assertThatThrownBy(() -> adapter.healthCheck(0))
-        .isInstanceOf(Exception.class);
+    assertThatThrownBy(() -> adapter.healthCheck(0)).isInstanceOf(Exception.class);
   }
 
   @Test
@@ -116,10 +121,12 @@ class DefaultHttpClientAdapterTest {
     mockServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     int port = mockServer.getAddress().getPort();
 
-    mockServer.createContext("/actuator/health", exchange -> {
-      exchange.sendResponseHeaders(404, 0);
-      exchange.close();
-    });
+    mockServer.createContext(
+        "/actuator/health",
+        exchange -> {
+          exchange.sendResponseHeaders(404, 0);
+          exchange.close();
+        });
     mockServer.start();
 
     boolean result = adapter.healthCheck(port);
@@ -132,10 +139,12 @@ class DefaultHttpClientAdapterTest {
     mockServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     int port = mockServer.getAddress().getPort();
 
-    mockServer.createContext("/actuator/health", exchange -> {
-      exchange.sendResponseHeaders(200, 0);
-      exchange.close();
-    });
+    mockServer.createContext(
+        "/actuator/health",
+        exchange -> {
+          exchange.sendResponseHeaders(200, 0);
+          exchange.close();
+        });
     mockServer.start();
 
     for (int i = 0; i < 3; i++) {
@@ -149,10 +158,12 @@ class DefaultHttpClientAdapterTest {
     mockServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     int port = mockServer.getAddress().getPort();
 
-    mockServer.createContext("/actuator/health", exchange -> {
-      exchange.sendResponseHeaders(200, 0);
-      exchange.close();
-    });
+    mockServer.createContext(
+        "/actuator/health",
+        exchange -> {
+          exchange.sendResponseHeaders(200, 0);
+          exchange.close();
+        });
     mockServer.start();
 
     boolean result = adapter.healthCheck(port);
@@ -165,10 +176,12 @@ class DefaultHttpClientAdapterTest {
     mockServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     int port = mockServer.getAddress().getPort();
 
-    mockServer.createContext("/actuator/health", exchange -> {
-      exchange.sendResponseHeaders(201, 0);
-      exchange.close();
-    });
+    mockServer.createContext(
+        "/actuator/health",
+        exchange -> {
+          exchange.sendResponseHeaders(201, 0);
+          exchange.close();
+        });
     mockServer.start();
 
     boolean result = adapter.healthCheck(port);

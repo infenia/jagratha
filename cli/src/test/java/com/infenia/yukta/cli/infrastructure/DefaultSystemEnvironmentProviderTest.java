@@ -54,8 +54,7 @@ class DefaultSystemEnvironmentProviderTest {
 
   @Test
   void getEnvironment_nonExistingVariable_returnsEmpty() {
-    Optional<String> result =
-        provider.getEnvironment("NON_EXISTENT_ENV_VARIABLE_XYZ123");
+    Optional<String> result = provider.getEnvironment("NON_EXISTENT_ENV_VARIABLE_XYZ123");
     assertThat(result).isEmpty();
   }
 

@@ -148,8 +148,7 @@ class CliRunnerTest {
     final var args = mock(ApplicationArguments.class);
     final var sourceArgs = new String[] {"control", "progress"};
     when(args.getSourceArgs()).thenReturn(sourceArgs);
-    when(mockDaemonManager.ensureRunning())
-        .thenThrow(new InterruptedException("Interrupted"));
+    when(mockDaemonManager.ensureRunning()).thenThrow(new InterruptedException("Interrupted"));
 
     cliRunner.run(args);
 

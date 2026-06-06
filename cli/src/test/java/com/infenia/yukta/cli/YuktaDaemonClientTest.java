@@ -20,10 +20,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.model.api.ConfigRequest;
@@ -79,7 +79,8 @@ class YuktaDaemonClientTest {
     when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
         .thenReturn(Mono.just(response));
 
-    WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
+    WebClient.RequestBodyUriSpec uriSpec =
+        mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
     when(uriSpec.uri(anyString())).thenAnswer(inv -> uriSpec);
     when(uriSpec.bodyValue(any())).thenAnswer(inv -> uriSpec);
     when(uriSpec.retrieve()).thenReturn(responseSpec);
@@ -108,10 +109,10 @@ class YuktaDaemonClientTest {
                     "workflow-1", "Test Workflow", List.of(), List.of())));
 
     WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
-    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
-        .thenReturn(Mono.empty());
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.empty());
 
-    WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
+    WebClient.RequestBodyUriSpec uriSpec =
+        mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
     when(uriSpec.uri(anyString())).thenAnswer(inv -> uriSpec);
     when(uriSpec.bodyValue(any())).thenAnswer(inv -> uriSpec);
     when(uriSpec.retrieve()).thenReturn(responseSpec);
@@ -139,7 +140,8 @@ class YuktaDaemonClientTest {
     when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
         .thenReturn(Mono.just(response));
 
-    WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
+    WebClient.RequestBodyUriSpec uriSpec =
+        mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
     when(uriSpec.uri(anyString())).thenAnswer(inv -> uriSpec);
     when(uriSpec.bodyValue(any())).thenAnswer(inv -> uriSpec);
     when(uriSpec.retrieve()).thenReturn(responseSpec);
@@ -160,10 +162,10 @@ class YuktaDaemonClientTest {
     Map<String, Object> payload = Map.of("key", "value");
 
     WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
-    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
-        .thenReturn(Mono.empty());
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.empty());
 
-    WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
+    WebClient.RequestBodyUriSpec uriSpec =
+        mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
     when(uriSpec.uri(anyString())).thenAnswer(inv -> uriSpec);
     when(uriSpec.bodyValue(any())).thenAnswer(inv -> uriSpec);
     when(uriSpec.retrieve()).thenReturn(responseSpec);
@@ -189,7 +191,8 @@ class YuktaDaemonClientTest {
     when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
         .thenReturn(Mono.just(response));
 
-    WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
+    WebClient.RequestBodyUriSpec uriSpec =
+        mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
     when(uriSpec.uri(anyString())).thenAnswer(inv -> uriSpec);
     when(uriSpec.bodyValue(any())).thenAnswer(inv -> uriSpec);
     when(uriSpec.retrieve()).thenReturn(responseSpec);
@@ -216,7 +219,8 @@ class YuktaDaemonClientTest {
     when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
         .thenReturn(Mono.just(response));
 
-    WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
+    WebClient.RequestBodyUriSpec uriSpec =
+        mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
     when(uriSpec.uri(anyString())).thenAnswer(inv -> uriSpec);
     when(uriSpec.bodyValue(any())).thenAnswer(inv -> uriSpec);
     when(uriSpec.retrieve()).thenReturn(responseSpec);
@@ -262,8 +266,7 @@ class YuktaDaemonClientTest {
     String workflowId = "workflow-456";
 
     WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
-    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
-        .thenReturn(Mono.empty());
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.empty());
 
     WebClient.RequestHeadersUriSpec uriSpec =
         mock(WebClient.RequestHeadersUriSpec.class, withSettings().lenient());
@@ -309,8 +312,7 @@ class YuktaDaemonClientTest {
   void getAllActiveNodes_nullResponse_returnsEmptyList() {
     // Given
     WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
-    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
-        .thenReturn(Mono.empty());
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.empty());
 
     WebClient.RequestHeadersUriSpec uriSpec =
         mock(WebClient.RequestHeadersUriSpec.class, withSettings().lenient());
@@ -367,8 +369,7 @@ class YuktaDaemonClientTest {
     String nodeId = "node-1";
 
     WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
-    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
-        .thenReturn(Mono.empty());
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.empty());
 
     WebClient.RequestHeadersUriSpec uriSpec =
         mock(WebClient.RequestHeadersUriSpec.class, withSettings().lenient());
@@ -400,7 +401,8 @@ class YuktaDaemonClientTest {
     when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
         .thenReturn(Mono.just(response));
 
-    WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
+    WebClient.RequestBodyUriSpec uriSpec =
+        mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
     when(uriSpec.uri(anyString())).thenAnswer(inv -> uriSpec);
     when(uriSpec.uri(anyString(), any(Object[].class))).thenAnswer(inv -> uriSpec);
     when(uriSpec.bodyValue(any())).thenAnswer(inv -> uriSpec);
@@ -422,10 +424,10 @@ class YuktaDaemonClientTest {
     Map<String, Object> payload = Map.of("action", "restart");
 
     WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
-    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
-        .thenReturn(Mono.empty());
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.empty());
 
-    WebClient.RequestBodyUriSpec uriSpec = mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
+    WebClient.RequestBodyUriSpec uriSpec =
+        mock(WebClient.RequestBodyUriSpec.class, withSettings().lenient());
     when(uriSpec.uri(anyString())).thenAnswer(inv -> uriSpec);
     when(uriSpec.uri(anyString(), any(Object[].class))).thenAnswer(inv -> uriSpec);
     when(uriSpec.bodyValue(any())).thenAnswer(inv -> uriSpec);
@@ -465,9 +467,7 @@ class YuktaDaemonClientTest {
     Map<String, Object> result = client.getProgress(executionId);
 
     // Then
-    assertThat(result)
-        .containsEntry("percentage", 50)
-        .containsEntry("status", "in-progress");
+    assertThat(result).containsEntry("percentage", 50).containsEntry("status", "in-progress");
   }
 
   @Test
@@ -476,8 +476,7 @@ class YuktaDaemonClientTest {
     String executionId = "exec-789";
 
     WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
-    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
-        .thenReturn(Mono.empty());
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.empty());
 
     WebClient.RequestHeadersUriSpec uriSpec =
         mock(WebClient.RequestHeadersUriSpec.class, withSettings().lenient());
@@ -534,8 +533,7 @@ class YuktaDaemonClientTest {
     String sessionId = "session-123";
 
     WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
-    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
-        .thenReturn(Mono.empty());
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.empty());
 
     WebClient.RequestHeadersUriSpec uriSpec =
         mock(WebClient.RequestHeadersUriSpec.class, withSettings().lenient());
@@ -653,5 +651,113 @@ class YuktaDaemonClientTest {
 
     // Then
     verify(lineConsumer, never()).accept(anyString());
+  }
+
+  // getSessionDetails tests
+
+  @Test
+  void getSessionDetails_validRequest_returnsSessionData() {
+    // Given
+    String sessionId = "session-123";
+    Map<String, Object> sessionData =
+        Map.of("sessionId", "session-123", "workflowIds", List.of("workflow-1", "workflow-2"));
+    ApiResponse<Map<String, Object>> response =
+        ApiResponse.success(200, "Session details retrieved", sessionData);
+
+    WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
+        .thenReturn(Mono.just(response));
+
+    WebClient.RequestHeadersUriSpec uriSpec =
+        mock(WebClient.RequestHeadersUriSpec.class, withSettings().lenient());
+    when(uriSpec.uri(anyString(), any(Object[].class))).thenAnswer(inv -> uriSpec);
+    when(uriSpec.retrieve()).thenReturn(responseSpec);
+    when(mockWebClient.get()).thenReturn(uriSpec);
+
+    // When
+    Map<String, Object> result = client.getSessionDetails(sessionId);
+
+    // Then
+    assertThat(result).isEqualTo(sessionData);
+  }
+
+  @Test
+  void getSessionDetails_nullResponse_returnsEmptyMap() {
+    // Given
+    String sessionId = "session-123";
+
+    WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.empty());
+
+    WebClient.RequestHeadersUriSpec uriSpec =
+        mock(WebClient.RequestHeadersUriSpec.class, withSettings().lenient());
+    when(uriSpec.uri(anyString(), any(Object[].class))).thenAnswer(inv -> uriSpec);
+    when(uriSpec.retrieve()).thenReturn(responseSpec);
+    when(mockWebClient.get()).thenReturn(uriSpec);
+
+    // When
+    Map<String, Object> result = client.getSessionDetails(sessionId);
+
+    // Then
+    assertThat(result).isEmpty();
+  }
+
+  // getWorkflow tests
+
+  @Test
+  void getWorkflow_validRequest_returnsWorkflowData() {
+    // Given
+    String sessionId = "session-123";
+    String workflowId = "workflow-456";
+    Map<String, Object> workflowData =
+        Map.of(
+            "workflowId",
+            "workflow-456",
+            "description",
+            "Test Workflow",
+            "nodes",
+            List.of(),
+            "edges",
+            List.of());
+    ApiResponse<Map<String, Object>> response =
+        ApiResponse.success(200, "Workflow retrieved", workflowData);
+
+    WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
+        .thenReturn(Mono.just(response));
+
+    WebClient.RequestHeadersUriSpec uriSpec =
+        mock(WebClient.RequestHeadersUriSpec.class, withSettings().lenient());
+    when(uriSpec.uri(anyString(), any(Object[].class))).thenAnswer(inv -> uriSpec);
+    when(uriSpec.retrieve()).thenReturn(responseSpec);
+    when(mockWebClient.get()).thenReturn(uriSpec);
+
+    // When
+    Map<String, Object> result = client.getWorkflow(sessionId, workflowId);
+
+    // Then
+    assertThat(result).isEqualTo(workflowData);
+  }
+
+  @Test
+  void getWorkflow_nullResponse_returnsEmptyMap() {
+    // Given
+    String sessionId = "session-123";
+    String workflowId = "workflow-456";
+
+    WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
+    when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.empty());
+
+    WebClient.RequestHeadersUriSpec uriSpec =
+        mock(WebClient.RequestHeadersUriSpec.class, withSettings().lenient());
+    when(uriSpec.uri(anyString(), any(Object[].class))).thenAnswer(inv -> uriSpec);
+    when(uriSpec.retrieve()).thenReturn(responseSpec);
+    when(mockWebClient.get()).thenReturn(uriSpec);
+
+    // When
+    Map<String, Object> result = client.getWorkflow(sessionId, workflowId);
+
+    // Then
+    assertThat(result).isEmpty();
   }
 }

@@ -27,8 +27,11 @@ java -jar $JAR_PATH control session-apply "$(cat <<'EOF'
       "nodes": [
         {
           "nodeId": "spotless",
-          "type": "spotless",
-          "config": {}
+          "type": "PROCESS_EXECUTOR",
+          "config": {
+            "command": ["./gradlew", "spotlessApply"],
+            "workingDirectory": "$(pwd)"
+          }
         }
       ],
       "edges": []

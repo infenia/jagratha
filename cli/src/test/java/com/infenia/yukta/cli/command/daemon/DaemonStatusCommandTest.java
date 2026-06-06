@@ -82,9 +82,7 @@ class DaemonStatusCommandTest {
     when(mockDaemonManager.status()).thenThrow(exception);
 
     // When-Then
-    assertThatThrownBy(command::run)
-        .isInstanceOf(RuntimeException.class)
-        .hasCause(exception);
+    assertThatThrownBy(command::run).isInstanceOf(RuntimeException.class).hasCause(exception);
   }
 
   @Test
@@ -94,9 +92,7 @@ class DaemonStatusCommandTest {
     when(mockDaemonManager.status()).thenThrow(exception);
 
     // When-Then
-    assertThatThrownBy(command::run)
-        .isInstanceOf(RuntimeException.class)
-        .hasCause(exception);
+    assertThatThrownBy(command::run).isInstanceOf(RuntimeException.class).hasCause(exception);
   }
 
   @Test

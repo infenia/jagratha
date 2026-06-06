@@ -40,17 +40,17 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * Tests for DaemonManager covering lifecycle management of the Yukta daemon process. Includes
- * tests for daemon startup, status checks, waiting for readiness, and graceful shutdown.
+ * Tests for DaemonManager covering lifecycle management of the Yukta daemon process. Includes tests
+ * for daemon startup, status checks, waiting for readiness, and graceful shutdown.
  *
- * Note: Some error paths (lock failures, process spawn failures) are difficult to test with unit
+ * <p>Note: Some error paths (lock failures, process spawn failures) are difficult to test with unit
  * mocks and would require integration tests with actual file system and process operations.
  */
 @ExtendWith(MockitoExtension.class)
@@ -100,8 +100,7 @@ class DaemonManagerTest {
   @DisplayName("isRunning returns false when health check throws ConnectException")
   void isRunning_healthCheckThrowsConnectException_returnsFalse() throws Exception {
     // Given: health check throws ConnectException
-    when(httpClientAdapter.healthCheck(8080))
-        .thenThrow(new ConnectException("Connection refused"));
+    when(httpClientAdapter.healthCheck(8080)).thenThrow(new ConnectException("Connection refused"));
 
     // When: isRunning is called
     boolean result = manager.isRunning();
@@ -181,15 +180,15 @@ class DaemonManagerTest {
     // Given: Use real FileSystemAdapter with temp directory
     FileSystemAdapter realFileSystemAdapter = new DefaultFileSystemAdapter();
     DaemonManager managerWithRealFs =
-        new DaemonManager(props, httpClientAdapter, envProvider, processProvider, realFileSystemAdapter);
+        new DaemonManager(
+            props, httpClientAdapter, envProvider, processProvider, realFileSystemAdapter);
 
     // Mock only the process provider and environment
     long testPid = 12345L;
     Process mockProcess = mock(Process.class);
     when(mockProcess.pid()).thenReturn(testPid);
 
-    when(processProvider.startProcess(any(), any(), any(), any()))
-        .thenReturn(mockProcess);
+    when(processProvider.startProcess(any(), any(), any(), any())).thenReturn(mockProcess);
 
     when(envProvider.getProperty("java.home")).thenReturn(Optional.of("/usr/lib/jvm/java"));
     when(envProvider.getProperty("org.graalvm.nativeimage.imagecode")).thenReturn(Optional.empty());
@@ -216,7 +215,8 @@ class DaemonManagerTest {
     // Given: Use real FileSystemAdapter
     FileSystemAdapter realFileSystemAdapter = new DefaultFileSystemAdapter();
     DaemonManager managerWithRealFs =
-        new DaemonManager(props, httpClientAdapter, envProvider, processProvider, realFileSystemAdapter);
+        new DaemonManager(
+            props, httpClientAdapter, envProvider, processProvider, realFileSystemAdapter);
 
     // Setup: Write an initial PID file and mock the daemon as running
     realFileSystemAdapter.createDirectories(props.getPidFilePath().getParent());
@@ -227,8 +227,7 @@ class DaemonManagerTest {
         StandardOpenOption.TRUNCATE_EXISTING);
 
     // Mock process as existing and health check succeeding
-    when(processProvider.findProcess(9999L))
-        .thenReturn(Optional.of(mock(ProcessHandle.class)));
+    when(processProvider.findProcess(9999L)).thenReturn(Optional.of(mock(ProcessHandle.class)));
 
     when(httpClientAdapter.healthCheck(props.getPort())).thenReturn(true);
 
@@ -241,8 +240,6 @@ class DaemonManagerTest {
     // Verify startProcess was never called
     verify(processProvider, never()).startProcess(any(), any(), any(), any());
   }
-
-
 
   // ==================== waitForReady Tests ====================
 
@@ -262,10 +259,7 @@ class DaemonManagerTest {
   @DisplayName("waitForReady retries and succeeds after failures")
   void waitForReady_healthCheckSucceedsAfterRetries_returns() throws Exception {
     // Given: health check fails first time, succeeds second time
-    when(httpClientAdapter.healthCheck(8080))
-        .thenReturn(false)
-        .thenReturn(false)
-        .thenReturn(true);
+    when(httpClientAdapter.healthCheck(8080)).thenReturn(false).thenReturn(false).thenReturn(true);
 
     // When: waitForReady is called
     // Then: retries and eventually returns
@@ -354,7 +348,6 @@ class DaemonManagerTest {
     verify(processProvider, never()).startProcess(any(), any(), any(), any());
   }
 
-
   // ==================== stopDaemon Tests ====================
 
   @Test
@@ -378,8 +371,7 @@ class DaemonManagerTest {
     long testPid = 7777L;
     ProcessHandle mockHandle = mock(ProcessHandle.class);
     when(fileSystemAdapter.exists(props.getPidFilePath())).thenReturn(true);
-    when(fileSystemAdapter.readString(props.getPidFilePath()))
-        .thenReturn(String.valueOf(testPid));
+    when(fileSystemAdapter.readString(props.getPidFilePath())).thenReturn(String.valueOf(testPid));
     when(processProvider.findProcess(testPid)).thenReturn(Optional.of(mockHandle));
 
     // When: stopDaemon is called
@@ -578,7 +570,8 @@ class DaemonManagerTest {
     FileSystemAdapter failingWriteFs =
         new DefaultFileSystemAdapter() {
           @Override
-          public void writeString(java.nio.file.Path path, String content, java.nio.file.OpenOption... options)
+          public void writeString(
+              java.nio.file.Path path, String content, java.nio.file.OpenOption... options)
               throws Exception {
             throw new RuntimeException("disk full");
           }
@@ -636,7 +629,9 @@ class DaemonManagerTest {
   }
 
   @Test
-  @DisplayName("startDaemon throws IOException wrapping DaemonStartupException when native image command unavailable")
+  @DisplayName(
+      "startDaemon throws IOException wrapping DaemonStartupException when native image command"
+          + " unavailable")
   void startDaemon_nativeImage_noProcessCommand_throwsDaemonStartupException() throws Exception {
     // Given: real FS, native image runtime, no current process command
     // Note: DaemonStartupException from buildDaemonCommand is caught and re-wrapped as IOException
@@ -689,7 +684,9 @@ class DaemonManagerTest {
   }
 
   @Test
-  @DisplayName("startDaemon throws IOException wrapping DaemonStartupException when no JAR found on classpath")
+  @DisplayName(
+      "startDaemon throws IOException wrapping DaemonStartupException when no JAR found on"
+          + " classpath")
   void startDaemon_noJarOnClasspathAndNoJarPath_throwsDaemonStartupException() throws Exception {
     // Given: real FS, no jar in classpath, no jarPath configured
     // Note: DaemonStartupException from resolveJarPath is caught and re-wrapped as IOException.
@@ -700,7 +697,8 @@ class DaemonManagerTest {
 
     when(envProvider.getProperty("java.home")).thenReturn(Optional.of("/usr/lib/jvm/java"));
     when(envProvider.getProperty("org.graalvm.nativeimage.imagecode")).thenReturn(Optional.empty());
-    when(envProvider.getProperty("java.class.path")).thenReturn(Optional.of("/some/dir:/other/dir"));
+    when(envProvider.getProperty("java.class.path"))
+        .thenReturn(Optional.of("/some/dir:/other/dir"));
 
     // When/Then: throws IOException whose cause is DaemonStartupException about JAR path
     assertThatThrownBy(() -> managerWithRealFs.startDaemon())
@@ -796,8 +794,7 @@ class DaemonManagerTest {
     assertThat(result).isNotNull();
     ArgumentCaptor<List<String>> cmdCaptor = ArgumentCaptor.forClass(List.class);
     verify(processProvider).startProcess(cmdCaptor.capture(), any(), any(), any());
-    assertThat(cmdCaptor.getValue())
-        .anyMatch(s -> s.contains("spring.profiles.active=prod"));
+    assertThat(cmdCaptor.getValue()).anyMatch(s -> s.contains("spring.profiles.active=prod"));
   }
 
   @Test
@@ -825,8 +822,7 @@ class DaemonManagerTest {
     assertThat(result).isNotNull();
     ArgumentCaptor<List<String>> cmdCaptor = ArgumentCaptor.forClass(List.class);
     verify(processProvider).startProcess(cmdCaptor.capture(), any(), any(), any());
-    assertThat(cmdCaptor.getValue())
-        .anyMatch(s -> s.contains("spring.profiles.active=dev"));
+    assertThat(cmdCaptor.getValue()).anyMatch(s -> s.contains("spring.profiles.active=dev"));
   }
 
   // ==================== ensureRunning - start path Tests ====================
@@ -885,12 +881,12 @@ class DaemonManagerTest {
   @Test
   @DisplayName("stopDaemon falls back to deleteIfExists when delete succeeds after destroy throws")
   void stopDaemon_destroySucceedsButDeleteFails_retries() throws Exception {
-    // Given: PID file exists, process destroy succeeds, but delete throws, deleteIfExists also throws
+    // Given: PID file exists, process destroy succeeds, but delete throws, deleteIfExists also
+    // throws
     long testPid = 8888L;
     ProcessHandle mockHandle = mock(ProcessHandle.class);
     when(fileSystemAdapter.exists(props.getPidFilePath())).thenReturn(true);
-    when(fileSystemAdapter.readString(props.getPidFilePath()))
-        .thenReturn(String.valueOf(testPid));
+    when(fileSystemAdapter.readString(props.getPidFilePath())).thenReturn(String.valueOf(testPid));
     when(processProvider.findProcess(testPid)).thenReturn(Optional.of(mockHandle));
     doThrow(new RuntimeException("Cannot delete"))
         .when(fileSystemAdapter)
@@ -926,8 +922,7 @@ class DaemonManagerTest {
         java.nio.file.StandardOpenOption.TRUNCATE_EXISTING);
 
     // Process exists but health check returns false (stale process, not the daemon)
-    when(processProvider.findProcess(7777L))
-        .thenReturn(Optional.of(mock(ProcessHandle.class)));
+    when(processProvider.findProcess(7777L)).thenReturn(Optional.of(mock(ProcessHandle.class)));
     when(httpClientAdapter.healthCheck(props.getPort())).thenReturn(false);
 
     long testPid = 88888L;
@@ -984,5 +979,4 @@ class DaemonManagerTest {
     assertThat(result).isNotNull();
     verify(processProvider).startProcess(any(), any(), any(), any());
   }
-
 }
