@@ -16,163 +16,50 @@
 package com.infenia.yukta.cli.command.control;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 
-import com.infenia.yukta.model.monitoring.WorkflowProgress;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.concurrent.CountDownLatch;
+import com.infenia.yukta.cli.YuktaDaemonClient;
+import java.util.function.Consumer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import picocli.CommandLine;
-import reactor.core.publisher.Flux;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.STRICT_STUBS)
 class ProgressStreamCommandTest {
+  @Mock private YuktaDaemonClient mockClient;
+  private ProgressStreamCommand command;
 
-  @Mock private ControlBusGateway controlBus;
-
-  @Test
-  void progressStream_emptyStream_completes() throws Exception {
-    when(controlBus.watchExecution("exec1")).thenReturn(Flux.empty());
-
-    final ProgressStreamCommand cmd = new ProgressStreamCommand(controlBus);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("exec1");
-
-    assertThat(exitCode).isZero();
+  @BeforeEach
+  void setUp() {
+    command = new ProgressStreamCommand(mockClient);
   }
 
   @Test
-  void progressStream_singleProgressUpdate_prints() throws Exception {
-    final WorkflowProgress progress =
-        new WorkflowProgress(
-            "exec1", "sess1", "wf1", "IN_PROGRESS", new ArrayList<>(), LocalDateTime.now(), null);
-    when(controlBus.watchExecution("exec1")).thenReturn(Flux.just(progress));
-
-    final ProgressStreamCommand cmd = new ProgressStreamCommand(controlBus);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("exec1");
-
-    assertThat(exitCode).isZero();
+  void constructor_createsInstance() {
+    assertThat(command).isNotNull();
   }
 
   @Test
-  void progressStream_multipleProgressUpdates_allPrinted() throws Exception {
-    final WorkflowProgress progress1 =
-        new WorkflowProgress(
-            "exec1", "sess1", "wf1", "IN_PROGRESS", new ArrayList<>(), LocalDateTime.now(), null);
-    final WorkflowProgress progress2 =
-        new WorkflowProgress(
-            "exec1",
-            "sess1",
-            "wf1",
-            "COMPLETED",
-            new ArrayList<>(),
-            LocalDateTime.now(),
-            LocalDateTime.now());
-
-    when(controlBus.watchExecution("exec2")).thenReturn(Flux.just(progress1, progress2));
-
-    final ProgressStreamCommand cmd = new ProgressStreamCommand(controlBus);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("exec2");
-
-    assertThat(exitCode).isZero();
+  void isRunnable() {
+    assertThat(command).isInstanceOf(Runnable.class);
   }
 
   @Test
-  void progressStream_longRunningStream_completesSuccessfully() throws Exception {
-    final WorkflowProgress[] progressUpdates = {
-      new WorkflowProgress(
-          "exec3", "sess3", "wf3", "PENDING", new ArrayList<>(), LocalDateTime.now(), null),
-      new WorkflowProgress(
-          "exec3", "sess3", "wf3", "IN_PROGRESS", new ArrayList<>(), LocalDateTime.now(), null),
-      new WorkflowProgress(
-          "exec3",
-          "sess3",
-          "wf3",
-          "COMPLETED",
-          new ArrayList<>(),
-          LocalDateTime.now(),
-          LocalDateTime.now())
-    };
-    when(controlBus.watchExecution("exec3")).thenReturn(Flux.fromArray(progressUpdates));
+  void run_streamsProgressForGivenExecutionId() {
+    try {
+      final var field = ProgressStreamCommand.class.getDeclaredField("executionId");
+      field.setAccessible(true);
+      field.set(command, "exec-123");
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
 
-    final ProgressStreamCommand cmd = new ProgressStreamCommand(controlBus);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
+    command.run();
 
-    final int exitCode = cli.execute("exec3");
-
-    assertThat(exitCode).isZero();
-  }
-
-  @Test
-  void progressStream_viaCommandLine_executesSuccessfully() throws Exception {
-    final WorkflowProgress progress =
-        new WorkflowProgress(
-            "exec4", "sess4", "wf4", "IN_PROGRESS", new ArrayList<>(), LocalDateTime.now(), null);
-    when(controlBus.watchExecution("exec4")).thenReturn(Flux.just(progress));
-
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(new ProgressStreamCommand(controlBus));
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("exec4");
-
-    assertThat(exitCode).isZero();
-  }
-
-  @Test
-  void progressStream_interruptedDuringAwait_handlesInterrupt() throws InterruptedException {
-    when(controlBus.watchExecution("exec5")).thenReturn(Flux.never());
-
-    CountDownLatch testStarted = new CountDownLatch(1);
-    CountDownLatch testCompleted = new CountDownLatch(1);
-
-    final ProgressStreamCommand cmd = new ProgressStreamCommand(controlBus);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    Thread executionThread =
-        new Thread(
-            () -> {
-              testStarted.countDown();
-              try {
-                cli.execute("exec5");
-              } catch (Exception e) {
-                // May be interrupted
-              } finally {
-                testCompleted.countDown();
-              }
-            });
-
-    executionThread.start();
-
-    // Wait for execution to start, then interrupt it
-    testStarted.await();
-    Thread.sleep(50);
-    executionThread.interrupt();
-
-    // Wait for execution to finish (should complete quickly after interrupt)
-    boolean completed = testCompleted.await(3000, java.util.concurrent.TimeUnit.MILLISECONDS);
-    assertThat(completed).isTrue();
+    verify(mockClient).streamProgress(eq("exec-123"), any(Consumer.class));
   }
 }

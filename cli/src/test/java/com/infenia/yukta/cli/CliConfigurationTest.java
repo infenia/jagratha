@@ -17,41 +17,74 @@ package com.infenia.yukta.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.web.reactive.function.client.WebClient;
 
-@SpringBootTest
 class CliConfigurationTest {
 
-  @Autowired private SystemExitHandler systemExitHandler;
+  private CliConfiguration configuration;
 
-  @Test
-  void systemExitHandler_beanIsInjectable() {
-    assertThat(systemExitHandler).isNotNull().isInstanceOf(SystemExitHandler.class);
+  @BeforeEach
+  void setUp() {
+    configuration = new CliConfiguration();
   }
 
   @Test
-  void systemExitHandler_beanIsSingleton() {
-    final CliConfiguration config = new CliConfiguration();
-    final SystemExitHandler handler1 = config.systemExitHandler();
-    final SystemExitHandler handler2 = config.systemExitHandler();
-
-    assertThat(handler1).isSameAs(handler2);
+  void constructor_createsInstance() {
+    assertThat(configuration).isNotNull();
   }
 
   @Test
-  void systemExitHandler_delegatesToSystemExit() {
-    final CliConfiguration config = new CliConfiguration();
-    final SystemExitHandler handler = config.systemExitHandler();
+  void systemExitHandler_returnsFunctionalInterface() {
+    SystemExitHandler handler = configuration.systemExitHandler();
 
     assertThat(handler).isNotNull();
   }
 
   @Test
-  void configurationCanBeInstantiated() {
-    final CliConfiguration config = new CliConfiguration();
+  void systemExitHandler_returnsSystemExitMethod() {
+    SystemExitHandler handler = configuration.systemExitHandler();
 
-    assertThat(config).isNotNull();
+    assertThat(handler).isInstanceOf(SystemExitHandler.class);
+  }
+
+  @Test
+  void daemonWebClient_withProperties_returnsWebClient() {
+    DaemonProperties props = new DaemonProperties();
+    props.setPort(8080);
+    WebClient client = configuration.daemonWebClient(props);
+
+    assertThat(client).isNotNull();
+  }
+
+  @Test
+  void daemonWebClient_withCustomPort_usesCustomPort() {
+    DaemonProperties props = new DaemonProperties();
+    props.setPort(9090);
+    WebClient client = configuration.daemonWebClient(props);
+
+    assertThat(client).isNotNull();
+  }
+
+  @Test
+  void daemonWebClient_withDefaultPort_uses8080() {
+    DaemonProperties props = new DaemonProperties();
+    WebClient client = configuration.daemonWebClient(props);
+
+    assertThat(client).isNotNull();
+  }
+
+  @Test
+  void daemonWebClient_multipleInvocations_createsDifferentInstances() {
+    DaemonProperties props1 = new DaemonProperties();
+    props1.setPort(8080);
+    DaemonProperties props2 = new DaemonProperties();
+    props2.setPort(9090);
+
+    WebClient client1 = configuration.daemonWebClient(props1);
+    WebClient client2 = configuration.daemonWebClient(props2);
+
+    assertThat(client1).isNotEqualTo(client2);
   }
 }

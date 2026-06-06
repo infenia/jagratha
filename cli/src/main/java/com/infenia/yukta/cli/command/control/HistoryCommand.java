@@ -49,8 +49,7 @@ public class HistoryCommand implements Runnable {
       if ("json".equals(outputFormat)) {
         formatter.printJson(history);
       } else {
-        final List<String> summaries =
-            history.stream().map(Map::toString).toList();
+        final List<String> summaries = history.stream().map(Map::toString).toList();
         formatter.printTable(summaries);
       }
     } catch (Exception e) {

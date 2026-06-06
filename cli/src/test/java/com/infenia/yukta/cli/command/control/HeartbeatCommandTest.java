@@ -16,109 +16,108 @@
 package com.infenia.yukta.cli.command.control;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
+import com.infenia.yukta.cli.YuktaDaemonClient;
 import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import picocli.CommandLine;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.STRICT_STUBS)
 class HeartbeatCommandTest {
+  @Mock private YuktaDaemonClient mockClient;
+  @Mock private CliFormatter mockFormatter;
+  private HeartbeatCommand command;
 
-  @Mock private ControlBusGateway controlBus;
-  @Mock private CliFormatter formatter;
-
-  @Test
-  void heartbeat_defaultTableOutput_printsHeartbeat() throws Exception {
-    final Message<?> heartbeat = mock(Message.class);
-    when(controlBus.getLastHeartbeat("wf1", "n1")).thenReturn((Message) heartbeat);
-
-    final HeartbeatCommand cmd = new HeartbeatCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("wf1", "n1");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printTable(List.of(heartbeat.toString()));
+  @BeforeEach
+  void setUp() {
+    command = new HeartbeatCommand(mockClient, mockFormatter);
   }
 
   @Test
-  void heartbeat_jsonOutput_printsHeartbeatAsJson() throws Exception {
-    final Message<?> heartbeat = mock(Message.class);
-    when(controlBus.getLastHeartbeat("wf2", "n2")).thenReturn((Message) heartbeat);
-
-    final HeartbeatCommand cmd = new HeartbeatCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("wf2", "n2", "-o", "json");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printJson(heartbeat);
+  void constructor_createsInstance() {
+    assertThat(command).isNotNull();
   }
 
   @Test
-  void heartbeat_jsonOutputLongForm_printsHeartbeatAsJson() throws Exception {
-    final Message<?> heartbeat = mock(Message.class);
-    when(controlBus.getLastHeartbeat("wf3", "n3")).thenReturn((Message) heartbeat);
-
-    final HeartbeatCommand cmd = new HeartbeatCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("wf3", "n3", "--output", "json");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printJson(heartbeat);
+  void constructor_acceptsDependencies() {
+    HeartbeatCommand testCommand = new HeartbeatCommand(mockClient, mockFormatter);
+    assertThat(testCommand).isNotNull();
   }
 
   @Test
-  void heartbeat_tableFormattingException_throwsRuntimeException() throws Exception {
-    final Message<?> heartbeat = mock(Message.class);
-    when(controlBus.getLastHeartbeat("wf1", "n1")).thenReturn((Message) heartbeat);
-    when(heartbeat.toString()).thenReturn("test heartbeat");
-    doThrow(new RuntimeException("Format error"))
-        .when(formatter)
-        .printTable(List.of("test heartbeat"));
-
-    final HeartbeatCommand cmd = new HeartbeatCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("wf1", "n1");
-
-    assertThat(exitCode).isNotZero();
+  void isRunnable() {
+    assertThat(command).isInstanceOf(Runnable.class);
   }
 
   @Test
-  void heartbeat_jsonFormattingException_throwsRuntimeException() throws Exception {
-    final Message<?> heartbeat = mock(Message.class);
-    when(controlBus.getLastHeartbeat("wf2", "n2")).thenReturn((Message) heartbeat);
-    doThrow(new RuntimeException("Json error")).when(formatter).printJson((Message) heartbeat);
+  void run_printsTableByDefault() {
+    final var workflowId = "workflow-1";
+    final var nodeId = "node-1";
+    final Map<String, Object> heartbeat = Map.of("timestamp", 1234567890L, "status", "active");
+    when(mockClient.getLastHeartbeat(workflowId, nodeId)).thenReturn(heartbeat);
+    try {
+      setPrivateField(command, "workflowId", workflowId);
+      setPrivateField(command, "nodeId", nodeId);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
 
-    final HeartbeatCommand cmd = new HeartbeatCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
+    command.run();
 
-    final int exitCode = cli.execute("wf2", "n2", "-o", "json");
+    verify(mockFormatter).printTable(List.of(heartbeat.toString()));
+  }
 
-    assertThat(exitCode).isNotZero();
+  @Test
+  void run_printsJsonWhenFormatIsJson() throws Exception {
+    final var workflowId = "workflow-1";
+    final var nodeId = "node-1";
+    final Map<String, Object> heartbeat = Map.of("timestamp", 1234567890L, "status", "active");
+    when(mockClient.getLastHeartbeat(workflowId, nodeId)).thenReturn(heartbeat);
+    try {
+      setPrivateField(command, "workflowId", workflowId);
+      setPrivateField(command, "nodeId", nodeId);
+      setPrivateField(command, "outputFormat", "json");
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+
+    command.run();
+
+    verify(mockFormatter).printJson(heartbeat);
+  }
+
+  @Test
+  void run_throwsRuntimeExceptionOnFormatterError() {
+    final var workflowId = "workflow-1";
+    final var nodeId = "node-1";
+    final Map<String, Object> heartbeat = Map.of("timestamp", 1234567890L, "status", "active");
+    when(mockClient.getLastHeartbeat(workflowId, nodeId)).thenReturn(heartbeat);
+    doThrow(new IllegalArgumentException("Invalid format"))
+        .when(mockFormatter)
+        .printTable(List.of(heartbeat.toString()));
+    try {
+      setPrivateField(command, "workflowId", workflowId);
+      setPrivateField(command, "nodeId", nodeId);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+
+    assertThatThrownBy(command::run).isInstanceOf(RuntimeException.class);
+  }
+
+  private void setPrivateField(Object target, String fieldName, Object value)
+      throws NoSuchFieldException, IllegalAccessException {
+    final var field = target.getClass().getDeclaredField(fieldName);
+    field.setAccessible(true);
+    field.set(target, value);
   }
 }

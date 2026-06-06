@@ -13,21 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.cli.command;
+package com.infenia.yukta.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import org.junit.jupiter.api.Test;
+import picocli.CommandLine;
 
-class ControlCommandTest {
+class YuktaCliTest {
 
   @Test
   void constructor_createsInstance() {
-    ControlCommand command = new ControlCommand();
+    YuktaCli cli = new YuktaCli();
 
-    assertThat(command).isNotNull();
+    assertThat(cli).isNotNull();
   }
 
   @Test
@@ -35,18 +36,26 @@ class ControlCommandTest {
     ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     System.setOut(new PrintStream(outContent));
 
-    ControlCommand command = new ControlCommand();
-    command.run();
+    YuktaCli cli = new YuktaCli();
+    cli.run();
 
     String output = outContent.toString();
-    assertThat(output).isNotEmpty();
+    assertThat(output).contains("Yukta CLI");
     System.setOut(System.out);
   }
 
   @Test
-  void isRunnable() {
-    ControlCommand command = new ControlCommand();
+  void commandAnnotation_hasCorrectAttributes() {
+    YuktaCli cli = new YuktaCli();
+    CommandLine cmd = new CommandLine(cli);
 
-    assertThat(command).isInstanceOf(Runnable.class);
+    assertThat(cmd.getCommandName()).isEqualTo("yukta");
+  }
+
+  @Test
+  void run_isRunnable() {
+    YuktaCli cli = new YuktaCli();
+
+    assertThat(cli).isInstanceOf(Runnable.class);
   }
 }

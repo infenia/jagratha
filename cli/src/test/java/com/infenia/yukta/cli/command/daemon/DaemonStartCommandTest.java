@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.cli.command.control;
+package com.infenia.yukta.cli.command.daemon;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.cli.YuktaDaemonClient;
+import com.infenia.yukta.cli.DaemonManager;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,14 +32,15 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 @MockitoSettings(strictness = Strictness.STRICT_STUBS)
-class GetAllNodesCommandTest {
-  @Mock private YuktaDaemonClient mockClient;
+class DaemonStartCommandTest {
+
+  @Mock private DaemonManager mockDaemonManager;
   @Mock private CliFormatter mockFormatter;
-  private GetAllNodesCommand command;
+  private DaemonStartCommand command;
 
   @BeforeEach
   void setUp() {
-    command = new GetAllNodesCommand(mockClient, mockFormatter);
+    command = new DaemonStartCommand(mockDaemonManager, mockFormatter);
   }
 
   @Test
@@ -47,43 +49,40 @@ class GetAllNodesCommandTest {
   }
 
   @Test
-  void isRunnable() {
-    assertThat(command).isInstanceOf(Runnable.class);
-  }
-
-  @Test
-  void run_printsTableByDefault() {
-    final var nodes = List.of("node1", "node2");
-    when(mockClient.getAllActiveNodes()).thenReturn(nodes);
+  void run_whenDaemonStartsSuccessfully_printsSuccess() throws Exception {
+    when(mockDaemonManager.ensureRunning()).thenReturn("http://127.0.0.1:8080");
 
     command.run();
 
-    verify(mockFormatter).printTable(nodes);
+    verify(mockDaemonManager).ensureRunning();
+    verify(mockFormatter).printTable(List.of("Daemon is running at: http://127.0.0.1:8080"));
   }
 
   @Test
-  void run_printsJsonWhenFormatIsJson() throws Exception {
-    final var nodes = List.of("node1", "node2");
-    when(mockClient.getAllActiveNodes()).thenReturn(nodes);
-    try {
-      final var field = GetAllNodesCommand.class.getDeclaredField("outputFormat");
-      field.setAccessible(true);
-      field.set(command, "json");
-    } catch (NoSuchFieldException | IllegalAccessException e) {
-      throw new RuntimeException(e);
-    }
+  void run_whenDaemonStartsWithCustomPort_printsCorrectUrl() throws Exception {
+    when(mockDaemonManager.ensureRunning()).thenReturn("http://127.0.0.1:9090");
 
     command.run();
 
-    verify(mockFormatter).printJson(nodes);
+    verify(mockFormatter).printTable(List.of("Daemon is running at: http://127.0.0.1:9090"));
   }
 
   @Test
-  void run_throwsRuntimeExceptionOnFormatterError() {
-    final var nodes = List.of("node1");
-    when(mockClient.getAllActiveNodes()).thenReturn(nodes);
-    doThrow(new IllegalArgumentException("Invalid format")).when(mockFormatter).printTable(nodes);
+  void run_whenExceptionThrown_printsErrorAndThrowsRuntime() throws Exception {
+    when(mockDaemonManager.ensureRunning()).thenThrow(new RuntimeException("Failed to start"));
+
+    ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+    System.setErr(new PrintStream(errContent));
 
     assertThatThrownBy(command::run).isInstanceOf(RuntimeException.class);
+
+    String error = errContent.toString();
+    assertThat(error).contains("Failed to start daemon");
+    System.setErr(System.err);
+  }
+
+  @Test
+  void isRunnable() {
+    assertThat(command).isInstanceOf(Runnable.class);
   }
 }

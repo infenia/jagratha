@@ -15,85 +15,194 @@
  */
 package com.infenia.yukta.cli;
 
-import static org.mockito.Mockito.never;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.cli.command.ControlCommand;
+import com.infenia.yukta.cli.command.DaemonCommand;
 import com.infenia.yukta.cli.command.control.GetAllNodesCommand;
 import com.infenia.yukta.cli.command.control.GetNodesCommand;
 import com.infenia.yukta.cli.command.control.HeartbeatCommand;
 import com.infenia.yukta.cli.command.control.HistoryCommand;
 import com.infenia.yukta.cli.command.control.LogsStreamCommand;
+import com.infenia.yukta.cli.command.control.NodesCommand;
 import com.infenia.yukta.cli.command.control.ProgressCommand;
 import com.infenia.yukta.cli.command.control.ProgressStreamCommand;
 import com.infenia.yukta.cli.command.control.SendCommandCommand;
 import com.infenia.yukta.cli.command.control.SessionApplyCommand;
 import com.infenia.yukta.cli.command.control.WorkflowTriggerCommand;
+import com.infenia.yukta.cli.command.daemon.DaemonStartCommand;
+import com.infenia.yukta.cli.command.daemon.DaemonStatusCommand;
+import com.infenia.yukta.cli.command.daemon.DaemonStopCommand;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.DefaultApplicationArguments;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.boot.ApplicationArguments;
 
-@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.STRICT_STUBS)
 class CliRunnerTest {
 
-  @Mock private ControlCommand controlCommand;
-  @Mock private GetNodesCommand getNodesCommand;
-  @Mock private GetAllNodesCommand getAllNodesCommand;
-  @Mock private HeartbeatCommand heartbeatCommand;
-  @Mock private SendCommandCommand sendCommandCommand;
-  @Mock private ProgressCommand progressCommand;
-  @Mock private ProgressStreamCommand progressStreamCommand;
-  @Mock private LogsStreamCommand logsStreamCommand;
-  @Mock private HistoryCommand historyCommand;
-  @Mock private SessionApplyCommand sessionApplyCommand;
-  @Mock private WorkflowTriggerCommand workflowTriggerCommand;
-  @Mock private SystemExitHandler exitHandler;
+  @Mock private ControlCommand mockControlCommand;
+  @Mock private NodesCommand mockNodesCommand;
+  @Mock private GetNodesCommand mockGetNodesCommand;
+  @Mock private GetAllNodesCommand mockGetAllNodesCommand;
+  @Mock private HeartbeatCommand mockHeartbeatCommand;
+  @Mock private SendCommandCommand mockSendCommandCommand;
+  @Mock private ProgressCommand mockProgressCommand;
+  @Mock private ProgressStreamCommand mockProgressStreamCommand;
+  @Mock private LogsStreamCommand mockLogsStreamCommand;
+  @Mock private HistoryCommand mockHistoryCommand;
+  @Mock private SessionApplyCommand mockSessionApplyCommand;
+  @Mock private WorkflowTriggerCommand mockWorkflowTriggerCommand;
+  @Mock private DaemonCommand mockDaemonCommand;
+  @Mock private DaemonStartCommand mockDaemonStartCommand;
+  @Mock private DaemonStopCommand mockDaemonStopCommand;
+  @Mock private DaemonStatusCommand mockDaemonStatusCommand;
+  @Mock private DaemonManager mockDaemonManager;
+  @Mock private SystemExitHandler mockExitHandler;
+  private CliRunner cliRunner;
 
-  @Mock private com.infenia.yukta.cli.command.control.NodesCommand nodesCommand;
-
-  @Test
-  void cliRunner_doesNothing_whenNoArgs() {
-    final CliRunner cliRunner =
+  @BeforeEach
+  void setUp() {
+    cliRunner =
         new CliRunner(
-            controlCommand,
-            nodesCommand,
-            getNodesCommand,
-            getAllNodesCommand,
-            heartbeatCommand,
-            sendCommandCommand,
-            progressCommand,
-            progressStreamCommand,
-            logsStreamCommand,
-            historyCommand,
-            sessionApplyCommand,
-            workflowTriggerCommand,
-            exitHandler);
-    final DefaultApplicationArguments appArgs = new DefaultApplicationArguments();
-    cliRunner.run(appArgs);
-    verify(exitHandler, never()).exit(0);
+            mockControlCommand,
+            mockNodesCommand,
+            mockGetNodesCommand,
+            mockGetAllNodesCommand,
+            mockHeartbeatCommand,
+            mockSendCommandCommand,
+            mockProgressCommand,
+            mockProgressStreamCommand,
+            mockLogsStreamCommand,
+            mockHistoryCommand,
+            mockSessionApplyCommand,
+            mockWorkflowTriggerCommand,
+            mockDaemonCommand,
+            mockDaemonStartCommand,
+            mockDaemonStopCommand,
+            mockDaemonStatusCommand,
+            mockDaemonManager,
+            mockExitHandler);
   }
 
   @Test
-  void cliRunner_doesNothing_whenNonCliArgs() {
-    final CliRunner cliRunner =
-        new CliRunner(
-            controlCommand,
-            nodesCommand,
-            getNodesCommand,
-            getAllNodesCommand,
-            heartbeatCommand,
-            sendCommandCommand,
-            progressCommand,
-            progressStreamCommand,
-            logsStreamCommand,
-            historyCommand,
-            sessionApplyCommand,
-            workflowTriggerCommand,
-            exitHandler);
-    final DefaultApplicationArguments appArgs = new DefaultApplicationArguments("server");
-    cliRunner.run(appArgs);
-    verify(exitHandler, never()).exit(0);
+  void constructor_createsInstance() {
+    assertThat(cliRunner).isNotNull();
+  }
+
+  @Test
+  void run_withEmptyArgs_doesNotProcessCommands() {
+    final var args = mock(ApplicationArguments.class);
+    final var sourceArgs = new String[0];
+    when(args.getSourceArgs()).thenReturn(sourceArgs);
+
+    cliRunner.run(args);
+
+    verifyNoInteractions(mockDaemonManager);
+  }
+
+  @Test
+  void run_withDaemonArgs_processesCommand() {
+    final var args = mock(ApplicationArguments.class);
+    final var sourceArgs = new String[] {"daemon", "status"};
+    when(args.getSourceArgs()).thenReturn(sourceArgs);
+
+    cliRunner.run(args);
+
+    verify(mockExitHandler).exit(0);
+  }
+
+  @Test
+  void run_withControlArgs_ensuresDaemonRunning() throws Exception {
+    final var args = mock(ApplicationArguments.class);
+    final var sourceArgs = new String[] {"control", "nodes"};
+    when(args.getSourceArgs()).thenReturn(sourceArgs);
+
+    cliRunner.run(args);
+
+    verify(mockDaemonManager).ensureRunning();
+  }
+
+  @Test
+  void run_withControlArgs_daemonStartupThrowsDaemonStartupException() throws Exception {
+    final var args = mock(ApplicationArguments.class);
+    final var sourceArgs = new String[] {"control", "heartbeat"};
+    when(args.getSourceArgs()).thenReturn(sourceArgs);
+    when(mockDaemonManager.ensureRunning())
+        .thenThrow(new DaemonStartupException("Failed to start daemon"));
+
+    cliRunner.run(args);
+
+    verify(mockDaemonManager).ensureRunning();
+    verify(mockExitHandler).exit(1);
+  }
+
+  @Test
+  void run_withControlArgs_daemonStartupThrowsInterruptedException() throws Exception {
+    final var args = mock(ApplicationArguments.class);
+    final var sourceArgs = new String[] {"control", "progress"};
+    when(args.getSourceArgs()).thenReturn(sourceArgs);
+    when(mockDaemonManager.ensureRunning())
+        .thenThrow(new InterruptedException("Interrupted"));
+
+    cliRunner.run(args);
+
+    verify(mockDaemonManager).ensureRunning();
+    verify(mockExitHandler).exit(1);
+  }
+
+  @Test
+  void run_withControlArgs_daemonStartupThrowsIOException() throws Exception {
+    final var args = mock(ApplicationArguments.class);
+    final var sourceArgs = new String[] {"control", "logs"};
+    when(args.getSourceArgs()).thenReturn(sourceArgs);
+    when(mockDaemonManager.ensureRunning()).thenThrow(new java.io.IOException("IO error"));
+
+    cliRunner.run(args);
+
+    verify(mockDaemonManager).ensureRunning();
+    verify(mockExitHandler).exit(1);
+  }
+
+  @Test
+  void run_withInvalidCommand_doesNotInteractWithDaemonManager() {
+    final var args = mock(ApplicationArguments.class);
+    final var sourceArgs = new String[] {"invalid"};
+    when(args.getSourceArgs()).thenReturn(sourceArgs);
+
+    cliRunner.run(args);
+
+    verifyNoInteractions(mockDaemonManager);
+    verifyNoInteractions(mockExitHandler);
+  }
+
+  @Test
+  void run_withInvalidFirstArg_returnsEarlyWithoutDaemonInteraction() {
+    final var args = mock(ApplicationArguments.class);
+    final var sourceArgs = new String[] {"unknown"};
+    when(args.getSourceArgs()).thenReturn(sourceArgs);
+
+    cliRunner.run(args);
+
+    verifyNoInteractions(mockDaemonManager);
+    verifyNoInteractions(mockExitHandler);
+  }
+
+  @Test
+  void run_withMultipleInvalidArgs_returnsEarlyWithoutDaemonInteraction() {
+    final var args = mock(ApplicationArguments.class);
+    final var sourceArgs = new String[] {"unknown", "command"};
+    when(args.getSourceArgs()).thenReturn(sourceArgs);
+
+    cliRunner.run(args);
+
+    verifyNoInteractions(mockDaemonManager);
+    verifyNoInteractions(mockExitHandler);
   }
 }

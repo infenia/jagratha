@@ -38,9 +38,7 @@ public class SessionApplyCommand implements Runnable {
   private final CliFormatter formatter;
 
   public SessionApplyCommand(
-      YuktaDaemonClient daemonClient,
-      ObjectMapper objectMapper,
-      CliFormatter formatter) {
+      YuktaDaemonClient daemonClient, ObjectMapper objectMapper, CliFormatter formatter) {
     this.daemonClient = daemonClient;
     this.objectMapper = objectMapper;
     this.formatter = formatter;

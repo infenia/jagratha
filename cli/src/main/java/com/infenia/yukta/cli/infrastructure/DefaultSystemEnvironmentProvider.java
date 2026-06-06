@@ -13,12 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@SuppressWarnings({
-  "PMD.DoNotUseThreads",
-  "PMD.SystemPrintln",
-  "PMD.AvoidLiteralsInIfCondition",
-  "PMD.AtLeastOneConstructor",
-  "PMD.AvoidCatchingGenericException",
-  "PMD.AvoidThrowingRawExceptionTypes"
-})
-package com.infenia.yukta.cli;
+package com.infenia.yukta.cli.infrastructure;
+
+import java.util.Optional;
+import org.springframework.stereotype.Component;
+
+@Component
+public class DefaultSystemEnvironmentProvider implements SystemEnvironmentProvider {
+
+  @Override
+  public Optional<String> getProperty(String key) {
+    return Optional.ofNullable(System.getProperty(key));
+  }
+
+  @Override
+  public Optional<String> getEnvironment(String key) {
+    return Optional.ofNullable(System.getenv(key));
+  }
+}

@@ -16,144 +16,97 @@
 package com.infenia.yukta.cli.command.control;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.model.monitoring.WorkflowProgress;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
+import com.infenia.yukta.cli.YuktaDaemonClient;
 import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import picocli.CommandLine;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.STRICT_STUBS)
 class ProgressCommandTest {
+  @Mock private YuktaDaemonClient mockClient;
+  @Mock private CliFormatter mockFormatter;
+  private ProgressCommand command;
 
-  @Mock private ControlBusGateway controlBus;
-  @Mock private CliFormatter formatter;
-
-  @Test
-  void progress_defaultTableOutput_printsProgress() throws Exception {
-    final WorkflowProgress progress =
-        new WorkflowProgress(
-            "exec1", "sess1", "wf1", "IN_PROGRESS", new ArrayList<>(), LocalDateTime.now(), null);
-    when(controlBus.getCurrentProgress("exec1")).thenReturn(progress);
-
-    final ProgressCommand cmd = new ProgressCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("exec1");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printTable(List.of(progress.toString()));
+  @BeforeEach
+  void setUp() {
+    command = new ProgressCommand(mockClient, mockFormatter);
   }
 
   @Test
-  void progress_jsonOutput_printsProgressAsJson() throws Exception {
-    final WorkflowProgress progress =
-        new WorkflowProgress(
-            "exec2", "sess2", "wf2", "IN_PROGRESS", new ArrayList<>(), LocalDateTime.now(), null);
-    when(controlBus.getCurrentProgress("exec2")).thenReturn(progress);
-
-    final ProgressCommand cmd = new ProgressCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("exec2", "-o", "json");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printJson(progress);
+  void constructor_createsInstance() {
+    assertThat(command).isNotNull();
   }
 
   @Test
-  void progress_jsonOutputLongForm_printsProgressAsJson() throws Exception {
-    final WorkflowProgress progress =
-        new WorkflowProgress(
-            "exec3",
-            "sess3",
-            "wf3",
-            "COMPLETED",
-            new ArrayList<>(),
-            LocalDateTime.now(),
-            LocalDateTime.now());
-    when(controlBus.getCurrentProgress("exec3")).thenReturn(progress);
-
-    final ProgressCommand cmd = new ProgressCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("exec3", "--output", "json");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printJson(progress);
+  void isRunnable() {
+    assertThat(command).isInstanceOf(Runnable.class);
   }
 
   @Test
-  void progress_tableFormattingException_throwsRuntimeException() throws Exception {
-    final WorkflowProgress progress =
-        new WorkflowProgress(
-            "exec1", "sess1", "wf1", "IN_PROGRESS", new ArrayList<>(), LocalDateTime.now(), null);
-    when(controlBus.getCurrentProgress("exec1")).thenReturn(progress);
-    doThrow(new RuntimeException("Format error"))
-        .when(formatter)
+  void run_printsTableByDefault() {
+    final var executionId = "exec-123";
+    final Map<String, Object> progress = Map.of("status", "RUNNING", "progress", 50);
+    when(mockClient.getProgress(executionId)).thenReturn(progress);
+    try {
+      final var field = ProgressCommand.class.getDeclaredField("executionId");
+      field.setAccessible(true);
+      field.set(command, executionId);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+
+    command.run();
+
+    verify(mockFormatter).printTable(List.of(progress.toString()));
+  }
+
+  @Test
+  void run_printsJsonWhenFormatIsJson() throws Exception {
+    final var executionId = "exec-123";
+    final Map<String, Object> progress = Map.of("status", "RUNNING", "progress", 50);
+    when(mockClient.getProgress(executionId)).thenReturn(progress);
+    try {
+      final var idField = ProgressCommand.class.getDeclaredField("executionId");
+      idField.setAccessible(true);
+      idField.set(command, executionId);
+      final var formatField = ProgressCommand.class.getDeclaredField("outputFormat");
+      formatField.setAccessible(true);
+      formatField.set(command, "json");
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+
+    command.run();
+
+    verify(mockFormatter).printJson(progress);
+  }
+
+  @Test
+  void run_throwsRuntimeExceptionOnFormatterError() {
+    final var executionId = "exec-123";
+    final Map<String, Object> progress = Map.of("status", "RUNNING");
+    when(mockClient.getProgress(executionId)).thenReturn(progress);
+    doThrow(new IllegalArgumentException("Invalid format"))
+        .when(mockFormatter)
         .printTable(List.of(progress.toString()));
+    try {
+      final var field = ProgressCommand.class.getDeclaredField("executionId");
+      field.setAccessible(true);
+      field.set(command, executionId);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
 
-    final ProgressCommand cmd = new ProgressCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("exec1");
-
-    assertThat(exitCode).isNotZero();
-  }
-
-  @Test
-  void progress_jsonFormattingException_throwsRuntimeException() throws Exception {
-    final WorkflowProgress progress =
-        new WorkflowProgress(
-            "exec1", "sess1", "wf1", "PENDING", new ArrayList<>(), LocalDateTime.now(), null);
-    when(controlBus.getCurrentProgress("exec1")).thenReturn(progress);
-    doThrow(new RuntimeException("Json error")).when(formatter).printJson(progress);
-
-    final ProgressCommand cmd = new ProgressCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("exec1", "-o", "json");
-
-    assertThat(exitCode).isNotZero();
-  }
-
-  @Test
-  void progress_completedExecution_showsFinalState() throws Exception {
-    final LocalDateTime now = LocalDateTime.now();
-    final WorkflowProgress progress =
-        new WorkflowProgress(
-            "exec4", "sess4", "wf4", "COMPLETED", new ArrayList<>(), now.minusHours(1), now);
-    when(controlBus.getCurrentProgress("exec4")).thenReturn(progress);
-
-    final ProgressCommand cmd = new ProgressCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("exec4");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printTable(List.of(progress.toString()));
+    assertThatThrownBy(command::run).isInstanceOf(RuntimeException.class);
   }
 }

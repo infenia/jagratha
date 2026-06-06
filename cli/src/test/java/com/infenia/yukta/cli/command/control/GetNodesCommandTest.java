@@ -16,120 +16,91 @@
 package com.infenia.yukta.cli.command.control;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
+import com.infenia.yukta.cli.YuktaDaemonClient;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import picocli.CommandLine;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.STRICT_STUBS)
 class GetNodesCommandTest {
+  @Mock private YuktaDaemonClient mockClient;
+  @Mock private CliFormatter mockFormatter;
+  private GetNodesCommand command;
 
-  @Mock private ControlBusGateway controlBus;
-  @Mock private CliFormatter formatter;
-
-  @Test
-  void getNodes_defaultTableOutput_printsNodeList() {
-    final List<String> nodes = List.of("n1", "n2");
-    when(controlBus.getActiveNodes("wf1")).thenReturn(nodes);
-
-    final GetNodesCommand cmd = new GetNodesCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("wf1");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printTable(nodes);
+  @BeforeEach
+  void setUp() {
+    command = new GetNodesCommand(mockClient, mockFormatter);
   }
 
   @Test
-  void getNodes_jsonOutput_printsNodesAsJson() throws Exception {
-    final List<String> nodes = List.of("n1", "n2");
-    when(controlBus.getActiveNodes("wf1")).thenReturn(nodes);
-
-    final GetNodesCommand cmd = new GetNodesCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("wf1", "-o", "json");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printJson(nodes);
+  void constructor_createsInstance() {
+    assertThat(command).isNotNull();
   }
 
   @Test
-  void getNodes_jsonOutputLongForm_printsNodesAsJson() throws Exception {
-    final List<String> nodes = List.of("nodeA", "nodeB", "nodeC");
-    when(controlBus.getActiveNodes("wf2")).thenReturn(nodes);
-
-    final GetNodesCommand cmd = new GetNodesCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("wf2", "--output", "json");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printJson(nodes);
+  void isRunnable() {
+    assertThat(command).isInstanceOf(Runnable.class);
   }
 
   @Test
-  void getNodes_tableFormattingException_throwsRuntimeException() throws Exception {
-    final List<String> nodes = List.of("n1");
-    when(controlBus.getActiveNodes("wf1")).thenReturn(nodes);
-    doThrow(new RuntimeException("Format error")).when(formatter).printTable(nodes);
+  void run_printsTableByDefault() {
+    final var nodes = List.of("node1", "node2");
+    when(mockClient.getActiveNodes("workflow-1")).thenReturn(nodes);
+    try {
+      final var field = GetNodesCommand.class.getDeclaredField("workflowId");
+      field.setAccessible(true);
+      field.set(command, "workflow-1");
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
 
-    final GetNodesCommand cmd = new GetNodesCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
+    command.run();
 
-    final int exitCode = cli.execute("wf1");
-
-    assertThat(exitCode).isNotZero();
+    verify(mockFormatter).printTable(nodes);
   }
 
   @Test
-  void getNodes_emptyNodeList_printsEmptyList() throws Exception {
-    final List<String> nodes = List.of();
-    when(controlBus.getActiveNodes("wf3")).thenReturn(nodes);
+  void run_printsJsonWhenFormatIsJson() throws Exception {
+    final var nodes = List.of("node1", "node2");
+    when(mockClient.getActiveNodes("workflow-1")).thenReturn(nodes);
+    try {
+      final var workflowIdField = GetNodesCommand.class.getDeclaredField("workflowId");
+      workflowIdField.setAccessible(true);
+      workflowIdField.set(command, "workflow-1");
+      final var outputFormatField = GetNodesCommand.class.getDeclaredField("outputFormat");
+      outputFormatField.setAccessible(true);
+      outputFormatField.set(command, "json");
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
 
-    final GetNodesCommand cmd = new GetNodesCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
+    command.run();
 
-    final int exitCode = cli.execute("wf3");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printTable(nodes);
+    verify(mockFormatter).printJson(nodes);
   }
 
   @Test
-  void getNodes_singleNode_printsSingleNode() throws Exception {
-    final List<String> nodes = List.of("singleNode");
-    when(controlBus.getActiveNodes("wf4")).thenReturn(nodes);
+  void run_throwsRuntimeExceptionOnFormatterError() {
+    final var nodes = List.of("node1");
+    when(mockClient.getActiveNodes("workflow-1")).thenReturn(nodes);
+    try {
+      final var field = GetNodesCommand.class.getDeclaredField("workflowId");
+      field.setAccessible(true);
+      field.set(command, "workflow-1");
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+    doThrow(new IllegalArgumentException("Invalid format")).when(mockFormatter).printTable(nodes);
 
-    final GetNodesCommand cmd = new GetNodesCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("wf4");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printTable(nodes);
+    assertThatThrownBy(command::run).isInstanceOf(RuntimeException.class);
   }
 }

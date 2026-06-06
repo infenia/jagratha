@@ -16,36 +16,29 @@
 package com.infenia.yukta.cli.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import org.junit.jupiter.api.Test;
 
-class ControlCommandTest {
+class DaemonCommandTest {
 
   @Test
   void constructor_createsInstance() {
-    ControlCommand command = new ControlCommand();
+    DaemonCommand command = new DaemonCommand();
 
     assertThat(command).isNotNull();
   }
 
   @Test
-  void run_displaysUsage() {
-    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    System.setOut(new PrintStream(outContent));
+  void run_throwsException() {
+    DaemonCommand command = new DaemonCommand();
 
-    ControlCommand command = new ControlCommand();
-    command.run();
-
-    String output = outContent.toString();
-    assertThat(output).isNotEmpty();
-    System.setOut(System.out);
+    assertThatThrownBy(command::run).isInstanceOf(Exception.class);
   }
 
   @Test
   void isRunnable() {
-    ControlCommand command = new ControlCommand();
+    DaemonCommand command = new DaemonCommand();
 
     assertThat(command).isInstanceOf(Runnable.class);
   }

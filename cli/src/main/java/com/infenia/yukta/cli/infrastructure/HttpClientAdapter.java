@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@SuppressWarnings({
-  "PMD.DoNotUseThreads",
-  "PMD.SystemPrintln",
-  "PMD.AvoidLiteralsInIfCondition",
-  "PMD.AtLeastOneConstructor",
-  "PMD.AvoidCatchingGenericException",
-  "PMD.AvoidThrowingRawExceptionTypes",
-  "PMD.LongVariable",
-  "PMD.ShortVariable",
-  "PMD.FieldDeclarationsShouldBeAtStartOfClass"
-})
-package com.infenia.yukta.cli.command;
+package com.infenia.yukta.cli.infrastructure;
+
+public interface HttpClientAdapter {
+  /**
+   * Performs a health check by sending an HTTP GET request to the daemon's health endpoint.
+   *
+   * @param port the daemon port
+   * @return true if health check succeeds (200 status), false if it fails
+   * @throws Exception if there's a connection or timeout error
+   */
+  boolean healthCheck(int port) throws Exception;
+}

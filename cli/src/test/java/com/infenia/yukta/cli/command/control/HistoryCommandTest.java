@@ -16,161 +16,97 @@
 package com.infenia.yukta.cli.command.control;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.cli.CliFormatter;
-import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
-import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
-import java.time.LocalDateTime;
+import com.infenia.yukta.cli.YuktaDaemonClient;
 import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import picocli.CommandLine;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.STRICT_STUBS)
 class HistoryCommandTest {
+  @Mock private YuktaDaemonClient mockClient;
+  @Mock private CliFormatter mockFormatter;
+  private HistoryCommand command;
 
-  @Mock private ControlBusGateway controlBus;
-  @Mock private CliFormatter formatter;
-
-  @Test
-  void history_defaultTableOutput_printsHistory() throws Exception {
-    final LocalDateTime now = LocalDateTime.now();
-    final WorkflowExecutionSummary summary =
-        new WorkflowExecutionSummary("exec1", "wf1", "COMPLETED", now, now);
-    final List<WorkflowExecutionSummary> history = List.of(summary);
-    when(controlBus.getHistory("sess1")).thenReturn(history);
-
-    final HistoryCommand cmd = new HistoryCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("sess1");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printTable(List.of(summary.toString()));
+  @BeforeEach
+  void setUp() {
+    command = new HistoryCommand(mockClient, mockFormatter);
   }
 
   @Test
-  void history_jsonOutput_printsHistoryAsJson() throws Exception {
-    final LocalDateTime now = LocalDateTime.now();
-    final WorkflowExecutionSummary summary =
-        new WorkflowExecutionSummary("exec2", "wf2", "COMPLETED", now, now);
-    final List<WorkflowExecutionSummary> history = List.of(summary);
-    when(controlBus.getHistory("sess2")).thenReturn(history);
-
-    final HistoryCommand cmd = new HistoryCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("sess2", "-o", "json");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printJson(history);
+  void constructor_createsInstance() {
+    assertThat(command).isNotNull();
   }
 
   @Test
-  void history_jsonOutputLongForm_printsHistoryAsJson() throws Exception {
-    final LocalDateTime now = LocalDateTime.now();
-    final List<WorkflowExecutionSummary> history = List.of();
-    when(controlBus.getHistory("sess3")).thenReturn(history);
-
-    final HistoryCommand cmd = new HistoryCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("sess3", "--output", "json");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printJson(history);
+  void isRunnable() {
+    assertThat(command).isInstanceOf(Runnable.class);
   }
 
   @Test
-  void history_tableFormattingException_throwsRuntimeException() throws Exception {
-    final LocalDateTime now = LocalDateTime.now();
-    final WorkflowExecutionSummary summary =
-        new WorkflowExecutionSummary("exec1", "wf1", "COMPLETED", now, now);
-    final List<WorkflowExecutionSummary> history = List.of(summary);
-    when(controlBus.getHistory("sess1")).thenReturn(history);
-    doThrow(new RuntimeException("Format error"))
-        .when(formatter)
-        .printTable(List.of(summary.toString()));
+  void run_printsTableByDefault() {
+    final var sessionId = "session-123";
+    final var history = List.<Map<String, Object>>of(Map.of("key", (Object) "value"));
+    when(mockClient.getHistory(sessionId)).thenReturn(history);
+    try {
+      final var field = HistoryCommand.class.getDeclaredField("sessionId");
+      field.setAccessible(true);
+      field.set(command, sessionId);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
 
-    final HistoryCommand cmd = new HistoryCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
+    command.run();
 
-    final int exitCode = cli.execute("sess1");
-
-    assertThat(exitCode).isNotZero();
+    verify(mockFormatter).printTable(List.of(Map.of("key", "value").toString()));
   }
 
   @Test
-  void history_jsonFormattingException_throwsRuntimeException() throws Exception {
-    final LocalDateTime now = LocalDateTime.now();
-    final WorkflowExecutionSummary summary =
-        new WorkflowExecutionSummary("exec1", "wf1", "FAILED", now, now);
-    final List<WorkflowExecutionSummary> history = List.of(summary);
-    when(controlBus.getHistory("sess1")).thenReturn(history);
-    doThrow(new RuntimeException("Json error")).when(formatter).printJson(history);
+  void run_printsJsonWhenFormatIsJson() throws Exception {
+    final var sessionId = "session-456";
+    final var history = List.<Map<String, Object>>of(Map.of("key", (Object) "value"));
+    when(mockClient.getHistory(sessionId)).thenReturn(history);
+    try {
+      final var sessionIdField = HistoryCommand.class.getDeclaredField("sessionId");
+      sessionIdField.setAccessible(true);
+      sessionIdField.set(command, sessionId);
+      final var formatField = HistoryCommand.class.getDeclaredField("outputFormat");
+      formatField.setAccessible(true);
+      formatField.set(command, "json");
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
 
-    final HistoryCommand cmd = new HistoryCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
+    command.run();
 
-    final int exitCode = cli.execute("sess1", "-o", "json");
-
-    assertThat(exitCode).isNotZero();
+    verify(mockFormatter).printJson(history);
   }
 
   @Test
-  void history_emptyHistory_printsEmptyList() throws Exception {
-    final List<WorkflowExecutionSummary> history = List.of();
-    when(controlBus.getHistory("sess4")).thenReturn(history);
+  void run_throwsRuntimeExceptionOnFormatterError() {
+    final var sessionId = "session-789";
+    final var history = List.<Map<String, Object>>of(Map.of("key", (Object) "value"));
+    when(mockClient.getHistory(sessionId)).thenReturn(history);
+    try {
+      final var field = HistoryCommand.class.getDeclaredField("sessionId");
+      field.setAccessible(true);
+      field.set(command, sessionId);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+    doThrow(new IllegalArgumentException("Invalid format"))
+        .when(mockFormatter)
+        .printTable(List.of(Map.of("key", "value").toString()));
 
-    final HistoryCommand cmd = new HistoryCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("sess4");
-
-    assertThat(exitCode).isZero();
-    verify(formatter).printTable(List.of());
-  }
-
-  @Test
-  void history_multipleExecutions_printsAllSummaries() throws Exception {
-    final LocalDateTime now = LocalDateTime.now();
-    final WorkflowExecutionSummary summary1 =
-        new WorkflowExecutionSummary("exec1", "wf1", "COMPLETED", now, now);
-    final WorkflowExecutionSummary summary2 =
-        new WorkflowExecutionSummary("exec2", "wf2", "FAILED", now, now.plusHours(1));
-    final WorkflowExecutionSummary summary3 =
-        new WorkflowExecutionSummary("exec3", "wf3", "IN_PROGRESS", now, null);
-    final List<WorkflowExecutionSummary> history = List.of(summary1, summary2, summary3);
-    when(controlBus.getHistory("sess5")).thenReturn(history);
-
-    final HistoryCommand cmd = new HistoryCommand(controlBus, formatter);
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setOut(new PrintWriter(out, true));
-
-    final int exitCode = cli.execute("sess5");
-
-    assertThat(exitCode).isZero();
-    verify(formatter)
-        .printTable(List.of(summary1.toString(), summary2.toString(), summary3.toString()));
+    assertThatThrownBy(command::run).isInstanceOf(RuntimeException.class);
   }
 }

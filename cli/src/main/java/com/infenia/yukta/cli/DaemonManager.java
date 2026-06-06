@@ -15,20 +15,17 @@
  */
 package com.infenia.yukta.cli;
 
+import com.infenia.yukta.cli.infrastructure.FileSystemAdapter;
+import com.infenia.yukta.cli.infrastructure.HttpClientAdapter;
+import com.infenia.yukta.cli.infrastructure.ProcessProvider;
+import com.infenia.yukta.cli.infrastructure.SystemEnvironmentProvider;
 import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
-import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -41,8 +38,10 @@ import org.springframework.stereotype.Component;
 public class DaemonManager {
 
   private final DaemonProperties props;
-  private final HttpClient httpClient =
-      HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(1)).build();
+  private final HttpClientAdapter httpClientAdapter;
+  private final SystemEnvironmentProvider envProvider;
+  private final ProcessProvider processProvider;
+  private final FileSystemAdapter fileSystemAdapter;
 
   public boolean isRunning() {
     try {
@@ -57,8 +56,12 @@ public class DaemonManager {
     Path pidFilePath = props.getPidFilePath();
     Path logFilePath = props.getLogFilePath();
 
-    Files.createDirectories(pidFilePath.getParent());
-    Files.createDirectories(logFilePath.getParent());
+    try {
+      fileSystemAdapter.createDirectories(pidFilePath.getParent());
+      fileSystemAdapter.createDirectories(logFilePath.getParent());
+    } catch (Exception e) {
+      throw new IOException("Failed to create directories", e);
+    }
 
     try (var randomAccessFile = new java.io.RandomAccessFile(pidFilePath.toFile(), "rw");
         FileLock lock = randomAccessFile.getChannel().tryLock()) {
@@ -69,24 +72,36 @@ public class DaemonManager {
       }
 
       if (isDaemonProcess()) {
-        log.info("Daemon already running with PID {}", readPidFile());
+        try {
+          log.info("Daemon already running with PID {}", readPidFile());
+        } catch (Exception e) {
+          log.info("Daemon already running (could not read PID: {})", e.getMessage());
+        }
         return null;
       }
 
-      // Launch daemon detached from parent I/O (logs to file, not stdout)
-      ProcessBuilder pb = new ProcessBuilder(buildDaemonCommand());
-      pb.directory(new File("."));
-      pb.redirectOutput(ProcessBuilder.Redirect.to(logFilePath.toFile()));
-      pb.redirectError(ProcessBuilder.Redirect.to(logFilePath.toFile()));
-
-      Process process = pb.start();
+      Process process;
+      try {
+        process =
+            processProvider.startProcess(
+                buildDaemonCommand(),
+                new File("."),
+                logFilePath.toFile(),
+                logFilePath.toFile());
+      } catch (Exception e) {
+        throw new IOException("Failed to start daemon process", e);
+      }
       long pid = process.pid();
 
-      Files.writeString(
-          pidFilePath,
-          String.valueOf(pid),
-          StandardOpenOption.CREATE,
-          StandardOpenOption.TRUNCATE_EXISTING);
+      try {
+        fileSystemAdapter.writeString(
+            pidFilePath,
+            String.valueOf(pid),
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING);
+      } catch (Exception e) {
+        throw new IOException("Failed to write PID file", e);
+      }
 
       log.info("Started daemon process with PID {}", pid);
       return process;
@@ -138,24 +153,27 @@ public class DaemonManager {
   public boolean stopDaemon() {
     Path pidFilePath = props.getPidFilePath();
 
-    if (!Files.exists(pidFilePath)) {
+    if (!fileSystemAdapter.exists(pidFilePath)) {
       log.info("No daemon PID file found");
       return false;
     }
 
     try {
       long pid = readPidFile();
-      java.lang.ProcessHandle.of(pid).ifPresent(handle -> {
-        handle.destroy();
-        log.info("Terminated daemon process with PID {}", pid);
-      });
-      Files.delete(pidFilePath);
+      processProvider
+          .findProcess(pid)
+          .ifPresent(
+              handle -> {
+                handle.destroy();
+                log.info("Terminated daemon process with PID {}", pid);
+              });
+      fileSystemAdapter.delete(pidFilePath);
       return true;
     } catch (Exception e) {
       log.warn("Error stopping daemon: {}", e.getMessage());
       try {
-        Files.deleteIfExists(pidFilePath);
-      } catch (IOException ex) {
+        fileSystemAdapter.deleteIfExists(pidFilePath);
+      } catch (Exception ex) {
         log.warn("Failed to delete PID file: {}", ex.getMessage());
       }
       return false;
@@ -176,38 +194,41 @@ public class DaemonManager {
   private boolean isDaemonProcess() {
     try {
       long pid = readPidFile();
-      if (java.lang.ProcessHandle.of(pid).isEmpty()) {
+      if (processProvider.findProcess(pid).isEmpty()) {
         log.debug("PID {} is stale, cleaning up", pid);
-        Files.deleteIfExists(props.getPidFilePath());
+        fileSystemAdapter.deleteIfExists(props.getPidFilePath());
         return false;
       }
       return httpHealthCheck();
     } catch (Exception e) {
       log.debug("Stale PID file detected", e);
       try {
-        Files.deleteIfExists(props.getPidFilePath());
-      } catch (IOException ex) {
+        fileSystemAdapter.deleteIfExists(props.getPidFilePath());
+      } catch (Exception ex) {
         log.debug("Failed to delete stale PID file", ex);
       }
       return false;
     }
   }
 
-  private long readPidFile() throws IOException {
-    String content = Files.readString(props.getPidFilePath());
+  private long readPidFile() throws Exception {
+    String content = fileSystemAdapter.readString(props.getPidFilePath());
     return Long.parseLong(content.trim());
   }
 
   private List<String> buildDaemonCommand() throws DaemonStartupException {
     String javaHome =
-        System.getProperty("java.home", System.getProperty("JAVA_HOME", "/usr/lib/jvm/java"));
+        envProvider
+            .getProperty("java.home")
+            .or(() -> envProvider.getProperty("JAVA_HOME"))
+            .orElse("/usr/lib/jvm/java");
     String javaExe = javaHome + File.separator + "bin" + File.separator + "java";
 
     boolean isNative =
-        "runtime".equals(System.getProperty("org.graalvm.nativeimage.imagecode"));
+        "runtime".equals(envProvider.getProperty("org.graalvm.nativeimage.imagecode").orElse(null));
 
     if (isNative) {
-      String processCmd = java.lang.ProcessHandle.current().info().command().orElse(null);
+      String processCmd = processProvider.currentProcessCommand().orElse(null);
       if (processCmd == null) {
         throw new DaemonStartupException("Cannot determine native image command path");
       }
@@ -228,7 +249,7 @@ public class DaemonManager {
       return props.getJarPath();
     }
 
-    String classPath = System.getProperty("java.class.path", "");
+    String classPath = envProvider.getProperty("java.class.path").orElse("");
     String[] entries = classPath.split(File.pathSeparator);
     for (String entry : entries) {
       if (entry.endsWith(".jar")) {
@@ -242,28 +263,13 @@ public class DaemonManager {
   }
 
   private String getActiveProfile() {
-    String profile = System.getProperty("spring.profiles.active");
-    if (profile != null && !profile.isEmpty()) {
-      return profile;
-    }
-    String envProfile = System.getenv("SPRING_PROFILES_ACTIVE");
-    if (envProfile != null && !envProfile.isEmpty()) {
-      return envProfile;
-    }
-    return "dev";
+    return envProvider
+        .getProperty("spring.profiles.active")
+        .or(() -> envProvider.getEnvironment("SPRING_PROFILES_ACTIVE"))
+        .orElse("dev");
   }
 
   private boolean httpHealthCheck() throws Exception {
-    String url = "http://127.0.0.1:" + props.getPort() + "/actuator/health";
-    HttpRequest request =
-        HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(1)).GET().build();
-
-    try {
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-      return response.statusCode() == 200;
-    } catch (ConnectException | java.net.SocketTimeoutException e) {
-      throw new ConnectException("Daemon not responding: " + e.getMessage());
-    }
+    return httpClientAdapter.healthCheck(props.getPort());
   }
 }

@@ -13,21 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.cli.command;
+package com.infenia.yukta.cli.infrastructure;
 
-import org.springframework.stereotype.Component;
-import picocli.CommandLine.Command;
+import java.util.Optional;
 
-@Component
-@Command(
-    name = "daemon",
-    mixinStandardHelpOptions = true,
-    description = "Manage the Yukta background daemon")
-public class DaemonCommand implements Runnable {
+public interface SystemEnvironmentProvider {
+  /**
+   * Gets a system property by key.
+   *
+   * @param key the property key
+   * @return the property value, or empty if not found
+   */
+  Optional<String> getProperty(String key);
 
-  @Override
-  public void run() {
-    throw new picocli.CommandLine.ExecutionException(
-        new picocli.CommandLine("daemon"), "Missing subcommand");
-  }
+  /**
+   * Gets an environment variable by key.
+   *
+   * @param key the variable name
+   * @return the variable value, or empty if not found
+   */
+  Optional<String> getEnvironment(String key);
 }

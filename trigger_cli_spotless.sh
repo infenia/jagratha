@@ -9,34 +9,41 @@ echo "Building the fat JAR..."
 ./gradlew :boot:bootJar > /dev/null 2>&1
 echo "✓ Build complete"
 
-echo "Applying spotlessApply via CLI (daemon auto-starts if needed)..."
-java -jar $JAR_PATH control session-apply "{
-  \"sessionId\": \"$SESSION_ID\",
-  \"description\": \"CLI Spotless formatting workflow\",
-  \"initiator\": \"spotless-cli\",
-  \"projectPath\": \"$(pwd)\",
-  \"workflows\": {
-    \"spotless-check\": {
-      \"workflowId\": \"spotless-check\",
-      \"description\": \"Apply spotless code formatting\",
-      \"nodes\": [
+echo "Ensuring daemon is running..."
+java -jar $JAR_PATH daemon start > /dev/null 2>&1
+echo "✓ Daemon is ready"
+
+echo "Applying spotlessApply via CLI..."
+java -jar $JAR_PATH control session-apply "$(cat <<'EOF'
+{
+  "sessionId": "cli-spotless-session",
+  "description": "CLI Spotless formatting workflow",
+  "initiator": "spotless-cli",
+  "projectPath": "$(pwd)",
+  "workflows": {
+    "spotless-check": {
+      "workflowId": "spotless-check",
+      "description": "Apply spotless code formatting",
+      "nodes": [
         {
-          \"nodeId\": \"spotless\",
-          \"type\": \"spotless\",
-          \"config\": {}
+          "nodeId": "spotless",
+          "type": "spotless",
+          "config": {}
         }
       ],
-      \"edges\": []
+      "edges": []
     }
   }
-}"
+}
+EOF
+)" 2>&1 | tail -5
 
-echo -e "\n✓ Session configured successfully"
+echo "✓ Session configured successfully"
 
 echo "Triggering spotlessApply workflow..."
-java -jar $JAR_PATH control trigger "$SESSION_ID" "spotless-check" "{}"
+java -jar $JAR_PATH control trigger "$SESSION_ID" "spotless-check" "{}" 2>&1 | tail -5
 
-echo -e "\n✓ Workflow triggered successfully"
+echo "✓ Workflow triggered successfully"
 
 echo -e "\nTo view daemon status, run:"
 echo "  java -jar $JAR_PATH daemon status"

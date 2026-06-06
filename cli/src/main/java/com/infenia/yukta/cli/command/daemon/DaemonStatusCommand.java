@@ -34,12 +34,15 @@ public class DaemonStatusCommand implements Runnable {
   public void run() {
     try {
       DaemonStatus status = daemonManager.status();
-      formatter.printJson(java.util.Map.of(
-          "running", status.running(),
-          "pid", status.pid(),
-          "url", status.url() != null ? status.url() : "N/A"));
+      formatter.printJson(
+          java.util.Map.of(
+              "running", status.running(),
+              "pid", status.pid(),
+              "url", status.url() != null ? status.url() : "N/A"));
     } catch (Exception e) {
-      System.err.println("Error checking daemon status: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
+      System.err.println(
+          "Error checking daemon status: "
+              + (e.getMessage() != null ? e.getMessage() : e.toString()));
       throw new RuntimeException(e);
     }
   }

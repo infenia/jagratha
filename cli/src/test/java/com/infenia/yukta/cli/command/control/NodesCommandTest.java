@@ -18,65 +18,56 @@ package com.infenia.yukta.cli.command.control;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
+import java.io.PrintStream;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import picocli.CommandLine;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
+@MockitoSettings(strictness = Strictness.STRICT_STUBS)
 class NodesCommandTest {
+  private NodesCommand command;
+  private PrintStream originalOut;
+  private ByteArrayOutputStream capturedOutput;
 
-  @Test
-  void run_displaysUsageInformation() throws Exception {
-    final CommandLine cli = new CommandLine(new NodesCommand());
+  @BeforeEach
+  void setUp() {
+    command = new NodesCommand();
+    originalOut = System.out;
+    capturedOutput = new ByteArrayOutputStream();
+    System.setOut(new PrintStream(capturedOutput));
+  }
 
-    final int exitCode = cli.execute();
-
-    assertThat(exitCode).isZero();
+  @AfterEach
+  void tearDown() {
+    System.setOut(originalOut);
   }
 
   @Test
-  void run_via_picocli_displaysUsageAndExitsSuccessfully() throws Exception {
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final ByteArrayOutputStream err = new ByteArrayOutputStream();
-    final CommandLine cli = new CommandLine(new NodesCommand());
-    cli.setOut(new PrintWriter(out, true));
-    cli.setErr(new PrintWriter(err, true));
-
-    final int exitCode = cli.execute();
-
-    assertThat(exitCode).isZero();
+  void constructor_createsInstance() {
+    assertThat(command).isNotNull();
   }
 
   @Test
-  void run_printUsageWithoutErrors() {
-    final NodesCommand cmd = new NodesCommand();
-    final ByteArrayOutputStream err = new ByteArrayOutputStream();
-    final PrintWriter errWriter = new PrintWriter(err, true);
-    final CommandLine cli = new CommandLine(cmd);
-    cli.setErr(errWriter);
-
-    cmd.run();
-
-    assertThat(err.toString()).doesNotContain("Error");
+  void isRunnable() {
+    assertThat(command).isInstanceOf(Runnable.class);
   }
 
   @Test
-  void run_multipleInvocations_consistentBehavior() {
-    final NodesCommand cmd1 = new NodesCommand();
-    final ByteArrayOutputStream out1 = new ByteArrayOutputStream();
-    final CommandLine cli1 = new CommandLine(cmd1);
-    cli1.setOut(new PrintWriter(out1, true));
+  void run_displaysUsage() {
+    command.run();
 
-    cmd1.run();
-    final String output1 = out1.toString();
+    String output = capturedOutput.toString();
+    assertThat(output).isNotEmpty();
+    assertThat(output).contains("Node management commands");
+  }
 
-    final NodesCommand cmd2 = new NodesCommand();
-    final ByteArrayOutputStream out2 = new ByteArrayOutputStream();
-    final CommandLine cli2 = new CommandLine(cmd2);
-    cli2.setOut(new PrintWriter(out2, true));
+  @Test
+  void run_displaysHelpOptions() {
+    command.run();
 
-    cmd2.run();
-    final String output2 = out2.toString();
-
-    assertThat(output1).isEqualTo(output2);
+    String output = capturedOutput.toString();
+    assertThat(output).contains("--help");
   }
 }

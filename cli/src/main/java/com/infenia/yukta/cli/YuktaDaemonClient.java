@@ -51,13 +51,7 @@ public class YuktaDaemonClient {
 
   public String triggerWorkflow(String sessionId, String workflowId, Map<String, Object> payload) {
     Map<String, Object> request =
-        Map.of(
-            "sessionId",
-            sessionId,
-            "workflowId",
-            workflowId,
-            "payload",
-            payload);
+        Map.of("sessionId", sessionId, "workflowId", workflowId, "payload", payload);
 
     ApiResponse<Map<String, Object>> response =
         daemonWebClient
@@ -102,10 +96,7 @@ public class YuktaDaemonClient {
     ApiResponse<Map<String, Object>> response =
         daemonWebClient
             .get()
-            .uri(
-                "/api/control/workflows/{workflowId}/nodes/{nodeId}/heartbeat",
-                workflowId,
-                nodeId)
+            .uri("/api/control/workflows/{workflowId}/nodes/{nodeId}/heartbeat", workflowId, nodeId)
             .retrieve()
             .bodyToMono(new ParameterizedTypeReference<ApiResponse<Map<String, Object>>>() {})
             .block();
@@ -118,10 +109,7 @@ public class YuktaDaemonClient {
     ApiResponse<Map<String, Object>> response =
         daemonWebClient
             .post()
-            .uri(
-                "/api/control/workflows/{workflowId}/nodes/{nodeId}/command",
-                workflowId,
-                nodeId)
+            .uri("/api/control/workflows/{workflowId}/nodes/{nodeId}/command", workflowId, nodeId)
             .bodyValue(payload)
             .retrieve()
             .bodyToMono(new ParameterizedTypeReference<ApiResponse<Map<String, Object>>>() {})
@@ -148,8 +136,7 @@ public class YuktaDaemonClient {
             .get()
             .uri("/api/control/sessions/{sessionId}/history", sessionId)
             .retrieve()
-            .bodyToMono(
-                new ParameterizedTypeReference<ApiResponse<List<Map<String, Object>>>>() {})
+            .bodyToMono(new ParameterizedTypeReference<ApiResponse<List<Map<String, Object>>>>() {})
             .block();
 
     return response != null ? response.data() : List.of();

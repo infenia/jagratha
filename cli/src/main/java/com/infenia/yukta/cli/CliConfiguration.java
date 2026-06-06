@@ -34,9 +34,7 @@ public class CliConfiguration {
 
   @Bean
   public WebClient daemonWebClient(DaemonProperties props) {
-    HttpClient httpClient =
-        HttpClient.create()
-            .responseTimeout(Duration.ofSeconds(30));
+    HttpClient httpClient = HttpClient.create().responseTimeout(Duration.ofSeconds(30));
 
     return WebClient.builder()
         .baseUrl("http://127.0.0.1:" + props.getPort())
