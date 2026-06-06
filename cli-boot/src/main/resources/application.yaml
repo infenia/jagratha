@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: yukta-cli
+  profiles:
+    default: dev
+
+logging:
+  level:
+    root: INFO
+    org.springframework: WARN
+
+yukta:
+  daemon:
+    port: 8080
+    startup-timeout-seconds: 30
+    health-check-interval-ms: 500
+  server:
+    url: http://localhost:8080
