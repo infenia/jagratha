@@ -26,6 +26,5 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @ComponentScan(basePackages = {"com.infenia.yukta.cli"})
-public class CliApplicationConfiguration {
-
-}
+@SuppressWarnings("PMD.AtLeastOneConstructor")
+public class CliApplicationConfiguration {}

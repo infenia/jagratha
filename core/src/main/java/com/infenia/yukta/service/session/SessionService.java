@@ -55,7 +55,7 @@ public class SessionService {
     return configService
         .applySessionConfig(data)
         .then(
-            // TODO(#XXX): Workflow preparation decoupled from session service to break circular
+            // TODO: Workflow preparation decoupled from session service to break circular
             // dependency. Workflows will be prepared through ExecutionStatusPublisher once the
             // control bus bridge is established.
             reactor.core.publisher.Mono.empty());

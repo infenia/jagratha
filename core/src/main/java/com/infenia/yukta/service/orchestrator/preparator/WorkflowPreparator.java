@@ -140,14 +140,14 @@ public class WorkflowPreparator {
                                     .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
                                     .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
                                     .log("Plugin initialized successfully");
-                                // TODO(#XXX): Plugin registration decoupled to break circular
+                                // TODO: Plugin registration decoupled to break circular
                                 // dependency.
                                 // Plugin lifecycle will be managed through ExecutionStatusPublisher
                                 // once
                                 // the control bus bridge is established.
                               })
                           .then(
-                              // TODO(#XXX): Node Online message emission decoupled from
+                              // TODO: Node Online message emission decoupled from
                               // orchestrator.
                               // Will be re-enabled through a separate observability channel.
                               reactor.core.publisher.Mono.empty());
@@ -190,7 +190,7 @@ public class WorkflowPreparator {
                         log.atDebug()
                             .addKeyValue(LOG_KEY_NODE_ID, nodeId)
                             .log("Unregistering and shutting down plugin");
-                        // TODO(#XXX): Plugin unregistration decoupled to break circular dependency.
+                        // TODO: Plugin unregistration decoupled to break circular dependency.
                         // Will be re-enabled through ExecutionStatusPublisher once the control bus
                         // bridge is established.
 

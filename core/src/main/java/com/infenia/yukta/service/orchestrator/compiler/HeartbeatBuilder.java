@@ -67,7 +67,6 @@ public class HeartbeatBuilder {
   /**
    * Creates a new HeartbeatBuilder instance.
    *
-   * @param statusPublisher the status publisher for emitting heartbeats and statistics
    * @param defaultInterval the default interval for heartbeat emissions
    * @param scheduler the scheduler for Flux.interval() operations
    */
@@ -156,7 +155,7 @@ public class HeartbeatBuilder {
         Flux.interval(interval, scheduler)
             .flatMap(
                 tick -> {
-                  // TODO(#XXX): Heartbeat emission decoupled from orchestrator to break circular
+                  // TODO: Heartbeat emission decoupled from orchestrator to break circular
                   // dependency. Heartbeats will be handled through ExecutionStatusPublisher once
                   // the control bus bridge is established.
                   return reactor.core.publisher.Mono.empty();
@@ -179,7 +178,7 @@ public class HeartbeatBuilder {
         Flux.interval(interval, scheduler)
             .flatMap(
                 tick -> {
-                  // TODO(#XXX): Statistics emission decoupled from orchestrator to break circular
+                  // TODO: Statistics emission decoupled from orchestrator to break circular
                   // dependency. Statistics will be handled through ExecutionStatusPublisher once
                   // the control bus bridge is established.
                   return reactor.core.publisher.Mono.empty();

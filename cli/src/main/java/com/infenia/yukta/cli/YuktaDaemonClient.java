@@ -161,4 +161,28 @@ public class YuktaDaemonClient {
         .doOnNext(lineConsumer)
         .blockLast();
   }
+
+  public Map<String, Object> getSessionDetails(String sessionId) {
+    ApiResponse<Map<String, Object>> response =
+        daemonWebClient
+            .get()
+            .uri("/api/sessions/{sessionId}", sessionId)
+            .retrieve()
+            .bodyToMono(new ParameterizedTypeReference<ApiResponse<Map<String, Object>>>() {})
+            .block();
+
+    return response != null ? response.data() : Map.of();
+  }
+
+  public Map<String, Object> getWorkflow(String sessionId, String workflowId) {
+    ApiResponse<Map<String, Object>> response =
+        daemonWebClient
+            .get()
+            .uri("/api/sessions/{sessionId}/workflows/{workflowId}", sessionId, workflowId)
+            .retrieve()
+            .bodyToMono(new ParameterizedTypeReference<ApiResponse<Map<String, Object>>>() {})
+            .block();
+
+    return response != null ? response.data() : Map.of();
+  }
 }

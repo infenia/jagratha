@@ -85,6 +85,10 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
         .withControl(true);
   }
 
+  /**
+   * Subscribes to status events emitted by the control bus and forwards them to the task tracker.
+   * This method is called automatically during Spring bean initialization.
+   */
   @PostConstruct
   public void subscribeToStatusEvents() {
     statusSink

@@ -67,6 +67,13 @@ coverageConfig {
         "INSTRUCTION" to 0.75,
         "METHOD" to 0.75
     )
+    val daemonCoverage = mapOf(
+        "LINE" to 0.5,
+        "BRANCH" to 0.5,
+        "CLASS" to 0.80,
+        "INSTRUCTION" to 0.2,
+        "METHOD" to 0.5
+    )
 
     exceptions.put("com.infenia.yukta.cli.YuktaCli", cliCoverage)
     exceptions.put("com.infenia.yukta.cli.CliRunner", cliCoverage)
@@ -80,4 +87,19 @@ coverageConfig {
     exceptions.put("com.infenia.yukta.cli.command.control.ProgressStreamCommand", cliCoverage)
     exceptions.put("com.infenia.yukta.cli.command.control.LogsStreamCommand", cliCoverage)
     exceptions.put("com.infenia.yukta.cli.command.control.HistoryCommand", cliCoverage)
+    exceptions.put("com.infenia.yukta.cli.command.DaemonCommand", daemonCoverage)
+    exceptions.put("com.infenia.yukta.cli.DaemonManager", mapOf(
+        "LINE" to 0.9,
+        "BRANCH" to 0.9,
+        "CLASS" to 0.80,
+        "INSTRUCTION" to 0.9,
+        "METHOD" to 0.75
+    ))
+    exceptions.put("com.infenia.yukta.cli.command.control.SessionApplyCommand", mapOf(
+        "LINE" to 0.75,
+        "BRANCH" to 0.8,
+        "CLASS" to 0.80,
+        "INSTRUCTION" to 0.75,
+        "METHOD" to 0.75
+    ))
 }

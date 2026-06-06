@@ -50,6 +50,8 @@ public interface ExecutionControlCommand {
    *
    * <p>Execution continues to process inflight work but no new elements are pulled from input
    * streams.
+   *
+   * @param executionId the execution identifier.
    */
   record PauseWorkflowCommand(String executionId) implements ExecutionControlCommand {
     @Override
@@ -62,6 +64,8 @@ public interface ExecutionControlCommand {
    * Resume a paused execution.
    *
    * <p>Nodes resume normal backpressure-driven element processing.
+   *
+   * @param executionId the execution identifier.
    */
   record ResumeWorkflowCommand(String executionId) implements ExecutionControlCommand {
     @Override

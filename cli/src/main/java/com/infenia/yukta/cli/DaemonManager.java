@@ -84,10 +84,7 @@ public class DaemonManager {
       try {
         process =
             processProvider.startProcess(
-                buildDaemonCommand(),
-                new File("."),
-                logFilePath.toFile(),
-                logFilePath.toFile());
+                buildDaemonCommand(), new File("."), logFilePath.toFile(), logFilePath.toFile());
       } catch (Exception e) {
         throw new IOException("Failed to start daemon process", e);
       }
