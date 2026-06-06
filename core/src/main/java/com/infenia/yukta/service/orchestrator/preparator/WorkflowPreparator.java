@@ -63,7 +63,6 @@ public class WorkflowPreparator {
    * @return a Mono containing the prepared workflow
    */
   public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
-    final String workflowId = def.workflowId();
     final int numNodes = def.nodes().size();
     log.atDebug()
         .addKeyValue(LOG_KEY_NUM_NODES, numNodes)
@@ -150,7 +149,7 @@ public class WorkflowPreparator {
                               // TODO: Node Online message emission decoupled from
                               // orchestrator.
                               // Will be re-enabled through a separate observability channel.
-                              reactor.core.publisher.Mono.empty());
+                              Mono.empty());
                     })
                 .then())
         .then(

@@ -37,6 +37,7 @@ import reactor.core.scheduler.Scheduler;
 @Component
 @Order(2)
 @RequiredArgsConstructor
+@SuppressWarnings({"PMD.LocalVariableCouldBeFinal", "PMD.UseExplicitTypes"})
 public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   private final TaskTrackerService tracker;

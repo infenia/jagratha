@@ -31,6 +31,11 @@ import reactor.core.publisher.Sinks.Many;
  * <p>Supports step-through mode: when enabled, each element must be explicitly stepped via the
  * stepSink signal, allowing one element through at a time.
  */
+@SuppressWarnings({
+  "PMD.AtLeastOneConstructor",
+  "PMD.OnlyOneReturn",
+  "PMD.LocalVariableCouldBeFinal"
+})
 public final class ReactiveControlValve {
 
   private final AtomicBoolean paused = new AtomicBoolean(false);

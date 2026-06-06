@@ -33,6 +33,7 @@ import reactor.core.publisher.Sinks;
  * global control handles for a workflow execution.
  */
 @Component
+@SuppressWarnings("PMD.AtLeastOneConstructor")
 public class ExecutionControlFactory {
 
   /**

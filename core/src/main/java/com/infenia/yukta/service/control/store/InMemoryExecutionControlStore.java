@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Thread-safe storage using ConcurrentHashMap. Suitable for single-node deployments or
  * co-located execution contexts.
  */
+@SuppressWarnings("PMD.AtLeastOneConstructor")
 public final class InMemoryExecutionControlStore implements ExecutionControlStore {
 
   private final Map<String, ExecutionControl> byExecutionId = new ConcurrentHashMap<>();

@@ -175,7 +175,7 @@ public interface TaskTrackerService {
       @NotBlank String nodeId,
       @NotBlank @Size(max = 256) String module,
       @NotBlank @Size(max = 256) String status,
-      @NotNull java.util.Map<String, Object> metadata);
+      @NotNull Map<String, Object> metadata);
 
   /**
    * Emit a workflow status event for asynchronous processing.

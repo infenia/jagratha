@@ -53,7 +53,7 @@ import reactor.util.concurrent.Queues;
 @Slf4j
 @Service
 @Validated
-@SuppressWarnings({"PMD.TooManyMethods", "PMD.ExcessiveImports", "PMD.CouplingBetweenObjects"})
+@SuppressWarnings({"PMD.OnlyOneReturn"})
 public class DefaultTaskTrackerServiceService implements TaskTrackerService {
 
   private static final int BATCH_SIZE = 100;
@@ -146,6 +146,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param nodeIds the list of node IDs in the workflow DAG
    * @return a Mono that completes when the workflow tracking is started
    */
+  @Override
   public Mono<Void> startWorkflow(
       @NotBlank final String executionId,
       @SessionId final String sessionId,
@@ -183,7 +184,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param status the new status
    * @return a Mono that completes when the task status is updated
    */
-  @SuppressWarnings("PMD.UseObjectForClearerAPI")
+  @Override
   public Mono<Void> updateTaskStatus(
       @NotBlank final String executionId,
       @NodeId final String nodeId,
@@ -202,7 +203,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param metadata the task metadata
    * @return a Mono that completes when the task status is updated
    */
-  @SuppressWarnings("PMD.UseObjectForClearerAPI")
+  @Override
   public Mono<Void> updateTaskStatus(
       @NotBlank final String executionId,
       @NodeId final String nodeId,
@@ -222,7 +223,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param status the new status
    * @param metadata the task metadata
    */
-  @SuppressWarnings("PMD.UseObjectForClearerAPI")
+  @Override
   public void emitTaskStatusEvent(
       @NotBlank final String executionId,
       @NotBlank final String nodeId,
@@ -239,6 +240,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param executionId the execution identifier
    * @param status the final status
    */
+  @Override
   public void emitWorkflowStatusEvent(
       @NotBlank final String executionId, @NotBlank @Size(max = 256) final String status) {
     wfStatusSink.emitNext(WorkflowStatusEvent.create(executionId, status), RETRY_HANDLER);
@@ -250,6 +252,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param executionId the execution identifier
    * @param line the log line
    */
+  @Override
   public void emitLogEvent(
       @NotBlank final String executionId, @NotBlank @Size(max = 16_384) final String line) {
     logSink.emitNext(WorkflowLogEvent.create(executionId, line), RETRY_HANDLER);
@@ -262,6 +265,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param status the final status
    * @return a Mono that completes when the workflow is finished
    */
+  @Override
   public Mono<Void> finishWorkflow(
       @NotBlank final String executionId, @NotBlank @Size(max = 256) final String status) {
     return Mono.fromRunnable(() -> emitWorkflowStatusEvent(executionId, status));
@@ -274,6 +278,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param line the log line
    * @return a Mono that completes when the log line is appended
    */
+  @Override
   public Mono<Void> appendLog(
       @NotBlank final String executionId, @NotBlank @Size(max = 16_384) final String line) {
     return Mono.fromRunnable(() -> emitLogEvent(executionId, line));
@@ -286,6 +291,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param executionId the execution identifier
    * @return the workflow progress
    */
+  @Override
   public WorkflowProgress getProgress(
       @SessionId final String sessionId, @NotBlank final String executionId) {
     final Map<String, WorkflowState> states = sessionStates.get(sessionId);
@@ -315,6 +321,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param executionId the execution identifier
    * @return the workflow progress, or null if not found
    */
+  @Override
   public WorkflowProgress getProgressByExecutionId(@NotBlank final String executionId) {
     final WorkflowState state = executionIndex.get(executionId);
     if (state == null) {
@@ -337,6 +344,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param workflowId the workflow identifier
    * @return the execution identifier or null if none
    */
+  @Override
   public String getLatestExecutionId(
       @SessionId final String sessionId, @WorkflowId final String workflowId) {
     return latestExecs.get(getLatestKey(sessionId, workflowId));
@@ -348,6 +356,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param executionId the execution identifier
    * @return the log flux
    */
+  @Override
   public Flux<String> getLogStream(@NotBlank final String executionId) {
     final Sinks.Many<String> sink = logSinks.get(executionId);
     return sink != null ? sink.asFlux() : Flux.empty();
@@ -359,6 +368,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param sessionId the session identifier
    * @return list of workflow execution summaries
    */
+  @Override
   public List<WorkflowExecutionSummary> getHistory(@SessionId final String sessionId) {
     final Map<String, WorkflowState> states = sessionStates.get(sessionId);
     List<WorkflowExecutionSummary> history = Collections.emptyList();
@@ -380,6 +390,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    *
    * @return list of session IDs
    */
+  @Override
   public List<String> getActiveSessions() {
     return List.copyOf(sessionStates.keySet());
   }
@@ -389,6 +400,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    *
    * @param sessionId the session identifier
    */
+  @Override
   public void removeSession(@SessionId final String sessionId) {
     final Map<String, WorkflowState> states = sessionStates.remove(sessionId);
     if (states != null) {
@@ -458,6 +470,7 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
    * @param executionId the execution identifier
    * @return the status flux
    */
+  @Override
   public Flux<WorkflowProgress> getStatusStream(@NotBlank final String executionId) {
     final Sinks.Many<WorkflowProgress> sink = statusSinks.get(executionId);
     return sink != null ? sink.asFlux() : Flux.empty();

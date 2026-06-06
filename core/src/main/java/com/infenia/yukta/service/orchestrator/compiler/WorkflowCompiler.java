@@ -44,6 +44,7 @@ import reactor.core.scheduler.Scheduler;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.UseExplicitTypes")
 public class WorkflowCompiler {
 
   private static final int BUFFER_SIZE = 1024;

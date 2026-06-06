@@ -51,6 +51,7 @@ import reactor.core.scheduler.Scheduler;
  * }</pre>
  */
 @Slf4j
+@SuppressWarnings("PMD.UnusedFormalParameter")
 public class HeartbeatBuilder {
 
   private final Duration defaultInterval;
