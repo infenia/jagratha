@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 plugins {
-    id("com.infenia.yukta.library-conventions")
+    `java-library`
+    id("com.infenia.yukta.spring-conventions")
 }
 
 dependencies {
