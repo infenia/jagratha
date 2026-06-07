@@ -4,6 +4,7 @@ set -e
 # Configuration
 SESSION_ID="cli-spotless-session"
 CLI_JAR_PATH="./cli-boot/build/libs/cli-boot-0.0.1-SNAPSHOT.jar"
+DAEMON_JAR_PATH="./boot/build/libs/boot-0.0.1-SNAPSHOT.jar"
 
 echo "Building the CLI JAR..."
 if ! ./gradlew :cli-boot:bootJar -x nativeCompile -x collectReachabilityMetadata --no-configuration-cache; then
@@ -11,6 +12,13 @@ if ! ./gradlew :cli-boot:bootJar -x nativeCompile -x collectReachabilityMetadata
   exit 1
 fi
 echo "✓ Build complete"
+
+echo "Building the Daemon JAR..."
+if ! ./gradlew :boot:bootJar -x nativeCompile -x collectReachabilityMetadata --no-configuration-cache; then
+  echo "✗ Daemon build failed - see errors above"
+  exit 1
+fi
+echo "✓ Daemon build complete"
 
 echo "Ensuring daemon is running..."
 java -jar $CLI_JAR_PATH daemon start 2>&1 | grep -E "(error|Error|ERROR)" || true
