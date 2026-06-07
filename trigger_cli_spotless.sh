@@ -6,11 +6,14 @@ SESSION_ID="cli-spotless-session"
 CLI_JAR_PATH="./cli-boot/build/libs/cli-boot-0.0.1-SNAPSHOT.jar"
 
 echo "Building the CLI JAR..."
-./gradlew :cli-boot:bootJar > /dev/null 2>&1
+if ! ./gradlew :cli-boot:bootJar -x nativeCompile -x collectReachabilityMetadata --no-configuration-cache; then
+  echo "✗ Build failed - see errors above"
+  exit 1
+fi
 echo "✓ Build complete"
 
 echo "Ensuring daemon is running..."
-java -jar $CLI_JAR_PATH daemon start > /dev/null 2>&1
+java -jar $CLI_JAR_PATH daemon start 2>&1 | grep -E "(error|Error|ERROR)" || true
 echo "✓ Daemon is ready"
 
 echo "Applying spotlessApply via CLI..."
