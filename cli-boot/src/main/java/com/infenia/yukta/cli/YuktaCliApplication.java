@@ -33,17 +33,22 @@ public class YuktaCliApplication {
    * @param args command line arguments
    */
   public static void main(final String[] args) {
-    // Enable automatic context propagation for Reactor to preserve context across thread
-    // boundaries and async operations
+    initializeAndRun(args);
+  }
+
+
+
+
+
+  @SuppressWarnings("PMD.UseVarargs")
+  static void initializeAndRun(final String[] args) {
     Hooks.enableAutomaticContextPropagation();
 
-    // Force prod profile in native images
     if (isNativeImage() && !hasProfileArgument(args)) {
       System.setProperty("spring.profiles.active", "prod");
     }
 
     final SpringApplication app = new SpringApplication(YuktaCliApplication.class);
-    // CLI is a non-web application
     app.setWebApplicationType(org.springframework.boot.WebApplicationType.NONE);
     app.run(args);
   }
