@@ -48,7 +48,7 @@ public class ConsoleTerminalPlugin implements TerminalPlugin {
 
   @Override
   public String getType() {
-    return "console";
+    return "CONSOLE_TERMINAL";
   }
 
   @Override

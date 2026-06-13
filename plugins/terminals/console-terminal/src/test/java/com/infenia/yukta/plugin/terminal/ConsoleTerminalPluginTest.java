@@ -37,7 +37,7 @@ class ConsoleTerminalPluginTest {
 
   @Test
   void testGetType() {
-    assertEquals("console", new ConsoleTerminalPlugin().getType());
+    assertEquals("CONSOLE_TERMINAL", new ConsoleTerminalPlugin().getType());
   }
 
   @Test

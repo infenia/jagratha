@@ -89,7 +89,7 @@ class FullStackWorkflowIntegrationTest {
                 "aggregation", Map.of("type", "SUM", "field", "payload.value")));
 
     // Terminal
-    final NodeRequest terminal = new NodeRequest("terminal", "console", Map.of());
+    final NodeRequest terminal = new NodeRequest("terminal", "CONSOLE_TERMINAL", Map.of());
 
     final WorkflowDefinitionRequest workflow =
         new WorkflowDefinitionRequest(
@@ -157,7 +157,7 @@ class FullStackWorkflowIntegrationTest {
                 3600));
 
     final NodeRequest terminal =
-        new NodeRequest("terminal", "console", Map.of("timeoutSeconds", 3600));
+        new NodeRequest("terminal", "CONSOLE_TERMINAL", Map.of("timeoutSeconds", 3600));
 
     final WorkflowDefinitionRequest workflow =
         new WorkflowDefinitionRequest(
@@ -229,7 +229,7 @@ class FullStackWorkflowIntegrationTest {
         new NodeRequest("sub", "SUB_WORKFLOW", Map.of("subWorkflowId", "child-flow"));
 
     // 6. Terminal
-    final NodeRequest terminal = new NodeRequest("terminal", "console", Map.of());
+    final NodeRequest terminal = new NodeRequest("terminal", "CONSOLE_TERMINAL", Map.of());
 
     // Main workflow
     final WorkflowDefinitionRequest mainWorkflow =
@@ -257,7 +257,7 @@ class FullStackWorkflowIntegrationTest {
                     "m1",
                     "MAPPER",
                     Map.of("mode", "PROJECTION", "mapping", Map.of("subResult", "'done'"))),
-                new NodeRequest("term", "console", Map.of())),
+                new NodeRequest("term", "CONSOLE_TERMINAL", Map.of())),
             List.of(
                 new EdgeRequest("t1", "m1", "default"), new EdgeRequest("m1", "term", "default")));
 
