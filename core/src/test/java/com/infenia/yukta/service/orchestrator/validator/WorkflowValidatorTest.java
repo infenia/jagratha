@@ -1181,4 +1181,77 @@ class WorkflowValidatorTest {
         .expectError(IllegalArgumentException.class)
         .verify();
   }
+
+  @Test
+  void testMissingTriggerNode() {
+    // Workflow has only processor and terminal, no trigger
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "test-workflow",
+            "missing-trigger",
+            List.of(
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(new WorkflowDefinition.Edge("p1", "term")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("must contain at least one TRIGGER node"))
+        .verify();
+  }
+
+  @Test
+  void testMissingTerminalNode() {
+    // Workflow has only trigger and processor, no terminal
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "test-workflow",
+            "missing-terminal",
+            List.of(
+                new WorkflowDefinition.Node("t", "T", Map.of()),
+                new WorkflowDefinition.Node("p1", "P", Map.of())),
+            List.of(new WorkflowDefinition.Edge("t", "p1")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("must contain at least one TERMINAL node"))
+        .verify();
+  }
+
+  @Test
+  void testOnlyProcessorNodes() {
+    // Workflow has only processor nodes, no trigger or terminal
+    when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.get("P")).thenReturn(processorPlugin);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "test-workflow",
+            "only-processors",
+            List.of(
+                new WorkflowDefinition.Node("p1", "P", Map.of()),
+                new WorkflowDefinition.Node("p2", "P", Map.of())),
+            List.of(new WorkflowDefinition.Edge("p1", "p2")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("must contain at least one TRIGGER node"))
+        .verify();
+  }
 }
