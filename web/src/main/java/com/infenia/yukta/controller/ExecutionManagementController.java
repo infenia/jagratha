@@ -78,12 +78,16 @@ public class ExecutionManagementController {
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "202",
       description = "Workflow trigger accepted")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "400",
+      description = "Invalid session ID or workflow ID")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "404",
+      description = "Session or workflow not found")
   public Mono<ResponseEntity<ApiResponse<TriggerResponse>>> triggerWorkflow(
       @Valid @RequestBody final WorkflowTriggerRequest request) {
-    return Mono.fromCallable(
-            () ->
-                workflowService.runWorkflow(
-                    request.sessionId(), request.workflowId(), request.payload()))
+    return workflowService
+        .validateAndTriggerWorkflow(request.sessionId(), request.workflowId(), request.payload())
         .map(
             execution ->
                 ResponseEntity.accepted()
@@ -91,7 +95,13 @@ public class ExecutionManagementController {
                         ApiResponse.success(
                             202,
                             "Workflow trigger accepted",
-                            new TriggerResponse(execution.executionId()))));
+                            new TriggerResponse(execution.executionId()))))
+        .onErrorResume(
+            e ->
+                Mono.just(
+                    ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(
+                            ApiResponse.error(404, "Not Found", e.getMessage(), null, List.of()))));
   }
 
   /**

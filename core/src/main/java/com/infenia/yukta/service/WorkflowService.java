@@ -66,6 +66,28 @@ public class WorkflowService {
   }
 
   /**
+   * Validate and run a specific workflow for a session.
+   *
+   * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @param payload the initial trigger payload
+   * @return a Mono containing the WorkflowExecution
+   * @throws IllegalArgumentException if session or workflow not found
+   */
+  public Mono<WorkflowExecution> validateAndTriggerWorkflow(
+      @SessionId final String sessionId,
+      @WorkflowId final String workflowId,
+      @NotEmpty final Map<String, Object> payload) {
+    return configService
+        .getWorkflow(sessionId, workflowId)
+        .switchIfEmpty(
+            Mono.error(
+                new IllegalArgumentException(
+                    "Workflow not found for session: " + sessionId + ", workflow: " + workflowId)))
+        .map(def -> runWorkflow(sessionId, workflowId, payload));
+  }
+
+  /**
    * Run a specific workflow for a session.
    *
    * @param sessionId the session identifier

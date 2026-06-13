@@ -105,7 +105,13 @@ public class WorkflowOrchestrator {
         executionControlFactory.create(sessionId, workflowId, executionId, prepared, payload);
     executionControlRegistry.register(control);
 
-    final Mono<Void> execution = prepared.template().instantiate(executionId, payload);
+    final List<String> nodeIds =
+        prepared.topologicalOrder().stream().map(WorkflowNode::nodeId).toList();
+
+    final Mono<Void> execution =
+        tracker
+            .startWorkflow(executionId, sessionId, workflowId, nodeIds)
+            .then(prepared.template().instantiate(executionId, payload));
 
     return Mono.firstWithSignal(
             execution, control.immediateStopSink().asMono(), control.safeStopSink().asMono())

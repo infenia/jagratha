@@ -67,7 +67,8 @@ class ExecutionManagementControllerTest {
     String executionId = "exec-123";
     WorkflowExecution execution = new WorkflowExecution(executionId, Mono.just(response));
 
-    when(workflowService.runWorkflow(anyString(), anyString(), any())).thenReturn(execution);
+    when(workflowService.validateAndTriggerWorkflow(anyString(), anyString(), any()))
+        .thenReturn(Mono.just(execution));
 
     webClient
         .post()
