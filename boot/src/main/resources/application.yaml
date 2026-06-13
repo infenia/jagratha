@@ -63,3 +63,7 @@ management:
       exposure:
         include: "*"
 
+jackson:
+  deserialization:
+    fail-on-unknown-properties: true
+

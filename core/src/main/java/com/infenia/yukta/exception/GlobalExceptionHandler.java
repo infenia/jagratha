@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.exception;
 
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.infenia.yukta.model.api.ApiResponse;
 import jakarta.annotation.Nullable;
 import jakarta.validation.ConstraintViolationException;
@@ -117,6 +118,33 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             HttpStatus.BAD_REQUEST.value(),
             HttpStatus.BAD_REQUEST.getReasonPhrase(),
             "Constraint violation",
+            path,
+            errors);
+
+    return ResponseEntity.badRequest().body(errorResponse);
+  }
+
+  /**
+   * Handle unrecognized property exceptions from JSON deserialization.
+   *
+   * @param exception the exception
+   * @param request the current request
+   * @return structured error response
+   */
+  @ExceptionHandler(UnrecognizedPropertyException.class)
+  public ResponseEntity<ApiResponse<Object>> handleUnrecognizedProperty(
+      final UnrecognizedPropertyException exception, final ServerHttpRequest request) {
+    final String fieldName = exception.getPropertyName();
+    final String message = "Unknown field: '" + fieldName + "'";
+    final List<ApiResponse.FieldError> errors =
+        List.of(new ApiResponse.FieldError(fieldName, message));
+
+    final String path = request.getPath().value();
+    final ApiResponse<Object> errorResponse =
+        ApiResponse.error(
+            HttpStatus.BAD_REQUEST.value(),
+            HttpStatus.BAD_REQUEST.getReasonPhrase(),
+            "Invalid request body",
             path,
             errors);
 
