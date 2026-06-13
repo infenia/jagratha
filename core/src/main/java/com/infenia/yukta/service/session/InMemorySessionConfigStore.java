@@ -178,6 +178,9 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
 
   @Override
   public Mono<Map<String, Object>> getAllConfigs(@SessionId final String sessionId) {
+    if (!sessionExists(sessionId)) {
+      return Mono.empty();
+    }
     return Mono.zip(
         arr -> {
           final Map<String, Object> configs = new java.util.LinkedHashMap<>();
@@ -201,6 +204,15 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
         getInitiatedTime(sessionId),
         getTags(sessionId),
         getDescription(sessionId));
+  }
+
+  private boolean sessionExists(final String sessionId) {
+    return projectPaths.containsKey(sessionId)
+        || workflowsMap.containsKey(sessionId)
+        || initiators.containsKey(sessionId)
+        || initiatedTimes.containsKey(sessionId)
+        || tagsMap.containsKey(sessionId)
+        || descriptions.containsKey(sessionId);
   }
 
   @Override
