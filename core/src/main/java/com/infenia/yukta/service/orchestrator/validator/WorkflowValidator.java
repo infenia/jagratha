@@ -67,6 +67,8 @@ public class WorkflowValidator {
         def.edges().stream().map(WorkflowDefinition.Edge::source).collect(Collectors.toSet());
 
     return validatePluginsRegistered(def)
+        .then(validateTriggerNodeExists(def))
+        .then(validateTerminalNodeExists(def))
         .then(validateEntryPoints(def, targetIds))
         .then(validateProcessors(def, targetIds, sourceIds))
         .then(validateEndpoints(def, sourceIds))
@@ -88,6 +90,38 @@ public class WorkflowValidator {
               return Mono.empty();
             })
         .then();
+  }
+
+  private Mono<Void> validateTriggerNodeExists(final WorkflowDefinition def) {
+    final boolean hasTrigger =
+        def.nodes().stream()
+            .anyMatch(
+                node -> {
+                  final WorkflowPlugin plugin = registry.get(node.type());
+                  return plugin instanceof TriggerPlugin;
+                });
+
+    if (!hasTrigger) {
+      return Mono.error(
+          new IllegalArgumentException("Workflow must contain at least one TRIGGER node"));
+    }
+    return Mono.empty();
+  }
+
+  private Mono<Void> validateTerminalNodeExists(final WorkflowDefinition def) {
+    final boolean hasTerminal =
+        def.nodes().stream()
+            .anyMatch(
+                node -> {
+                  final WorkflowPlugin plugin = registry.get(node.type());
+                  return plugin != null && plugin.getCategory() == PluginCategory.TERMINAL;
+                });
+
+    if (!hasTerminal) {
+      return Mono.error(
+          new IllegalArgumentException("Workflow must contain at least one TERMINAL node"));
+    }
+    return Mono.empty();
   }
 
   private Mono<Void> validateEntryPoints(

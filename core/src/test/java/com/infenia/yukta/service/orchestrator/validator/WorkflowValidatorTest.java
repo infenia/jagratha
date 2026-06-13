@@ -1087,11 +1087,11 @@ class WorkflowValidatorTest {
   @Test
   void testValidateOrphanNodeLogic() {
     // "p2" has no incoming — fails at validateEntryPoints (entry point but not a TRIGGER)
-    // TERM getCategory may not be reached in flatMap before error
     when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(registry.get("T")).thenReturn(triggerPlugin);
     when(processorPlugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(registry.get("P")).thenReturn(processorPlugin);
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
     when(registry.get("TERM")).thenReturn(terminalPlugin);
 
     WorkflowDefinition def =
