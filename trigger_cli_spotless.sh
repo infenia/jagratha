@@ -37,15 +37,34 @@ java -jar $CLI_JAR_PATH control session-apply "$(cat <<'EOF'
       "description": "Apply spotless code formatting",
       "nodes": [
         {
+          "nodeId": "trigger",
+          "type": "CONSTANT_SOURCE",
+          "config": {}
+        },
+        {
           "nodeId": "spotless",
           "type": "PROCESS_EXECUTOR",
           "config": {
             "command": ["./gradlew", "spotlessApply"],
             "workingDirectory": "$(pwd)"
           }
+        },
+        {
+          "nodeId": "terminal",
+          "type": "CONSOLE_TERMINAL",
+          "config": {}
         }
       ],
-      "edges": []
+      "edges": [
+        {
+          "source": "trigger",
+          "target": "spotless"
+        },
+        {
+          "source": "spotless",
+          "target": "terminal"
+        }
+      ]
     }
   }
 }
