@@ -31,6 +31,7 @@ java -jar $CLI_JAR_PATH control session-apply "$(cat <<'EOF'
   "description": "CLI Spotless formatting workflow",
   "initiator": "spotless-cli",
   "projectPath": "$(pwd)",
+  "tags": {},
   "workflows": {
     "spotless-check": {
       "workflowId": "spotless-check",
