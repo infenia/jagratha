@@ -23,12 +23,8 @@ spring:
     compose:
       enabled: false
   jackson:
-    default-property-inclusion: non_null
-    serialization:
-      write-dates-as-timestamps: false
     deserialization:
       fail-on-unknown-properties: true
-      accept-single-value-as-array: true
 
 logging:
   level:
