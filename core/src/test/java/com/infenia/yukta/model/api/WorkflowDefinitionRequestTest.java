@@ -48,7 +48,7 @@ class WorkflowDefinitionRequestTest {
     String workflowId = "test-workflow";
     String description = "Test workflow definition";
     var node = new WorkflowDefinitionRequest.NodeRequest("node1", "gradle", Map.of());
-    var edge = new WorkflowDefinitionRequest.EdgeRequest("node1", "node2");
+    var edge = new WorkflowDefinitionRequest.EdgeRequest("node1", "node2", "default");
     var nodes = List.of(node);
     var edges = List.of(edge);
 
@@ -69,7 +69,7 @@ class WorkflowDefinitionRequestTest {
     // Given
     String workflowId = "test-workflow";
     String description = "Test workflow";
-    var edge = new WorkflowDefinitionRequest.EdgeRequest("n1", "n2");
+    var edge = new WorkflowDefinitionRequest.EdgeRequest("n1", "n2", "default");
 
     // When
     var request = new WorkflowDefinitionRequest(workflowId, description, null, List.of(edge));
@@ -114,7 +114,7 @@ class WorkflowDefinitionRequestTest {
   void constructor_immutableEdges_preventsMutation() {
     // Given
     var mutableEdgeList = new java.util.ArrayList<WorkflowDefinitionRequest.EdgeRequest>();
-    var edge = new WorkflowDefinitionRequest.EdgeRequest("n1", "n2");
+    var edge = new WorkflowDefinitionRequest.EdgeRequest("n1", "n2", "default");
     mutableEdgeList.add(edge);
     var node = new WorkflowDefinitionRequest.NodeRequest("node1", "gradle", Map.of());
     var request =
@@ -133,7 +133,7 @@ class WorkflowDefinitionRequestTest {
   void validation_validInput_passesValidation() {
     // Given
     var node = new WorkflowDefinitionRequest.NodeRequest("node1", "gradle", Map.of());
-    var edge = new WorkflowDefinitionRequest.EdgeRequest("node1", "node2");
+    var edge = new WorkflowDefinitionRequest.EdgeRequest("node1", "node2", "default");
     var request =
         new WorkflowDefinitionRequest("test-workflow", "description", List.of(node), List.of(edge));
 
@@ -262,7 +262,7 @@ class WorkflowDefinitionRequestTest {
   @Test
   void validation_invalidEdgeInList_failsValidation() {
     // Given - edge with blank source
-    var invalidEdge = new WorkflowDefinitionRequest.EdgeRequest("", "node2");
+    var invalidEdge = new WorkflowDefinitionRequest.EdgeRequest("", "node2", "default");
     var node = new WorkflowDefinitionRequest.NodeRequest("node1", "gradle", Map.of());
     var request =
         new WorkflowDefinitionRequest(
@@ -425,12 +425,12 @@ class WorkflowDefinitionRequestTest {
     String target = "node2";
 
     // When
-    var edgeRequest = new WorkflowDefinitionRequest.EdgeRequest(source, target);
+    var edgeRequest = new WorkflowDefinitionRequest.EdgeRequest(source, target, "default");
 
     // Then
     assertEquals("node1", edgeRequest.source());
     assertEquals("node2", edgeRequest.target());
-    assertEquals(null, edgeRequest.sourcePort());
+    assertEquals("default", edgeRequest.sourcePort());
   }
 
   @Test
@@ -466,7 +466,7 @@ class WorkflowDefinitionRequestTest {
   @Test
   void edgeRequest_blankSource_failsValidation() {
     // Given
-    var edgeRequest = new WorkflowDefinitionRequest.EdgeRequest("", "node2");
+    var edgeRequest = new WorkflowDefinitionRequest.EdgeRequest("", "node2", "default");
 
     // When
     Set<ConstraintViolation<WorkflowDefinitionRequest.EdgeRequest>> violations =
@@ -482,7 +482,7 @@ class WorkflowDefinitionRequestTest {
   @Test
   void edgeRequest_nullSource_failsValidation() {
     // Given
-    var edgeRequest = new WorkflowDefinitionRequest.EdgeRequest(null, "node2");
+    var edgeRequest = new WorkflowDefinitionRequest.EdgeRequest(null, "node2", "default");
 
     // When
     Set<ConstraintViolation<WorkflowDefinitionRequest.EdgeRequest>> violations =
@@ -498,7 +498,7 @@ class WorkflowDefinitionRequestTest {
   @Test
   void edgeRequest_blankTarget_failsValidation() {
     // Given
-    var edgeRequest = new WorkflowDefinitionRequest.EdgeRequest("node1", "");
+    var edgeRequest = new WorkflowDefinitionRequest.EdgeRequest("node1", "", "default");
 
     // When
     Set<ConstraintViolation<WorkflowDefinitionRequest.EdgeRequest>> violations =
@@ -514,7 +514,7 @@ class WorkflowDefinitionRequestTest {
   @Test
   void edgeRequest_nullTarget_failsValidation() {
     // Given
-    var edgeRequest = new WorkflowDefinitionRequest.EdgeRequest("node1", null);
+    var edgeRequest = new WorkflowDefinitionRequest.EdgeRequest("node1", null, "default");
 
     // When
     Set<ConstraintViolation<WorkflowDefinitionRequest.EdgeRequest>> violations =
@@ -618,15 +618,5 @@ class WorkflowDefinitionRequestTest {
 
     // When-Then
     assertFalse(edge1.equals(edge2));
-  }
-
-  @Test
-  void edgeRequestEquality_backwardCompatibleConstructor_sameAsFull() {
-    // Given
-    var edge1 = new WorkflowDefinitionRequest.EdgeRequest("node1", "node2");
-    var edge2 = new WorkflowDefinitionRequest.EdgeRequest("node1", "node2", null);
-
-    // When-Then
-    assertEquals(edge1, edge2);
   }
 }

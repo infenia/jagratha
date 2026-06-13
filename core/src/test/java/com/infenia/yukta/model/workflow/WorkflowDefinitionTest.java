@@ -18,7 +18,6 @@ package com.infenia.yukta.model.workflow;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.validation.Validator;
@@ -64,9 +63,6 @@ class WorkflowDefinitionTest {
     assertEquals("t", edge.target());
     assertEquals("p", edge.sourcePort());
 
-    WorkflowDefinition.Edge edge2 = new WorkflowDefinition.Edge("s", "t");
-    assertNull(edge2.sourcePort());
-
     WorkflowDefinition def = new WorkflowDefinition("wf-1", "d", List.of(node), null);
     assertEquals("wf-1", def.workflowId());
     assertEquals("d", def.description());
@@ -83,7 +79,7 @@ class WorkflowDefinitionTest {
   @Test
   void testWorkflowDefinitionImmutability() {
     WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "t1", null);
-    WorkflowDefinition.Edge edge = new WorkflowDefinition.Edge("n1", "n2");
+    WorkflowDefinition.Edge edge = new WorkflowDefinition.Edge("n1", "n2", "default");
     WorkflowDefinition def = new WorkflowDefinition("wf-3", "desc", List.of(node), List.of(edge));
 
     assertNotNull(def.nodes());
@@ -202,7 +198,7 @@ class WorkflowDefinitionTest {
   @ParameterizedTest
   @ValueSource(strings = {"s1", "source-node", "start"})
   void edgeShouldNotFailValidationWithValidSource(final String source) {
-    final var edge = new WorkflowDefinition.Edge(source, "t1", null);
+    final var edge = new WorkflowDefinition.Edge(source, "t1", "default");
     final var result = validator.validateProperty(edge, "source");
     assertThat(result).isEmpty();
   }
@@ -212,7 +208,7 @@ class WorkflowDefinitionTest {
   @EmptySource
   @ValueSource(strings = {" ", "\t", "\n"})
   void edgeShouldFailValidationWithInvalidSource(final String source) {
-    final var edge = new WorkflowDefinition.Edge(source, "t1", null);
+    final var edge = new WorkflowDefinition.Edge(source, "t1", "default");
     final var result = validator.validateProperty(edge, "source");
     assertThat(result).isNotEmpty();
   }
@@ -220,7 +216,7 @@ class WorkflowDefinitionTest {
   @ParameterizedTest
   @ValueSource(strings = {"t1", "target-node", "end"})
   void edgeShouldNotFailValidationWithValidTarget(final String target) {
-    final var edge = new WorkflowDefinition.Edge("s1", target, null);
+    final var edge = new WorkflowDefinition.Edge("s1", target, "default");
     final var result = validator.validateProperty(edge, "target");
     assertThat(result).isEmpty();
   }
@@ -230,7 +226,7 @@ class WorkflowDefinitionTest {
   @EmptySource
   @ValueSource(strings = {" ", "\t", "\n"})
   void edgeShouldFailValidationWithInvalidTarget(final String target) {
-    final var edge = new WorkflowDefinition.Edge("s1", target, null);
+    final var edge = new WorkflowDefinition.Edge("s1", target, "default");
     final var result = validator.validateProperty(edge, "target");
     assertThat(result).isNotEmpty();
   }

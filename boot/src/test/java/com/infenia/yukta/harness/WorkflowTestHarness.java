@@ -42,7 +42,7 @@ public class WorkflowTestHarness {
   public String initSession(final ConfigRequest request) {
     webClient
         .post()
-        .uri("/api/config")
+        .uri("/api/sessions")
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(request)
         .exchange()

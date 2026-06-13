@@ -74,7 +74,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("n2", "P", Map.of()),
                 new WorkflowDefinition.Node("n3", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("n1", "n2"), new WorkflowDefinition.Edge("n2", "n3")));
+                new WorkflowDefinition.Edge("n1", "n2", "default"),
+                new WorkflowDefinition.Edge("n2", "n3", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -95,7 +96,7 @@ class WorkflowValidatorTest {
                     List.of(
                         new WorkflowDefinition.Node("t", "T", Map.of()),
                         new WorkflowDefinition.Node("g", "GUARD", Map.of())),
-                    List.of(new WorkflowDefinition.Edge("t", "g")))))
+                    List.of(new WorkflowDefinition.Edge("t", "g", "default")))))
         .expectError()
         .verify();
 
@@ -134,8 +135,8 @@ class WorkflowValidatorTest {
                         new WorkflowDefinition.Node("term1", "TERM", Map.of()),
                         new WorkflowDefinition.Node("p1", "P", Map.of())),
                     List.of(
-                        new WorkflowDefinition.Edge("t", "term1"),
-                        new WorkflowDefinition.Edge("term1", "p1")))))
+                        new WorkflowDefinition.Edge("t", "term1", "default"),
+                        new WorkflowDefinition.Edge("term1", "p1", "default")))))
         .expectError()
         .verify();
 
@@ -149,7 +150,7 @@ class WorkflowValidatorTest {
                         new WorkflowDefinition.Node("t", "T", Map.of()),
                         new WorkflowDefinition.Node("term", "TERM", Map.of()),
                         new WorkflowDefinition.Node("o", "TERM", Map.of())),
-                    List.of(new WorkflowDefinition.Edge("t", "term")))))
+                    List.of(new WorkflowDefinition.Edge("t", "term", "default")))))
         .expectError()
         .verify();
   }
@@ -187,11 +188,11 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("f1", "FILTER", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "m1"),
-                new WorkflowDefinition.Edge("m1", "m2"),
-                new WorkflowDefinition.Edge("m2", "m4"),
-                new WorkflowDefinition.Edge("m4", "f1"),
-                new WorkflowDefinition.Edge("f1", "term")));
+                new WorkflowDefinition.Edge("t", "m1", "default"),
+                new WorkflowDefinition.Edge("m1", "m2", "default"),
+                new WorkflowDefinition.Edge("m2", "m4", "default"),
+                new WorkflowDefinition.Edge("m4", "f1", "default"),
+                new WorkflowDefinition.Edge("f1", "term", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -212,7 +213,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p", "UNKNOWN", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p"), new WorkflowDefinition.Edge("p", "term")));
+                new WorkflowDefinition.Edge("t", "p", "default"),
+                new WorkflowDefinition.Edge("p", "term", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -245,7 +247,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p"), new WorkflowDefinition.Edge("p", "term")));
+                new WorkflowDefinition.Edge("t", "p", "default"),
+                new WorkflowDefinition.Edge("p", "term", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -263,7 +266,7 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
                 new WorkflowDefinition.Node("unknown", "UNKNOWN_TYPE", Map.of())),
-            List.of(new WorkflowDefinition.Edge("t", "unknown")));
+            List.of(new WorkflowDefinition.Edge("t", "unknown", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -289,7 +292,7 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
-            List.of(new WorkflowDefinition.Edge("t", "term")));
+            List.of(new WorkflowDefinition.Edge("t", "term", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -320,7 +323,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("c", "CUSTOM", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "c"), new WorkflowDefinition.Edge("c", "term")));
+                new WorkflowDefinition.Edge("t", "c", "default"),
+                new WorkflowDefinition.Edge("c", "term", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -344,9 +348,9 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p1", "P", Map.of()),
                 new WorkflowDefinition.Node("p2", "P", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p1"),
-                new WorkflowDefinition.Edge("p1", "p2"),
-                new WorkflowDefinition.Edge("p2", "p1")));
+                new WorkflowDefinition.Edge("t", "p1", "default"),
+                new WorkflowDefinition.Edge("p1", "p2", "default"),
+                new WorkflowDefinition.Edge("p2", "p1", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -375,8 +379,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("term1", "TERM", Map.of()),
                 new WorkflowDefinition.Node("term2", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p1"),
-                new WorkflowDefinition.Edge("p1", "term1")));
+                new WorkflowDefinition.Edge("t", "p1", "default"),
+                new WorkflowDefinition.Edge("p1", "term1", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -410,9 +414,9 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t1", "p"),
-                new WorkflowDefinition.Edge("t2", "p"),
-                new WorkflowDefinition.Edge("p", "term")));
+                new WorkflowDefinition.Edge("t1", "p", "default"),
+                new WorkflowDefinition.Edge("t2", "p", "default"),
+                new WorkflowDefinition.Edge("p", "term", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -432,7 +436,7 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("p", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
-            List.of(new WorkflowDefinition.Edge("p", "term")));
+            List.of(new WorkflowDefinition.Edge("p", "term", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -454,7 +458,7 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
                 new WorkflowDefinition.Node("p", "P", Map.of())),
-            List.of(new WorkflowDefinition.Edge("t", "p")));
+            List.of(new WorkflowDefinition.Edge("t", "p", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -480,8 +484,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "term"),
-                new WorkflowDefinition.Edge("p", "term")));
+                new WorkflowDefinition.Edge("t", "term", "default"),
+                new WorkflowDefinition.Edge("p", "term", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -507,8 +511,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("term", "TERM", Map.of()),
                 new WorkflowDefinition.Node("p", "P", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "term"),
-                new WorkflowDefinition.Edge("term", "p")));
+                new WorkflowDefinition.Edge("t", "term", "default"),
+                new WorkflowDefinition.Edge("term", "p", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -530,7 +534,7 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
                 new WorkflowDefinition.Node("p", "P", Map.of())),
-            List.of(new WorkflowDefinition.Edge("t", "p")));
+            List.of(new WorkflowDefinition.Edge("t", "p", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -565,10 +569,10 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p3", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p1"),
-                new WorkflowDefinition.Edge("p1", "p2"),
-                new WorkflowDefinition.Edge("p2", "p3"),
-                new WorkflowDefinition.Edge("p3", "term")));
+                new WorkflowDefinition.Edge("t", "p1", "default"),
+                new WorkflowDefinition.Edge("p1", "p2", "default"),
+                new WorkflowDefinition.Edge("p2", "p3", "default"),
+                new WorkflowDefinition.Edge("p3", "term", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -601,11 +605,11 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p3", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p1"),
-                new WorkflowDefinition.Edge("p1", "p2"),
-                new WorkflowDefinition.Edge("p1", "p3"),
-                new WorkflowDefinition.Edge("p2", "term"),
-                new WorkflowDefinition.Edge("p3", "term")));
+                new WorkflowDefinition.Edge("t", "p1", "default"),
+                new WorkflowDefinition.Edge("p1", "p2", "default"),
+                new WorkflowDefinition.Edge("p1", "p3", "default"),
+                new WorkflowDefinition.Edge("p2", "term", "default"),
+                new WorkflowDefinition.Edge("p3", "term", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -625,7 +629,9 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
                 new WorkflowDefinition.Node("p", "P", Map.of())),
-            List.of(new WorkflowDefinition.Edge("t", "p"), new WorkflowDefinition.Edge("p", "p")));
+            List.of(
+                new WorkflowDefinition.Edge("t", "p", "default"),
+                new WorkflowDefinition.Edge("p", "p", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -665,8 +671,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("unknown", "UNKNOWN", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "unknown"),
-                new WorkflowDefinition.Edge("unknown", "term")));
+                new WorkflowDefinition.Edge("t", "unknown", "default"),
+                new WorkflowDefinition.Edge("unknown", "term", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -686,7 +692,7 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
                 new WorkflowDefinition.Node("unknown", "UNKNOWN", Map.of())),
-            List.of(new WorkflowDefinition.Edge("t", "unknown")));
+            List.of(new WorkflowDefinition.Edge("t", "unknown", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -729,10 +735,10 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p2", "P", Map.of()),
                 new WorkflowDefinition.Node("p3", "P", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p1"),
-                new WorkflowDefinition.Edge("p1", "p2"),
-                new WorkflowDefinition.Edge("p2", "p3"),
-                new WorkflowDefinition.Edge("p3", "p1")));
+                new WorkflowDefinition.Edge("t", "p1", "default"),
+                new WorkflowDefinition.Edge("p1", "p2", "default"),
+                new WorkflowDefinition.Edge("p2", "p3", "default"),
+                new WorkflowDefinition.Edge("p3", "p1", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -758,9 +764,9 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t1", "t2"),
-                new WorkflowDefinition.Edge("t2", "p"),
-                new WorkflowDefinition.Edge("p", "term")));
+                new WorkflowDefinition.Edge("t1", "t2", "default"),
+                new WorkflowDefinition.Edge("t2", "p", "default"),
+                new WorkflowDefinition.Edge("p", "term", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -796,11 +802,11 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p4", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p1"),
-                new WorkflowDefinition.Edge("p1", "p2"),
-                new WorkflowDefinition.Edge("p2", "p3"),
-                new WorkflowDefinition.Edge("p3", "p4"),
-                new WorkflowDefinition.Edge("p4", "term")));
+                new WorkflowDefinition.Edge("t", "p1", "default"),
+                new WorkflowDefinition.Edge("p1", "p2", "default"),
+                new WorkflowDefinition.Edge("p2", "p3", "default"),
+                new WorkflowDefinition.Edge("p3", "p4", "default"),
+                new WorkflowDefinition.Edge("p4", "term", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -824,8 +830,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("term", "TERM", Map.of()),
                 new WorkflowDefinition.Node("p", "P", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "term"),
-                new WorkflowDefinition.Edge("term", "p")));
+                new WorkflowDefinition.Edge("t", "term", "default"),
+                new WorkflowDefinition.Edge("term", "p", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -847,7 +853,7 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
                 new WorkflowDefinition.Node("p", "P", Map.of())),
-            List.of(new WorkflowDefinition.Edge("t", "p")));
+            List.of(new WorkflowDefinition.Edge("t", "p", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -883,10 +889,10 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("term1", "TERM", Map.of()),
                 new WorkflowDefinition.Node("term2", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t1", "p1"),
-                new WorkflowDefinition.Edge("t2", "p2"),
-                new WorkflowDefinition.Edge("p1", "term1"),
-                new WorkflowDefinition.Edge("p2", "term2")));
+                new WorkflowDefinition.Edge("t1", "p1", "default"),
+                new WorkflowDefinition.Edge("t2", "p2", "default"),
+                new WorkflowDefinition.Edge("p1", "term1", "default"),
+                new WorkflowDefinition.Edge("p2", "term2", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -920,10 +926,10 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("term1", "TERM", Map.of()),
                 new WorkflowDefinition.Node("term2", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t1", "p1"),
-                new WorkflowDefinition.Edge("t2", "p2"),
-                new WorkflowDefinition.Edge("p1", "term1"),
-                new WorkflowDefinition.Edge("p2", "term2")));
+                new WorkflowDefinition.Edge("t1", "p1", "default"),
+                new WorkflowDefinition.Edge("t2", "p2", "default"),
+                new WorkflowDefinition.Edge("p1", "term1", "default"),
+                new WorkflowDefinition.Edge("p2", "term2", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -951,10 +957,10 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("term2", "TERM", Map.of()),
                 new WorkflowDefinition.Node("orphan", "P", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t1", "p1"),
-                new WorkflowDefinition.Edge("t2", "p2"),
-                new WorkflowDefinition.Edge("p1", "term1"),
-                new WorkflowDefinition.Edge("p2", "term2")));
+                new WorkflowDefinition.Edge("t1", "p1", "default"),
+                new WorkflowDefinition.Edge("t2", "p2", "default"),
+                new WorkflowDefinition.Edge("p1", "term1", "default"),
+                new WorkflowDefinition.Edge("p2", "term2", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -980,7 +986,7 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
-            List.of(new WorkflowDefinition.Edge("t", "term")));
+            List.of(new WorkflowDefinition.Edge("t", "term", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -1011,7 +1017,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p"), new WorkflowDefinition.Edge("p", "term")));
+                new WorkflowDefinition.Edge("t", "p", "default"),
+                new WorkflowDefinition.Edge("p", "term", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -1042,7 +1049,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p"), new WorkflowDefinition.Edge("p", "term")));
+                new WorkflowDefinition.Edge("t", "p", "default"),
+                new WorkflowDefinition.Edge("p", "term", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -1076,10 +1084,10 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p2", "P", Map.of()),
                 new WorkflowDefinition.Node("term2", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t1", "p1"),
-                new WorkflowDefinition.Edge("p1", "term1"),
-                new WorkflowDefinition.Edge("t2", "p2"),
-                new WorkflowDefinition.Edge("p2", "term2")));
+                new WorkflowDefinition.Edge("t1", "p1", "default"),
+                new WorkflowDefinition.Edge("p1", "term1", "default"),
+                new WorkflowDefinition.Edge("t2", "p2", "default"),
+                new WorkflowDefinition.Edge("p2", "term2", "default")));
 
     StepVerifier.create(validator.validate(def)).verifyComplete();
   }
@@ -1104,7 +1112,8 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p2", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p1"), new WorkflowDefinition.Edge("p1", "term")));
+                new WorkflowDefinition.Edge("t", "p1", "default"),
+                new WorkflowDefinition.Edge("p1", "term", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectErrorMatches(
@@ -1137,10 +1146,10 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("t_hidden", "T", Map.of()),
                 new WorkflowDefinition.Node("term_unreachable", "TERM", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t_main", "p1"),
-                new WorkflowDefinition.Edge("p1", "term1"),
-                new WorkflowDefinition.Edge("term1", "t_hidden"),
-                new WorkflowDefinition.Edge("t_hidden", "term_unreachable")));
+                new WorkflowDefinition.Edge("t_main", "p1", "default"),
+                new WorkflowDefinition.Edge("p1", "term1", "default"),
+                new WorkflowDefinition.Edge("term1", "t_hidden", "default"),
+                new WorkflowDefinition.Edge("t_hidden", "term_unreachable", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectErrorMatches(
@@ -1172,10 +1181,10 @@ class WorkflowValidatorTest {
                 new WorkflowDefinition.Node("p2", "P", Map.of()),
                 new WorkflowDefinition.Node("term2", "TERMINAL", Map.of())),
             List.of(
-                new WorkflowDefinition.Edge("t", "p1"),
-                new WorkflowDefinition.Edge("p1", "term1"),
-                new WorkflowDefinition.Edge("term1", "p2"),
-                new WorkflowDefinition.Edge("p2", "term2")));
+                new WorkflowDefinition.Edge("t", "p1", "default"),
+                new WorkflowDefinition.Edge("p1", "term1", "default"),
+                new WorkflowDefinition.Edge("term1", "p2", "default"),
+                new WorkflowDefinition.Edge("p2", "term2", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectError(IllegalArgumentException.class)
@@ -1197,7 +1206,7 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("p1", "P", Map.of()),
                 new WorkflowDefinition.Node("term", "TERM", Map.of())),
-            List.of(new WorkflowDefinition.Edge("p1", "term")));
+            List.of(new WorkflowDefinition.Edge("p1", "term", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectErrorMatches(
@@ -1222,7 +1231,7 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("t", "T", Map.of()),
                 new WorkflowDefinition.Node("p1", "P", Map.of())),
-            List.of(new WorkflowDefinition.Edge("t", "p1")));
+            List.of(new WorkflowDefinition.Edge("t", "p1", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectErrorMatches(
@@ -1245,7 +1254,7 @@ class WorkflowValidatorTest {
             List.of(
                 new WorkflowDefinition.Node("p1", "P", Map.of()),
                 new WorkflowDefinition.Node("p2", "P", Map.of())),
-            List.of(new WorkflowDefinition.Edge("p1", "p2")));
+            List.of(new WorkflowDefinition.Edge("p1", "p2", "default")));
 
     StepVerifier.create(validator.validate(def))
         .expectErrorMatches(

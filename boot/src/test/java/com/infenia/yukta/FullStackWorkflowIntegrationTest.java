@@ -97,12 +97,12 @@ class FullStackWorkflowIntegrationTest {
             "A complex workflow with multiple stages",
             List.of(trigger, mapper, filter, branch, aggregator, terminal),
             List.of(
-                new EdgeRequest("trigger", "mapper"),
-                new EdgeRequest("mapper", "filter"),
-                new EdgeRequest("filter", "branch"),
+                new EdgeRequest("trigger", "mapper", "default"),
+                new EdgeRequest("mapper", "filter", "default"),
+                new EdgeRequest("filter", "branch", "default"),
                 new EdgeRequest("branch", "aggregator", "highPort"),
                 new EdgeRequest("branch", "aggregator", "lowPort"),
-                new EdgeRequest("aggregator", "terminal")));
+                new EdgeRequest("aggregator", "terminal", "default")));
 
     final ConfigRequest configRequest =
         new ConfigRequest(
@@ -164,7 +164,9 @@ class FullStackWorkflowIntegrationTest {
             "Loop Workflow",
             "A workflow with loop support",
             List.of(trigger, loop, terminal),
-            List.of(new EdgeRequest("trigger", "loop"), new EdgeRequest("loop", "terminal")));
+            List.of(
+                new EdgeRequest("trigger", "loop", "default"),
+                new EdgeRequest("loop", "terminal", "default")));
 
     final ConfigRequest configRequest =
         new ConfigRequest(
@@ -236,13 +238,13 @@ class FullStackWorkflowIntegrationTest {
             "Main workflow with guard and subworkflow",
             List.of(trigger, guard, mapperTrue, mapperFalse, join, subWorkflowNode, terminal),
             List.of(
-                new EdgeRequest("trigger", "guard"),
+                new EdgeRequest("trigger", "guard", "default"),
                 new EdgeRequest("guard", "mapperTrue", "true"),
                 new EdgeRequest("guard", "mapperFalse", "false"),
-                new EdgeRequest("mapperTrue", "join"),
-                new EdgeRequest("mapperFalse", "join"),
-                new EdgeRequest("join", "sub"),
-                new EdgeRequest("sub", "terminal")));
+                new EdgeRequest("mapperTrue", "join", "default"),
+                new EdgeRequest("mapperFalse", "join", "default"),
+                new EdgeRequest("join", "sub", "default"),
+                new EdgeRequest("sub", "terminal", "default")));
 
     // Child workflow
     final WorkflowDefinitionRequest childWorkflow =
@@ -256,7 +258,8 @@ class FullStackWorkflowIntegrationTest {
                     "MAPPER",
                     Map.of("mode", "PROJECTION", "mapping", Map.of("subResult", "'done'"))),
                 new NodeRequest("term", "console", Map.of())),
-            List.of(new EdgeRequest("t1", "m1"), new EdgeRequest("m1", "term")));
+            List.of(
+                new EdgeRequest("t1", "m1", "default"), new EdgeRequest("m1", "term", "default")));
 
     final ConfigRequest configRequest =
         new ConfigRequest(

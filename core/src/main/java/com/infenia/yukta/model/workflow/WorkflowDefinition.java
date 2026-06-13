@@ -95,15 +95,6 @@ public record WorkflowDefinition(
           @NotNull(message = "Target node ID cannot be null")
           @NotBlank(message = "Target node ID cannot be blank")
           String target,
-      @Schema(description = "Source port name") String sourcePort) {
-    /**
-     * Backward-compatible constructor.
-     *
-     * @param source source node ID
-     * @param target target node ID
-     */
-    public Edge(final String source, final String target) {
-      this(source, target, null);
-    }
-  }
+      @Schema(description = "Source port name") @NotNull(message = "Source port cannot be null")
+          String sourcePort) {}
 }

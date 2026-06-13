@@ -28,7 +28,7 @@ class PreparedWorkflowTest {
   void testPreparedWorkflowConstructor() {
     WorkflowNode n1 = new WorkflowNode("n1", "t", null);
     WorkflowNode n2 = new WorkflowNode("n2", "t", null);
-    WorkflowDefinition.Edge e1 = new WorkflowDefinition.Edge("n1", "n2");
+    WorkflowDefinition.Edge e1 = new WorkflowDefinition.Edge("n1", "n2", "default");
 
     List<WorkflowEdge> edges = List.of(new WorkflowEdge("n1", "n2", null));
     Map<String, List<WorkflowNode>> adj = Map.of("n1", List.of(n2), "n2", List.of());
