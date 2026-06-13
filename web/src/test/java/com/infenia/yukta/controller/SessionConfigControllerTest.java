@@ -114,4 +114,85 @@ class SessionConfigControllerTest {
     verify(configMapper).toData(any());
     verify(sessionService).applyConfig(any());
   }
+
+  @Test
+  void testGetSessionDetailsWithNullSessionId() {
+    webTestClient.get().uri("/api/sessions/").exchange().expectStatus().isNotFound();
+  }
+
+  @Test
+  void testGetWorkflowWithNonExistentSession() {
+    when(sessionService.getSessionWorkflow("nonexistent", "wf1")).thenReturn(Mono.empty());
+
+    webTestClient
+        .get()
+        .uri("/api/sessions/nonexistent/workflows/wf1")
+        .exchange()
+        .expectStatus()
+        .isNotFound();
+  }
+
+  @Test
+  void testApplyConfigWithEmptyWorkflows() {
+    ConfigRequest request =
+        new ConfigRequest("session-1", "desc", "initiator-1", Map.of(), "/new/path", Map.of());
+
+    webTestClient
+        .post()
+        .uri("/api/sessions")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request)
+        .exchange()
+        .expectStatus()
+        .isBadRequest()
+        .expectBody()
+        .jsonPath("$.status")
+        .isEqualTo(400)
+        .jsonPath("$.message")
+        .isEqualTo("Validation failed");
+  }
+
+  @Test
+  void testApplyConfigWithMissingSessionId() {
+    WorkflowDefinitionRequest workflow =
+        new WorkflowDefinitionRequest(
+            "w1", "Test workflow", List.of(new NodeRequest("n1", "gradle", Map.of())), List.of());
+    ConfigRequest request =
+        new ConfigRequest(
+            null, "desc", "initiator-1", Map.of(), "/new/path", Map.of("w1", workflow));
+
+    webTestClient
+        .post()
+        .uri("/api/sessions")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request)
+        .exchange()
+        .expectStatus()
+        .isBadRequest()
+        .expectBody()
+        .jsonPath("$.status")
+        .isEqualTo(400);
+  }
+
+  @Test
+  void testApplyConfigWithMissingProjectPath() {
+    WorkflowDefinitionRequest workflow =
+        new WorkflowDefinitionRequest(
+            "w1", "Test workflow", List.of(new NodeRequest("n1", "gradle", Map.of())), List.of());
+    ConfigRequest request =
+        new ConfigRequest(
+            "session-1", "desc", "initiator-1", Map.of(), null, Map.of("w1", workflow));
+
+    webTestClient
+        .post()
+        .uri("/api/sessions")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request)
+        .exchange()
+        .expectStatus()
+        .isBadRequest()
+        .expectBody()
+        .jsonPath("$.status")
+        .isEqualTo(400);
+  }
 }
