@@ -314,29 +314,32 @@ public class FileSessionConfigStore implements SessionConfigStore {
 
   @Override
   public Mono<Map<String, Object>> getAllConfigs(@SessionId final String sessionId) {
-    return Mono.zip(
-        arr -> {
-          final Map<String, Object> configs = new java.util.LinkedHashMap<>();
-          configs.put("projectPath", arr[0]);
-          configs.put("workflows", arr[1]);
-          configs.put("executionTimeout", arr[2]);
-          configs.put("fileLogDir", arr[3]);
-          configs.put("resultLogDir", arr[4]);
-          configs.put("initiator", arr[5]);
-          configs.put("initiatedTime", arr[6]);
-          configs.put("tags", arr[7]);
-          configs.put("description", arr[8]);
-          return configs;
-        },
-        getProjectPath(sessionId),
-        getWorkflows(sessionId),
-        getExecutionTimeout(sessionId),
-        getFileLogDir(sessionId),
-        getResultLogDir(sessionId),
-        getInitiator(sessionId),
-        getInitiatedTime(sessionId),
-        getTags(sessionId),
-        getDescription(sessionId));
+    return loadSessionConfig(sessionId)
+        .flatMap(
+            ignored ->
+                Mono.zip(
+                    arr -> {
+                      final Map<String, Object> configs = new java.util.LinkedHashMap<>();
+                      configs.put("projectPath", arr[0]);
+                      configs.put("workflows", arr[1]);
+                      configs.put("executionTimeout", arr[2]);
+                      configs.put("fileLogDir", arr[3]);
+                      configs.put("resultLogDir", arr[4]);
+                      configs.put("initiator", arr[5]);
+                      configs.put("initiatedTime", arr[6]);
+                      configs.put("tags", arr[7]);
+                      configs.put("description", arr[8]);
+                      return configs;
+                    },
+                    getProjectPath(sessionId),
+                    getWorkflows(sessionId),
+                    getExecutionTimeout(sessionId),
+                    getFileLogDir(sessionId),
+                    getResultLogDir(sessionId),
+                    getInitiator(sessionId),
+                    getInitiatedTime(sessionId),
+                    getTags(sessionId),
+                    getDescription(sessionId)));
   }
 
   /**

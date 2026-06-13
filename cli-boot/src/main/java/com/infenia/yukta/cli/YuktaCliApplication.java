@@ -36,10 +36,6 @@ public class YuktaCliApplication {
     initializeAndRun(args);
   }
 
-
-
-
-
   @SuppressWarnings("PMD.UseVarargs")
   static void initializeAndRun(final String[] args) {
     Hooks.enableAutomaticContextPropagation();
