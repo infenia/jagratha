@@ -40,4 +40,12 @@ public record WorkflowExecutionSnapshot(
     Set<String> skippedNodes,
     Set<String> stoppedNodes,
     Instant createdAt,
-    Instant lastUpdatedAt) {}
+    Instant lastUpdatedAt) {
+
+  /** Compact constructor to enforce immutable defensive copies. */
+  public WorkflowExecutionSnapshot {
+    pausedNodes = pausedNodes != null ? Set.copyOf(pausedNodes) : Set.of();
+    skippedNodes = skippedNodes != null ? Set.copyOf(skippedNodes) : Set.of();
+    stoppedNodes = stoppedNodes != null ? Set.copyOf(stoppedNodes) : Set.of();
+  }
+}

@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.exception;
 
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.infenia.yukta.model.api.ApiResponse;
 import jakarta.annotation.Nullable;
 import jakarta.validation.ConstraintViolationException;
@@ -33,7 +32,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.reactive.result.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 /** Global exception handler for the application. */
 @Slf4j
@@ -67,6 +68,34 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             errors);
 
     return Mono.just(ResponseEntity.status(status).headers(headers).body(errorResponse));
+  }
+
+  @Override
+  protected Mono<ResponseEntity<Object>> handleServerWebInputException(
+      final ServerWebInputException exception,
+      final HttpHeaders headers,
+      final HttpStatusCode status,
+      final ServerWebExchange exchange) {
+    final UnrecognizedPropertyException unrecognized =
+        findCause(exception, UnrecognizedPropertyException.class);
+    final Mono<ResponseEntity<Object>> result;
+    if (unrecognized != null) {
+      final String fieldName = unrecognized.getPropertyName();
+      final String path = exchange.getRequest().getPath().value();
+      final List<ApiResponse.FieldError> errors =
+          List.of(new ApiResponse.FieldError(fieldName, "Unknown field: '" + fieldName + "'"));
+      final ApiResponse<Object> errorResponse =
+          ApiResponse.error(
+              HttpStatus.BAD_REQUEST.value(),
+              HttpStatus.BAD_REQUEST.getReasonPhrase(),
+              "Invalid request body",
+              path,
+              errors);
+      result = Mono.just(ResponseEntity.badRequest().headers(headers).body(errorResponse));
+    } else {
+      result = super.handleServerWebInputException(exception, headers, status, exchange);
+    }
+    return result;
   }
 
   @Override
@@ -200,5 +229,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     final ApiResponse<Object> errorResponse =
         ApiResponse.error(status.value(), status.getReasonPhrase(), message, path, List.of());
     return ResponseEntity.status(status).body(errorResponse);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T extends Throwable> T findCause(final Throwable throwable, final Class<T> type) {
+    Throwable cause = throwable;
+    T found = null;
+    while (cause != null && found == null) {
+      if (type.isInstance(cause)) {
+        found = (T) cause;
+      } else {
+        cause = cause.getCause();
+      }
+    }
+    return found;
   }
 }
