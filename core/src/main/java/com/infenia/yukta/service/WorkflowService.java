@@ -21,7 +21,8 @@ import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
-import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.service.workflow.store.PreparedWorkflowCache;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
 import jakarta.validation.constraints.NotEmpty;
@@ -52,21 +53,12 @@ public class WorkflowService {
   private static final String LOG_KEY_QUEUE_KEY = "queueKey";
   private static final String LOG_KEY_ERROR_MSG = "errorMessage";
 
-  private final SessionConfigStore configService;
   private final WorkflowOrchestrator orchestrator;
   private final TaskTrackerService tracker;
+  private final WorkflowDefinitionStore workflowDefinitionStore;
+  private final PreparedWorkflowCache preparedWorkflowCache;
 
   private final Map<String, Mono<Void>> workflowQueues = new ConcurrentHashMap<>();
-
-  /**
-   * Prepare a workflow for execution without running it.
-   *
-   * @param workflowDefinition the workflow definition to prepare
-   * @return a Mono containing the prepared workflow
-   */
-  public Mono<PreparedWorkflow> prepareWorkflow(final WorkflowDefinition workflowDefinition) {
-    return orchestrator.prepareWorkflow(workflowDefinition);
-  }
 
   /**
    * Validate and run a specific workflow for a session.
@@ -81,13 +73,10 @@ public class WorkflowService {
       @SessionId final String sessionId,
       @WorkflowId final String workflowId,
       @NotEmpty final Map<String, Object> payload) {
-    return configService
-        .getWorkflow(sessionId, workflowId)
+    return workflowDefinitionStore
+        .find(sessionId, workflowId)
         .switchIfEmpty(
             Mono.error(
-
-
-
                 new IllegalArgumentException(
                     "Workflow not found for session: " + sessionId + ", workflow: " + workflowId)))
         .map(
@@ -143,80 +132,7 @@ public class WorkflowService {
               final Mono<Void> current =
                   Mono.defer(
                           () ->
-                              configService
-                                  .getWorkflow(sessionId, workflowId)
-                                  .doOnSuccess(
-                                      def ->
-                                          log.atTrace()
-                                              .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-                                              .log("Workflow definition loaded"))
-                                  .flatMap(
-                                      def ->
-                                          orchestrator
-                                              .prepareWorkflow(
-                                                  new WorkflowDefinition(
-                                                      workflowId,
-                                                      def.description(),
-                                                      def.nodes(),
-                                                      def.edges()))
-                                              .doOnSuccess(
-                                                  prepared ->
-                                                      log.atDebug()
-                                                          .addKeyValue(
-                                                              LOG_KEY_EXECUTION_ID, executionId)
-                                                          .log("Workflow prepared successfully"))
-                                              .flatMap(
-                                                  prepared ->
-                                                      orchestrator.execute(
-                                                          sessionId,
-                                                          workflowId,
-                                                          executionId,
-                                                          prepared,
-                                                          payload))
-                                              .then(
-                                                  Mono.just(
-                                                      new TaskResponse(
-                                                          "SUCCESS",
-                                                          "Workflow executed successfully"))))
-                                  .switchIfEmpty(
-                                      Mono.fromRunnable(
-                                              () ->
-                                                  log.atWarn()
-                                                      .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-                                                      .log("No workflow configuration found"))
-                                          .then(
-                                              Mono.just(
-                                                  new TaskResponse(
-                                                      "FAILURE",
-                                                      "No workflow configured with ID: "
-                                                          + workflowId))))
-                                  .onErrorResume(
-                                      e -> {
-                                        log.atError()
-                                            .setCause(e)
-                                            .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
-                                            .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-                                            .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                                            .addKeyValue(LOG_KEY_ERROR_MSG, e.getMessage())
-                                            .log("Workflow execution failed");
-                                        return tracker
-                                            .finishWorkflow(executionId, "FAILURE")
-                                            .onErrorComplete()
-                                            .thenReturn(
-                                                new TaskResponse(
-                                                    "FAILURE",
-                                                    "Workflow failed: " + e.getMessage()));
-                                      })
-                                  .flatMap(
-                                      response -> {
-                                        log.atTrace()
-                                            .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                                            .addKeyValue("responseStatus", response.status())
-                                            .log("Workflow response generated");
-                                        sink.tryEmitValue(response);
-                                        return Mono.empty();
-                                      })
-                                  .then())
+                              resolveAndExecute(sessionId, workflowId, executionId, payload, sink))
                       .subscribeOn(Schedulers.boundedElastic());
 
               final Mono<Void> nextTail;
@@ -280,5 +196,60 @@ public class WorkflowService {
         .subscribe();
 
     return new WorkflowExecution(executionId, sink.asMono());
+  }
+
+  private Mono<Void> resolveAndExecute(
+      final String sessionId,
+      final String workflowId,
+      final String executionId,
+      final Map<String, Object> payload,
+      final Sinks.One<TaskResponse> sink) {
+    final var cached = preparedWorkflowCache.get(sessionId, workflowId);
+    final Mono<PreparedWorkflow> preparedMono;
+    if (cached.isPresent()) {
+      log.atDebug()
+          .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+          .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+          .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+          .log("Using cached PreparedWorkflow");
+      preparedMono = Mono.just(cached.get());
+    } else {
+      preparedMono =
+          workflowDefinitionStore
+              .find(sessionId, workflowId)
+              .switchIfEmpty(
+                  Mono.error(
+                      new IllegalArgumentException(
+                          "Workflow not found: " + sessionId + "/" + workflowId)))
+              .flatMap(
+                  def ->
+                      orchestrator
+                          .prepareWorkflow(def)
+                          .doOnNext(p -> preparedWorkflowCache.put(sessionId, workflowId, p)));
+    }
+    return preparedMono
+        .flatMap(
+            prepared -> orchestrator.execute(sessionId, workflowId, executionId, prepared, payload))
+        .then(Mono.just(new TaskResponse("SUCCESS", "Workflow executed successfully")))
+        .onErrorResume(
+            e -> {
+              log.atError()
+                  .setCause(e)
+                  .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+                  .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+                  .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+                  .addKeyValue(LOG_KEY_ERROR_MSG, e.getMessage())
+                  .log("Workflow execution failed");
+              return tracker
+                  .finishWorkflow(executionId, "FAILURE")
+                  .onErrorComplete()
+                  .thenReturn(new TaskResponse("FAILURE", "Workflow failed: " + e.getMessage()));
+            })
+        .flatMap(
+            response -> {
+              sink.tryEmitValue(response);
+              return Mono.empty();
+            })
+        .then();
   }
 }

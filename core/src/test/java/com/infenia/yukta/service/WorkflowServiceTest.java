@@ -16,7 +16,6 @@
 package com.infenia.yukta.service;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -26,9 +25,11 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.model.session.TaskResponse;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
-import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.service.workflow.store.PreparedWorkflowCache;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,17 +43,20 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class WorkflowServiceTest {
 
-  @Mock private SessionConfigStore configService;
   @Mock private WorkflowOrchestrator orchestrator;
   @Mock private TaskTrackerService tracker;
+  @Mock private WorkflowDefinitionStore workflowDefinitionStore;
 
+  private PreparedWorkflowCache preparedWorkflowCache;
   private WorkflowService workflowService;
 
   @BeforeEach
   void setUp() {
     lenient().when(tracker.startWorkflow(any(), any(), any(), any())).thenReturn(Mono.empty());
     lenient().when(tracker.finishWorkflow(any(), any())).thenReturn(Mono.empty());
-    workflowService = new WorkflowService(configService, orchestrator, tracker);
+    preparedWorkflowCache = new PreparedWorkflowCache(600_000L); // real instance, long TTL
+    workflowService =
+        new WorkflowService(orchestrator, tracker, workflowDefinitionStore, preparedWorkflowCache);
   }
 
   @Test
@@ -64,7 +68,7 @@ class WorkflowServiceTest {
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenReturn(Mono.empty());
@@ -80,13 +84,12 @@ class WorkflowServiceTest {
     String sessionId = "sess-none";
     String workflowId = "w-none";
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.empty());
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.empty());
 
     StepVerifier.create(
             workflowService.runWorkflow(sessionId, workflowId, java.util.Map.of()).result())
         .expectNextMatches(
-            res ->
-                "FAILURE".equals(res.status()) && res.output().contains("No workflow configured"))
+            res -> "FAILURE".equals(res.status()) && res.output().contains("Workflow not found"))
         .verifyComplete();
   }
 
@@ -96,7 +99,7 @@ class WorkflowServiceTest {
     String workflowId = "w-error";
     WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.error(new RuntimeException("Fail")));
 
     StepVerifier.create(
@@ -119,7 +122,7 @@ class WorkflowServiceTest {
     java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
     java.util.concurrent.CountDownLatch startedLatch = new java.util.concurrent.CountDownLatch(1);
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenAnswer(
@@ -167,7 +170,7 @@ class WorkflowServiceTest {
     java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
     java.util.concurrent.CountDownLatch startedLatch = new java.util.concurrent.CountDownLatch(1);
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenAnswer(
@@ -213,7 +216,7 @@ class WorkflowServiceTest {
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
-    when(configService.getWorkflow(anyString(), anyString())).thenReturn(Mono.just(def));
+    when(workflowDefinitionStore.find(anyString(), anyString())).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenReturn(Mono.empty());
@@ -239,7 +242,7 @@ class WorkflowServiceTest {
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenReturn(Mono.empty());
@@ -270,7 +273,7 @@ class WorkflowServiceTest {
     java.util.concurrent.atomic.AtomicInteger executeCallCount =
         new java.util.concurrent.atomic.AtomicInteger(0);
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenAnswer(
@@ -325,7 +328,7 @@ class WorkflowServiceTest {
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenReturn(Mono.error(new RuntimeException("Execution error")));
@@ -355,7 +358,7 @@ class WorkflowServiceTest {
     java.util.concurrent.CountDownLatch thirdStartedLatch =
         new java.util.concurrent.CountDownLatch(1);
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenAnswer(
@@ -427,7 +430,7 @@ class WorkflowServiceTest {
     String workflowId = "w-terminal-error";
     WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any()))
         .thenReturn(Mono.error(new RuntimeException("Prep error")));
 
@@ -442,13 +445,12 @@ class WorkflowServiceTest {
     String sessionId = "sess-eager";
     String workflowId = "w-eager";
     var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
-    WorkflowDefinition def =
-        new WorkflowDefinition(workflowId, "desc", List.of(node), List.of());
+    WorkflowDefinition def = new WorkflowDefinition(workflowId, "desc", List.of(node), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenReturn(Mono.empty());
@@ -468,7 +470,7 @@ class WorkflowServiceTest {
     String sessionId = "sess-missing";
     String workflowId = "w-missing";
 
-    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.empty());
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.empty());
 
     StepVerifier.create(
             workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of("k", "v")))
@@ -477,5 +479,60 @@ class WorkflowServiceTest {
                 e instanceof IllegalArgumentException
                     && e.getMessage().contains("Workflow not found"))
         .verify();
+  }
+
+  @Test
+  void runWorkflowUsesCacheHitWithoutCallingStore() {
+    final PreparedWorkflow prepared =
+        new PreparedWorkflow(
+            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+    preparedWorkflowCache.put("s1", "wf1", prepared);
+    when(orchestrator.execute(eq("s1"), eq("wf1"), any(), eq(prepared), any()))
+        .thenReturn(Mono.empty());
+
+    final WorkflowExecution execution = workflowService.runWorkflow("s1", "wf1", Map.of("k", "v"));
+    StepVerifier.create(execution.result())
+        .expectNextMatches(r -> "SUCCESS".equals(r.status()))
+        .verifyComplete();
+
+    org.mockito.Mockito.verify(workflowDefinitionStore, org.mockito.Mockito.never())
+        .find(any(), any());
+    org.mockito.Mockito.verify(orchestrator, org.mockito.Mockito.never()).prepareWorkflow(any());
+  }
+
+  @Test
+  void runWorkflowOnCacheMissLoadsFromStoreAndCompiles() {
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "wf1",
+            "desc",
+            List.of(new WorkflowDefinition.Node("n1", "trigger", Map.of())),
+            List.of());
+    final PreparedWorkflow prepared =
+        new PreparedWorkflow(
+            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+    when(workflowDefinitionStore.find("s1", "wf1")).thenReturn(Mono.just(def));
+    when(orchestrator.prepareWorkflow(def)).thenReturn(Mono.just(prepared));
+    when(orchestrator.execute(eq("s1"), eq("wf1"), any(), eq(prepared), any()))
+        .thenReturn(Mono.empty());
+
+    final WorkflowExecution execution = workflowService.runWorkflow("s1", "wf1", Map.of("k", "v"));
+    StepVerifier.create(execution.result())
+        .expectNextMatches(r -> "SUCCESS".equals(r.status()))
+        .verifyComplete();
+
+    org.mockito.Mockito.verify(workflowDefinitionStore).find("s1", "wf1");
+    org.mockito.Mockito.verify(orchestrator).prepareWorkflow(def);
+  }
+
+  @Test
+  void runWorkflowOnStoreMissPropagatesFailure() {
+    when(workflowDefinitionStore.find("s1", "wf1")).thenReturn(Mono.empty());
+
+    final WorkflowExecution execution = workflowService.runWorkflow("s1", "wf1", Map.of("k", "v"));
+    StepVerifier.create(execution.result())
+        .expectNextMatches(
+            r -> "FAILURE".equals(r.status()) && r.output().contains("Workflow not found"))
+        .verifyComplete();
   }
 }
