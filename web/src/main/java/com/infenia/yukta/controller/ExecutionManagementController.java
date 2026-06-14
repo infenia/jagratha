@@ -18,12 +18,14 @@ package com.infenia.yukta.controller;
 import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.model.api.TriggerResponse;
 import com.infenia.yukta.model.api.WorkflowTriggerRequest;
+import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.WorkflowService;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.session.SessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,6 +43,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -61,6 +64,7 @@ public class ExecutionManagementController {
   private final ControlBusGateway controlBus;
   private final WorkflowService workflowService;
   private final LogRetrievalService logs;
+  private final SessionService sessionService;
 
   private static final String HTTP_200 = "200";
   private static final String SESSION_ID_PARAM = "Session ID";
@@ -85,7 +89,7 @@ public class ExecutionManagementController {
       responseCode = "404",
       description = "Session or workflow not found")
   public Mono<ResponseEntity<ApiResponse<TriggerResponse>>> triggerWorkflow(
-      @Valid @RequestBody final WorkflowTriggerRequest request) {
+      @Valid @RequestBody final WorkflowTriggerRequest request, final ServerWebExchange exchange) {
     return workflowService
         .validateAndTriggerWorkflow(request.sessionId(), request.workflowId(), request.payload())
         .map(
@@ -97,11 +101,16 @@ public class ExecutionManagementController {
                             "Workflow trigger accepted",
                             new TriggerResponse(execution.executionId()))))
         .onErrorResume(
-            e ->
-                Mono.just(
-                    ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(
-                            ApiResponse.error(404, "Not Found", e.getMessage(), null, List.of()))));
+            e -> {
+              final String path = exchange.getRequest().getPath().value();
+              final List<ApiResponse.FieldError> errors =
+                  List.of(new ApiResponse.FieldError("workflow", e.getMessage()));
+              return Mono.just(
+                  ResponseEntity.status(HttpStatus.NOT_FOUND)
+                      .body(
+                          ApiResponse.error(
+                              404, "Not Found", "Workflow not found", path, errors)));
+            });
   }
 
   /**
@@ -123,16 +132,27 @@ public class ExecutionManagementController {
       description = "Execution not found")
   public Mono<ResponseEntity<ApiResponse<WorkflowProgress>>> getWorkflowStatus(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
-      @Parameter(description = "Execution ID") @PathVariable final String executionId) {
+      @Parameter(description = "Execution ID") @PathVariable final String executionId,
+      final ServerWebExchange exchange) {
     return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
         .flatMap(progress -> Mono.justOrEmpty(progress))
         .map(
             progress ->
                 ResponseEntity.ok(
                     ApiResponse.success(200, "Workflow status retrieved successfully", progress)))
-        .defaultIfEmpty(
-            ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error(404, "Not Found", "Execution not found", null, List.of())));
+        .switchIfEmpty(
+            Mono.fromSupplier(
+                () -> {
+                  final String path = exchange.getRequest().getPath().value();
+                  final List<ApiResponse.FieldError> errors =
+                      List.of(
+                          new ApiResponse.FieldError(
+                              "executionId", "Execution not found: '" + executionId + "'"));
+                  return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                      .<ApiResponse<WorkflowProgress>>body(
+                          ApiResponse.error(
+                              404, "Not Found", "Execution not found", path, errors));
+                }));
   }
 
   /**
@@ -169,12 +189,31 @@ public class ExecutionManagementController {
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = HTTP_200,
       description = "Workflow history retrieved successfully")
-  public Mono<ApiResponse<Object>> getWorkflowHistory(
-      @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId) {
-    return Mono.fromCallable(() -> controlBus.getHistory(sessionId))
-        .map(
-            history ->
-                ApiResponse.success(200, "Workflow history retrieved successfully", history));
+  public Mono<ResponseEntity<ApiResponse<List<WorkflowExecutionSummary>>>> getWorkflowHistory(
+      @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
+      final ServerWebExchange exchange) {
+    return sessionService
+        .getSessionConfig(sessionId)
+        .flatMap(
+            ignored ->
+                Mono.fromCallable(() -> controlBus.getHistory(sessionId))
+                    .map(
+                        history ->
+                            ResponseEntity.ok(
+                                ApiResponse.success(
+                                    200, "Workflow history retrieved successfully", history))))
+        .switchIfEmpty(
+            Mono.fromSupplier(
+                () -> {
+                  final String path = exchange.getRequest().getPath().value();
+                  final List<ApiResponse.FieldError> errors =
+                      List.of(
+                          new ApiResponse.FieldError(
+                              "sessionId", "Session not found: '" + sessionId + "'"));
+                  return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                      .<ApiResponse<List<WorkflowExecutionSummary>>>body(
+                          ApiResponse.error(404, "Not Found", "Session not found", path, errors));
+                }));
   }
 
   /**

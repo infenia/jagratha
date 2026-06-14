@@ -28,6 +28,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,6 +36,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 /** Controller for session management and configuration. */
@@ -61,7 +63,7 @@ public class SessionConfigController {
       description = "Retrieves details of a specific session including workflow IDs")
   @SuppressWarnings("unchecked")
   public Mono<ResponseEntity<ApiResponse<SessionDetails>>> getSessionDetails(
-      @PathVariable final String sessionId) {
+      @PathVariable final String sessionId, final ServerWebExchange exchange) {
     return sessionService
         .getSessionConfig(sessionId)
         .map(
@@ -75,7 +77,18 @@ public class SessionConfigController {
                       "Session details retrieved",
                       new SessionDetails(sessionId, workflowIds)));
             })
-        .defaultIfEmpty(ResponseEntity.notFound().build());
+        .switchIfEmpty(
+            Mono.fromSupplier(
+                () -> {
+                  final String path = exchange.getRequest().getPath().value();
+                  final List<ApiResponse.FieldError> errors =
+                      List.of(
+                          new ApiResponse.FieldError(
+                              "sessionId", "Session not found: '" + sessionId + "'"));
+                  return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                      .<ApiResponse<SessionDetails>>body(
+                          ApiResponse.error(404, "Not Found", "Session not found", path, errors));
+                }));
   }
 
   /**
@@ -88,11 +101,29 @@ public class SessionConfigController {
   @GetMapping("/{sessionId}/workflows/{workflowId}")
   @Operation(summary = "Get workflow", description = "Retrieves the definition of a workflow")
   public Mono<ResponseEntity<ApiResponse<WorkflowDefinition>>> getWorkflow(
-      @PathVariable final String sessionId, @PathVariable final String workflowId) {
+      @PathVariable final String sessionId,
+      @PathVariable final String workflowId,
+      final ServerWebExchange exchange) {
     return sessionService
         .getSessionWorkflow(sessionId, workflowId)
         .map(def -> ResponseEntity.ok(ApiResponse.success(200, "Workflow retrieved", def)))
-        .defaultIfEmpty(ResponseEntity.notFound().build());
+        .switchIfEmpty(
+            Mono.fromSupplier(
+                () -> {
+                  final String path = exchange.getRequest().getPath().value();
+                  final List<ApiResponse.FieldError> errors =
+                      List.of(
+                          new ApiResponse.FieldError(
+                              "workflowId",
+                              "Workflow not found: '"
+                                  + workflowId
+                                  + "' in session: '"
+                                  + sessionId
+                                  + "'"));
+                  return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                      .<ApiResponse<WorkflowDefinition>>body(
+                          ApiResponse.error(404, "Not Found", "Workflow not found", path, errors));
+                }));
   }
 
   /**

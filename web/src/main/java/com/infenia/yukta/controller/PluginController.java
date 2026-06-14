@@ -23,11 +23,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 /** Controller for plugin information. */
@@ -63,7 +65,7 @@ public class PluginController {
   @GetMapping("/{type}")
   @Operation(summary = "Get plugin details", description = "Retrieves details of a specific plugin")
   public Mono<ResponseEntity<ApiResponse<PluginDetails>>> getPluginDetails(
-      @PathVariable final String type) {
+      @PathVariable final String type, final ServerWebExchange exchange) {
     return Mono.fromCallable(() -> registry.get(type))
         .flatMap(p -> Mono.justOrEmpty(p))
         .map(
@@ -79,6 +81,17 @@ public class PluginController {
                             p.getUsagePattern(),
                             p.getUiDesign().orElse(null),
                             p.getOutputPorts()))))
-        .defaultIfEmpty(ResponseEntity.notFound().build());
+        .switchIfEmpty(
+            Mono.fromSupplier(
+                () -> {
+                  final String path = exchange.getRequest().getPath().value();
+                  final List<ApiResponse.FieldError> errors =
+                      List.of(
+                          new ApiResponse.FieldError(
+                              "type", "Plugin not found: '" + type + "'"));
+                  return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                      .<ApiResponse<PluginDetails>>body(
+                          ApiResponse.error(404, "Not Found", "Plugin not found", path, errors));
+                }));
   }
 }
