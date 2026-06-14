@@ -16,13 +16,18 @@
 package com.infenia.yukta.service;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.session.TaskResponse;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
+import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import java.util.List;
 import java.util.Map;
@@ -39,12 +44,15 @@ class WorkflowServiceTest {
 
   @Mock private SessionConfigStore configService;
   @Mock private WorkflowOrchestrator orchestrator;
+  @Mock private TaskTrackerService tracker;
 
   private WorkflowService workflowService;
 
   @BeforeEach
   void setUp() {
-    workflowService = new WorkflowService(configService, orchestrator);
+    lenient().when(tracker.startWorkflow(any(), any(), any(), any())).thenReturn(Mono.empty());
+    lenient().when(tracker.finishWorkflow(any(), any())).thenReturn(Mono.empty());
+    workflowService = new WorkflowService(configService, orchestrator, tracker);
   }
 
   @Test
@@ -427,5 +435,47 @@ class WorkflowServiceTest {
         .expectNextMatches(
             res -> "FAILURE".equals(res.status()) && res.output().contains("Prep error"))
         .verifyComplete();
+  }
+
+  @Test
+  void testValidateAndTriggerRegistersExecutionEagerly() {
+    String sessionId = "sess-eager";
+    String workflowId = "w-eager";
+    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
+    WorkflowDefinition def =
+        new WorkflowDefinition(workflowId, "desc", List.of(node), List.of());
+    PreparedWorkflow prepared =
+        new PreparedWorkflow(
+            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+
+    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.just(def));
+    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
+    when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
+        .thenReturn(Mono.empty());
+
+    StepVerifier.create(
+            workflowService
+                .validateAndTriggerWorkflow(sessionId, workflowId, Map.of("key", "val"))
+                .flatMap(exec -> exec.result()))
+        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
+        .verifyComplete();
+
+    verify(tracker).startWorkflow(anyString(), eq(sessionId), eq(workflowId), eq(List.of("n1")));
+  }
+
+  @Test
+  void testValidateAndTriggerWorkflowNotFound() {
+    String sessionId = "sess-missing";
+    String workflowId = "w-missing";
+
+    when(configService.getWorkflow(sessionId, workflowId)).thenReturn(Mono.empty());
+
+    StepVerifier.create(
+            workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of("k", "v")))
+        .expectErrorMatches(
+            e ->
+                e instanceof IllegalArgumentException
+                    && e.getMessage().contains("Workflow not found"))
+        .verify();
   }
 }

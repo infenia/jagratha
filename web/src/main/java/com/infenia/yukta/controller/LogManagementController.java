@@ -22,6 +22,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,6 +35,7 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Log Management API", description = "Endpoints for retrieving and managing log files")
 public class LogManagementController {
   private final LogRetrievalService logs;
@@ -56,6 +58,7 @@ public class LogManagementController {
       description = "List of log filenames")
   public Mono<ApiResponse<List<String>>> listLogs(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId) {
+    log.atInfo().log("listLogs reached: sessionId={}", sessionId);
     return logs.listLogs(sessionId)
         .map(logs -> ApiResponse.success(200, "List of log filenames", logs));
   }
@@ -80,6 +83,7 @@ public class LogManagementController {
   public Mono<ResponseEntity<ApiResponse<String>>> getLogContent(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Log filename") @PathVariable final String filename) {
+    log.atInfo().log("getLogContent reached: sessionId={}, filename={}", sessionId, filename);
     return logs.getLogContent(sessionId, filename)
         .map(
             content ->
@@ -114,6 +118,7 @@ public class LogManagementController {
   public Mono<ResponseEntity<String>> getRawLogContent(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Log filename") @PathVariable final String filename) {
+    log.atInfo().log("getRawLogContent reached: sessionId={}, filename={}", sessionId, filename);
     return logs.getLogContent(sessionId, filename)
         .map(ResponseEntity::ok)
         .onErrorResume(e -> Mono.just(ResponseEntity.notFound().build()));

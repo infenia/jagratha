@@ -113,9 +113,6 @@ public class ConstantSource implements TriggerPlugin {
 
   @Override
   public Mono<Void> validateConfig(final Map<String, Object> config) {
-    if (config.get("variables") == null) {
-      return Mono.error(new IllegalArgumentException("variables is mandatory"));
-    }
     return Mono.empty();
   }
 }

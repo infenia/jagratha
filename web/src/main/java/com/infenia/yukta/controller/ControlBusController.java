@@ -25,6 +25,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,6 +40,7 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(
     name = "Control Bus & Observability API",
     description =
@@ -58,6 +60,7 @@ public class ControlBusController {
       description =
           "Lists all nodes in a specific workflow currently registered on the Control Bus")
   public Mono<ApiResponse<List<String>>> getActiveNodes(@PathVariable final String workflowId) {
+    log.atInfo().log("getActiveNodes reached: workflowId={}", workflowId);
     return Mono.fromCallable(() -> controlBus.getActiveNodes(workflowId))
         .map(nodes -> ApiResponse.success(200, "Active nodes retrieved", nodes));
   }
@@ -75,6 +78,7 @@ public class ControlBusController {
       description = "Retrieves the most recent heartbeat for a specific node in a workflow")
   public Mono<ApiResponse<Message<?>>> getLastHeartbeat(
       @PathVariable final String workflowId, @PathVariable final String nodeId) {
+    log.atInfo().log("getLastHeartbeat reached: workflowId={}, nodeId={}", workflowId, nodeId);
     return Mono.fromCallable(() -> controlBus.getLastHeartbeat(workflowId, nodeId))
         .map(hb -> ApiResponse.success(200, "Node heartbeat retrieved", hb));
   }
@@ -95,6 +99,7 @@ public class ControlBusController {
       @PathVariable final String workflowId,
       @PathVariable final String nodeId,
       @RequestBody final Map<String, Object> payload) {
+    log.atInfo().log("sendCommand reached: workflowId={}, nodeId={}", workflowId, nodeId);
     final Message<?> command =
         DefaultMessage.create(null, payload)
             .withControl(true)
@@ -115,6 +120,7 @@ public class ControlBusController {
       summary = "Get active nodes (global)",
       description = "Lists all nodes currently registered on the Control Bus across all workflows")
   public Mono<ApiResponse<List<String>>> getAllActiveNodes() {
+    log.atInfo().log("getAllActiveNodes reached");
     return Mono.fromCallable(controlBus::getActiveNodes)
         .map(nodes -> ApiResponse.success(200, "Active nodes retrieved", nodes));
   }
@@ -130,6 +136,7 @@ public class ControlBusController {
       summary = "Get execution progress",
       description = "Returns the current progress snapshot for an execution")
   public Mono<ApiResponse<WorkflowProgress>> getProgress(@PathVariable final String executionId) {
+    log.atInfo().log("getProgress reached: executionId={}", executionId);
     return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
         .map(progress -> ApiResponse.success(200, "Progress retrieved", progress));
   }
@@ -147,6 +154,7 @@ public class ControlBusController {
       summary = "Stream execution progress",
       description = "Streams progress updates for an execution in real-time via Server-Sent Events")
   public Flux<WorkflowProgress> streamProgress(@PathVariable final String executionId) {
+    log.atInfo().log("streamProgress reached: executionId={}", executionId);
     return controlBus.watchExecution(executionId);
   }
 
@@ -163,6 +171,7 @@ public class ControlBusController {
       summary = "Stream execution logs",
       description = "Streams log lines for an execution in real-time via Server-Sent Events")
   public Flux<String> streamLogs(@PathVariable final String executionId) {
+    log.atInfo().log("streamLogs reached: executionId={}", executionId);
     return controlBus.watchLogs(executionId);
   }
 
@@ -177,6 +186,7 @@ public class ControlBusController {
       summary = "Get session execution history",
       description = "Returns all executions (completed and in-progress) for a session")
   public Mono<ApiResponse<Object>> getHistory(@PathVariable final String sessionId) {
+    log.atInfo().log("getHistory reached: sessionId={}", sessionId);
     return Mono.fromCallable(() -> controlBus.getHistory(sessionId))
         .map(history -> ApiResponse.success(200, "History retrieved", history));
   }

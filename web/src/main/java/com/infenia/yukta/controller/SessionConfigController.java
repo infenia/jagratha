@@ -30,6 +30,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -47,6 +48,7 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/api/sessions")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(
     name = "Session API",
     description = "Endpoints for session and workflow discovery, configuration management")
@@ -86,6 +88,7 @@ public class SessionConfigController {
       @Parameter(description = "The unique identifier of the session") @PathVariable
           final String sessionId,
       final ServerWebExchange exchange) {
+    log.atInfo().log("getSessionDetails reached: sessionId={}", sessionId);
     return sessionService
         .getSessionConfig(sessionId)
         .map(
@@ -153,6 +156,7 @@ public class SessionConfigController {
       @Parameter(description = "The unique identifier of the workflow") @PathVariable
           final String workflowId,
       final ServerWebExchange exchange) {
+    log.atInfo().log("getWorkflow reached: sessionId={}, workflowId={}", sessionId, workflowId);
     return sessionService
         .getSessionWorkflow(sessionId, workflowId)
         .map(
@@ -220,6 +224,7 @@ public class SessionConfigController {
               content = @Content(mediaType = APPLICATION_JSON))
           @RequestBody
           final ConfigRequest request) {
+    log.atInfo().log("applyConfig reached: sessionId={}", request.sessionId());
     final SessionConfigData configData = configMapper.toData(request);
     return sessionService
         .applyConfig(configData)

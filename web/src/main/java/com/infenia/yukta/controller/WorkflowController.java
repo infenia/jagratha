@@ -29,6 +29,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -52,6 +53,7 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(
     name = "Workflow API",
     description = "Endpoints for triggering and monitoring workflow executions")
@@ -84,6 +86,7 @@ public class WorkflowController {
       description = "Session or workflow not found")
   public Mono<ResponseEntity<ApiResponse<TriggerResponse>>> triggerWorkflow(
       @Valid @RequestBody final WorkflowTriggerRequest request, final ServerWebExchange exchange) {
+    log.atInfo().log("triggerWorkflow reached: sessionId={}, workflowId={}", request.sessionId(), request.workflowId());
     return workflowService
         .validateAndTriggerWorkflow(request.sessionId(), request.workflowId(), request.payload())
         .map(
@@ -127,8 +130,9 @@ public class WorkflowController {
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Execution ID") @PathVariable final String executionId,
       final ServerWebExchange exchange) {
+    log.atInfo().log("getWorkflowStatus reached: sessionId={}, executionId={}", sessionId, executionId);
     return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
-        .flatMap(progress -> Mono.justOrEmpty(progress))
+        .flatMap(Mono::justOrEmpty)
         .map(
             progress ->
                 ResponseEntity.ok(
@@ -142,7 +146,7 @@ public class WorkflowController {
                           new ApiResponse.FieldError(
                               "executionId", "Execution not found: '" + executionId + "'"));
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                      .<ApiResponse<WorkflowProgress>>body(
+                      .body(
                           ApiResponse.error(404, "Not Found", "Execution not found", path, errors));
                 }));
   }
@@ -163,6 +167,7 @@ public class WorkflowController {
   public Flux<ServerSentEvent<WorkflowProgress>> streamWorkflowStatus(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Execution ID") @PathVariable final String executionId) {
+    log.atInfo().log("streamWorkflowStatus reached: sessionId={}, executionId={}", sessionId, executionId);
     return controlBus
         .watchExecution(executionId)
         .map(progress -> ServerSentEvent.<WorkflowProgress>builder().data(progress).build());
@@ -184,6 +189,7 @@ public class WorkflowController {
   public Mono<ResponseEntity<ApiResponse<List<WorkflowExecutionSummary>>>> getWorkflowHistory(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       final ServerWebExchange exchange) {
+    log.atInfo().log("getWorkflowHistory reached: sessionId={}", sessionId);
     return sessionService
         .getSessionConfig(sessionId)
         .flatMap(
@@ -203,7 +209,7 @@ public class WorkflowController {
                           new ApiResponse.FieldError(
                               "sessionId", "Session not found: '" + sessionId + "'"));
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                      .<ApiResponse<List<WorkflowExecutionSummary>>>body(
+                      .body(
                           ApiResponse.error(404, "Not Found", "Session not found", path, errors));
                 }));
   }

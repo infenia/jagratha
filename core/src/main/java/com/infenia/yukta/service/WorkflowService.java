@@ -20,10 +20,12 @@ import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
+import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
 import jakarta.validation.constraints.NotEmpty;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,6 +54,7 @@ public class WorkflowService {
 
   private final SessionConfigStore configService;
   private final WorkflowOrchestrator orchestrator;
+  private final TaskTrackerService tracker;
 
   private final Map<String, Mono<Void>> workflowQueues = new ConcurrentHashMap<>();
 
@@ -82,9 +85,17 @@ public class WorkflowService {
         .getWorkflow(sessionId, workflowId)
         .switchIfEmpty(
             Mono.error(
+
+
+
                 new IllegalArgumentException(
                     "Workflow not found for session: " + sessionId + ", workflow: " + workflowId)))
-        .map(def -> runWorkflow(sessionId, workflowId, payload));
+        .map(
+            def -> {
+              final List<String> nodeIds =
+                  def.nodes().stream().map(WorkflowDefinition.Node::nodeId).toList();
+              return runWorkflow(sessionId, workflowId, nodeIds, payload);
+            });
   }
 
   /**
@@ -99,7 +110,18 @@ public class WorkflowService {
       @SessionId final String sessionId,
       @WorkflowId final String workflowId,
       @NotEmpty final Map<String, Object> payload) {
+    return runWorkflow(sessionId, workflowId, List.of(), payload);
+  }
+
+  private WorkflowExecution runWorkflow(
+      final String sessionId,
+      final String workflowId,
+      final List<String> nodeIds,
+      final Map<String, Object> payload) {
     final String executionId = UUID.randomUUID().toString();
+    if (!nodeIds.isEmpty()) {
+      tracker.startWorkflow(executionId, sessionId, workflowId, nodeIds).subscribe();
+    }
     final String queueKey = sessionId + ":" + workflowId;
     final Sinks.One<TaskResponse> sink = Sinks.one();
 
@@ -177,9 +199,13 @@ public class WorkflowService {
                                             .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
                                             .addKeyValue(LOG_KEY_ERROR_MSG, e.getMessage())
                                             .log("Workflow execution failed");
-                                        return Mono.just(
-                                            new TaskResponse(
-                                                "FAILURE", "Workflow failed: " + e.getMessage()));
+                                        return tracker
+                                            .finishWorkflow(executionId, "FAILURE")
+                                            .onErrorComplete()
+                                            .thenReturn(
+                                                new TaskResponse(
+                                                    "FAILURE",
+                                                    "Workflow failed: " + e.getMessage()));
                                       })
                                   .flatMap(
                                       response -> {
