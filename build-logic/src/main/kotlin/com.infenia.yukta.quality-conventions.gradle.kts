@@ -47,6 +47,10 @@ pmd {
     isConsoleOutput = true
 }
 
+spotbugs {
+    excludeFilter.set(rootProject.file("config/spotbugs/exclude.xml"))
+}
+
 tasks.withType<Checkstyle>().configureEach {
     reports {
         xml.required.set(true)

@@ -34,7 +34,10 @@ import java.util.List;
  * @param errors the list of field validation errors (optional, error only)
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-@Schema(description = "Unified API response format")
+@Schema(
+    description =
+        "Unified API response wrapper for both success and error responses. Success responses"
+            + " include data field; error responses include error, path, and errors fields.")
 public record ApiResponse<T>(
     @Schema(description = "The time the response was generated") LocalDateTime timestamp,
     @Schema(description = "The HTTP status code", example = "200") int status,
@@ -51,15 +54,18 @@ public record ApiResponse<T>(
   }
 
   /**
-   * Field-specific validation error.
+   * Field-specific validation error detailing which field failed validation and why.
    *
    * @param field the field name
    * @param message the validation error message
    */
-  @Schema(description = "Field-specific validation error")
+  @Schema(description = "Field-specific validation error detail")
   public record FieldError(
-      @Schema(description = "The field name", example = "path") String field,
-      @Schema(description = "The validation error message", example = "Path is required")
+      @Schema(description = "The name of the field that failed validation", example = "sessionId")
+          String field,
+      @Schema(
+              description = "The validation error message explaining the failure",
+              example = "Session not found: 'unknown-session'")
           String message) {}
 
   /**

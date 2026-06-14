@@ -16,7 +16,6 @@
 package com.infenia.yukta.cli.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +32,13 @@ class DaemonCommandTest {
   void run_throwsException() {
     DaemonCommand command = new DaemonCommand();
 
-    assertThatThrownBy(command::run).isInstanceOf(Exception.class);
+    boolean exceptionThrown = false;
+    try {
+      command.run();
+    } catch (Exception e) {
+      exceptionThrown = true;
+    }
+    assertThat(exceptionThrown).isTrue();
   }
 
   @Test

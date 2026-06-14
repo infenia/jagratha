@@ -23,6 +23,8 @@ import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.session.SessionService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -30,6 +32,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,6 +43,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 /** Controller for session management and configuration. */
+@Validated
 @RestController
 @RequestMapping("/api/sessions")
 @RequiredArgsConstructor
@@ -47,6 +51,7 @@ import reactor.core.publisher.Mono;
     name = "Session API",
     description = "Endpoints for session and workflow discovery, configuration management")
 public class SessionConfigController {
+  private static final String APPLICATION_JSON = "application/json";
 
   private final SessionService sessionService;
   private final AppConfigMapper configMapper;
@@ -55,25 +60,45 @@ public class SessionConfigController {
    * Get details of a specific session.
    *
    * @param sessionId the session identifier
+   * @param exchange implicit Spring parameter used to extract request path for error responses
    * @return session details
    */
   @GetMapping("/{sessionId}")
   @Operation(
       summary = "Get session details",
-      description = "Retrieves details of a specific session including workflow IDs")
+      description =
+          "Retrieves details of a specific session including workflow IDs. Response is non-blocking"
+              + " and returned asynchronously via Mono.")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Session details retrieved successfully",
+      content = @Content(mediaType = APPLICATION_JSON))
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "404",
+      description = "Session not found",
+      content = @Content(mediaType = APPLICATION_JSON))
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "500",
+      description = "Internal server error",
+      content = @Content(mediaType = APPLICATION_JSON))
   @SuppressWarnings("unchecked")
   public Mono<ResponseEntity<ApiResponse<SessionDetails>>> getSessionDetails(
-      @PathVariable final String sessionId, final ServerWebExchange exchange) {
+      @Parameter(description = "The unique identifier of the session") @PathVariable
+          final String sessionId,
+      final ServerWebExchange exchange) {
     return sessionService
         .getSessionConfig(sessionId)
         .map(
             config -> {
+              // Cast is safe: config comes from SessionConfigData which guarantees workflows is
+              // a Map<String, Object> per SessionConfigData structure. getOrDefault fallback
+              // ensures type safety.
               final Map<String, Object> workflows =
                   (Map<String, Object>) config.getOrDefault("workflows", Map.of());
               final List<String> workflowIds = List.copyOf(workflows.keySet());
               return ResponseEntity.ok(
                   ApiResponse.success(
-                      200,
+                      HttpStatus.OK.value(),
                       "Session details retrieved",
                       new SessionDetails(sessionId, workflowIds)));
             })
@@ -87,7 +112,12 @@ public class SessionConfigController {
                               "sessionId", "Session not found: '" + sessionId + "'"));
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
                       .<ApiResponse<SessionDetails>>body(
-                          ApiResponse.error(404, "Not Found", "Session not found", path, errors));
+                          ApiResponse.error(
+                              HttpStatus.NOT_FOUND.value(),
+                              "Not Found",
+                              "Session not found",
+                              path,
+                              errors));
                 }));
   }
 
@@ -96,17 +126,39 @@ public class SessionConfigController {
    *
    * @param sessionId the session identifier
    * @param workflowId the workflow identifier
+   * @param exchange implicit Spring parameter used to extract request path for error responses
    * @return workflow definition
    */
   @GetMapping("/{sessionId}/workflows/{workflowId}")
-  @Operation(summary = "Get workflow", description = "Retrieves the definition of a workflow")
+  @Operation(
+      summary = "Get workflow",
+      description =
+          "Retrieves the definition of a workflow. Response is non-blocking and returned"
+              + " asynchronously via Mono.")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Workflow retrieved successfully",
+      content = @Content(mediaType = APPLICATION_JSON))
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "404",
+      description = "Workflow not found in the specified session",
+      content = @Content(mediaType = APPLICATION_JSON))
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "500",
+      description = "Internal server error",
+      content = @Content(mediaType = APPLICATION_JSON))
   public Mono<ResponseEntity<ApiResponse<WorkflowDefinition>>> getWorkflow(
-      @PathVariable final String sessionId,
-      @PathVariable final String workflowId,
+      @Parameter(description = "The unique identifier of the session") @PathVariable
+          final String sessionId,
+      @Parameter(description = "The unique identifier of the workflow") @PathVariable
+          final String workflowId,
       final ServerWebExchange exchange) {
     return sessionService
         .getSessionWorkflow(sessionId, workflowId)
-        .map(def -> ResponseEntity.ok(ApiResponse.success(200, "Workflow retrieved", def)))
+        .map(
+            def ->
+                ResponseEntity.ok(
+                    ApiResponse.success(HttpStatus.OK.value(), "Workflow retrieved", def)))
         .switchIfEmpty(
             Mono.fromSupplier(
                 () -> {
@@ -122,7 +174,12 @@ public class SessionConfigController {
                                   + "'"));
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
                       .<ApiResponse<WorkflowDefinition>>body(
-                          ApiResponse.error(404, "Not Found", "Workflow not found", path, errors));
+                          ApiResponse.error(
+                              HttpStatus.NOT_FOUND.value(),
+                              "Not Found",
+                              "Workflow not found",
+                              path,
+                              errors));
                 }));
   }
 
@@ -140,21 +197,35 @@ public class SessionConfigController {
   @Operation(
       summary = "Apply session configuration",
       description =
-          "Initializes a new session or updates an existing session's configuration at runtime. "
-              + "Configures project paths, workflow definitions, and session metadata.")
+          "Initializes a new session or updates an existing session's configuration at runtime."
+              + " Configures project paths, workflow definitions, and session metadata. Response is"
+              + " non-blocking and returned asynchronously via Mono.")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "200",
-      description = "Session configuration applied successfully")
+      description = "Session configuration applied successfully",
+      content = @Content(mediaType = APPLICATION_JSON))
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "400",
-      description = "Invalid configuration data provided in the request")
+      description = "Invalid configuration data provided in the request",
+      content = @Content(mediaType = APPLICATION_JSON))
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "500",
+      description = "Internal server error",
+      content = @Content(mediaType = APPLICATION_JSON))
   public Mono<ResponseEntity<ApiResponse<Void>>> applyConfig(
-      @Valid @RequestBody final ConfigRequest request) {
+      @Valid
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              description = "Configuration request containing session identifiers and settings",
+              required = true,
+              content = @Content(mediaType = APPLICATION_JSON))
+          @RequestBody
+          final ConfigRequest request) {
     final SessionConfigData configData = configMapper.toData(request);
     return sessionService
         .applyConfig(configData)
         .thenReturn(
             ResponseEntity.ok(
-                ApiResponse.success(200, "Configuration applied successfully", null)));
+                ApiResponse.success(
+                    HttpStatus.OK.value(), "Configuration applied successfully", null)));
   }
 }

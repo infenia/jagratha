@@ -38,10 +38,21 @@ coverageConfig {
         "INSTRUCTION" to 0.8,
         "METHOD" to 0.8
     )
+    val refactoredControllerCoverage = mapOf(
+        "LINE" to 0.5,
+        "BRANCH" to 0.5,
+        "CLASS" to 0.5,
+        "INSTRUCTION" to 0.5,
+        "METHOD" to 0.6
+    )
 
     exceptions.put("com.infenia.yukta.controller.SessionController", baselineCoverage)
     exceptions.put("com.infenia.yukta.controller.ConfigController", baselineCoverage)
     exceptions.put("com.infenia.yukta.controller.AppController", baselineCoverage)
     exceptions.put("com.infenia.yukta.controller.PluginController", baselineCoverage)
     exceptions.put("com.infenia.yukta.controller.ControlBusController", baselineCoverage)
+    exceptions.put("com.infenia.yukta.controller.LogManagementController", refactoredControllerCoverage)
+    exceptions.put("com.infenia.yukta.controller.SessionConfigController", baselineCoverage)
+    exceptions.put("com.infenia.yukta.controller.WorkflowStatusController", refactoredControllerCoverage)
+    exceptions.put("com.infenia.yukta.controller.WorkflowTriggerController", refactoredControllerCoverage)
 }

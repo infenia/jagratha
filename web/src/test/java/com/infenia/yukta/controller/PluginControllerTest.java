@@ -87,4 +87,33 @@ class PluginControllerTest {
 
     webTestClient.get().uri("/api/plugins/unknown").exchange().expectStatus().isNotFound();
   }
+
+  @Test
+  void testGetPluginDetailsWithoutUiDesign() {
+    WorkflowPlugin plugin = Mockito.mock(WorkflowPlugin.class);
+    when(plugin.getType()).thenReturn("test-plugin");
+    when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(plugin.getDescription()).thenReturn("desc");
+    when(plugin.getUsagePattern()).thenReturn("pattern");
+    when(plugin.getUiDesign()).thenReturn(Optional.empty());
+    when(plugin.getOutputPorts()).thenReturn(List.of("default"));
+    when(registry.get("test-plugin")).thenReturn(plugin);
+
+    webTestClient
+        .get()
+        .uri("/api/plugins/test-plugin")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.data.uiDesign")
+        .doesNotExist();
+  }
+
+  @Test
+  void testListPluginsError() {
+    when(registry.listPlugins()).thenThrow(new RuntimeException("Registry error"));
+
+    webTestClient.get().uri("/api/plugins").exchange().expectStatus().is5xxServerError();
+  }
 }

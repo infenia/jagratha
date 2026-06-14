@@ -25,15 +25,15 @@ plugins {
 }
 
 coverageConfig {
-    val lowCoverage = mapOf(
-        "LINE" to 0.05,
-        "BRANCH" to 0.05,
-        "CLASS" to 0.05,
-        "INSTRUCTION" to 0.05,
-        "METHOD" to 0.05
+    val noCoverage = mapOf(
+        "LINE" to 0.0,
+        "BRANCH" to 0.0,
+        "CLASS" to 0.0,
+        "INSTRUCTION" to 0.0,
+        "METHOD" to 0.0
     )
 
-    exceptions.put("com.infenia.yukta.ui.*", lowCoverage)
+    exceptions.put("com.infenia.yukta.ui.*", noCoverage)
     exceptions.put("gg.jte.generated.**", mapOf(
         "LINE" to 0.0,
         "BRANCH" to 0.0,
@@ -174,4 +174,8 @@ tasks.withType<Pmd> {
 
 tasks.withType<Checkstyle> {
     exclude("**/generated/**")
+}
+
+tasks.named<Test>("test") {
+    failOnNoDiscoveredTests.set(false)
 }

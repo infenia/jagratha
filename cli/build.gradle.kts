@@ -48,58 +48,16 @@ tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
 }
 
-// Disable quality checks for CLI module - baseline to be improved
-tasks.named("pmdMain") {
-    enabled = false
-}
-tasks.named("checkstyleMain") {
-    enabled = false
-}
-tasks.named("spotbugsMain") {
-    enabled = false
-}
-
 coverageConfig {
-    val cliCoverage = mapOf(
-        "LINE" to 0.75,
-        "BRANCH" to 0.70,
-        "CLASS" to 0.80,
-        "INSTRUCTION" to 0.75,
-        "METHOD" to 0.75
-    )
-    val daemonCoverage = mapOf(
+    exceptions.put("com.infenia.yukta.cli.DaemonManager", mapOf(
+        "LINE" to 0.95,
+        "BRANCH" to 0.90,
+        "INSTRUCTION" to 0.95
+    ))
+    exceptions.put("com.infenia.yukta.cli.command.DaemonCommand", mapOf(
         "LINE" to 0.5,
         "BRANCH" to 0.5,
-        "CLASS" to 0.80,
         "INSTRUCTION" to 0.2,
         "METHOD" to 0.5
-    )
-
-    exceptions.put("com.infenia.yukta.cli.YuktaCli", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.CliRunner", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.command.ControlCommand", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.command.control.NodesCommand", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.command.control.GetNodesCommand", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.command.control.GetAllNodesCommand", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.command.control.HeartbeatCommand", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.command.control.SendCommandCommand", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.command.control.ProgressCommand", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.command.control.ProgressStreamCommand", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.command.control.LogsStreamCommand", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.command.control.HistoryCommand", cliCoverage)
-    exceptions.put("com.infenia.yukta.cli.command.DaemonCommand", daemonCoverage)
-    exceptions.put("com.infenia.yukta.cli.DaemonManager", mapOf(
-        "LINE" to 0.9,
-        "BRANCH" to 0.9,
-        "CLASS" to 0.80,
-        "INSTRUCTION" to 0.9,
-        "METHOD" to 0.75
-    ))
-    exceptions.put("com.infenia.yukta.cli.command.control.SessionApplyCommand", mapOf(
-        "LINE" to 0.75,
-        "BRANCH" to 0.8,
-        "CLASS" to 0.80,
-        "INSTRUCTION" to 0.75,
-        "METHOD" to 0.75
     ))
 }

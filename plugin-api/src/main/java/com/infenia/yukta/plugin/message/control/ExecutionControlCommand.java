@@ -36,11 +36,15 @@ import jakarta.annotation.Nullable;
 public interface ExecutionControlCommand {
 
   /**
+   * Returns the execution identifier this command targets.
+   *
    * @return the execution identifier this command targets
    */
   String executionId();
 
   /**
+   * Returns the command type identifier.
+   *
    * @return the command type identifier
    */
   String commandType();
