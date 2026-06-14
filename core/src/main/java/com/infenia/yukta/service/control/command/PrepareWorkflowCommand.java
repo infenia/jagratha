@@ -20,6 +20,7 @@ import com.infenia.yukta.model.workflow.WorkflowDefinition;
 /**
  * Command to prepare a workflow for execution.
  *
+ * @param sessionId the session that owns this workflow
  * @param workflowDefinition the workflow definition to prepare
  */
-public record PrepareWorkflowCommand(WorkflowDefinition workflowDefinition) {}
+public record PrepareWorkflowCommand(String sessionId, WorkflowDefinition workflowDefinition) {}

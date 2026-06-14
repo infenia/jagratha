@@ -83,10 +83,11 @@ public interface ControlBusGateway {
   /**
    * Prepare a workflow for execution.
    *
+   * @param sessionId the session that owns this workflow
    * @param workflowDefinition the workflow definition to prepare
    * @return a Mono that completes when the workflow is prepared
    */
-  Mono<Void> prepareWorkflow(WorkflowDefinition workflowDefinition);
+  Mono<Void> prepareWorkflow(String sessionId, WorkflowDefinition workflowDefinition);
 
   // --- Execution Control (REST Layer) ---
 

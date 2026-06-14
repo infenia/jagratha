@@ -136,8 +136,10 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
   // --- Configuration & Preparation ---
 
   @Override
-  public Mono<Void> prepareWorkflow(final WorkflowDefinition workflowDefinition) {
-    return controlBusService.prepareWorkflow(new PrepareWorkflowCommand(workflowDefinition));
+  public Mono<Void> prepareWorkflow(
+      final String sessionId, final WorkflowDefinition workflowDefinition) {
+    return controlBusService.prepareWorkflow(
+        new PrepareWorkflowCommand(sessionId, workflowDefinition));
   }
 
   // --- Execution Control ---
