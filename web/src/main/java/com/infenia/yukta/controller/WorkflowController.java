@@ -86,7 +86,7 @@ public class WorkflowController {
       description = "Session or workflow not found")
   public Mono<ResponseEntity<ApiResponse<TriggerResponse>>> triggerWorkflow(
       @Valid @RequestBody final WorkflowTriggerRequest request, final ServerWebExchange exchange) {
-    log.atInfo().log("triggerWorkflow reached: sessionId={}, workflowId={}", request.sessionId(), request.workflowId());
+    log.atInfo().log("triggerWorkflow: sessionId={}, workflowId={}", request.sessionId(), request.workflowId());
     return workflowService
         .validateAndTriggerWorkflow(request.sessionId(), request.workflowId(), request.payload())
         .map(
@@ -130,7 +130,7 @@ public class WorkflowController {
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Execution ID") @PathVariable final String executionId,
       final ServerWebExchange exchange) {
-    log.atInfo().log("getWorkflowStatus reached: sessionId={}, executionId={}", sessionId, executionId);
+    log.atInfo().log("getWorkflowStatus: sessionId={}, executionId={}", sessionId, executionId);
     return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
         .flatMap(Mono::justOrEmpty)
         .map(
@@ -167,7 +167,7 @@ public class WorkflowController {
   public Flux<ServerSentEvent<WorkflowProgress>> streamWorkflowStatus(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Execution ID") @PathVariable final String executionId) {
-    log.atInfo().log("streamWorkflowStatus reached: sessionId={}, executionId={}", sessionId, executionId);
+    log.atInfo().log("streamWorkflowStatus: sessionId={}, executionId={}", sessionId, executionId);
     return controlBus
         .watchExecution(executionId)
         .map(progress -> ServerSentEvent.<WorkflowProgress>builder().data(progress).build());
@@ -189,7 +189,7 @@ public class WorkflowController {
   public Mono<ResponseEntity<ApiResponse<List<WorkflowExecutionSummary>>>> getWorkflowHistory(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       final ServerWebExchange exchange) {
-    log.atInfo().log("getWorkflowHistory reached: sessionId={}", sessionId);
+    log.atInfo().log("getWorkflowHistory: sessionId={}", sessionId);
     return sessionService
         .getSessionConfig(sessionId)
         .flatMap(

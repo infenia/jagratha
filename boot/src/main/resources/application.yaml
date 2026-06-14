@@ -29,8 +29,9 @@ spring:
 logging:
   level:
     root: INFO
-    org.springframework: WARN
-    org.springframework.web: DEBUG
+    com.infenia.yukta.service.orchestrator: DEBUG
+    com.infenia.yukta.service.orchestrator.stream: TRACE
+
 
 yukta:
   session:
