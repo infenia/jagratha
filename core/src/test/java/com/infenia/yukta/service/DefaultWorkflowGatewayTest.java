@@ -27,6 +27,7 @@ import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,19 +40,23 @@ class DefaultWorkflowGatewayTest {
 
   private WorkflowOrchestrator orchestrator;
   private SessionConfigStore configService;
+  private WorkflowDefinitionStore wfStore;
   private DefaultWorkflowGateway gateway;
 
   @BeforeEach
   void setUp() {
     orchestrator = mock(WorkflowOrchestrator.class);
     configService = mock(SessionConfigStore.class);
+    wfStore = mock(WorkflowDefinitionStore.class);
     ObjectProvider<WorkflowOrchestrator> orchProv = mock(ObjectProvider.class);
     ObjectProvider<SessionConfigStore> cfgServProv = mock(ObjectProvider.class);
+    ObjectProvider<WorkflowDefinitionStore> wfStoreProv = mock(ObjectProvider.class);
 
     when(orchProv.getIfAvailable()).thenReturn(orchestrator);
     when(cfgServProv.getIfAvailable()).thenReturn(configService);
+    when(wfStoreProv.getIfAvailable()).thenReturn(wfStore);
 
-    gateway = new DefaultWorkflowGateway(orchProv, cfgServProv);
+    gateway = new DefaultWorkflowGateway(orchProv, cfgServProv, wfStoreProv);
   }
 
   @Test
@@ -63,11 +68,9 @@ class DefaultWorkflowGatewayTest {
     when(def.nodes()).thenReturn(List.of());
     when(def.edges()).thenReturn(List.of());
 
-    when(configService.getWorkflow(anyString(), anyString())).thenReturn(Mono.just(def));
+    when(wfStore.find(anyString(), anyString())).thenReturn(Mono.just(def));
     when(configService.getProjectPath(anyString())).thenReturn(Mono.just("path"));
     when(configService.setProjectPath(anyString(), anyString())).thenReturn(Mono.empty());
-    when(configService.getWorkflows(anyString())).thenReturn(Mono.just(Map.of()));
-    when(configService.setWorkflows(anyString(), any())).thenReturn(Mono.empty());
     when(configService.getInitiator(anyString())).thenReturn(Mono.just("initiator"));
     when(configService.setInitiator(anyString(), anyString())).thenReturn(Mono.empty());
     when(configService.getDescription(anyString())).thenReturn(Mono.just("desc"));
@@ -86,8 +89,9 @@ class DefaultWorkflowGatewayTest {
   void testExecuteSubWorkflow_ServicesNotAvailable() {
     ObjectProvider<WorkflowOrchestrator> orchProv = mock(ObjectProvider.class);
     ObjectProvider<SessionConfigStore> cfgServProv = mock(ObjectProvider.class);
+    ObjectProvider<WorkflowDefinitionStore> wfStoreProv = mock(ObjectProvider.class);
     when(orchProv.getIfAvailable()).thenReturn(null);
-    DefaultWorkflowGateway g = new DefaultWorkflowGateway(orchProv, cfgServProv);
+    DefaultWorkflowGateway g = new DefaultWorkflowGateway(orchProv, cfgServProv, wfStoreProv);
 
     StepVerifier.create(g.executeSubWorkflow("p", "c", "w", Map.of()))
         .expectError(WorkflowExecutionException.class)
@@ -95,15 +99,22 @@ class DefaultWorkflowGatewayTest {
 
     when(orchProv.getIfAvailable()).thenReturn(orchestrator);
     when(cfgServProv.getIfAvailable()).thenReturn(null);
-    DefaultWorkflowGateway g2 = new DefaultWorkflowGateway(orchProv, cfgServProv);
+    DefaultWorkflowGateway g2 = new DefaultWorkflowGateway(orchProv, cfgServProv, wfStoreProv);
     StepVerifier.create(g2.executeSubWorkflow("p", "c", "w", Map.of()))
+        .expectError(WorkflowExecutionException.class)
+        .verify();
+
+    when(cfgServProv.getIfAvailable()).thenReturn(configService);
+    when(wfStoreProv.getIfAvailable()).thenReturn(null);
+    DefaultWorkflowGateway g3 = new DefaultWorkflowGateway(orchProv, cfgServProv, wfStoreProv);
+    StepVerifier.create(g3.executeSubWorkflow("p", "c", "w", Map.of()))
         .expectError(WorkflowExecutionException.class)
         .verify();
   }
 
   @Test
   void testExecuteSubWorkflow_WorkflowNotFound() {
-    when(configService.getWorkflow(anyString(), anyString())).thenReturn(Mono.empty());
+    when(wfStore.find(anyString(), anyString())).thenReturn(Mono.empty());
 
     StepVerifier.create(gateway.executeSubWorkflow("p", "c", "w", Map.of()))
         .expectError(WorkflowExecutionException.class)
@@ -124,11 +135,9 @@ class DefaultWorkflowGatewayTest {
     when(def.nodes()).thenReturn(List.of());
     when(def.edges()).thenReturn(List.of());
 
-    when(configService.getWorkflow(anyString(), anyString())).thenReturn(Mono.just(def));
+    when(wfStore.find(anyString(), anyString())).thenReturn(Mono.just(def));
     when(configService.getProjectPath(anyString())).thenReturn(Mono.just("path"));
     when(configService.setProjectPath(anyString(), anyString())).thenReturn(Mono.empty());
-    when(configService.getWorkflows(anyString())).thenReturn(Mono.just(Map.of()));
-    when(configService.setWorkflows(anyString(), any())).thenReturn(Mono.empty());
     when(configService.getInitiator(anyString())).thenReturn(Mono.just("initiator"));
     when(configService.setInitiator(anyString(), anyString())).thenReturn(Mono.empty());
     when(configService.getDescription(anyString())).thenReturn(Mono.just("desc"));
@@ -172,11 +181,9 @@ class DefaultWorkflowGatewayTest {
     when(def.nodes()).thenReturn(List.of());
     when(def.edges()).thenReturn(List.of());
 
-    when(configService.getWorkflow(anyString(), anyString())).thenReturn(Mono.just(def));
+    when(wfStore.find(anyString(), anyString())).thenReturn(Mono.just(def));
     when(configService.getProjectPath(anyString())).thenReturn(Mono.just("path"));
     when(configService.setProjectPath(anyString(), anyString())).thenReturn(Mono.empty());
-    when(configService.getWorkflows(anyString())).thenReturn(Mono.just(Map.of()));
-    when(configService.setWorkflows(anyString(), any())).thenReturn(Mono.empty());
     when(configService.getInitiator(anyString())).thenReturn(Mono.just("initiator"));
     when(configService.setInitiator(anyString(), anyString())).thenReturn(Mono.empty());
     when(configService.getDescription(anyString())).thenReturn(Mono.just("desc"));
@@ -196,7 +203,7 @@ class DefaultWorkflowGatewayTest {
 
   @Test
   void testExecuteSubWorkflow_GenericError() {
-    when(configService.getWorkflow(anyString(), anyString()))
+    when(wfStore.find(anyString(), anyString()))
         .thenReturn(Mono.error(new RuntimeException("Oops")));
 
     StepVerifier.create(gateway.executeSubWorkflow("p", "c", "w", Map.of()))
@@ -206,7 +213,7 @@ class DefaultWorkflowGatewayTest {
 
   @Test
   void testExecuteSubWorkflow_WorkflowExecutionExceptionPropagated() {
-    when(configService.getWorkflow(anyString(), anyString()))
+    when(wfStore.find(anyString(), anyString()))
         .thenReturn(Mono.error(new WorkflowExecutionException("Already wrapped")));
 
     StepVerifier.create(gateway.executeSubWorkflow("p", "c", "w", Map.of()))

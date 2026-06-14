@@ -18,10 +18,10 @@ package com.infenia.yukta.service.session;
 import com.infenia.yukta.config.SessionConfigProperties;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -59,6 +59,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
 
   private final SessionConfigProperties props;
   private final ObjectMapper objectMapper;
+  private final WorkflowDefinitionStore workflowDefinitionStore;
 
   // In-memory cache for faster access
   private final Map<String, SessionConfig> sessionCache = new ConcurrentHashMap<>();
@@ -105,19 +106,22 @@ public class FileSessionConfigStore implements SessionConfigStore {
   @Override
   public Mono<Void> applySessionConfig(@Valid final SessionConfigData data) {
     return Mono.fromCallable(
-            () -> {
-              final SessionConfig config =
-                  new SessionConfig(
-                      data.sessionId(),
-                      data.projectPath(),
-                      data.workflows(),
-                      data.description(),
-                      data.initiator(),
-                      Instant.now().toString(),
-                      data.tags());
-              return config;
-            })
+            () ->
+                new SessionConfig(
+                    data.sessionId(),
+                    data.projectPath(),
+                    null, // workflows stored in WorkflowDefinitionStore, not file
+                    data.description(),
+                    data.initiator(),
+                    Instant.now().toString(),
+                    data.tags()))
         .flatMap(config -> saveSessionConfig(data.sessionId(), config))
+        .then(
+            data.workflows().isEmpty()
+                ? Mono.empty()
+                : Flux.fromIterable(data.workflows().values())
+                    .flatMap(def -> workflowDefinitionStore.save(data.sessionId(), def))
+                    .then())
         .subscribeOn(Schedulers.boundedElastic());
   }
 
@@ -136,40 +140,6 @@ public class FileSessionConfigStore implements SessionConfigStore {
         .flatMap(
             config -> {
               config.projectPath = path;
-              return saveSessionConfig(sessionId, config);
-            });
-  }
-
-  @Override
-  public Mono<Map<String, WorkflowDefinition>> getWorkflows(@SessionId final String sessionId) {
-    return loadSessionConfig(sessionId)
-        .map(
-            config ->
-                config.workflows != null ? config.workflows : Map.<String, WorkflowDefinition>of())
-        .defaultIfEmpty(Map.of());
-  }
-
-  @Override
-  public Mono<WorkflowDefinition> getWorkflow(
-      @SessionId final String sessionId, final String workflowId) {
-    return getWorkflows(sessionId)
-        .flatMap(
-            workflows -> {
-              final WorkflowDefinition result = workflows.get(workflowId);
-              return result != null ? Mono.just(result) : Mono.empty();
-            });
-  }
-
-  @Override
-  public Mono<Void> setWorkflows(
-      @SessionId final String sessionId,
-      @NotEmpty(message = "Workflows cannot be empty")
-          final Map<String, WorkflowDefinition> workflows) {
-    return loadSessionConfig(sessionId)
-        .defaultIfEmpty(new SessionConfig(sessionId, "", Map.of(), "", "", "", Map.of()))
-        .flatMap(
-            config -> {
-              config.workflows = workflows;
               return saveSessionConfig(sessionId, config);
             });
   }
@@ -321,18 +291,16 @@ public class FileSessionConfigStore implements SessionConfigStore {
                     arr -> {
                       final Map<String, Object> configs = new java.util.LinkedHashMap<>();
                       configs.put("projectPath", arr[0]);
-                      configs.put("workflows", arr[1]);
-                      configs.put("executionTimeout", arr[2]);
-                      configs.put("fileLogDir", arr[3]);
-                      configs.put("resultLogDir", arr[4]);
-                      configs.put("initiator", arr[5]);
-                      configs.put("initiatedTime", arr[6]);
-                      configs.put("tags", arr[7]);
-                      configs.put("description", arr[8]);
+                      configs.put("executionTimeout", arr[1]);
+                      configs.put("fileLogDir", arr[2]);
+                      configs.put("resultLogDir", arr[3]);
+                      configs.put("initiator", arr[4]);
+                      configs.put("initiatedTime", arr[5]);
+                      configs.put("tags", arr[6]);
+                      configs.put("description", arr[7]);
                       return configs;
                     },
                     getProjectPath(sessionId),
-                    getWorkflows(sessionId),
                     getExecutionTimeout(sessionId),
                     getFileLogDir(sessionId),
                     getResultLogDir(sessionId),

@@ -15,16 +15,27 @@
  */
 package com.infenia.yukta.service.session;
 
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.infenia.yukta.config.SessionConfigProperties;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@ExtendWith(MockitoExtension.class)
 class InMemorySessionConfigStoreTest {
+
+  @Mock private WorkflowDefinitionStore workflowDefinitionStore;
 
   private InMemorySessionConfigStore configService;
 
@@ -35,18 +46,13 @@ class InMemorySessionConfigStoreTest {
     props.setFileLogSubDir("modified-files");
     props.setResultLogSubDir("results");
     props.setExecutionTimeoutSeconds(3600L);
-    configService = new InMemorySessionConfigStore(props);
+    configService = new InMemorySessionConfigStore(props, workflowDefinitionStore);
   }
 
   @Test
   void testDefaultValues() {
     String sessionId = "sess-1";
     StepVerifier.create(configService.getProjectPath(sessionId)).expectNext("").verifyComplete();
-    StepVerifier.create(configService.getWorkflow(sessionId, "w1"))
-        .verifyComplete(); // Empty initially
-    StepVerifier.create(configService.getWorkflows(sessionId))
-        .expectNext(Map.of())
-        .verifyComplete();
     StepVerifier.create(configService.getExecutionTimeout(sessionId))
         .expectNext(3600L)
         .verifyComplete();
@@ -83,20 +89,9 @@ class InMemorySessionConfigStoreTest {
   void testApiOverrides() {
     String sessionId = "sess-1";
     StepVerifier.create(configService.setProjectPath(sessionId, "/api/path")).verifyComplete();
-    WorkflowDefinition workflow =
-        new WorkflowDefinition(
-            "test-workflow",
-            "desc",
-            List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())),
-            List.of());
-    StepVerifier.create(configService.setWorkflows(sessionId, Map.of("w1", workflow)))
-        .verifyComplete();
 
     StepVerifier.create(configService.getProjectPath(sessionId))
         .expectNext("/api/path")
-        .verifyComplete();
-    StepVerifier.create(configService.getWorkflow(sessionId, "w1"))
-        .expectNext(workflow)
         .verifyComplete();
 
     // Another session should still have defaults
@@ -107,10 +102,6 @@ class InMemorySessionConfigStoreTest {
   @Test
   void testGetSessionIds() {
     configService.setProjectPath("s1", "/p1").block();
-    configService
-        .setWorkflows(
-            "s2", Map.of("w1", new WorkflowDefinition("test-workflow", "d", List.of(), List.of())))
-        .block();
     configService.setInitiator("s3", "i1").block();
     configService.setInitiatedTime("s4", "t1").block();
     configService.setTags("s5", Map.of("t", "v")).block();
@@ -118,7 +109,7 @@ class InMemorySessionConfigStoreTest {
 
     StepVerifier.create(configService.getSessionIds().collectList())
         .expectNextMatches(
-            ids -> ids.size() == 6 && ids.containsAll(List.of("s1", "s2", "s3", "s4", "s5", "s6")))
+            ids -> ids.size() == 5 && ids.containsAll(List.of("s1", "s3", "s4", "s5", "s6")))
         .verifyComplete();
   }
 
@@ -173,9 +164,6 @@ class InMemorySessionConfigStoreTest {
     configService.setTags(sessionId, Map.of("k", "v")).block();
     configService.setDescription(sessionId, "Sample").block();
     configService.setProjectPath(sessionId, "/meta/path").block();
-    WorkflowDefinition workflow =
-        new WorkflowDefinition("test-workflow", "w", List.of(), List.of());
-    configService.setWorkflows(sessionId, Map.of("w1", workflow)).block();
 
     StepVerifier.create(configService.getAllConfigs(sessionId))
         .expectNextMatches(
@@ -185,7 +173,6 @@ class InMemorySessionConfigStoreTest {
                     && Map.of("k", "v").equals(map.get("tags"))
                     && "Sample".equals(map.get("description"))
                     && "/meta/path".equals(map.get("projectPath"))
-                    && Map.of("w1", workflow).equals(map.get("workflows"))
                     && map.containsKey("executionTimeout")
                     && map.containsKey("fileLogDir")
                     && map.containsKey("resultLogDir"))
@@ -194,14 +181,14 @@ class InMemorySessionConfigStoreTest {
 
   @Test
   void testApplySessionConfig() {
-    String sessionId = "sess-apply";
-    WorkflowDefinition workflow =
+    final String sessionId = "sess-apply";
+    final WorkflowDefinition workflow =
         new WorkflowDefinition(
             "test-workflow",
             "desc",
             List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())),
             List.of());
-    SessionConfigData data =
+    final SessionConfigData data =
         new SessionConfigData(
             sessionId,
             "full desc",
@@ -210,9 +197,10 @@ class InMemorySessionConfigStoreTest {
             "/full/path",
             Map.of("w1", workflow));
 
+    when(workflowDefinitionStore.save(sessionId, workflow)).thenReturn(Mono.empty());
+
     StepVerifier.create(configService.applySessionConfig(data)).verifyComplete();
 
-    // Verify all data was applied
     StepVerifier.create(configService.getProjectPath(sessionId))
         .expectNext("/full/path")
         .verifyComplete();
@@ -225,8 +213,23 @@ class InMemorySessionConfigStoreTest {
     StepVerifier.create(configService.getTags(sessionId))
         .expectNext(Map.of("env", "prod"))
         .verifyComplete();
-    StepVerifier.create(configService.getWorkflow(sessionId, "w1"))
-        .expectNext(workflow)
-        .verifyComplete();
+
+    verify(workflowDefinitionStore).save(sessionId, workflow);
+  }
+
+  @Test
+  void applySessionConfigDelegatesWorkflowsToStore() {
+    final WorkflowDefinition wf =
+        new WorkflowDefinition(
+            "wf1", "desc", List.of(new WorkflowDefinition.Node("n1", "t", Map.of())), List.of());
+    final SessionConfigData data =
+        new SessionConfigData(
+            "s1", "some description", "init", Map.of(), "/path", Map.of("wf1", wf));
+
+    when(workflowDefinitionStore.save("s1", wf)).thenReturn(Mono.empty());
+
+    StepVerifier.create(configService.applySessionConfig(data)).verifyComplete();
+
+    verify(workflowDefinitionStore).save("s1", wf);
   }
 }

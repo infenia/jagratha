@@ -28,6 +28,7 @@ import com.infenia.yukta.validation.WorkflowId;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
@@ -207,7 +208,7 @@ public class WorkflowService {
       final String executionId,
       final Map<String, Object> payload,
       final Sinks.One<TaskResponse> sink) {
-    final var cached = preparedWorkflowCache.get(sessionId, workflowId);
+    final Optional<PreparedWorkflow> cached = preparedWorkflowCache.get(sessionId, workflowId);
     final Mono<PreparedWorkflow> preparedMono;
     if (cached.isPresent()) {
       log.atDebug()

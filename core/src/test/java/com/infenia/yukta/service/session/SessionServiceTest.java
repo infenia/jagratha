@@ -16,12 +16,12 @@
 package com.infenia.yukta.service.session;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,20 +32,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class SessionServiceTest {
 
   @Mock private SessionConfigStore configService;
-  private final ObjectMapper objectMapper = new ObjectMapper();
   @Mock private ExecutionStatusPublisher statusPublisher;
+  @Mock private WorkflowDefinitionStore workflowDefinitionStore;
 
   private SessionService sessionService;
 
   @BeforeEach
   void setUp() {
-    sessionService = new SessionService(configService, objectMapper, statusPublisher);
+    sessionService = new SessionService(configService, statusPublisher, workflowDefinitionStore);
   }
 
   @Test
@@ -84,14 +83,12 @@ class SessionServiceTest {
   }
 
   @Test
-  void testGetSessionWorkflowFromDisk() {
-    String sessionId = "sess-disk";
-
+  void testGetSessionWorkflowDelegatesToStore() {
+    String sessionId = "sess-wf";
     WorkflowDefinition workflow =
         new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
-    Map<String, Object> configMap = Map.of("workflows", Map.of("w1", workflow));
 
-    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
+    when(workflowDefinitionStore.find(sessionId, "w1")).thenReturn(Mono.just(workflow));
 
     StepVerifier.create(sessionService.getSessionWorkflow(sessionId, "w1"))
         .expectNext(workflow)
@@ -99,13 +96,13 @@ class SessionServiceTest {
   }
 
   @Test
-  void testGetSessionWorkflowFromDiskNoWorkflow() {
-    String sessionId = "sess-noworkflow";
+  void testGetSessionWorkflowNotFoundReturnsEmpty() {
+    String sessionId = "sess-notfound";
 
-    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(Map.of()));
-    when(configService.getWorkflow(sessionId, "w1")).thenReturn(Mono.empty());
+    when(workflowDefinitionStore.find(sessionId, "missing-wf")).thenReturn(Mono.empty());
 
-    StepVerifier.create(sessionService.getSessionWorkflow(sessionId, "w1")).verifyComplete();
+    StepVerifier.create(sessionService.getSessionWorkflow(sessionId, "missing-wf"))
+        .verifyComplete();
   }
 
   @Test
@@ -124,43 +121,5 @@ class SessionServiceTest {
   void testGetSessionIds() {
     when(configService.getSessionIds()).thenReturn(Flux.just("s1", "s2"));
     StepVerifier.create(sessionService.getSessionIds()).expectNext("s1", "s2").verifyComplete();
-  }
-
-  @Test
-  void testParseWorkflowError() throws Exception {
-    String sessionId = "sess-err";
-    ObjectMapper mockMapper = mock(ObjectMapper.class);
-    when(mockMapper.writeValueAsString(any())).thenThrow(new RuntimeException("json fail"));
-
-    SessionService errService = new SessionService(configService, mockMapper, statusPublisher);
-
-    WorkflowDefinition workflow =
-        new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
-    Map<String, Object> configMap = Map.of("workflows", Map.of("w1", workflow));
-    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
-
-    StepVerifier.create(errService.getSessionWorkflow(sessionId, "w1")).verifyComplete();
-  }
-
-  @Test
-  void testGetSessionWorkflowNotFoundInMap() {
-    String sessionId = "sess-notfound";
-    WorkflowDefinition fallbackWorkflow =
-        new WorkflowDefinition("test-workflow", "fallback", List.of(), List.of());
-
-    Map<String, Object> configMap =
-        Map.of(
-            "workflows",
-            Map.of(
-                "other-wf",
-                new WorkflowDefinition("test-workflow", "other", List.of(), List.of())));
-
-    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
-    when(configService.getWorkflow(sessionId, "missing-wf"))
-        .thenReturn(Mono.just(fallbackWorkflow));
-
-    StepVerifier.create(sessionService.getSessionWorkflow(sessionId, "missing-wf"))
-        .expectNext(fallbackWorkflow)
-        .verifyComplete();
   }
 }

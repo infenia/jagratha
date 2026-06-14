@@ -16,6 +16,7 @@
 package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.config.SessionConfigProperties;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,14 +45,16 @@ public class SessionConfigStoreFactory {
    * @param inMemoryStore the in-memory store implementation
    * @param objectMapper the JSON object mapper
    * @param props the session configuration properties
+   * @param workflowDefinitionStore the workflow definition store
    */
   @Autowired
   public SessionConfigStoreFactory(
       final InMemorySessionConfigStore inMemoryStore,
       final ObjectMapper objectMapper,
-      final SessionConfigProperties props) {
+      final SessionConfigProperties props,
+      final WorkflowDefinitionStore workflowDefinitionStore) {
     this.inMemoryStore = inMemoryStore;
-    this.fileStore = new FileSessionConfigStore(props, objectMapper);
+    this.fileStore = new FileSessionConfigStore(props, objectMapper, workflowDefinitionStore);
     this.props = props;
   }
 

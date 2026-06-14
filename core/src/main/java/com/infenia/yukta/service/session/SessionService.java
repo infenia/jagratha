@@ -18,6 +18,7 @@ package com.infenia.yukta.service.session;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
 import jakarta.validation.Valid;
@@ -28,7 +29,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import tools.jackson.databind.ObjectMapper;
 
 /** Service for managing session lifecycle and configuration. */
 @Slf4j
@@ -38,8 +38,8 @@ import tools.jackson.databind.ObjectMapper;
 public class SessionService {
 
   private final SessionConfigStore configService;
-  private final ObjectMapper objectMapper;
   private final ExecutionStatusPublisher statusPublisher;
+  private final WorkflowDefinitionStore workflowDefinitionStore;
 
   /**
    * Apply configuration for a session.
@@ -94,36 +94,6 @@ public class SessionService {
    */
   public Mono<WorkflowDefinition> getSessionWorkflow(
       @SessionId final String sessionId, @WorkflowId final String workflowId) {
-    return getSessionConfig(sessionId)
-        .flatMap(
-            config -> {
-              final Object workflowsObj = config.get("workflows");
-              if (workflowsObj instanceof Map workflows) {
-                final Object workflow = workflows.get(workflowId);
-                if (workflow != null) {
-                  return parseWorkflow(workflow, sessionId, workflowId);
-                }
-              }
-              return configService.getWorkflow(sessionId, workflowId);
-            });
-  }
-
-  private Mono<WorkflowDefinition> parseWorkflow(
-      final Object workflow, final String sessionId, final String workflowId) {
-    return Mono.fromCallable(
-            () -> {
-              final String json = objectMapper.writeValueAsString(workflow);
-              return objectMapper.readValue(json, WorkflowDefinition.class);
-            })
-        .onErrorResume(
-            e -> {
-              log.atWarn()
-                  .setCause(e)
-                  .log(
-                      "Failed to parse workflow {} from config for session {}",
-                      workflowId,
-                      sessionId);
-              return Mono.empty();
-            });
+    return workflowDefinitionStore.find(sessionId, workflowId);
   }
 }

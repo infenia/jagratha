@@ -22,6 +22,7 @@ import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.gateway.WorkflowGateway;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -42,18 +43,22 @@ public class DefaultWorkflowGateway implements WorkflowGateway {
 
   private final ObjectProvider<WorkflowOrchestrator> orchProv;
   private final ObjectProvider<SessionConfigStore> cfgServProv;
+  private final ObjectProvider<WorkflowDefinitionStore> wfStoreProv;
 
   /**
    * Constructor for DefaultWorkflowGateway.
    *
    * @param orchProv provider for WorkflowOrchestrator
    * @param cfgServProv provider for SessionConfigStore
+   * @param wfStoreProv provider for WorkflowDefinitionStore
    */
   public DefaultWorkflowGateway(
       final ObjectProvider<WorkflowOrchestrator> orchProv,
-      final ObjectProvider<SessionConfigStore> cfgServProv) {
+      final ObjectProvider<SessionConfigStore> cfgServProv,
+      final ObjectProvider<WorkflowDefinitionStore> wfStoreProv) {
     this.orchProv = orchProv;
     this.cfgServProv = cfgServProv;
+    this.wfStoreProv = wfStoreProv;
   }
 
   @Override
@@ -65,16 +70,17 @@ public class DefaultWorkflowGateway implements WorkflowGateway {
 
     final WorkflowOrchestrator orchestrator = orchProv.getIfAvailable();
     final SessionConfigStore configService = cfgServProv.getIfAvailable();
+    final WorkflowDefinitionStore wfStore = wfStoreProv.getIfAvailable();
 
-    if (orchestrator == null || configService == null) {
+    if (orchestrator == null || configService == null || wfStore == null) {
       return Mono.error(
           new WorkflowExecutionException("Required services (Orchestrator/Config) not available"));
     }
 
     final ResultCollector collector = new ResultCollector();
 
-    return configService
-        .getWorkflow(parentSessionId, workflowId)
+    return wfStore
+        .find(parentSessionId, workflowId)
         .switchIfEmpty(
             Mono.error(new WorkflowExecutionException("Workflow not found: " + workflowId)))
         .flatMap(
@@ -82,10 +88,6 @@ public class DefaultWorkflowGateway implements WorkflowGateway {
                 configService
                     .getProjectPath(parentSessionId)
                     .flatMap(path -> configService.setProjectPath(childSessionId, path))
-                    .then(
-                        configService
-                            .getWorkflows(parentSessionId)
-                            .flatMap(wfs -> configService.setWorkflows(childSessionId, wfs)))
                     .then(
                         configService
                             .getInitiator(parentSessionId)

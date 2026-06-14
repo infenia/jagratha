@@ -15,9 +15,13 @@
  */
 package com.infenia.yukta.service.session;
 
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.infenia.yukta.config.SessionConfigProperties;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,13 +29,20 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.ObjectMapper;
 
+@ExtendWith(MockitoExtension.class)
 class FileSessionConfigStoreTest {
 
   @TempDir Path tempDir;
+
+  @Mock private WorkflowDefinitionStore workflowDefinitionStore;
 
   private FileSessionConfigStore configStore;
   private SessionConfigProperties props;
@@ -45,14 +56,13 @@ class FileSessionConfigStoreTest {
     props.setResultLogSubDir("results");
     props.setExecutionTimeoutSeconds(3600L);
     objectMapper = new ObjectMapper();
-    configStore = new FileSessionConfigStore(props, objectMapper);
+    configStore = new FileSessionConfigStore(props, objectMapper, workflowDefinitionStore);
   }
 
   @Test
   void testDefaultValues() {
     String sessionId = "sess-default";
     StepVerifier.create(configStore.getProjectPath(sessionId)).expectNext("").verifyComplete();
-    StepVerifier.create(configStore.getWorkflows(sessionId)).expectNext(Map.of()).verifyComplete();
     StepVerifier.create(configStore.getExecutionTimeout(sessionId))
         .expectNext(3600L)
         .verifyComplete();
@@ -78,27 +88,6 @@ class FileSessionConfigStoreTest {
     StepVerifier.create(configStore.getProjectPath(sessionId))
         .expectNext(projectPath)
         .verifyComplete();
-  }
-
-  @Test
-  void testWorkflowsPersistence() {
-    String sessionId = "sess-workflow";
-    WorkflowDefinition workflow =
-        new WorkflowDefinition(
-            "test-workflow",
-            "desc",
-            List.of(new WorkflowDefinition.Node("n1", "gradle", Map.of())),
-            List.of());
-
-    StepVerifier.create(configStore.setWorkflows(sessionId, Map.of("w1", workflow)))
-        .verifyComplete();
-
-    StepVerifier.create(configStore.getWorkflow(sessionId, "w1"))
-        .expectNext(workflow)
-        .verifyComplete();
-
-    // Test missing workflow
-    StepVerifier.create(configStore.getWorkflow(sessionId, "non-existent")).verifyComplete();
   }
 
   @Test
@@ -212,9 +201,6 @@ class FileSessionConfigStoreTest {
     configStore.setTags(sessionId, Map.of("k", "v")).block();
     configStore.setDescription(sessionId, "Sample").block();
     configStore.setProjectPath(sessionId, "/meta/path").block();
-    WorkflowDefinition workflow =
-        new WorkflowDefinition("test-workflow", "w", List.of(), List.of());
-    configStore.setWorkflows(sessionId, Map.of("w1", workflow)).block();
 
     StepVerifier.create(configStore.getAllConfigs(sessionId))
         .expectNextMatches(
@@ -224,7 +210,6 @@ class FileSessionConfigStoreTest {
                     && Map.of("k", "v").equals(map.get("tags"))
                     && "Sample".equals(map.get("description"))
                     && "/meta/path".equals(map.get("projectPath"))
-                    && Map.of("w1", workflow).equals(map.get("workflows"))
                     && map.containsKey("executionTimeout")
                     && map.containsKey("fileLogDir")
                     && map.containsKey("resultLogDir"))
@@ -366,25 +351,13 @@ class FileSessionConfigStoreTest {
     configStore.setProjectPath(sessionId, "/persistent/path").block();
 
     // Create a new store instance pointing to the same baseDir
-    FileSessionConfigStore newStore = new FileSessionConfigStore(props, new ObjectMapper());
+    FileSessionConfigStore newStore =
+        new FileSessionConfigStore(props, new ObjectMapper(), workflowDefinitionStore);
 
     // Should load from disk
     StepVerifier.create(newStore.getProjectPath(sessionId))
         .expectNext("/persistent/path")
         .verifyComplete();
-  }
-
-  @Test
-  void testGetWorkflowsNullInFile() throws IOException {
-    String sessionId = "sess-no-workflows";
-    // Manually create a JSON without workflows
-    Path sessionsDir = tempDir.resolve("sessions");
-    Files.createDirectories(sessionsDir);
-    Files.writeString(
-        sessionsDir.resolve(sessionId + ".json"),
-        "{\"sessionId\":\"" + sessionId + "\",\"projectPath\":\"/path\"}");
-
-    StepVerifier.create(configStore.getWorkflows(sessionId)).expectNext(Map.of()).verifyComplete();
   }
 
   @Test
@@ -397,7 +370,6 @@ class FileSessionConfigStoreTest {
         sessionsDir.resolve(sessionId + ".json"), "{\"sessionId\":\"" + sessionId + "\"}");
 
     StepVerifier.create(configStore.getProjectPath(sessionId)).expectNext("").verifyComplete();
-    StepVerifier.create(configStore.getWorkflows(sessionId)).expectNext(Map.of()).verifyComplete();
     StepVerifier.create(configStore.getTags(sessionId)).expectNext(Map.of()).verifyComplete();
     StepVerifier.create(configStore.getDescription(sessionId)).expectNext("").verifyComplete();
     StepVerifier.create(configStore.getInitiator(sessionId)).expectNext("").verifyComplete();
@@ -422,6 +394,8 @@ class FileSessionConfigStoreTest {
             "/file/path",
             Map.of("w1", workflow));
 
+    when(workflowDefinitionStore.save(sessionId, workflow)).thenReturn(Mono.empty());
+
     StepVerifier.create(configStore.applySessionConfig(data)).verifyComplete();
 
     // Verify all data was persisted and retrieved
@@ -437,9 +411,8 @@ class FileSessionConfigStoreTest {
     StepVerifier.create(configStore.getTags(sessionId))
         .expectNext(Map.of("tier", "prod"))
         .verifyComplete();
-    StepVerifier.create(configStore.getWorkflow(sessionId, "w1"))
-        .expectNext(workflow)
-        .verifyComplete();
+
+    verify(workflowDefinitionStore).save(sessionId, workflow);
   }
 
   @Test
@@ -475,5 +448,33 @@ class FileSessionConfigStoreTest {
     // Calling again with same value
     StepVerifier.create(configStore.setDescription(sessionId, "desc")).verifyComplete();
     StepVerifier.create(configStore.getDescription(sessionId)).expectNext("desc").verifyComplete();
+  }
+
+  @Test
+  void testApplySessionConfigDelegatesWorkflowsToStore() {
+    final String sessionId = "sess-wf-delegate";
+    final WorkflowDefinition wf =
+        new WorkflowDefinition(
+            "wf1", "desc", List.of(new WorkflowDefinition.Node("n1", "t", Map.of())), List.of());
+    final SessionConfigData data =
+        new SessionConfigData(
+            sessionId, "some description", "init", Map.of(), "/path", Map.of("wf1", wf));
+
+    when(workflowDefinitionStore.save(sessionId, wf)).thenReturn(Mono.empty());
+
+    StepVerifier.create(configStore.applySessionConfig(data)).verifyComplete();
+
+    verify(workflowDefinitionStore).save(sessionId, wf);
+  }
+
+  @Test
+  void testApplySessionConfigWithEmptyWorkflows() {
+    final String sessionId = "sess-empty-wf";
+    final SessionConfigData data =
+        new SessionConfigData(sessionId, "some description", "init", Map.of(), "/path", Map.of());
+
+    StepVerifier.create(configStore.applySessionConfig(data)).verifyComplete();
+
+    StepVerifier.create(configStore.getProjectPath(sessionId)).expectNext("/path").verifyComplete();
   }
 }

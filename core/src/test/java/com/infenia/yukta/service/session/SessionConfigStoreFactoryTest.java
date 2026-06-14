@@ -17,8 +17,10 @@ package com.infenia.yukta.service.session;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
 
 import com.infenia.yukta.config.SessionConfigProperties;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.ObjectMapper;
@@ -30,10 +32,11 @@ class SessionConfigStoreFactoryTest {
   void testFactoryReturnsCorrectStoreType(final String storeType) {
     SessionConfigProperties props = new SessionConfigProperties();
     props.setStoreType(storeType);
-    InMemorySessionConfigStore inMemoryStore = new InMemorySessionConfigStore(props);
+    WorkflowDefinitionStore wfStore = mock(WorkflowDefinitionStore.class);
+    InMemorySessionConfigStore inMemoryStore = new InMemorySessionConfigStore(props, wfStore);
     ObjectMapper objectMapper = new ObjectMapper();
     SessionConfigStoreFactory factory =
-        new SessionConfigStoreFactory(inMemoryStore, objectMapper, props);
+        new SessionConfigStoreFactory(inMemoryStore, objectMapper, props, wfStore);
 
     SessionConfigStore store = factory.getStore();
 
@@ -49,10 +52,11 @@ class SessionConfigStoreFactoryTest {
   void testFactoryDefaultsToInMemoryForUnknownType() {
     SessionConfigProperties props = new SessionConfigProperties();
     props.setStoreType("unknown-type");
-    InMemorySessionConfigStore inMemoryStore = new InMemorySessionConfigStore(props);
+    WorkflowDefinitionStore wfStore = mock(WorkflowDefinitionStore.class);
+    InMemorySessionConfigStore inMemoryStore = new InMemorySessionConfigStore(props, wfStore);
     ObjectMapper objectMapper = new ObjectMapper();
     SessionConfigStoreFactory factory =
-        new SessionConfigStoreFactory(inMemoryStore, objectMapper, props);
+        new SessionConfigStoreFactory(inMemoryStore, objectMapper, props, wfStore);
 
     SessionConfigStore store = factory.getStore();
 

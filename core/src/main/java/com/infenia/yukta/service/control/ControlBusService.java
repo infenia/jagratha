@@ -22,6 +22,7 @@ import com.infenia.yukta.service.control.directive.ControlSignalHandler;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.workflow.store.PreparedWorkflowCache;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotBlank;
@@ -87,6 +88,7 @@ public class ControlBusService {
    * @param preparedWorkflowCache the cache for compiled workflow instances
    * @param orchestrator the workflow orchestrator for compiling workflows
    */
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public ControlBusService(
       @Value("${control.bus.batch.size:100}") final int batchSize,
       @Value("${control.bus.batch.timeout.ms:50}") final int batchTimeoutMs,

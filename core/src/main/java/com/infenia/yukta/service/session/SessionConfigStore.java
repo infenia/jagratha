@@ -16,11 +16,9 @@
 package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.model.session.SessionConfigData;
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import java.util.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -57,34 +55,6 @@ public interface SessionConfigStore {
    * @return Mono that completes when the path is set
    */
   Mono<Void> setProjectPath(@SessionId String sessionId, @ProjectPath String path);
-
-  /**
-   * Get all workflow definitions for a session.
-   *
-   * @param sessionId the session identifier
-   * @return Mono containing map of workflows
-   */
-  Mono<Map<String, WorkflowDefinition>> getWorkflows(@SessionId String sessionId);
-
-  /**
-   * Get a specific workflow definition for a session.
-   *
-   * @param sessionId the session identifier
-   * @param workflowId the workflow identifier
-   * @return Mono containing the workflow definition
-   */
-  Mono<WorkflowDefinition> getWorkflow(@SessionId String sessionId, String workflowId);
-
-  /**
-   * Set the workflow definitions for a session.
-   *
-   * @param sessionId the session identifier
-   * @param workflows the map of workflow definitions
-   * @return Mono that completes when the workflows are set
-   */
-  Mono<Void> setWorkflows(
-      @SessionId String sessionId,
-      @NotEmpty(message = "Workflows cannot be empty") Map<String, WorkflowDefinition> workflows);
 
   /**
    * Get the execution timeout in seconds for a session.
