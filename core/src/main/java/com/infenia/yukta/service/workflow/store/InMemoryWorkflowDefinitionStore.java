@@ -18,6 +18,7 @@ package com.infenia.yukta.service.workflow.store;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -26,6 +27,7 @@ import reactor.core.publisher.Mono;
  *
  * <p>Thread-safe via ConcurrentHashMap.
  */
+@Slf4j
 @Component
 @SuppressWarnings("PMD.AtLeastOneConstructor")
 public class InMemoryWorkflowDefinitionStore implements WorkflowDefinitionStore {
@@ -35,10 +37,15 @@ public class InMemoryWorkflowDefinitionStore implements WorkflowDefinitionStore 
   @Override
   public Mono<Void> save(final String sessionId, final WorkflowDefinition definition) {
     return Mono.<Void>fromRunnable(
-        () ->
-            store
-                .computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>())
-                .put(definition.workflowId(), definition));
+        () -> {
+          store
+              .computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>())
+              .put(definition.workflowId(), definition);
+          log.atDebug()
+              .addKeyValue("sessionId", sessionId)
+              .addKeyValue("workflowId", definition.workflowId())
+              .log("Saved workflow definition");
+        });
   }
 
   @Override
