@@ -167,7 +167,7 @@ public class ControlBusService {
     final String workflowId = command.workflowDefinition().workflowId();
     return workflowDefinitionStore
         .save(sessionId, command.workflowDefinition())
-        .doOnSuccess(v -> preparedWorkflowCache.invalidate(sessionId, workflowId))
+        .then(Mono.fromRunnable(() -> preparedWorkflowCache.invalidate(sessionId, workflowId)))
         .then(orchestrator.prepareWorkflow(command.workflowDefinition()))
         .doOnNext(prepared -> preparedWorkflowCache.put(sessionId, workflowId, prepared))
         .then();
