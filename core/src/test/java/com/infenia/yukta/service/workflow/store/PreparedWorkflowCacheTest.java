@@ -33,7 +33,8 @@ class PreparedWorkflowCacheTest {
 
   @BeforeEach
   void setUp() {
-    // TTL of 200ms so we can test eviction without long sleeps
+    // TTL of 200ms for fast eviction testing; init() is intentionally not called — eviction is
+    // triggered manually via evictExpired()
     cache = new PreparedWorkflowCache(200L);
   }
 

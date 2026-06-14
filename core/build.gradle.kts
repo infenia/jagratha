@@ -90,7 +90,7 @@ coverageConfig {
     exceptions.put("com.infenia.yukta.service.gateway.AbstractMessagingGateway", mapOf("LINE" to 0.0, "BRANCH" to 0.90, "INSTRUCTION" to 0.0, "METHOD" to 0.0, "CLASS" to 0.0))
     exceptions.put("com.infenia.yukta.service.orchestrator.compiler.HeartbeatBuilder", mapOf("LINE" to 0.0, "BRANCH" to 0.0, "INSTRUCTION" to 0.0, "METHOD" to 0.0, "CLASS" to 0.0))
     exceptions.put("com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler", mapOf("LINE" to 0.0, "BRANCH" to 0.0, "INSTRUCTION" to 0.0, "METHOD" to 0.0, "CLASS" to 0.0))
-    exceptions.put("com.infenia.yukta.service.workflow.store.PreparedWorkflowCache", mapOf("LINE" to 0.60, "BRANCH" to 0.70, "INSTRUCTION" to 0.70, "METHOD" to 0.70))
+    exceptions.put("com.infenia.yukta.service.workflow.store.PreparedWorkflowCache", mapOf("LINE" to 0.60, "BRANCH" to 0.70, "INSTRUCTION" to 0.70, "METHOD" to 0.70, "CLASS" to 1.0))
     exceptions.put("com.infenia.yukta.service.execution.status.ExecutionStatusEvent", mapOf("LINE" to 0.0, "BRANCH" to 0.0, "INSTRUCTION" to 0.0, "METHOD" to 0.0, "CLASS" to 0.0))
     exceptions.put("com.infenia.yukta.service.control.processor.PauseWorkflowCommandProcessor", mapOf("LINE" to 0.0, "BRANCH" to 0.0, "INSTRUCTION" to 0.0, "METHOD" to 0.0, "CLASS" to 0.0))
 }
