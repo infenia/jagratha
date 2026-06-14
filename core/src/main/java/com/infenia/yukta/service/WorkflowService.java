@@ -75,10 +75,7 @@ public class WorkflowService {
       @NotEmpty final Map<String, Object> payload) {
     return workflowDefinitionStore
         .find(sessionId, workflowId)
-        .switchIfEmpty(
-            Mono.error(
-                new IllegalArgumentException(
-                    "Workflow not found for session: " + sessionId + ", workflow: " + workflowId)))
+        .switchIfEmpty(Mono.error(workflowNotFound(sessionId, workflowId)))
         .map(
             def -> {
               final List<String> nodeIds =
@@ -198,6 +195,12 @@ public class WorkflowService {
     return new WorkflowExecution(executionId, sink.asMono());
   }
 
+  private static IllegalArgumentException workflowNotFound(
+      final String sessionId, final String workflowId) {
+    return new IllegalArgumentException(
+        "Workflow not found for session: " + sessionId + ", workflow: " + workflowId);
+  }
+
   private Mono<Void> resolveAndExecute(
       final String sessionId,
       final String workflowId,
@@ -217,15 +220,22 @@ public class WorkflowService {
       preparedMono =
           workflowDefinitionStore
               .find(sessionId, workflowId)
-              .switchIfEmpty(
-                  Mono.error(
-                      new IllegalArgumentException(
-                          "Workflow not found: " + sessionId + "/" + workflowId)))
+              .switchIfEmpty(Mono.error(workflowNotFound(sessionId, workflowId)))
               .flatMap(
-                  def ->
-                      orchestrator
-                          .prepareWorkflow(def)
-                          .doOnNext(p -> preparedWorkflowCache.put(sessionId, workflowId, p)));
+                  def -> {
+                    log.atTrace()
+                        .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+                        .log("Workflow definition loaded from store");
+                    return orchestrator
+                        .prepareWorkflow(def)
+                        .doOnNext(
+                            p -> {
+                              log.atDebug()
+                                  .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+                                  .log("Workflow prepared and cached");
+                              preparedWorkflowCache.put(sessionId, workflowId, p);
+                            });
+                  });
     }
     return preparedMono
         .flatMap(
