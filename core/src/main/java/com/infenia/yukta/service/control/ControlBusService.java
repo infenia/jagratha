@@ -57,7 +57,6 @@ public class ControlBusService {
   private final Duration batchTimeout;
   private final int bufferSize;
   private final List<ControlSignalHandler> handlers;
-  private final WorkflowDefinitionStore workflowDefinitionStore;
   private final PreparedWorkflowCache preparedWorkflowCache;
   private final WorkflowOrchestrator orchestrator;
   private final Map<String, WorkflowPlugin> activePlugins = new ConcurrentHashMap<>();
@@ -84,7 +83,6 @@ public class ControlBusService {
    * @param batchTimeoutMs the timeout in milliseconds for batching
    * @param bufferSize the size of the control sink buffer (uses SMALL_BUFFER_SIZE if too small)
    * @param handlers the list of signal handlers for dispatching messages
-   * @param workflowDefinitionStore the store for persisting workflow definitions
    * @param preparedWorkflowCache the cache for compiled workflow instances
    * @param orchestrator the workflow orchestrator for compiling workflows
    */
@@ -94,14 +92,12 @@ public class ControlBusService {
       @Value("${control.bus.batch.timeout.ms:50}") final int batchTimeoutMs,
       @Value("${control.bus.buffer.size:256}") final int bufferSize,
       final List<ControlSignalHandler> handlers,
-      final WorkflowDefinitionStore workflowDefinitionStore,
       final PreparedWorkflowCache preparedWorkflowCache,
       final WorkflowOrchestrator orchestrator) {
     this.batchSize = batchSize;
     this.batchTimeout = Duration.ofMillis(batchTimeoutMs);
     this.bufferSize = Math.max(bufferSize, Queues.SMALL_BUFFER_SIZE);
     this.handlers = List.copyOf(handlers);
-    this.workflowDefinitionStore = workflowDefinitionStore;
     this.preparedWorkflowCache = preparedWorkflowCache;
     this.orchestrator = orchestrator;
   }
