@@ -30,21 +30,22 @@ import reactor.core.publisher.Mono;
 public class RequestLoggingFilter implements WebFilter {
 
   @Override
-  public Mono<Void> filter(
-      final ServerWebExchange exchange, final WebFilterChain chain) {
+  public Mono<Void> filter(final ServerWebExchange exchange, final WebFilterChain chain) {
     final long startTime = System.currentTimeMillis();
     final String method = exchange.getRequest().getMethod().toString();
     final String path = exchange.getRequest().getPath().value();
 
     log.debug("Incoming request - method: {}, path: {}", method, path);
 
-    return chain.filter(exchange)
+    return chain
+        .filter(exchange)
         .doFinally(
             signalType -> {
               final long duration = System.currentTimeMillis() - startTime;
-              final int statusCode = exchange.getResponse().getStatusCode() != null
-                  ? exchange.getResponse().getStatusCode().value()
-                  : 0;
+              final int statusCode =
+                  exchange.getResponse().getStatusCode() != null
+                      ? exchange.getResponse().getStatusCode().value()
+                      : 0;
 
               log.debug(
                   "Outgoing response - method: {}, path: {}, statusCode: {}, duration: {}ms",

@@ -16,7 +16,6 @@
 package com.infenia.yukta.filter;
 
 import java.util.UUID;
-
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -33,8 +32,7 @@ public class RequestTracingFilter implements WebFilter {
   private static final String X_CORRELATION_ID = "X-Correlation-ID";
 
   @Override
-  public Mono<Void> filter(
-      final ServerWebExchange exchange, final WebFilterChain chain) {
+  public Mono<Void> filter(final ServerWebExchange exchange, final WebFilterChain chain) {
     final String requestId = exchange.getRequest().getHeaders().getFirst(X_REQUEST_ID);
     final String correlationId = exchange.getRequest().getHeaders().getFirst(X_CORRELATION_ID);
 

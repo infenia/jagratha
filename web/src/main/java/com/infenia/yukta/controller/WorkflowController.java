@@ -86,7 +86,8 @@ public class WorkflowController {
       description = "Session or workflow not found")
   public Mono<ResponseEntity<ApiResponse<TriggerResponse>>> triggerWorkflow(
       @Valid @RequestBody final WorkflowTriggerRequest request, final ServerWebExchange exchange) {
-    log.atInfo().log("triggerWorkflow: sessionId={}, workflowId={}", request.sessionId(), request.workflowId());
+    log.atInfo().log(
+        "triggerWorkflow: sessionId={}, workflowId={}", request.sessionId(), request.workflowId());
     return workflowService
         .validateAndTriggerWorkflow(request.sessionId(), request.workflowId(), request.payload())
         .map(
@@ -209,8 +210,7 @@ public class WorkflowController {
                           new ApiResponse.FieldError(
                               "sessionId", "Session not found: '" + sessionId + "'"));
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                      .body(
-                          ApiResponse.error(404, "Not Found", "Session not found", path, errors));
+                      .body(ApiResponse.error(404, "Not Found", "Session not found", path, errors));
                 }));
   }
 }

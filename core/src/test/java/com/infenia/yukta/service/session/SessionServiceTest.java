@@ -16,11 +16,12 @@
 package com.infenia.yukta.service.session;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import java.util.List;
 import java.util.Map;
@@ -37,14 +38,14 @@ import reactor.test.StepVerifier;
 class SessionServiceTest {
 
   @Mock private SessionConfigStore configService;
-  @Mock private ExecutionStatusPublisher statusPublisher;
+  @Mock private ControlBusGateway controlBus;
   @Mock private WorkflowDefinitionStore workflowDefinitionStore;
 
   private SessionService sessionService;
 
   @BeforeEach
   void setUp() {
-    sessionService = new SessionService(configService, statusPublisher, workflowDefinitionStore);
+    sessionService = new SessionService(configService, controlBus, workflowDefinitionStore);
   }
 
   @Test
@@ -57,6 +58,7 @@ class SessionServiceTest {
             sessionId, "desc", "initiator-1", Map.of(), "/path", Map.of("w1", workflow));
 
     when(configService.applySessionConfig(any())).thenReturn(Mono.empty());
+    when(controlBus.compileAndCacheWorkflow(eq(sessionId), any())).thenReturn(Mono.empty());
 
     StepVerifier.create(sessionService.applyConfig(data)).verifyComplete();
   }

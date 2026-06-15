@@ -17,7 +17,7 @@ package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
@@ -38,7 +38,7 @@ import reactor.core.publisher.Mono;
 public class SessionService {
 
   private final SessionConfigStore configService;
-  private final ExecutionStatusPublisher statusPublisher;
+  private final ControlBusGateway controlBus;
   private final WorkflowDefinitionStore workflowDefinitionStore;
 
   /**
@@ -55,10 +55,11 @@ public class SessionService {
     return configService
         .applySessionConfig(data)
         .then(
-            // TODO: Workflow preparation decoupled from session service to break circular
-            // dependency. Workflows will be prepared through ExecutionStatusPublisher once the
-            // control bus bridge is established.
-            Mono.empty());
+            data.workflows().isEmpty()
+                ? Mono.empty()
+                : Flux.fromIterable(data.workflows().values())
+                    .flatMap(def -> controlBus.compileAndCacheWorkflow(data.sessionId(), def))
+                    .then());
   }
 
   /**

@@ -58,6 +58,7 @@ public class CliRunner implements ApplicationRunner {
   private final DaemonStopCommand daemonStopCommand;
   private final DaemonStatusCommand daemonStatusCommand;
   private final DaemonManager daemonManager;
+  private final DaemonProperties daemonProperties;
   private final SystemExitHandler exitHandler;
 
   @Override
@@ -72,12 +73,10 @@ public class CliRunner implements ApplicationRunner {
       return;
     }
 
-    // Ensure daemon is running for control commands
+    // Require daemon to already be running for control commands
     if (rawArgs.length > 0 && "control".equals(rawArgs[0])) {
-      try {
-        daemonManager.ensureRunning();
-      } catch (Exception e) {
-        System.err.println("Failed to start daemon: " + e.getMessage());
+      if (!daemonManager.isRunning()) {
+        System.err.println(daemonProperties.getNotRunningMessage());
         exitHandler.exit(1);
         return;
       }

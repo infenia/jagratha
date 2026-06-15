@@ -48,5 +48,4 @@ public class ResourceNotFoundException extends RuntimeException {
     this.resourceType = null;
     this.resourceId = null;
   }
-
 }

@@ -27,6 +27,8 @@ spring:
       fail-on-unknown-properties: true
 
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level %logger{36} : %msg %kvp%n"
   level:
     root: INFO
     com.infenia.yukta.service.orchestrator: DEBUG

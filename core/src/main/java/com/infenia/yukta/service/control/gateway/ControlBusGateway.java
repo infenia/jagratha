@@ -81,13 +81,17 @@ public interface ControlBusGateway {
   // --- Configuration & Preparation ---
 
   /**
-   * Prepare a workflow for execution.
+   * Compile and cache a workflow after it has already been persisted.
+   *
+   * <p>Assumes the workflow is already in {@link
+   * com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore}. Invalidates stale cache
+   * entries, compiles the workflow, and warms the cache.
    *
    * @param sessionId the session that owns this workflow
-   * @param workflowDefinition the workflow definition to prepare
-   * @return a Mono that completes when the workflow is prepared
+   * @param workflowDefinition the workflow definition to compile and cache
+   * @return a Mono that completes when the workflow is compiled and cached
    */
-  Mono<Void> prepareWorkflow(String sessionId, WorkflowDefinition workflowDefinition);
+  Mono<Void> compileAndCacheWorkflow(String sessionId, WorkflowDefinition workflowDefinition);
 
   // --- Execution Control (REST Layer) ---
 

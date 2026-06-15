@@ -19,7 +19,7 @@ graalvmPolyglot = "25.0.2"
 nodeGradle = "7.1.0"
 node = "24.13.1"
 pnpm = "10.30.1"
-picocli = "4.7.6"
+picocli = "4.7.7"
 
 [libraries]
 spring-boot-starter = { group = "org.springframework.boot", name = "spring-boot-starter" }

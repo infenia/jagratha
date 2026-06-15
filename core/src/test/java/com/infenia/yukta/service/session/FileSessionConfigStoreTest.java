@@ -29,15 +29,14 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.ObjectMapper;
 
-@ExtendWith(MockitoExtension.class)
+@MockitoSettings
 class FileSessionConfigStoreTest {
 
   @TempDir Path tempDir;
@@ -46,7 +45,6 @@ class FileSessionConfigStoreTest {
 
   private FileSessionConfigStore configStore;
   private SessionConfigProperties props;
-  private ObjectMapper objectMapper;
 
   @BeforeEach
   void setUp() {
@@ -55,7 +53,7 @@ class FileSessionConfigStoreTest {
     props.setFileLogSubDir("modified-files");
     props.setResultLogSubDir("results");
     props.setExecutionTimeoutSeconds(3600L);
-    objectMapper = new ObjectMapper();
+    final ObjectMapper objectMapper = new ObjectMapper();
     configStore = new FileSessionConfigStore(props, objectMapper, workflowDefinitionStore);
   }
 

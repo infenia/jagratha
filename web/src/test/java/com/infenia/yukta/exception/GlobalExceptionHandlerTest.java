@@ -172,7 +172,10 @@ class GlobalExceptionHandlerTest {
 
   @Test
   void testHandleValidationException() {
-    ValidationException ex = new ValidationException("Validation failed", java.util.List.of("Field A is required", "Field B must be positive"));
+    ValidationException ex =
+        new ValidationException(
+            "Validation failed",
+            java.util.List.of("Field A is required", "Field B must be positive"));
     ServerHttpRequest request = mock(ServerHttpRequest.class);
     when(request.getPath())
         .thenReturn(org.springframework.http.server.RequestPath.parse("/api/validate", "/"));
@@ -354,8 +357,7 @@ class GlobalExceptionHandlerTest {
   @Test
   @SuppressWarnings("unchecked")
   void testCreateResponseEntity_alreadyApiResponse() {
-    ApiResponse<String> existingResponse =
-        ApiResponse.success(200, "Already formatted", "data");
+    ApiResponse<String> existingResponse = ApiResponse.success(200, "Already formatted", "data");
 
     ServerWebExchange exchange = mock(ServerWebExchange.class);
     ServerHttpRequest request = mock(ServerHttpRequest.class);
@@ -368,8 +370,7 @@ class GlobalExceptionHandlerTest {
         .expectNextMatches(
             resp -> {
               ApiResponse<Object> body = (ApiResponse<Object>) resp.getBody();
-              return body.equals(existingResponse)
-                  && resp.getStatusCode() == HttpStatus.OK;
+              return body.equals(existingResponse) && resp.getStatusCode() == HttpStatus.OK;
             })
         .verifyComplete();
   }
@@ -421,8 +422,7 @@ class GlobalExceptionHandlerTest {
   @Test
   void testHandleValidationException_multipleErrors() {
     ValidationException ex =
-        new ValidationException(
-            "Validation failed", List.of("Error 1", "Error 2", "Error 3"));
+        new ValidationException("Validation failed", List.of("Error 1", "Error 2", "Error 3"));
     ServerHttpRequest request = mock(ServerHttpRequest.class);
     when(request.getPath()).thenReturn(RequestPath.parse("/validate", "/"));
 
@@ -453,7 +453,8 @@ class GlobalExceptionHandlerTest {
     when(violation1.getMessage()).thenReturn("message1");
     when(violation2.getMessage()).thenReturn("message2");
 
-    ConstraintViolationException ex = new ConstraintViolationException(Set.of(violation1, violation2));
+    ConstraintViolationException ex =
+        new ConstraintViolationException(Set.of(violation1, violation2));
     ServerHttpRequest request = mock(ServerHttpRequest.class);
     when(request.getPath()).thenReturn(RequestPath.parse("/api", "/"));
 
@@ -552,8 +553,7 @@ class GlobalExceptionHandlerTest {
 
     ResponseEntity<ApiResponse<Object>> resp = handler.handleGenericException(ex, request);
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, resp.getStatusCode());
-    assertThat(output.getAll())
-        .contains("Unhandled exception occurred");
+    assertThat(output.getAll()).contains("Unhandled exception occurred");
   }
 
   @Test
@@ -576,9 +576,7 @@ class GlobalExceptionHandlerTest {
     IllegalArgumentException middle = new IllegalArgumentException("middle", root);
     ServerWebInputException top = new ServerWebInputException("top", null, middle);
 
-    IllegalArgumentException found =
-        extractFindCauseResult(
-            top, IllegalArgumentException.class);
+    IllegalArgumentException found = extractFindCauseResult(top, IllegalArgumentException.class);
     assertNotNull(found);
     assertEquals("middle", found.getMessage());
   }
@@ -586,8 +584,7 @@ class GlobalExceptionHandlerTest {
   @Test
   void testFindCause_withDirectMatch() {
     RuntimeException ex = new RuntimeException("direct");
-    RuntimeException found =
-        extractFindCauseResult(ex, RuntimeException.class);
+    RuntimeException found = extractFindCauseResult(ex, RuntimeException.class);
     assertNotNull(found);
     assertEquals("direct", found.getMessage());
   }
@@ -595,8 +592,7 @@ class GlobalExceptionHandlerTest {
   @Test
   void testFindCause_withNoMatch() {
     RuntimeException ex = new RuntimeException("no match");
-    IllegalStateException found =
-        extractFindCauseResult(ex, IllegalStateException.class);
+    IllegalStateException found = extractFindCauseResult(ex, IllegalStateException.class);
     assertNull(found);
   }
 
@@ -607,8 +603,7 @@ class GlobalExceptionHandlerTest {
     Throwable level2 = new IllegalArgumentException("level2", level3);
     Throwable level1 = new ServerWebInputException("level1", null, level2);
 
-    IllegalStateException found =
-        extractFindCauseResult(level1, IllegalStateException.class);
+    IllegalStateException found = extractFindCauseResult(level1, IllegalStateException.class);
     assertNotNull(found);
     assertEquals("level3", found.getMessage());
   }
@@ -616,8 +611,7 @@ class GlobalExceptionHandlerTest {
   @Test
   void testFindCause_withNullCause() {
     RuntimeException ex = new RuntimeException("no cause");
-    RuntimeException found =
-        extractFindCauseResult(ex, RuntimeException.class);
+    RuntimeException found = extractFindCauseResult(ex, RuntimeException.class);
     assertNotNull(found);
     assertEquals("no cause", found.getMessage());
   }
@@ -627,8 +621,8 @@ class GlobalExceptionHandlerTest {
   private <T extends Throwable> T extractFindCauseResult(
       final Throwable throwable, final Class<T> type) {
     try {
-      var method = GlobalExceptionHandler.class.getDeclaredMethod(
-          "findCause", Throwable.class, Class.class);
+      var method =
+          GlobalExceptionHandler.class.getDeclaredMethod("findCause", Throwable.class, Class.class);
       method.setAccessible(true);
       return (T) method.invoke(handler, throwable, type);
     } catch (Exception e) {

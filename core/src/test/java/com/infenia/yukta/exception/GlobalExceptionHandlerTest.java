@@ -30,13 +30,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.ServerWebInputException;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
@@ -66,23 +63,22 @@ class GlobalExceptionHandlerTest {
     final var exchange = mock(ServerWebExchange.class);
     when(exchange.getRequest()).thenReturn(request);
 
-    final var result = handler.handleWebExchangeBindException(
-        bindException,
-        HttpHeaders.EMPTY,
-        HttpStatus.BAD_REQUEST,
-        exchange);
+    final var result =
+        handler.handleWebExchangeBindException(
+            bindException, HttpHeaders.EMPTY, HttpStatus.BAD_REQUEST, exchange);
 
     StepVerifier.create(result)
-        .assertNext(response -> {
-          assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-          @SuppressWarnings("unchecked")
-          final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
-          assertThat(body).isNotNull();
-          assertThat(body.status()).isEqualTo(400);
-          assertThat(body.errors()).hasSize(1);
-          assertThat(body.errors().getFirst().field()).isEqualTo("username");
-          assertThat(body.errors().getFirst().message()).isEqualTo("must not be blank");
-        })
+        .assertNext(
+            response -> {
+              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+              @SuppressWarnings("unchecked")
+              final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
+              assertThat(body).isNotNull();
+              assertThat(body.status()).isEqualTo(400);
+              assertThat(body.errors()).hasSize(1);
+              assertThat(body.errors().getFirst().field()).isEqualTo("username");
+              assertThat(body.errors().getFirst().message()).isEqualTo("must not be blank");
+            })
         .verifyComplete();
   }
 
@@ -107,20 +103,19 @@ class GlobalExceptionHandlerTest {
     final var exchange = mock(ServerWebExchange.class);
     when(exchange.getRequest()).thenReturn(request);
 
-    final var result = handler.handleWebExchangeBindException(
-        bindException,
-        HttpHeaders.EMPTY,
-        HttpStatus.BAD_REQUEST,
-        exchange);
+    final var result =
+        handler.handleWebExchangeBindException(
+            bindException, HttpHeaders.EMPTY, HttpStatus.BAD_REQUEST, exchange);
 
     StepVerifier.create(result)
-        .assertNext(response -> {
-          assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-          @SuppressWarnings("unchecked")
-          final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
-          assertThat(body).isNotNull();
-          assertThat(body.errors()).hasSize(2);
-        })
+        .assertNext(
+            response -> {
+              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+              @SuppressWarnings("unchecked")
+              final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
+              assertThat(body).isNotNull();
+              assertThat(body.errors()).hasSize(2);
+            })
         .verifyComplete();
   }
 
@@ -140,22 +135,21 @@ class GlobalExceptionHandlerTest {
     final var exchange = mock(ServerWebExchange.class);
     when(exchange.getRequest()).thenReturn(request);
 
-    final var result = handler.handleServerWebInputException(
-        inputException,
-        HttpHeaders.EMPTY,
-        HttpStatus.BAD_REQUEST,
-        exchange);
+    final var result =
+        handler.handleServerWebInputException(
+            inputException, HttpHeaders.EMPTY, HttpStatus.BAD_REQUEST, exchange);
 
     StepVerifier.create(result)
-        .assertNext(response -> {
-          assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-          @SuppressWarnings("unchecked")
-          final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
-          assertThat(body).isNotNull();
-          assertThat(body.message()).isEqualTo("Invalid request body");
-          assertThat(body.errors()).hasSize(1);
-          assertThat(body.errors().getFirst().field()).isEqualTo("unknownField");
-        })
+        .assertNext(
+            response -> {
+              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+              @SuppressWarnings("unchecked")
+              final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
+              assertThat(body).isNotNull();
+              assertThat(body.message()).isEqualTo("Invalid request body");
+              assertThat(body.errors()).hasSize(1);
+              assertThat(body.errors().getFirst().field()).isEqualTo("unknownField");
+            })
         .verifyComplete();
   }
 
@@ -178,21 +172,20 @@ class GlobalExceptionHandlerTest {
     final var exchange = mock(ServerWebExchange.class);
     when(exchange.getRequest()).thenReturn(request);
 
-    final var result = handler.handleServerWebInputException(
-        inputException,
-        HttpHeaders.EMPTY,
-        HttpStatus.BAD_REQUEST,
-        exchange);
+    final var result =
+        handler.handleServerWebInputException(
+            inputException, HttpHeaders.EMPTY, HttpStatus.BAD_REQUEST, exchange);
 
     StepVerifier.create(result)
-        .assertNext(response -> {
-          assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-          @SuppressWarnings("unchecked")
-          final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
-          assertThat(body).isNotNull();
-          assertThat(body.errors()).hasSize(1);
-          assertThat(body.errors().getFirst().field()).isEqualTo("nestedField");
-        })
+        .assertNext(
+            response -> {
+              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+              @SuppressWarnings("unchecked")
+              final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
+              assertThat(body).isNotNull();
+              assertThat(body.errors()).hasSize(1);
+              assertThat(body.errors().getFirst().field()).isEqualTo("nestedField");
+            })
         .verifyComplete();
   }
 
@@ -207,17 +200,15 @@ class GlobalExceptionHandlerTest {
     final var exchange = mock(ServerWebExchange.class);
     when(exchange.getRequest()).thenReturn(request);
 
-    final var result = handler.createResponseEntity(
-        apiResponse,
-        HttpHeaders.EMPTY,
-        HttpStatus.OK,
-        exchange);
+    final var result =
+        handler.createResponseEntity(apiResponse, HttpHeaders.EMPTY, HttpStatus.OK, exchange);
 
     StepVerifier.create(result)
-        .assertNext(response -> {
-          assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-          assertThat(response.getBody()).isEqualTo(apiResponse);
-        })
+        .assertNext(
+            response -> {
+              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+              assertThat(response.getBody()).isEqualTo(apiResponse);
+            })
         .verifyComplete();
   }
 
@@ -231,20 +222,19 @@ class GlobalExceptionHandlerTest {
     final var exchange = mock(ServerWebExchange.class);
     when(exchange.getRequest()).thenReturn(request);
 
-    final var result = handler.createResponseEntity(
-        "Error message",
-        HttpHeaders.EMPTY,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        exchange);
+    final var result =
+        handler.createResponseEntity(
+            "Error message", HttpHeaders.EMPTY, HttpStatus.INTERNAL_SERVER_ERROR, exchange);
 
     StepVerifier.create(result)
-        .assertNext(response -> {
-          assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-          @SuppressWarnings("unchecked")
-          final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
-          assertThat(body).isNotNull();
-          assertThat(body.message()).isEqualTo("Error message");
-        })
+        .assertNext(
+            response -> {
+              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+              @SuppressWarnings("unchecked")
+              final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
+              assertThat(body).isNotNull();
+              assertThat(body.message()).isEqualTo("Error message");
+            })
         .verifyComplete();
   }
 
@@ -258,20 +248,18 @@ class GlobalExceptionHandlerTest {
     final var exchange = mock(ServerWebExchange.class);
     when(exchange.getRequest()).thenReturn(request);
 
-    final var result = handler.createResponseEntity(
-        null,
-        HttpHeaders.EMPTY,
-        HttpStatus.NOT_FOUND,
-        exchange);
+    final var result =
+        handler.createResponseEntity(null, HttpHeaders.EMPTY, HttpStatus.NOT_FOUND, exchange);
 
     StepVerifier.create(result)
-        .assertNext(response -> {
-          assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-          @SuppressWarnings("unchecked")
-          final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
-          assertThat(body).isNotNull();
-          assertThat(body.status()).isEqualTo(404);
-        })
+        .assertNext(
+            response -> {
+              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+              @SuppressWarnings("unchecked")
+              final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
+              assertThat(body).isNotNull();
+              assertThat(body.status()).isEqualTo(404);
+            })
         .verifyComplete();
   }
 
@@ -548,21 +536,20 @@ class GlobalExceptionHandlerTest {
     final var exchange = mock(ServerWebExchange.class);
     when(exchange.getRequest()).thenReturn(request);
 
-    final var result = handler.createResponseEntity(
-        "Conflict error",
-        HttpHeaders.EMPTY,
-        HttpStatus.CONFLICT,
-        exchange);
+    final var result =
+        handler.createResponseEntity(
+            "Conflict error", HttpHeaders.EMPTY, HttpStatus.CONFLICT, exchange);
 
     StepVerifier.create(result)
-        .assertNext(response -> {
-          assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-          @SuppressWarnings("unchecked")
-          final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
-          assertThat(body).isNotNull();
-          assertThat(body.status()).isEqualTo(409);
-          assertThat(body.error()).isEqualTo("Conflict");
-        })
+        .assertNext(
+            response -> {
+              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+              @SuppressWarnings("unchecked")
+              final ApiResponse<Object> body = (ApiResponse<Object>) response.getBody();
+              assertThat(body).isNotNull();
+              assertThat(body.status()).isEqualTo(409);
+              assertThat(body.error()).isEqualTo("Conflict");
+            })
         .verifyComplete();
   }
 
@@ -583,7 +570,6 @@ class GlobalExceptionHandlerTest {
 
     assertThat(result).isNull();
   }
-
 
   @Test
   void testFindCause_withOneElementThrowableChain() {

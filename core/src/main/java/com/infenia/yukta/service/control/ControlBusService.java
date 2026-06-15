@@ -15,9 +15,9 @@
  */
 package com.infenia.yukta.service.control;
 
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.service.control.command.PrepareWorkflowCommand;
 import com.infenia.yukta.service.control.directive.ControlSignalHandler;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.workflow.store.PreparedWorkflowCache;
@@ -158,19 +158,20 @@ public class ControlBusService {
   }
 
   /**
-   * Prepare a workflow for execution: persist definition, invalidate stale cache, compile, warm
-   * cache.
+   * Compile and cache a workflow after it has already been persisted.
    *
-   * @param command the prepare workflow command
-   * @return a Mono that completes when the workflow is prepared and cached
+   * <p>Assumes the workflow definition is already in {@link WorkflowDefinitionStore}. Invalidates
+   * any stale cache entries, compiles the workflow, and warms the cache.
+   *
+   * @param sessionId the session identifier
+   * @param workflowDefinition the workflow definition to compile and cache
+   * @return a Mono that completes when the workflow is compiled and cached
    */
-  public Mono<Void> prepareWorkflow(final PrepareWorkflowCommand command) {
-    final String sessionId = command.sessionId();
-    final String workflowId = command.workflowDefinition().workflowId();
-    return workflowDefinitionStore
-        .save(sessionId, command.workflowDefinition())
-        .then(Mono.fromRunnable(() -> preparedWorkflowCache.invalidate(sessionId, workflowId)))
-        .then(orchestrator.prepareWorkflow(command.workflowDefinition()))
+  public Mono<Void> compileAndCacheWorkflow(
+      final String sessionId, final WorkflowDefinition workflowDefinition) {
+    final String workflowId = workflowDefinition.workflowId();
+    return Mono.fromRunnable(() -> preparedWorkflowCache.invalidate(sessionId, workflowId))
+        .then(orchestrator.prepareWorkflow(workflowDefinition))
         .doOnNext(prepared -> preparedWorkflowCache.put(sessionId, workflowId, prepared))
         .then();
   }

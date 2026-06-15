@@ -64,6 +64,7 @@ class CliRunnerTest {
   @Mock private DaemonStopCommand mockDaemonStopCommand;
   @Mock private DaemonStatusCommand mockDaemonStatusCommand;
   @Mock private DaemonManager mockDaemonManager;
+  @Mock private DaemonProperties mockDaemonProperties;
   @Mock private SystemExitHandler mockExitHandler;
   private CliRunner cliRunner;
 
@@ -88,6 +89,7 @@ class CliRunnerTest {
             mockDaemonStopCommand,
             mockDaemonStatusCommand,
             mockDaemonManager,
+            mockDaemonProperties,
             mockExitHandler);
   }
 
@@ -119,53 +121,29 @@ class CliRunnerTest {
   }
 
   @Test
-  void run_withControlArgs_ensuresDaemonRunning() throws Exception {
+  void run_withControlArgs_daemonRunning_proceeds() {
     final var args = mock(ApplicationArguments.class);
     final var sourceArgs = new String[] {"control", "nodes"};
     when(args.getSourceArgs()).thenReturn(sourceArgs);
+    when(mockDaemonManager.isRunning()).thenReturn(true);
 
     cliRunner.run(args);
 
-    verify(mockDaemonManager).ensureRunning();
+    verify(mockDaemonManager).isRunning();
   }
 
   @Test
-  void run_withControlArgs_daemonStartupThrowsDaemonStartupException() throws Exception {
+  void run_withControlArgs_daemonNotRunning_exitsWithError() {
     final var args = mock(ApplicationArguments.class);
     final var sourceArgs = new String[] {"control", "heartbeat"};
     when(args.getSourceArgs()).thenReturn(sourceArgs);
-    when(mockDaemonManager.ensureRunning())
-        .thenThrow(new DaemonStartupException("Failed to start daemon"));
+    when(mockDaemonManager.isRunning()).thenReturn(false);
+    when(mockDaemonProperties.getNotRunningMessage()).thenReturn("Daemon not running");
 
     cliRunner.run(args);
 
-    verify(mockDaemonManager).ensureRunning();
-    verify(mockExitHandler).exit(1);
-  }
-
-  @Test
-  void run_withControlArgs_daemonStartupThrowsInterruptedException() throws Exception {
-    final var args = mock(ApplicationArguments.class);
-    final var sourceArgs = new String[] {"control", "progress"};
-    when(args.getSourceArgs()).thenReturn(sourceArgs);
-    when(mockDaemonManager.ensureRunning()).thenThrow(new InterruptedException("Interrupted"));
-
-    cliRunner.run(args);
-
-    verify(mockDaemonManager).ensureRunning();
-    verify(mockExitHandler).exit(1);
-  }
-
-  @Test
-  void run_withControlArgs_daemonStartupThrowsIOException() throws Exception {
-    final var args = mock(ApplicationArguments.class);
-    final var sourceArgs = new String[] {"control", "logs"};
-    when(args.getSourceArgs()).thenReturn(sourceArgs);
-    when(mockDaemonManager.ensureRunning()).thenThrow(new java.io.IOException("IO error"));
-
-    cliRunner.run(args);
-
-    verify(mockDaemonManager).ensureRunning();
+    verify(mockDaemonManager).isRunning();
+    verify(mockDaemonProperties).getNotRunningMessage();
     verify(mockExitHandler).exit(1);
   }
 

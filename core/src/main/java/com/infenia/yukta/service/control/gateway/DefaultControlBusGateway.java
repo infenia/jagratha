@@ -34,7 +34,6 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.SkipNode
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StepNodeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopNodeCommand;
 import com.infenia.yukta.service.control.ControlBusService;
-import com.infenia.yukta.service.control.command.PrepareWorkflowCommand;
 import com.infenia.yukta.service.execution.status.ExecutionStatusEvent;
 import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
@@ -136,10 +135,9 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
   // --- Configuration & Preparation ---
 
   @Override
-  public Mono<Void> prepareWorkflow(
+  public Mono<Void> compileAndCacheWorkflow(
       final String sessionId, final WorkflowDefinition workflowDefinition) {
-    return controlBusService.prepareWorkflow(
-        new PrepareWorkflowCommand(sessionId, workflowDefinition));
+    return controlBusService.compileAndCacheWorkflow(sessionId, workflowDefinition);
   }
 
   // --- Execution Control ---

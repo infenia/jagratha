@@ -15,9 +15,8 @@
  */
 package com.infenia.yukta.exception;
 
-import lombok.Getter;
-
 import java.util.List;
+import lombok.Getter;
 
 /** Exception thrown when validation fails for business logic. */
 @Getter
@@ -45,5 +44,4 @@ public class ValidationException extends RuntimeException {
     super(message);
     this.errors = errors != null ? List.copyOf(errors) : List.of(message);
   }
-
 }

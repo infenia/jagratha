@@ -32,6 +32,7 @@ public class DaemonProperties {
   private int startupTimeoutSeconds = 30;
   private int healthCheckIntervalMs = 500;
   private String jarPath;
+  private String notRunningMessage = "Daemon is not running. Start it with: yukta daemon start";
 
   @PostConstruct
   public void setDefaults() {

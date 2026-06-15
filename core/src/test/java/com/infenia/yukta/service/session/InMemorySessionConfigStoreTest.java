@@ -26,13 +26,12 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-@ExtendWith(MockitoExtension.class)
+@MockitoSettings
 class InMemorySessionConfigStoreTest {
 
   @Mock private WorkflowDefinitionStore workflowDefinitionStore;
@@ -231,5 +230,57 @@ class InMemorySessionConfigStoreTest {
     StepVerifier.create(configService.applySessionConfig(data)).verifyComplete();
 
     verify(workflowDefinitionStore).save("s1", wf);
+  }
+
+  @Test
+  void applySessionConfigWithEmptyWorkflows() {
+    final SessionConfigData data =
+        new SessionConfigData(
+            "s-empty", "description", "initiator", Map.of("key", "value"), "/path", Map.of());
+
+    StepVerifier.create(configService.applySessionConfig(data)).verifyComplete();
+
+    StepVerifier.create(configService.getProjectPath("s-empty"))
+        .expectNext("/path")
+        .verifyComplete();
+    StepVerifier.create(configService.getDescription("s-empty"))
+        .expectNext("description")
+        .verifyComplete();
+    StepVerifier.create(configService.getInitiator("s-empty"))
+        .expectNext("initiator")
+        .verifyComplete();
+  }
+
+  @Test
+  void getAllConfigsWhenSessionDoesNotExist() {
+    StepVerifier.create(configService.getAllConfigs("non-existent-session")).verifyComplete();
+  }
+
+  @Test
+  void sessionExistsChecksAllMaps() {
+    String sessionId = "test-session";
+
+    configService.setInitiator(sessionId, "initiator").block();
+    StepVerifier.create(configService.getAllConfigs(sessionId))
+        .expectNextMatches(map -> "initiator".equals(map.get("initiator")))
+        .verifyComplete();
+
+    String sessionId2 = "test-session2";
+    configService.setInitiatedTime(sessionId2, "2026-01-01").block();
+    StepVerifier.create(configService.getAllConfigs(sessionId2))
+        .expectNextMatches(map -> "2026-01-01".equals(map.get("initiatedTime")))
+        .verifyComplete();
+
+    String sessionId3 = "test-session3";
+    configService.setTags(sessionId3, Map.of("tag1", "val1")).block();
+    StepVerifier.create(configService.getAllConfigs(sessionId3))
+        .expectNextMatches(map -> Map.of("tag1", "val1").equals(map.get("tags")))
+        .verifyComplete();
+
+    String sessionId4 = "test-session4";
+    configService.setDescription(sessionId4, "desc").block();
+    StepVerifier.create(configService.getAllConfigs(sessionId4))
+        .expectNextMatches(map -> "desc".equals(map.get("description")))
+        .verifyComplete();
   }
 }

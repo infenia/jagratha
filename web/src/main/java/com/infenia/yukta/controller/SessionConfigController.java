@@ -114,7 +114,7 @@ public class SessionConfigController {
                           new ApiResponse.FieldError(
                               "sessionId", "Session not found: '" + sessionId + "'"));
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                      .<ApiResponse<SessionDetails>>body(
+                      .body(
                           ApiResponse.error(
                               HttpStatus.NOT_FOUND.value(),
                               "Not Found",
@@ -177,7 +177,7 @@ public class SessionConfigController {
                                   + sessionId
                                   + "'"));
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                      .<ApiResponse<WorkflowDefinition>>body(
+                      .body(
                           ApiResponse.error(
                               HttpStatus.NOT_FOUND.value(),
                               "Not Found",
@@ -224,7 +224,7 @@ public class SessionConfigController {
               content = @Content(mediaType = APPLICATION_JSON))
           @RequestBody
           final ConfigRequest request) {
-    log.atInfo().log("applyConfig reached: sessionId={}", request.sessionId());
+    log.atInfo().log("applyConfig: sessionId={}", request.sessionId());
     final SessionConfigData configData = configMapper.toData(request);
     return sessionService
         .applyConfig(configData)
