@@ -91,6 +91,12 @@ public class SessionConfigController {
     log.atInfo().log("getSessionDetails reached: sessionId={}", sessionId);
     return sessionService
         .getSessionConfig(sessionId)
+        .doOnNext(
+            config ->
+                log.atInfo().log(
+                    "getSessionDetails service call succeeded: sessionId={}, workflowCount={}",
+                    sessionId,
+                    ((Map<String, Object>) config.getOrDefault("workflows", Map.of())).size()))
         .map(
             config -> {
               // Cast is safe: config comes from SessionConfigData which guarantees workflows is
@@ -105,9 +111,14 @@ public class SessionConfigController {
                       "Session details retrieved",
                       new SessionDetails(sessionId, workflowIds)));
             })
+        .doOnSuccess(
+            _ ->
+                log.atInfo().log(
+                    "getSessionDetails response sent successfully: sessionId={}", sessionId))
         .switchIfEmpty(
             Mono.fromSupplier(
                 () -> {
+                  log.atWarn().log("getSessionDetails session not found: sessionId={}", sessionId);
                   final String path = exchange.getRequest().getPath().value();
                   final List<ApiResponse.FieldError> errors =
                       List.of(
@@ -121,7 +132,14 @@ public class SessionConfigController {
                               "Session not found",
                               path,
                               errors));
-                }));
+                }))
+        .doOnError(
+            error ->
+                log.atError()
+                    .log(
+                        "getSessionDetails error occurred: sessionId={}, error={}",
+                        sessionId,
+                        error.getMessage()));
   }
 
   /**
@@ -159,13 +177,30 @@ public class SessionConfigController {
     log.atInfo().log("getWorkflow reached: sessionId={}, workflowId={}", sessionId, workflowId);
     return sessionService
         .getSessionWorkflow(sessionId, workflowId)
+        .doOnNext(
+            _ ->
+                log.atInfo().log(
+                    "getWorkflow service call succeeded: sessionId={}, workflowId={}",
+                    sessionId,
+                    workflowId))
         .map(
             def ->
                 ResponseEntity.ok(
                     ApiResponse.success(HttpStatus.OK.value(), "Workflow retrieved", def)))
+        .doOnSuccess(
+            _ ->
+                log.atInfo().log(
+                    "getWorkflow response sent successfully: sessionId={}, workflowId={}",
+                    sessionId,
+                    workflowId))
         .switchIfEmpty(
             Mono.fromSupplier(
                 () -> {
+                  log.atWarn()
+                      .log(
+                          "getWorkflow workflow not found: sessionId={}, workflowId={}",
+                          sessionId,
+                          workflowId);
                   final String path = exchange.getRequest().getPath().value();
                   final List<ApiResponse.FieldError> errors =
                       List.of(
@@ -184,7 +219,15 @@ public class SessionConfigController {
                               "Workflow not found",
                               path,
                               errors));
-                }));
+                }))
+        .doOnError(
+            error ->
+                log.atError()
+                    .log(
+                        "getWorkflow error occurred: sessionId={}, workflowId={}, error={}",
+                        sessionId,
+                        workflowId,
+                        error.getMessage()));
   }
 
   /**
@@ -228,9 +271,28 @@ public class SessionConfigController {
     final SessionConfigData configData = configMapper.toData(request);
     return sessionService
         .applyConfig(configData)
-        .thenReturn(
-            ResponseEntity.ok(
-                ApiResponse.success(
-                    HttpStatus.OK.value(), "Configuration applied successfully", null)));
+        .doOnSuccess(
+            _ ->
+                log.atInfo().log(
+                    "applyConfig service call succeeded: sessionId={}", request.sessionId()))
+        .then(
+            Mono.defer(
+                () -> {
+                  final ApiResponse<Void> response =
+                      ApiResponse.success(
+                          HttpStatus.OK.value(), "Configuration applied successfully", null);
+                  return Mono.just(ResponseEntity.ok(response));
+                }))
+        .doOnSuccess(
+            _ ->
+                log.atInfo().log(
+                    "applyConfig response sent successfully: sessionId={}", request.sessionId()))
+        .doOnError(
+            error ->
+                log.atError()
+                    .log(
+                        "applyConfig error occurred: sessionId={}, error={}",
+                        request.sessionId(),
+                        error.getMessage()));
   }
 }

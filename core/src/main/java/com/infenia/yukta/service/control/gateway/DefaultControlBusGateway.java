@@ -57,8 +57,8 @@ import reactor.util.concurrent.Queues;
  *
  * <p>Combines control bus gateway functionality with execution status publishing. Delegates
  * low-level plugin management and message operations to {@link ControlBusService}, and high-level
- * control commands and observability operations to {@link DefaultTaskTrackerService}.
- * Manages status event publication via internal Reactor Sinks.
+ * control commands and observability operations to {@link DefaultTaskTrackerService}. Manages
+ * status event publication via internal Reactor Sinks.
  */
 @Slf4j
 @Service
@@ -91,11 +91,23 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
    */
   @PostConstruct
   public void subscribeToStatusEvents() {
+    log.atDebug().log("Subscribing to status event stream");
     statusSink
         .asFlux()
+        .doOnSubscribe(sub -> log.atDebug().log("Status event stream subscription established"))
+        .doOnNext(
+            event ->
+                log.atTrace()
+                    .addKeyValue("executionId", event.executionId())
+                    .addKeyValue("nodeId", event.nodeId())
+                    .addKeyValue("status", event.status())
+                    .log("Status event received"))
         .subscribe(
             event -> {
-              // Forward status updates to task tracker
+              log.atDebug()
+                  .addKeyValue("executionId", event.executionId())
+                  .addKeyValue("nodeId", event.nodeId())
+                  .log("Forwarding status to task tracker");
               taskTracker
                   .updateTaskStatus(
                       event.executionId(),
@@ -103,33 +115,101 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
                       event.module(),
                       event.status(),
                       event.metadata() != null ? event.metadata() : Map.of())
+                  .doOnSuccess(
+                      v ->
+                          log.atDebug()
+                              .addKeyValue("executionId", event.executionId())
+                              .log("Task status updated successfully"))
+                  .doOnError(
+                      err ->
+                          log.atError()
+                              .setCause(err)
+                              .addKeyValue("executionId", event.executionId())
+                              .addKeyValue("nodeId", event.nodeId())
+                              .log("Failed to update task status"))
                   .subscribe();
             },
-            error -> log.atError().setCause(error).log("Status event stream error"));
+            error -> log.atError().setCause(error).log("Status event stream error"),
+            () -> log.atDebug().log("Status event stream completed"));
   }
 
   // --- Plugin & Message Management ---
 
   @Override
   public <T> Mono<Void> emit(final Message<T> signal) {
-    return controlBusService.emit(signal);
+    return Mono.defer(
+            () -> {
+              log.atTrace()
+                  .addKeyValue("sourceNodeId", signal.getSourceNodeId())
+                  .addKeyValue("priority", signal.getPriority())
+                  .log("Emitting message to control bus");
+              return controlBusService.emit(signal);
+            })
+        .doOnSuccess(
+            v ->
+                log.atDebug()
+                    .addKeyValue("sourceNodeId", signal.getSourceNodeId())
+                    .log("Message emitted successfully"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("sourceNodeId", signal.getSourceNodeId())
+                    .log("Failed to emit message"));
   }
 
   @Override
   public void registerPlugin(
       final String workflowId, final String nodeId, final WorkflowPlugin plugin) {
+    log.atInfo()
+        .addKeyValue("workflowId", workflowId)
+        .addKeyValue("nodeId", nodeId)
+        .addKeyValue("pluginType", plugin.getClass().getSimpleName())
+        .log("Registering plugin");
     controlBusService.registerPlugin(workflowId, nodeId, plugin);
+    log.atDebug()
+        .addKeyValue("workflowId", workflowId)
+        .addKeyValue("nodeId", nodeId)
+        .log("Plugin registered successfully");
   }
 
   @Override
   public void unregisterPlugin(final String workflowId, final String nodeId) {
+    log.atInfo()
+        .addKeyValue("workflowId", workflowId)
+        .addKeyValue("nodeId", nodeId)
+        .log("Unregistering plugin");
     controlBusService.unregisterPlugin(workflowId, nodeId);
+    log.atDebug()
+        .addKeyValue("workflowId", workflowId)
+        .addKeyValue("nodeId", nodeId)
+        .log("Plugin unregistered successfully");
   }
 
   @Override
   public Mono<Message<?>> sendCommand(
       final String workflowId, final String nodeId, final Message<?> command) {
-    return controlBusService.sendCommand(workflowId, nodeId, command);
+    return Mono.defer(
+            () -> {
+              log.atInfo()
+                  .addKeyValue("workflowId", workflowId)
+                  .addKeyValue("nodeId", nodeId)
+                  .log("Sending command to node");
+              return controlBusService.sendCommand(workflowId, nodeId, command);
+            })
+        .doOnSuccess(
+            response ->
+                log.atDebug()
+                    .addKeyValue("workflowId", workflowId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Command sent and response received"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("workflowId", workflowId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Failed to send command"));
   }
 
   // --- Configuration & Preparation ---
@@ -137,71 +217,232 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
   @Override
   public Mono<Void> compileAndCacheWorkflow(
       final String sessionId, final WorkflowDefinition workflowDefinition) {
-    return controlBusService.compileAndCacheWorkflow(sessionId, workflowDefinition);
+    return Mono.defer(
+            () -> {
+              log.atInfo()
+                  .addKeyValue("sessionId", sessionId)
+                  .addKeyValue("workflowId", workflowDefinition.workflowId())
+                  .addKeyValue("nodeCount", workflowDefinition.nodes().size())
+                  .addKeyValue("edgeCount", workflowDefinition.edges().size())
+                  .log("Compiling and caching workflow");
+              return controlBusService.compileAndCacheWorkflow(sessionId, workflowDefinition);
+            })
+        .doOnSuccess(
+            v ->
+                log.atInfo()
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("workflowId", workflowDefinition.workflowId())
+                    .log("Workflow compiled and cached successfully"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("workflowId", workflowDefinition.workflowId())
+                    .log("Failed to compile and cache workflow"));
   }
 
   // --- Execution Control ---
 
   @Override
   public <T extends ExecutionControlCommand> Mono<Void> executeCommand(final Message<T> command) {
+    log.atDebug()
+        .addKeyValue("commandType", command.getPayload().getClass().getSimpleName())
+        .log("Executing control command");
     return emit(command);
   }
 
   @Override
   public Mono<Void> pauseWorkflow(final String executionId) {
     return executeCommand(
-        buildCommand(new PauseWorkflowCommand(executionId), CONTROL_COMMAND_PRIORITY));
+            buildCommand(new PauseWorkflowCommand(executionId), CONTROL_COMMAND_PRIORITY))
+        .doOnSubscribe(
+            sub -> log.atInfo().addKeyValue("executionId", executionId).log("Pausing workflow"))
+        .doOnSuccess(
+            v ->
+                log.atDebug()
+                    .addKeyValue("executionId", executionId)
+                    .log("Workflow pause command executed"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .log("Failed to pause workflow"));
   }
 
   @Override
   public Mono<Void> resumeWorkflow(final String executionId) {
     return executeCommand(
-        buildCommand(new ResumeWorkflowCommand(executionId), CONTROL_COMMAND_PRIORITY));
+            buildCommand(new ResumeWorkflowCommand(executionId), CONTROL_COMMAND_PRIORITY))
+        .doOnSubscribe(
+            sub -> log.atInfo().addKeyValue("executionId", executionId).log("Resuming workflow"))
+        .doOnSuccess(
+            v ->
+                log.atDebug()
+                    .addKeyValue("executionId", executionId)
+                    .log("Workflow resume command executed"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .log("Failed to resume workflow"));
   }
 
   @Override
   public Mono<Void> pauseNode(final String executionId, final String nodeId) {
     return executeCommand(
-        buildCommand(new PauseNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY));
+            buildCommand(new PauseNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
+        .doOnSubscribe(
+            sub ->
+                log.atInfo()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Pausing node"))
+        .doOnSuccess(
+            v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node pause command executed"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Failed to pause node"));
   }
 
   @Override
   public Mono<Void> resumeNode(final String executionId, final String nodeId) {
     return executeCommand(
-        buildCommand(new ResumeNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY));
+            buildCommand(new ResumeNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
+        .doOnSubscribe(
+            sub ->
+                log.atInfo()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Resuming node"))
+        .doOnSuccess(
+            v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node resume command executed"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Failed to resume node"));
   }
 
   @Override
   public Mono<Void> stopNode(
       final String executionId, final String nodeId, final boolean immediate, final String reason) {
     return executeCommand(
-        buildCommand(
-            new StopNodeCommand(executionId, nodeId, immediate, reason),
-            CONTROL_COMMAND_PRIORITY + 10));
+            buildCommand(
+                new StopNodeCommand(executionId, nodeId, immediate, reason),
+                CONTROL_COMMAND_PRIORITY + 10))
+        .doOnSubscribe(
+            sub ->
+                log.atInfo()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .addKeyValue("immediate", immediate)
+                    .addKeyValue("reason", reason)
+                    .log("Stopping node"))
+        .doOnSuccess(
+            v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node stop command executed"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Failed to stop node"));
   }
 
   @Override
   public Mono<Void> skipNode(final String executionId, final String nodeId, final boolean skip) {
     return executeCommand(
-        buildCommand(new SkipNodeCommand(executionId, nodeId, skip), CONTROL_COMMAND_PRIORITY));
+            buildCommand(new SkipNodeCommand(executionId, nodeId, skip), CONTROL_COMMAND_PRIORITY))
+        .doOnSubscribe(
+            sub ->
+                log.atInfo()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .addKeyValue("skip", skip)
+                    .log("Toggling node skip"))
+        .doOnSuccess(
+            v ->
+                log.atDebug()
+                    .addKeyValue("nodeId", nodeId)
+                    .addKeyValue("skip", skip)
+                    .log("Node skip command executed"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Failed to skip node"));
   }
 
   @Override
   public Mono<Void> enableStepMode(final String executionId, final String nodeId) {
     return executeCommand(
-        buildCommand(new EnableStepModeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY));
+            buildCommand(new EnableStepModeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
+        .doOnSubscribe(
+            sub ->
+                log.atInfo()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Enabling step mode"))
+        .doOnSuccess(v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Step mode enabled"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Failed to enable step mode"));
   }
 
   @Override
   public Mono<Void> disableStepMode(final String executionId, final String nodeId) {
     return executeCommand(
-        buildCommand(new DisableStepModeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY));
+            buildCommand(new DisableStepModeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
+        .doOnSubscribe(
+            sub ->
+                log.atInfo()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Disabling step mode"))
+        .doOnSuccess(v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Step mode disabled"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Failed to disable step mode"));
   }
 
   @Override
   public Mono<Void> stepNode(final String executionId, final String nodeId) {
     return executeCommand(
-        buildCommand(new StepNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY));
+            buildCommand(new StepNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
+        .doOnSubscribe(
+            sub ->
+                log.atInfo()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Stepping through node"))
+        .doOnSuccess(
+            v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node step command executed"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("nodeId", nodeId)
+                    .log("Failed to step node"));
   }
 
   @Override
@@ -209,7 +450,25 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     final String newExecutionId = UUID.randomUUID().toString();
     return executeCommand(
             buildCommand(new RestartCommand(executionId), CONTROL_COMMAND_PRIORITY + 20))
-        .then(Mono.just(newExecutionId));
+        .doOnSubscribe(
+            sub ->
+                log.atInfo()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("newExecutionId", newExecutionId)
+                    .log("Restarting workflow"))
+        .then(Mono.just(newExecutionId))
+        .doOnSuccess(
+            newId ->
+                log.atInfo()
+                    .addKeyValue("oldExecutionId", executionId)
+                    .addKeyValue("newExecutionId", newId)
+                    .log("Workflow restarted successfully"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .log("Failed to restart workflow"));
   }
 
   @Override
@@ -218,66 +477,196 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return executeCommand(
             buildCommand(
                 new RestartFromNodeCommand(executionId, fromNodeId), CONTROL_COMMAND_PRIORITY + 20))
-        .then(Mono.just(newExecutionId));
+        .doOnSubscribe(
+            sub ->
+                log.atInfo()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("fromNodeId", fromNodeId)
+                    .addKeyValue("newExecutionId", newExecutionId)
+                    .log("Restarting workflow from node"))
+        .then(Mono.just(newExecutionId))
+        .doOnSuccess(
+            newId ->
+                log.atInfo()
+                    .addKeyValue("oldExecutionId", executionId)
+                    .addKeyValue("fromNodeId", fromNodeId)
+                    .addKeyValue("newExecutionId", newId)
+                    .log("Workflow restarted from node successfully"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("fromNodeId", fromNodeId)
+                    .log("Failed to restart workflow from node"));
   }
 
   // --- Observability ---
 
   @Override
   public Flux<WorkflowProgress> watchExecution(final String executionId) {
-    return taskTracker.getStatusStream(executionId);
+    log.atDebug()
+        .addKeyValue("executionId", executionId)
+        .log("Starting to watch workflow execution");
+    return taskTracker
+        .getStatusStream(executionId)
+        .doOnSubscribe(
+            sub ->
+                log.atDebug()
+                    .addKeyValue("executionId", executionId)
+                    .log("Subscribed to execution status stream"))
+        .doOnNext(
+            progress ->
+                log.atTrace()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("status", progress.status())
+                    .addKeyValue("taskCount", progress.tasks().size())
+                    .log("Received execution progress update"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .log("Execution status stream error"));
   }
 
   @Override
   public Flux<String> watchLogs(final String executionId) {
-    return taskTracker.getLogStream(executionId);
+    log.atDebug().addKeyValue("executionId", executionId).log("Starting to watch execution logs");
+    return taskTracker
+        .getLogStream(executionId)
+        .doOnSubscribe(
+            sub ->
+                log.atDebug()
+                    .addKeyValue("executionId", executionId)
+                    .log("Subscribed to log stream"))
+        .doOnNext(logLine -> log.atTrace().addKeyValue("executionId", executionId).log(logLine))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("executionId", executionId)
+                    .log("Log stream error"));
   }
 
   @Override
   public WorkflowProgress getCurrentProgress(final String executionId) {
-    return taskTracker.getProgressByExecutionId(executionId);
+    log.atDebug()
+        .addKeyValue("executionId", executionId)
+        .log("Fetching current execution progress");
+    WorkflowProgress progress = taskTracker.getProgressByExecutionId(executionId);
+    if (progress != null) {
+      log.atDebug()
+          .addKeyValue("executionId", executionId)
+          .addKeyValue("status", progress.status())
+          .addKeyValue("taskCount", progress.tasks().size())
+          .log("Current progress retrieved");
+    } else {
+      log.atWarn().addKeyValue("executionId", executionId).log("No progress found for execution");
+    }
+    return progress;
   }
 
   @Override
   public List<WorkflowExecutionSummary> getHistory(final String sessionId) {
-    return taskTracker.getHistory(sessionId);
+    log.atDebug().addKeyValue("sessionId", sessionId).log("Fetching execution history");
+    List<WorkflowExecutionSummary> history = taskTracker.getHistory(sessionId);
+    log.atDebug()
+        .addKeyValue("sessionId", sessionId)
+        .addKeyValue("executionCount", history.size())
+        .log("Execution history retrieved");
+    return history;
   }
 
   // --- State Queries ---
 
   @Override
   public Message<?> getLastHeartbeat(final String workflowId, final String nodeId) {
-    return controlBusService.getLastHeartbeat(workflowId, nodeId);
+    log.atDebug()
+        .addKeyValue("workflowId", workflowId)
+        .addKeyValue("nodeId", nodeId)
+        .log("Fetching last heartbeat");
+    Message<?> heartbeat = controlBusService.getLastHeartbeat(workflowId, nodeId);
+    if (heartbeat != null) {
+      log.atTrace()
+          .addKeyValue("workflowId", workflowId)
+          .addKeyValue("nodeId", nodeId)
+          .log("Last heartbeat found");
+    } else {
+      log.atDebug()
+          .addKeyValue("workflowId", workflowId)
+          .addKeyValue("nodeId", nodeId)
+          .log("No heartbeat found");
+    }
+    return heartbeat;
   }
 
   @Override
   public Message<?> getLastStatistics(final String workflowId, final String nodeId) {
-    return controlBusService.getLastStatistics(workflowId, nodeId);
+    log.atDebug()
+        .addKeyValue("workflowId", workflowId)
+        .addKeyValue("nodeId", nodeId)
+        .log("Fetching last statistics");
+    Message<?> statistics = controlBusService.getLastStatistics(workflowId, nodeId);
+    if (statistics != null) {
+      log.atTrace()
+          .addKeyValue("workflowId", workflowId)
+          .addKeyValue("nodeId", nodeId)
+          .log("Last statistics found");
+    } else {
+      log.atDebug()
+          .addKeyValue("workflowId", workflowId)
+          .addKeyValue("nodeId", nodeId)
+          .log("No statistics found");
+    }
+    return statistics;
   }
 
   @Override
   public List<String> getActiveNodes(final String workflowId) {
-    return controlBusService.getActiveNodes(workflowId);
+    log.atDebug().addKeyValue("workflowId", workflowId).log("Fetching active nodes for workflow");
+    List<String> activeNodes = controlBusService.getActiveNodes(workflowId);
+    log.atDebug()
+        .addKeyValue("workflowId", workflowId)
+        .addKeyValue("activeNodeCount", activeNodes.size())
+        .log("Active nodes retrieved");
+    return activeNodes;
   }
 
   @Override
   public List<String> getActiveNodes() {
-    return controlBusService.getActiveNodes();
+    log.atDebug().log("Fetching all active nodes");
+    List<String> allActiveNodes = controlBusService.getActiveNodes();
+    log.atDebug()
+        .addKeyValue("totalActiveNodes", allActiveNodes.size())
+        .log("All active nodes retrieved");
+    return allActiveNodes;
   }
 
   // --- ExecutionStatusPublisher Implementation ---
 
   @Override
   public Mono<Void> publishStatus(@NotNull final ExecutionStatusEvent event) {
+    log.atTrace()
+        .addKeyValue("executionId", event.executionId())
+        .addKeyValue("nodeId", event.nodeId())
+        .addKeyValue("status", event.status())
+        .log("Publishing status event");
     return Mono.create(
         sink -> {
           try {
             statusSink.emitNext(event, RETRY_HANDLER);
+            log.atDebug()
+                .addKeyValue("executionId", event.executionId())
+                .addKeyValue("status", event.status())
+                .log("Status event published successfully");
             sink.success();
           } catch (final RuntimeException e) {
             log.atError()
                 .setCause(e)
                 .addKeyValue("executionId", event.executionId())
+                .addKeyValue("nodeId", event.nodeId())
+                .addKeyValue("status", event.status())
                 .log("Failed to publish status event");
             sink.error(new IllegalStateException("Status event publish failed", e));
           }

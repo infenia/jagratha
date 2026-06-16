@@ -52,14 +52,53 @@ public class SessionService {
    * @return Mono that completes when the configuration is successfully applied and persisted
    */
   public Mono<Void> applyConfig(@Valid final SessionConfigData data) {
+    Mono<Void> workflowCompilation =
+        data.workflows().isEmpty()
+            ? Mono.<Void>empty()
+                .doOnSuccess(
+                    _ ->
+                        log.atDebug().log(
+                            "No workflows to compile for session: {}", data.sessionId()))
+            : Flux.fromIterable(data.workflows().values())
+                .doOnSubscribe(
+                    _ ->
+                        log.atInfo().log(
+                            "Starting compilation of {} workflows for session: {}",
+                            data.workflows().size(),
+                            data.sessionId()))
+                .flatMap(
+                    def ->
+                        controlBus
+                            .compileAndCacheWorkflow(data.sessionId(), def)
+                            .doOnSuccess(
+                                _ ->
+                                    log.atDebug().log(
+                                        "Successfully compiled workflow: {} for session: {}",
+                                        def.workflowId(),
+                                        data.sessionId()))
+                            .doOnError(
+                                err ->
+                                    log.atError()
+                                        .addArgument(def.workflowId())
+                                        .addArgument(data.sessionId())
+                                        .setCause(err)
+                                        .log("Failed to compile workflow: {} for session: {}")))
+                .then();
     return configService
         .applySessionConfig(data)
-        .then(
-            data.workflows().isEmpty()
-                ? Mono.empty()
-                : Flux.fromIterable(data.workflows().values())
-                    .flatMap(def -> controlBus.compileAndCacheWorkflow(data.sessionId(), def))
-                    .then());
+        .doOnSubscribe(
+            _ -> log.atInfo().log("Applying configuration for session: {}", data.sessionId()))
+        .then(workflowCompilation)
+        .doOnSuccess(
+            _ ->
+                log.atInfo().log(
+                    "Configuration applied successfully for session: {}", data.sessionId()))
+        .doOnError(
+            err ->
+                log.atError()
+                    .addArgument(data.sessionId())
+                    .setCause(err)
+                    .log("Failed to apply configuration for session: {}"));
   }
 
   /**
@@ -71,7 +110,12 @@ public class SessionService {
    * @return Flux of session IDs
    */
   public Flux<String> getSessionIds() {
-    return configService.getSessionIds();
+    return configService
+        .getSessionIds()
+        .doOnSubscribe(_ -> log.atDebug().log("Retrieving all session IDs"))
+        .doOnNext(sessionId -> log.atTrace().log("Found session: {}", sessionId))
+        .doOnComplete(() -> log.atDebug().log("Session ID retrieval completed"))
+        .doOnError(err -> log.atError().setCause(err).log("Failed to retrieve session IDs"));
   }
 
   /**
@@ -83,7 +127,21 @@ public class SessionService {
    * @return Mono containing map of configurations
    */
   public Mono<Map<String, Object>> getSessionConfig(@SessionId final String sessionId) {
-    return configService.getAllConfigs(sessionId);
+    return configService
+        .getAllConfigs(sessionId)
+        .doOnSubscribe(_ -> log.atDebug().log("Fetching configuration for session: {}", sessionId))
+        .doOnSuccess(
+            config ->
+                log.atDebug().log(
+                    "Retrieved {} configuration entries for session: {}",
+                    config != null ? config.size() : 0,
+                    sessionId))
+        .doOnError(
+            err ->
+                log.atError()
+                    .addArgument(sessionId)
+                    .setCause(err)
+                    .log("Failed to retrieve configuration for session: {}"));
   }
 
   /**
@@ -95,6 +153,24 @@ public class SessionService {
    */
   public Mono<WorkflowDefinition> getSessionWorkflow(
       @SessionId final String sessionId, @WorkflowId final String workflowId) {
-    return workflowDefinitionStore.find(sessionId, workflowId);
+    return workflowDefinitionStore
+        .find(sessionId, workflowId)
+        .doOnSubscribe(
+            _ -> log.atDebug().log("Fetching workflow: {} for session: {}", workflowId, sessionId))
+        .doOnSuccess(
+            workflow ->
+                log.atDebug().log(
+                    "Retrieved workflow: {} with {} nodes and {} edges for session: {}",
+                    workflowId,
+                    workflow != null ? workflow.nodes().size() : 0,
+                    workflow != null ? workflow.edges().size() : 0,
+                    sessionId))
+        .doOnError(
+            err ->
+                log.atError()
+                    .addArgument(workflowId)
+                    .addArgument(sessionId)
+                    .setCause(err)
+                    .log("Failed to retrieve workflow: {} for session: {}"));
   }
 }

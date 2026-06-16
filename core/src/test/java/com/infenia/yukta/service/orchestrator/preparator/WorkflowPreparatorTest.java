@@ -64,8 +64,7 @@ class WorkflowPreparatorTest {
   @Test
   void prepareWorkflow_singleNode_noEdges_returnsPreparedWorkflow() {
     final Node node = new Node("n1", "plugin-type", Map.of());
-    final WorkflowDefinition def =
-        new WorkflowDefinition("wf1", "desc", List.of(node), List.of());
+    final WorkflowDefinition def = new WorkflowDefinition("wf1", "desc", List.of(node), List.of());
     final WorkflowNode workflowNode = new WorkflowNode("n1", "plugin-type", Map.of());
 
     when(registry.get("plugin-type")).thenReturn(plugin);
@@ -118,10 +117,8 @@ class WorkflowPreparatorTest {
               assertThat(we.source()).isEqualTo("n1");
               assertThat(we.target()).isEqualTo("n2");
               assertThat(we.sourcePort()).isEqualTo("default");
-              assertThat(pw.adjacencyList().get("n1"))
-                  .anyMatch(n -> "n2".equals(n.nodeId()));
-              assertThat(pw.parentsList().get("n2"))
-                  .anyMatch(n -> "n1".equals(n.nodeId()));
+              assertThat(pw.adjacencyList().get("n1")).anyMatch(n -> "n2".equals(n.nodeId()));
+              assertThat(pw.parentsList().get("n2")).anyMatch(n -> "n1".equals(n.nodeId()));
               assertThat(pw.pluginCache()).hasSize(2);
             })
         .verifyComplete();
@@ -132,8 +129,7 @@ class WorkflowPreparatorTest {
   @Test
   void prepareWorkflow_pluginNotFoundForNode_failsWithError() {
     final Node node = new Node("n1", "missing-type", Map.of());
-    final WorkflowDefinition def =
-        new WorkflowDefinition("wf3", "desc", List.of(node), List.of());
+    final WorkflowDefinition def = new WorkflowDefinition("wf3", "desc", List.of(node), List.of());
 
     when(registry.get("missing-type")).thenReturn(null);
     when(validator.validate(def)).thenReturn(Mono.empty());
@@ -151,8 +147,7 @@ class WorkflowPreparatorTest {
   @Test
   void prepareWorkflow_validationFails_propagatesError() {
     final Node node = new Node("n1", "plugin-type", Map.of());
-    final WorkflowDefinition def =
-        new WorkflowDefinition("wf4", "desc", List.of(node), List.of());
+    final WorkflowDefinition def = new WorkflowDefinition("wf4", "desc", List.of(node), List.of());
 
     when(registry.get("plugin-type")).thenReturn(plugin);
     when(validator.validate(def))
@@ -161,8 +156,7 @@ class WorkflowPreparatorTest {
     StepVerifier.create(preparator.prepareWorkflow(def))
         .expectErrorMatches(
             e ->
-                e instanceof IllegalArgumentException
-                    && "validation failed".equals(e.getMessage()))
+                e instanceof IllegalArgumentException && "validation failed".equals(e.getMessage()))
         .verify();
 
     verify(plugin, never()).initialize(any());
@@ -171,8 +165,7 @@ class WorkflowPreparatorTest {
   @Test
   void prepareWorkflow_pluginInitializeFails_shutdownIsInvokedAndErrorPropagated() {
     final Node node = new Node("n1", "plugin-type", Map.of());
-    final WorkflowDefinition def =
-        new WorkflowDefinition("wf5", "desc", List.of(node), List.of());
+    final WorkflowDefinition def = new WorkflowDefinition("wf5", "desc", List.of(node), List.of());
 
     when(registry.get("plugin-type")).thenReturn(plugin);
     when(validator.validate(def)).thenReturn(Mono.empty());
@@ -190,8 +183,7 @@ class WorkflowPreparatorTest {
   @Test
   void prepareWorkflow_pluginShutdownFailsDuringCleanup_originalErrorStillPropagated() {
     final Node node = new Node("n1", "plugin-type", Map.of());
-    final WorkflowDefinition def =
-        new WorkflowDefinition("wf6", "desc", List.of(node), List.of());
+    final WorkflowDefinition def = new WorkflowDefinition("wf6", "desc", List.of(node), List.of());
 
     when(registry.get("plugin-type")).thenReturn(plugin);
     when(validator.validate(def)).thenReturn(Mono.empty());
@@ -208,8 +200,7 @@ class WorkflowPreparatorTest {
   @Test
   void prepareWorkflow_pluginShutdownReturnsNull_handledGracefully() {
     final Node node = new Node("n1", "plugin-type", Map.of());
-    final WorkflowDefinition def =
-        new WorkflowDefinition("wf7", "desc", List.of(node), List.of());
+    final WorkflowDefinition def = new WorkflowDefinition("wf7", "desc", List.of(node), List.of());
 
     when(registry.get("plugin-type")).thenReturn(plugin);
     when(validator.validate(def)).thenReturn(Mono.empty());
@@ -247,8 +238,7 @@ class WorkflowPreparatorTest {
   void prepareWorkflow_nodeConfigPassedToInitialize() {
     final Map<String, Object> config = Map.of("key", "value");
     final Node node = new Node("n1", "plugin-type", config);
-    final WorkflowDefinition def =
-        new WorkflowDefinition("wf9", "desc", List.of(node), List.of());
+    final WorkflowDefinition def = new WorkflowDefinition("wf9", "desc", List.of(node), List.of());
     final WorkflowNode workflowNode = new WorkflowNode("n1", "plugin-type", config);
 
     when(registry.get("plugin-type")).thenReturn(plugin);
@@ -268,8 +258,7 @@ class WorkflowPreparatorTest {
   @Test
   void prepareWorkflow_topologicalSortThrows_errorPropagatedAndShutdownInvoked() {
     final Node node = new Node("n1", "plugin-type", Map.of());
-    final WorkflowDefinition def =
-        new WorkflowDefinition("wf10", "desc", List.of(node), List.of());
+    final WorkflowDefinition def = new WorkflowDefinition("wf10", "desc", List.of(node), List.of());
 
     when(registry.get("plugin-type")).thenReturn(plugin);
     when(validator.validate(def)).thenReturn(Mono.empty());
@@ -280,8 +269,7 @@ class WorkflowPreparatorTest {
 
     StepVerifier.create(preparator.prepareWorkflow(def))
         .expectErrorMatches(
-            e ->
-                e instanceof IllegalArgumentException && "cycle detected".equals(e.getMessage()))
+            e -> e instanceof IllegalArgumentException && "cycle detected".equals(e.getMessage()))
         .verify();
 
     verify(plugin).shutdown(Map.of());
@@ -290,8 +278,7 @@ class WorkflowPreparatorTest {
   @Test
   void prepareWorkflow_preparedWorkflowContainsCompilerTemplate() {
     final Node node = new Node("n1", "plugin-type", Map.of());
-    final WorkflowDefinition def =
-        new WorkflowDefinition("wf11", "desc", List.of(node), List.of());
+    final WorkflowDefinition def = new WorkflowDefinition("wf11", "desc", List.of(node), List.of());
     final WorkflowNode wn = new WorkflowNode("n1", "plugin-type", Map.of());
 
     when(registry.get("plugin-type")).thenReturn(plugin);

@@ -39,10 +39,8 @@ import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,9 +48,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
@@ -134,7 +130,8 @@ class TriggerNodeAssemblerStrategyTest {
     final WorkflowNode node = new WorkflowNode(NODE_ID, "trigger", Map.of());
 
     final NodeAssembler assembler =
-        strategy.createAssembler(node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
+        strategy.createAssembler(
+            node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
 
     assertThat(assembler).isNotNull();
   }
@@ -155,13 +152,13 @@ class TriggerNodeAssemblerStrategyTest {
         .thenReturn(broadcastFlux);
 
     final NodeAssembler assembler =
-        strategy.createAssembler(node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
+        strategy.createAssembler(
+            node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
     assembler.assemble(context);
 
     verify(trigger).start(any());
     verify(streamTopologyDecorator)
-        .applyLoggingAndBroadcasting(
-            anyString(), anyString(), any(), any(int.class), any(), any());
+        .applyLoggingAndBroadcasting(anyString(), anyString(), any(), any(int.class), any(), any());
     assertThat(context.streams()[0]).isSameAs(broadcastFlux);
   }
 
@@ -181,7 +178,8 @@ class TriggerNodeAssemblerStrategyTest {
         .thenReturn(broadcastFlux);
 
     final NodeAssembler assembler =
-        strategy.createAssembler(node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
+        strategy.createAssembler(
+            node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
     assembler.assemble(context);
 
     // Blocking path still assembles; we verify it completes without error
@@ -204,7 +202,8 @@ class TriggerNodeAssemblerStrategyTest {
         .thenReturn(Flux.just(msg));
 
     final NodeAssembler assembler =
-        strategy.createAssembler(node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
+        strategy.createAssembler(
+            node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
     assembler.assemble(context);
 
     assertThat(context.streams()[0]).isNotNull();
@@ -225,7 +224,8 @@ class TriggerNodeAssemblerStrategyTest {
         .thenReturn(Flux.just(msg));
 
     final NodeAssembler assembler =
-        strategy.createAssembler(node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
+        strategy.createAssembler(
+            node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
     assembler.assemble(context);
 
     assertThat(context.streams()[0]).isNotNull();
@@ -250,7 +250,8 @@ class TriggerNodeAssemblerStrategyTest {
         .thenReturn(broadcastFlux);
 
     final NodeAssembler assembler =
-        strategy.createAssembler(node, trigger, Duration.ofSeconds(5), index, 1024, new ParentEdgeInfo[0]);
+        strategy.createAssembler(
+            node, trigger, Duration.ofSeconds(5), index, 1024, new ParentEdgeInfo[0]);
     assembler.assemble(context);
 
     assertThat(context.streams()[index]).isSameAs(broadcastFlux);
@@ -272,7 +273,8 @@ class TriggerNodeAssemblerStrategyTest {
         .thenAnswer(inv -> inv.getArgument(2));
 
     final NodeAssembler assembler =
-        strategy.createAssembler(node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
+        strategy.createAssembler(
+            node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
     assembler.assemble(context);
 
     // Safe stop should complete the stream
@@ -290,9 +292,7 @@ class TriggerNodeAssemblerStrategyTest {
 
   @SuppressWarnings("unchecked")
   private AssemblyContext buildContextWithStreams(
-      final String nodeId,
-      final Sinks.One<Void> safeStopSink,
-      final Flux<Message<?>>[] streams) {
+      final String nodeId, final Sinks.One<Void> safeStopSink, final Flux<Message<?>>[] streams) {
     final Map<String, Sinks.One<Void>> nodeSafeStopSinks =
         safeStopSink != null ? Map.of(nodeId, safeStopSink) : Map.of();
 

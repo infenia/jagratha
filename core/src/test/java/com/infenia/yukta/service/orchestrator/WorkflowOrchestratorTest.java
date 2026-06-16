@@ -15,21 +15,17 @@
  */
 package com.infenia.yukta.service.orchestrator;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.model.workflow.WorkflowEdge;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
 import com.infenia.yukta.plugin.message.Message;
@@ -84,9 +80,7 @@ class WorkflowOrchestratorTest {
     final PreparedWorkflow prepared = buildPreparedWorkflow(List.of("node-a"));
     when(preparator.prepareWorkflow(def)).thenReturn(Mono.just(prepared));
 
-    StepVerifier.create(orchestrator.prepareWorkflow(def))
-        .expectNext(prepared)
-        .verifyComplete();
+    StepVerifier.create(orchestrator.prepareWorkflow(def)).expectNext(prepared).verifyComplete();
 
     verify(preparator).prepareWorkflow(def);
   }
@@ -115,14 +109,13 @@ class WorkflowOrchestratorTest {
     final Sinks.One<Void> immediateStop = Sinks.one();
     final Sinks.One<Void> safeStop = Sinks.one();
 
-    setupExecutionControl(sessionId, workflowId, executionId, prepared, payload,
-        immediateStop, safeStop);
+    setupExecutionControl(
+        sessionId, workflowId, executionId, prepared, payload, immediateStop, safeStop);
     when(tracker.startWorkflow(eq(executionId), eq(sessionId), eq(workflowId), anyList()))
         .thenReturn(Mono.empty());
     when(prepared.template().instantiate(eq(executionId), eq(payload))).thenReturn(Mono.empty());
 
-    StepVerifier.create(
-            orchestrator.execute(sessionId, workflowId, executionId, prepared, payload))
+    StepVerifier.create(orchestrator.execute(sessionId, workflowId, executionId, prepared, payload))
         .verifyComplete();
 
     verify(executionControlFactory).create(sessionId, workflowId, executionId, prepared, payload);
@@ -143,15 +136,14 @@ class WorkflowOrchestratorTest {
     final Sinks.One<Void> immediateStop = Sinks.one();
     final Sinks.One<Void> safeStop = Sinks.one();
 
-    setupExecutionControl(sessionId, workflowId, executionId, prepared, payload,
-        immediateStop, safeStop);
+    setupExecutionControl(
+        sessionId, workflowId, executionId, prepared, payload, immediateStop, safeStop);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
     when(prepared.template().instantiate(anyString(), any()))
         .thenReturn(Mono.error(new RuntimeException("execution failed")));
 
-    StepVerifier.create(
-            orchestrator.execute(sessionId, workflowId, executionId, prepared, payload))
+    StepVerifier.create(orchestrator.execute(sessionId, workflowId, executionId, prepared, payload))
         .expectError(RuntimeException.class)
         .verify();
 
@@ -170,20 +162,17 @@ class WorkflowOrchestratorTest {
     final Sinks.One<Void> immediateStop = Sinks.one();
     final Sinks.One<Void> safeStop = Sinks.one();
 
-    setupExecutionControl(sessionId, workflowId, executionId, prepared, payload,
-        immediateStop, safeStop);
+    setupExecutionControl(
+        sessionId, workflowId, executionId, prepared, payload, immediateStop, safeStop);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
     // Template never completes — stopped via immediateStop signal
-    when(prepared.template().instantiate(anyString(), any()))
-        .thenReturn(Mono.never());
+    when(prepared.template().instantiate(anyString(), any())).thenReturn(Mono.never());
 
     final Mono<Void> execution =
         orchestrator.execute(sessionId, workflowId, executionId, prepared, payload);
 
-    StepVerifier.create(execution)
-        .then(() -> immediateStop.tryEmitEmpty())
-        .verifyComplete();
+    StepVerifier.create(execution).then(() -> immediateStop.tryEmitEmpty()).verifyComplete();
 
     verify(executionControlRegistry).unregister(executionId);
     verify(checkpointStore).clear(executionId);
@@ -200,8 +189,8 @@ class WorkflowOrchestratorTest {
     final Sinks.One<Void> immediateStop = Sinks.one();
     final Sinks.One<Void> safeStop = Sinks.one();
 
-    setupExecutionControl(sessionId, workflowId, executionId, prepared, payload,
-        immediateStop, safeStop);
+    setupExecutionControl(
+        sessionId, workflowId, executionId, prepared, payload, immediateStop, safeStop);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
     when(prepared.template().instantiate(anyString(), any())).thenReturn(Mono.never());
@@ -209,9 +198,7 @@ class WorkflowOrchestratorTest {
     final Mono<Void> execution =
         orchestrator.execute(sessionId, workflowId, executionId, prepared, payload);
 
-    StepVerifier.create(execution)
-        .then(() -> safeStop.tryEmitEmpty())
-        .verifyComplete();
+    StepVerifier.create(execution).then(() -> safeStop.tryEmitEmpty()).verifyComplete();
 
     verify(executionControlRegistry).unregister(executionId);
     verify(checkpointStore).clear(executionId);
@@ -229,18 +216,18 @@ class WorkflowOrchestratorTest {
     final Sinks.One<Void> immediateStop = Sinks.one();
     final Sinks.One<Void> safeStop = Sinks.one();
 
-    setupExecutionControl(sessionId, workflowId, executionId, prepared, payload,
-        immediateStop, safeStop);
+    setupExecutionControl(
+        sessionId, workflowId, executionId, prepared, payload, immediateStop, safeStop);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
     when(prepared.template().instantiate(anyString(), any())).thenReturn(Mono.empty());
 
-    StepVerifier.create(
-            orchestrator.execute(sessionId, workflowId, executionId, prepared, payload))
+    StepVerifier.create(orchestrator.execute(sessionId, workflowId, executionId, prepared, payload))
         .verifyComplete();
 
-    verify(tracker).startWorkflow(executionId, sessionId, workflowId,
-        List.of("trigger", "processor", "terminal"));
+    verify(tracker)
+        .startWorkflow(
+            executionId, sessionId, workflowId, List.of("trigger", "processor", "terminal"));
   }
 
   // --- restartFromNode ---
@@ -256,7 +243,7 @@ class WorkflowOrchestratorTest {
     final WorkflowNode processor = new WorkflowNode("processor", "proc-type", Map.of());
     final PreparedWorkflow prepared = buildPreparedWorkflowFromNodes(List.of(trigger, processor));
 
-    final NodeAssembler[] assemblers = new NodeAssembler[]{ctx -> {}, ctx -> {}};
+    final NodeAssembler[] assemblers = new NodeAssembler[] {ctx -> {}, ctx -> {}};
     when(compiler.compileAssemblers(any(), any(), any(), any())).thenReturn(assemblers);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
@@ -269,13 +256,13 @@ class WorkflowOrchestratorTest {
 
     StepVerifier.create(
             orchestrator.restartFromNode(
-                sessionId, workflowId, prevExecId, newExecId, prepared,
-                "processor", Map.of()))
+                sessionId, workflowId, prevExecId, newExecId, prepared, "processor", Map.of()))
         .verifyComplete();
 
     verify(compiler).compileAssemblers(any(), any(), any(), any());
-    verify(compiler).executeTemplate(
-        eq(newExecId), any(), eq(2), any(), eq(sessionId), eq(workflowId), anyList());
+    verify(compiler)
+        .executeTemplate(
+            eq(newExecId), any(), eq(2), any(), eq(sessionId), eq(workflowId), anyList());
     verify(executionControlRegistry).unregister(newExecId);
     verify(checkpointStore).clear(newExecId);
   }
@@ -292,11 +279,12 @@ class WorkflowOrchestratorTest {
     final WorkflowNode processor = new WorkflowNode("processor", "proc-type", Map.of());
     final PreparedWorkflow prepared = buildPreparedWorkflowFromNodes(List.of(trigger, processor));
 
-    final NodeAssembler[] assemblers = new NodeAssembler[]{ctx -> {}, ctx -> {}};
+    final NodeAssembler[] assemblers = new NodeAssembler[] {ctx -> {}, ctx -> {}};
     when(compiler.compileAssemblers(any(), any(), any(), any())).thenReturn(assemblers);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
-    when(compiler.executeTemplate(anyString(), any(), eq(2), any(), anyString(), anyString(), anyList()))
+    when(compiler.executeTemplate(
+            anyString(), any(), eq(2), any(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
 
     final Sinks.One<Void> safeStop = Sinks.one();
@@ -307,8 +295,13 @@ class WorkflowOrchestratorTest {
 
     StepVerifier.create(
             orchestrator.restartFromNode(
-                sessionId, workflowId, prevExecId, newExecId, prepared,
-                restartNodeId, Map.of("trigger", checkpoint)))
+                sessionId,
+                workflowId,
+                prevExecId,
+                newExecId,
+                prepared,
+                restartNodeId,
+                Map.of("trigger", checkpoint)))
         .verifyComplete();
 
     verify(compiler).compileAssemblers(any(), any(), any(), any());
@@ -324,11 +317,12 @@ class WorkflowOrchestratorTest {
     final WorkflowNode node = new WorkflowNode("trigger", "trigger-type", Map.of());
     final PreparedWorkflow prepared = buildPreparedWorkflowFromNodes(List.of(node));
 
-    final NodeAssembler[] assemblers = new NodeAssembler[]{ctx -> {}};
+    final NodeAssembler[] assemblers = new NodeAssembler[] {ctx -> {}};
     when(compiler.compileAssemblers(any(), any(), any(), any())).thenReturn(assemblers);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
-    when(compiler.executeTemplate(anyString(), any(), eq(1), any(), anyString(), anyString(), anyList()))
+    when(compiler.executeTemplate(
+            anyString(), any(), eq(1), any(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.error(new RuntimeException("restart execution failed")));
 
     final Sinks.One<Void> safeStop = Sinks.one();
@@ -336,8 +330,7 @@ class WorkflowOrchestratorTest {
 
     StepVerifier.create(
             orchestrator.restartFromNode(
-                sessionId, workflowId, prevExecId, newExecId, prepared,
-                "trigger", Map.of()))
+                sessionId, workflowId, prevExecId, newExecId, prepared, "trigger", Map.of()))
         .expectError(RuntimeException.class)
         .verify();
 
@@ -355,11 +348,12 @@ class WorkflowOrchestratorTest {
     final WorkflowNode node = new WorkflowNode("trigger", "t", Map.of());
     final PreparedWorkflow prepared = buildPreparedWorkflowFromNodes(List.of(node));
 
-    final NodeAssembler[] assemblers = new NodeAssembler[]{ctx -> {}};
+    final NodeAssembler[] assemblers = new NodeAssembler[] {ctx -> {}};
     when(compiler.compileAssemblers(any(), any(), any(), any())).thenReturn(assemblers);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
-    when(compiler.executeTemplate(anyString(), any(), eq(1), any(), anyString(), anyString(), anyList()))
+    when(compiler.executeTemplate(
+            anyString(), any(), eq(1), any(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.never());
 
     final Sinks.One<Void> safeStop = Sinks.one();
@@ -369,9 +363,7 @@ class WorkflowOrchestratorTest {
         orchestrator.restartFromNode(
             sessionId, workflowId, prevExecId, newExecId, prepared, "trigger", Map.of());
 
-    StepVerifier.create(restart)
-        .then(() -> safeStop.tryEmitEmpty())
-        .verifyComplete();
+    StepVerifier.create(restart).then(() -> safeStop.tryEmitEmpty()).verifyComplete();
 
     verify(executionControlRegistry).unregister(newExecId);
     verify(checkpointStore).clear(newExecId);
@@ -388,11 +380,12 @@ class WorkflowOrchestratorTest {
     final WorkflowNode processor = new WorkflowNode("processor", "p", Map.of());
     final PreparedWorkflow prepared = buildPreparedWorkflowFromNodes(List.of(trigger, processor));
 
-    final NodeAssembler[] assemblers = new NodeAssembler[]{ctx -> {}, ctx -> {}};
+    final NodeAssembler[] assemblers = new NodeAssembler[] {ctx -> {}, ctx -> {}};
     when(compiler.compileAssemblers(any(), any(), any(), any())).thenReturn(assemblers);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
-    when(compiler.executeTemplate(anyString(), any(), eq(2), any(), anyString(), anyString(), anyList()))
+    when(compiler.executeTemplate(
+            anyString(), any(), eq(2), any(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
 
     final Sinks.One<Void> safeStop = Sinks.one();
@@ -401,8 +394,7 @@ class WorkflowOrchestratorTest {
     // "nonexistent" defaults to index 0 → no pre-restart nodes are replaced
     StepVerifier.create(
             orchestrator.restartFromNode(
-                sessionId, workflowId, prevExecId, newExecId, prepared,
-                "nonexistent", Map.of()))
+                sessionId, workflowId, prevExecId, newExecId, prepared, "nonexistent", Map.of()))
         .verifyComplete();
 
     verify(compiler).compileAssemblers(any(), any(), any(), any());
@@ -421,12 +413,12 @@ class WorkflowOrchestratorTest {
     final PreparedWorkflow prepared =
         buildPreparedWorkflowFromNodes(List.of(trigger, processor, terminal));
 
-    final NodeAssembler[] assemblers =
-        new NodeAssembler[]{ctx -> {}, ctx -> {}, ctx -> {}};
+    final NodeAssembler[] assemblers = new NodeAssembler[] {ctx -> {}, ctx -> {}, ctx -> {}};
     when(compiler.compileAssemblers(any(), any(), any(), any())).thenReturn(assemblers);
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
-    when(compiler.executeTemplate(anyString(), any(), eq(3), any(), anyString(), anyString(), anyList()))
+    when(compiler.executeTemplate(
+            anyString(), any(), eq(3), any(), anyString(), anyString(), anyList()))
         .thenReturn(Mono.empty());
 
     final Sinks.One<Void> safeStop = Sinks.one();
@@ -436,13 +428,13 @@ class WorkflowOrchestratorTest {
     // No checkpoints provided → both become Flux.empty assemblers
     StepVerifier.create(
             orchestrator.restartFromNode(
-                sessionId, workflowId, prevExecId, newExecId, prepared,
-                "terminal", Map.of()))
+                sessionId, workflowId, prevExecId, newExecId, prepared, "terminal", Map.of()))
         .verifyComplete();
 
     verify(compiler).compileAssemblers(any(), any(), any(), any());
-    verify(compiler).executeTemplate(
-        eq(newExecId), any(), eq(3), any(), eq(sessionId), eq(workflowId), anyList());
+    verify(compiler)
+        .executeTemplate(
+            eq(newExecId), any(), eq(3), any(), eq(sessionId), eq(workflowId), anyList());
   }
 
   // --- helpers ---
@@ -463,15 +455,8 @@ class WorkflowOrchestratorTest {
     final WorkflowTemplate template = org.mockito.Mockito.mock(WorkflowTemplate.class);
     final Map<String, List<WorkflowNode>> emptyPerNode =
         nodes.stream()
-            .collect(
-                java.util.stream.Collectors.toMap(WorkflowNode::nodeId, n -> List.of()));
-    return new PreparedWorkflow(
-        List.of(),
-        emptyPerNode,
-        emptyPerNode,
-        Map.of(),
-        nodes,
-        template);
+            .collect(java.util.stream.Collectors.toMap(WorkflowNode::nodeId, n -> List.of()));
+    return new PreparedWorkflow(List.of(), emptyPerNode, emptyPerNode, Map.of(), nodes, template);
   }
 
   private void setupExecutionControl(

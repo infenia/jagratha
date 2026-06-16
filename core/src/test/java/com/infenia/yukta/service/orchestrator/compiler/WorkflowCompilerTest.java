@@ -21,7 +21,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,7 +42,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -62,7 +60,7 @@ class WorkflowCompilerTest {
   @Mock private NodeAssemblerStrategy assemblerStrategy;
   @Mock private WorkflowPlugin plugin;
 
-    private WorkflowCompiler compiler;
+  private WorkflowCompiler compiler;
 
   private static final String SESSION_ID = "test-session-001";
   private static final String WORKFLOW_ID = "wf-001";
@@ -98,8 +96,7 @@ class WorkflowCompilerTest {
             eq(node), eq(plugin), any(Duration.class), eq(0), eq(1024), any()))
         .thenReturn(mockAssembler);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers).hasSize(1);
     assertThat(assemblers[0]).isSameAs(mockAssembler);
@@ -110,8 +107,7 @@ class WorkflowCompilerTest {
     final WorkflowNode n1 = new WorkflowNode("n1", "trigger", Map.of());
     final WorkflowNode n2 = new WorkflowNode("n2", "processor", Map.of());
     final List<WorkflowEdge> edges = List.of(new WorkflowEdge("n1", "n2", null));
-    final Map<String, List<WorkflowNode>> parents =
-        Map.of("n1", List.of(), "n2", List.of(n1));
+    final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of(), "n2", List.of(n1));
     final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin, "n2", plugin);
     final List<WorkflowNode> order = List.of(n1, n2);
 
@@ -125,8 +121,7 @@ class WorkflowCompilerTest {
     when(assemblerStrategy.createAssembler(eq(n2), eq(plugin), any(), eq(1), eq(512), any()))
         .thenReturn(a2);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers).hasSize(2);
     assertThat(assemblers[0]).isSameAs(a1);
@@ -145,8 +140,7 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultBufferSize()).thenReturn(1024);
     when(assemblerStrategy.supports(any(), any(Boolean.class))).thenReturn(false);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers).hasSize(1);
     // No-op assembler should not throw when invoked with a null context
@@ -169,8 +163,7 @@ class WorkflowCompilerTest {
             eq(node), eq(null), eq(Duration.ofSeconds(30)), eq(0), eq(1024), any()))
         .thenReturn(mockAssembler);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers[0]).isSameAs(mockAssembler);
   }
@@ -186,20 +179,17 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
-    when(assemblerStrategy.createAssembler(
-            eq(node), eq(plugin), any(), eq(0), eq(256), any()))
+    when(assemblerStrategy.createAssembler(eq(node), eq(plugin), any(), eq(0), eq(256), any()))
         .thenReturn(mockAssembler);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers[0]).isSameAs(mockAssembler);
   }
 
   @Test
   void compileAssemblers_nodeConfigOverridesTimeout() {
-    final WorkflowNode node =
-        new WorkflowNode("n1", "trigger", Map.of("timeoutSeconds", 120));
+    final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of("timeoutSeconds", 120));
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
     final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
@@ -212,8 +202,7 @@ class WorkflowCompilerTest {
             eq(node), eq(plugin), eq(Duration.ofSeconds(120)), eq(0), eq(1024), any()))
         .thenReturn(mockAssembler);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers[0]).isSameAs(mockAssembler);
   }
@@ -235,8 +224,7 @@ class WorkflowCompilerTest {
             eq(node), eq(plugin), eq(Duration.ofSeconds(30)), eq(0), eq(1024), any()))
         .thenReturn(mockAssembler);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers[0]).isSameAs(mockAssembler);
   }
@@ -253,20 +241,17 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultBufferSize()).thenReturn(512);
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
-    when(assemblerStrategy.createAssembler(
-            eq(node), eq(plugin), any(), eq(0), eq(512), any()))
+    when(assemblerStrategy.createAssembler(eq(node), eq(plugin), any(), eq(0), eq(512), any()))
         .thenReturn(mockAssembler);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers[0]).isSameAs(mockAssembler);
   }
 
   @Test
   void compileAssemblers_zeroTimeoutInConfig_usesPluginDefault() {
-    final WorkflowNode node =
-        new WorkflowNode("n1", "trigger", Map.of("timeoutSeconds", 0));
+    final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of("timeoutSeconds", 0));
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
     final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
@@ -280,8 +265,7 @@ class WorkflowCompilerTest {
             eq(node), eq(plugin), eq(Duration.ofSeconds(45)), eq(0), eq(1024), any()))
         .thenReturn(mockAssembler);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers[0]).isSameAs(mockAssembler);
   }
@@ -292,15 +276,15 @@ class WorkflowCompilerTest {
     final WorkflowNode n2 = new WorkflowNode("n2", "processor", Map.of());
     final WorkflowEdge edge = new WorkflowEdge("n1", "n2", "out");
     final List<WorkflowEdge> edges = List.of(edge);
-    final Map<String, List<WorkflowNode>> parents =
-        Map.of("n1", List.of(), "n2", List.of(n1));
+    final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of(), "n2", List.of(n1));
     final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin, "n2", plugin);
     final List<WorkflowNode> order = List.of(n1, n2);
 
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
     when(plugin.getDefaultBufferSize()).thenReturn(1024);
     when(assemblerStrategy.supports(eq(plugin), any(Boolean.class))).thenReturn(true);
-    when(assemblerStrategy.createAssembler(any(), any(), any(), any(Integer.class), any(Integer.class), any()))
+    when(assemblerStrategy.createAssembler(
+            any(), any(), any(), any(Integer.class), any(Integer.class), any()))
         .thenReturn(ctx -> {});
 
     compiler.compileAssemblers(edges, parents, plugins, order);
@@ -329,11 +313,11 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
     when(plugin.getDefaultBufferSize()).thenReturn(1024);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
-    when(assemblerStrategy.createAssembler(any(), any(), any(), any(Integer.class), any(Integer.class), any()))
+    when(assemblerStrategy.createAssembler(
+            any(), any(), any(), any(Integer.class), any(Integer.class), any()))
         .thenReturn(ctx -> {});
 
-    final WorkflowTemplate template =
-        compiler.compileTemplate(edges, parents, plugins, order);
+    final WorkflowTemplate template = compiler.compileTemplate(edges, parents, plugins, order);
 
     assertThat(template).isNotNull();
   }
@@ -349,7 +333,8 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
     when(plugin.getDefaultBufferSize()).thenReturn(1024);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
-    when(assemblerStrategy.createAssembler(any(), any(), any(), any(Integer.class), any(Integer.class), any()))
+    when(assemblerStrategy.createAssembler(
+            any(), any(), any(), any(Integer.class), any(Integer.class), any()))
         .thenReturn(ctx -> {});
 
     when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
@@ -358,21 +343,16 @@ class WorkflowCompilerTest {
         .thenReturn(Optional.of(buildMinimalExecutionControl()));
     when(configService.getExecutionTimeout(SESSION_ID)).thenReturn(Mono.just(5L));
 
-    final WorkflowTemplate template =
-        compiler.compileTemplate(edges, parents, plugins, order);
+    final WorkflowTemplate template = compiler.compileTemplate(edges, parents, plugins, order);
 
     final Mono<Void> execution =
         template
             .instantiate(EXECUTION_ID, Map.of())
-            .contextWrite(
-                ctx ->
-                    ctx.put("sessionId", SESSION_ID)
-                        .put("workflowId", WORKFLOW_ID));
+            .contextWrite(ctx -> ctx.put("sessionId", SESSION_ID).put("workflowId", WORKFLOW_ID));
 
     StepVerifier.create(execution).verifyComplete();
 
-    verify(tracker)
-        .startWorkflow(EXECUTION_ID, SESSION_ID, WORKFLOW_ID, List.of("n1"));
+    verify(tracker).startWorkflow(EXECUTION_ID, SESSION_ID, WORKFLOW_ID, List.of("n1"));
   }
 
   // ── executeTemplate ────────────────────────────────────────────────────────
@@ -474,12 +454,10 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultBufferSize()).thenReturn(2048);
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
-    when(assemblerStrategy.createAssembler(
-            eq(node), eq(plugin), any(), eq(0), eq(2048), any()))
+    when(assemblerStrategy.createAssembler(eq(node), eq(plugin), any(), eq(0), eq(2048), any()))
         .thenReturn(mockAssembler);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers[0]).isSameAs(mockAssembler);
   }
@@ -495,12 +473,10 @@ class WorkflowCompilerTest {
 
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(null, false)).thenReturn(true);
-    when(assemblerStrategy.createAssembler(
-            eq(node), eq(null), any(), eq(0), eq(1024), any()))
+    when(assemblerStrategy.createAssembler(eq(node), eq(null), any(), eq(0), eq(1024), any()))
         .thenReturn(mockAssembler);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers[0]).isSameAs(mockAssembler);
   }
@@ -524,8 +500,7 @@ class WorkflowCompilerTest {
             eq(node), eq(plugin), eq(Duration.ofSeconds(60)), eq(0), eq(1024), any()))
         .thenReturn(mockAssembler);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers[0]).isSameAs(mockAssembler);
   }
@@ -545,8 +520,7 @@ class WorkflowCompilerTest {
             eq(node), eq(null), eq(Duration.ofSeconds(30)), eq(0), eq(1024), any()))
         .thenReturn(mockAssembler);
 
-    final NodeAssembler[] assemblers =
-        compiler.compileAssemblers(edges, parents, plugins, order);
+    final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
 
     assertThat(assemblers[0]).isSameAs(mockAssembler);
   }

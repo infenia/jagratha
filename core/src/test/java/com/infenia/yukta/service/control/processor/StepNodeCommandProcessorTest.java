@@ -41,6 +41,7 @@ class StepNodeCommandProcessorTest {
   @Mock private ExecutionControlRegistry registry;
   @Mock private DefaultTaskTrackerService taskTracker;
   @Mock private ExecutionControl executionControl;
+
   @SuppressWarnings("unchecked")
   @Mock
   private Sinks.Many<Void> stepSink;

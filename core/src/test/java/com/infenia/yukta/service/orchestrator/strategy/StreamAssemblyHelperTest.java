@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.service.orchestrator.strategy;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 
@@ -55,7 +54,10 @@ class StreamAssemblyHelperTest {
 
   @BeforeEach
   void setUp() {
-    doNothing().when(tracker).emitTaskStatusEvent(anyString(), anyString(), anyString(), anyString(), org.mockito.ArgumentMatchers.any());
+    doNothing()
+        .when(tracker)
+        .emitTaskStatusEvent(
+            anyString(), anyString(), anyString(), anyString(), org.mockito.ArgumentMatchers.any());
   }
 
   @Test

@@ -98,16 +98,6 @@ class SessionServiceTest {
   }
 
   @Test
-  void testGetSessionWorkflowNotFoundReturnsEmpty() {
-    String sessionId = "sess-notfound";
-
-    when(workflowDefinitionStore.find(sessionId, "missing-wf")).thenReturn(Mono.empty());
-
-    StepVerifier.create(sessionService.getSessionWorkflow(sessionId, "missing-wf"))
-        .verifyComplete();
-  }
-
-  @Test
   void testGetSessionConfigDelegatesStore() {
     String sessionId = "sess-disk-config";
     Map<String, Object> configMap = Map.of("k", "v");
@@ -123,5 +113,98 @@ class SessionServiceTest {
   void testGetSessionIds() {
     when(configService.getSessionIds()).thenReturn(Flux.just("s1", "s2"));
     StepVerifier.create(sessionService.getSessionIds()).expectNext("s1", "s2").verifyComplete();
+  }
+
+  @Test
+  void testApplyConfigWithMultipleWorkflows() {
+    String sessionId = "sess-multi";
+    WorkflowDefinition workflow1 =
+        new WorkflowDefinition("workflow-1", "desc1", List.of(), List.of());
+    WorkflowDefinition workflow2 =
+        new WorkflowDefinition("workflow-2", "desc2", List.of(), List.of());
+    SessionConfigData data =
+        new SessionConfigData(
+            sessionId,
+            "desc",
+            "initiator",
+            Map.of(),
+            "/path",
+            Map.of("w1", workflow1, "w2", workflow2));
+
+    when(configService.applySessionConfig(any())).thenReturn(Mono.empty());
+    when(controlBus.compileAndCacheWorkflow(eq(sessionId), any())).thenReturn(Mono.empty());
+
+    StepVerifier.create(sessionService.applyConfig(data)).verifyComplete();
+  }
+
+  @Test
+  void testApplyConfigHandlesCompilationError() {
+    String sessionId = "sess-error";
+    WorkflowDefinition workflow =
+        new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
+    SessionConfigData data =
+        new SessionConfigData(
+            sessionId, "desc", "initiator", Map.of(), "/path", Map.of("w1", workflow));
+
+    when(configService.applySessionConfig(any())).thenReturn(Mono.empty());
+    when(controlBus.compileAndCacheWorkflow(eq(sessionId), any()))
+        .thenReturn(Mono.error(new RuntimeException("Compilation failed")));
+
+    StepVerifier.create(sessionService.applyConfig(data))
+        .expectError(RuntimeException.class)
+        .verify();
+  }
+
+  @Test
+  void testApplyConfigHandlesStoreError() {
+    String sessionId = "sess-store-error";
+    SessionConfigData data =
+        new SessionConfigData(sessionId, "desc", "initiator", Map.of(), "/path", Map.of());
+
+    when(configService.applySessionConfig(any()))
+        .thenReturn(Mono.error(new RuntimeException("Store failed")));
+
+    StepVerifier.create(sessionService.applyConfig(data))
+        .expectError(RuntimeException.class)
+        .verify();
+  }
+
+  @Test
+  void testGetSessionConfigHandlesError() {
+    String sessionId = "sess-config-error";
+    when(configService.getAllConfigs(sessionId))
+        .thenReturn(Mono.error(new RuntimeException("Config fetch failed")));
+
+    StepVerifier.create(sessionService.getSessionConfig(sessionId))
+        .expectError(RuntimeException.class)
+        .verify();
+  }
+
+  @Test
+  void testGetSessionWorkflowHandlesError() {
+    String sessionId = "sess-wf-error";
+    when(workflowDefinitionStore.find(sessionId, "w1"))
+        .thenReturn(Mono.error(new RuntimeException("Workflow fetch failed")));
+
+    StepVerifier.create(sessionService.getSessionWorkflow(sessionId, "w1"))
+        .expectError(RuntimeException.class)
+        .verify();
+  }
+
+  @Test
+  void testGetSessionIdsHandlesError() {
+    when(configService.getSessionIds())
+        .thenReturn(Flux.error(new RuntimeException("Session IDs fetch failed")));
+
+    StepVerifier.create(sessionService.getSessionIds())
+        .expectError(RuntimeException.class)
+        .verify();
+  }
+
+  @Test
+  void testGetSessionIdsEmpty() {
+    when(configService.getSessionIds()).thenReturn(Flux.empty());
+
+    StepVerifier.create(sessionService.getSessionIds()).verifyComplete();
   }
 }

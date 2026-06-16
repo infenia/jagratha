@@ -93,7 +93,8 @@ class RestartCommandProcessorTest {
     when(executionControl.prepared()).thenReturn(preparedWorkflow);
     when(executionControl.payload()).thenReturn(payload);
     when(executionControl.safeStopSink()).thenReturn(safeStopSink);
-    when(orchestrator.execute(eq(sessionId), eq(workflowId), any(String.class), eq(preparedWorkflow), eq(payload)))
+    when(orchestrator.execute(
+            eq(sessionId), eq(workflowId), any(String.class), eq(preparedWorkflow), eq(payload)))
         .thenReturn(Mono.empty());
 
     // When
@@ -104,7 +105,13 @@ class RestartCommandProcessorTest {
     verify(registry).unregister(executionId);
 
     ArgumentCaptor<String> newExecIdCaptor = ArgumentCaptor.forClass(String.class);
-    verify(orchestrator).execute(eq(sessionId), eq(workflowId), newExecIdCaptor.capture(), eq(preparedWorkflow), eq(payload));
+    verify(orchestrator)
+        .execute(
+            eq(sessionId),
+            eq(workflowId),
+            newExecIdCaptor.capture(),
+            eq(preparedWorkflow),
+            eq(payload));
     String actualNewExecutionId = newExecIdCaptor.getValue();
     assertThat(actualNewExecutionId).isNotEqualTo(executionId).isNotBlank();
     verify(taskTracker).emitWorkflowStatusEvent(actualNewExecutionId, "RUNNING");
@@ -140,7 +147,8 @@ class RestartCommandProcessorTest {
     when(executionControl.prepared()).thenReturn(preparedWorkflow);
     when(executionControl.payload()).thenReturn(Map.of());
     when(executionControl.safeStopSink()).thenReturn(safeStopSink);
-    when(orchestrator.execute(eq(sessionId), eq(workflowId), any(String.class), eq(preparedWorkflow), eq(Map.of())))
+    when(orchestrator.execute(
+            eq(sessionId), eq(workflowId), any(String.class), eq(preparedWorkflow), eq(Map.of())))
         .thenReturn(Mono.error(new RuntimeException("Orchestrator failure")));
 
     // When

@@ -41,8 +41,6 @@ import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -169,8 +167,7 @@ class TerminalNodeAssemblerStrategyTest {
     StepVerifier.create(context.terminals().get(0)).verifyComplete();
 
     verify(tracker, atLeastOnce())
-        .emitTaskStatusEvent(
-            eq(EXECUTION_ID), eq(NODE_ID), anyString(), anyString(), any());
+        .emitTaskStatusEvent(eq(EXECUTION_ID), eq(NODE_ID), anyString(), anyString(), any());
   }
 
   @Test
@@ -195,8 +192,7 @@ class TerminalNodeAssemblerStrategyTest {
     StepVerifier.create(context.terminals().get(0)).verifyError(RuntimeException.class);
 
     verify(tracker, atLeastOnce())
-        .emitTaskStatusEvent(
-            eq(EXECUTION_ID), eq(NODE_ID), anyString(), eq("FAILURE"), any());
+        .emitTaskStatusEvent(eq(EXECUTION_ID), eq(NODE_ID), anyString(), eq("FAILURE"), any());
   }
 
   @Test
@@ -247,10 +243,7 @@ class TerminalNodeAssemblerStrategyTest {
     assembler.assemble(context);
 
     final Mono<Void> terminalMono =
-        context
-            .terminals()
-            .get(0)
-            .contextWrite(Context.of("resultCollector", collector));
+        context.terminals().get(0).contextWrite(Context.of("resultCollector", collector));
 
     StepVerifier.create(terminalMono).verifyComplete();
 
@@ -293,8 +286,7 @@ class TerminalNodeAssemblerStrategyTest {
 
     final WorkflowNode node = new WorkflowNode(NODE_ID, "terminal", Map.of());
     final ParentEdgeInfo[] parentEdges = {
-      new ParentEdgeInfo(0, "source-1", null),
-      new ParentEdgeInfo(1, "source-2", null)
+      new ParentEdgeInfo(0, "source-1", null), new ParentEdgeInfo(1, "source-2", null)
     };
     @SuppressWarnings("unchecked")
     final Flux<Message<?>>[] streams = new Flux[] {Flux.just(msg1), Flux.just(msg2), null};
@@ -329,9 +321,11 @@ class TerminalNodeAssemblerStrategyTest {
     final AssemblyContext context = buildContextWithStreams(NODE_ID, streams);
 
     final NodeAssembler a1 =
-        strategy.createAssembler(node1, terminal, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
+        strategy.createAssembler(
+            node1, terminal, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
     final NodeAssembler a2 =
-        strategy.createAssembler(node2, terminal, Duration.ofSeconds(5), 1, 1024, new ParentEdgeInfo[0]);
+        strategy.createAssembler(
+            node2, terminal, Duration.ofSeconds(5), 1, 1024, new ParentEdgeInfo[0]);
 
     a1.assemble(context);
     a2.assemble(context);
@@ -348,8 +342,7 @@ class TerminalNodeAssemblerStrategyTest {
   }
 
   private AssemblyContext buildContextWithStreams(
-      final String nodeId,
-      @SuppressWarnings("unchecked") final Flux<Message<?>>[] streams) {
+      final String nodeId, @SuppressWarnings("unchecked") final Flux<Message<?>>[] streams) {
     final ExecutionControl control =
         new ExecutionControl(
             SESSION_ID,

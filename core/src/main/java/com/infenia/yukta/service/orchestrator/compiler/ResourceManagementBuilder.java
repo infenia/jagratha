@@ -32,8 +32,8 @@ import reactor.core.scheduler.Scheduler;
  *
  * <p>ResourceManagementBuilder manages the Mono.using() pattern for resource lifecycle, handling
  * disposables collection, timeouts, terminal completion, and cleanup. It emits workflow status
- * events to DefaultTaskTrackerService on completion or error, and executes connector
- * runnables on subscription in reverse order.
+ * events to DefaultTaskTrackerService on completion or error, and executes connector runnables on
+ * subscription in reverse order.
  *
  * <p>Example usage:
  *

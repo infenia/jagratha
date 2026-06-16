@@ -524,8 +524,7 @@ class DefaultTaskTrackerServiceTest {
         new DefaultTaskTrackerService(Duration.ofMinutes(10));
 
     // Replace executionIndex with a map that throws on get()
-    Field executionIndexField =
-        DefaultTaskTrackerService.class.getDeclaredField("executionIndex");
+    Field executionIndexField = DefaultTaskTrackerService.class.getDeclaredField("executionIndex");
     executionIndexField.setAccessible(true);
 
     // Create a mock map that throws
@@ -556,8 +555,7 @@ class DefaultTaskTrackerServiceTest {
         new DefaultTaskTrackerService(Duration.ofMinutes(10));
 
     // Replace executionIndex with a map that throws on get()
-    Field executionIndexField =
-        DefaultTaskTrackerService.class.getDeclaredField("executionIndex");
+    Field executionIndexField = DefaultTaskTrackerService.class.getDeclaredField("executionIndex");
     executionIndexField.setAccessible(true);
 
     Map<String, Object> throwingMap =

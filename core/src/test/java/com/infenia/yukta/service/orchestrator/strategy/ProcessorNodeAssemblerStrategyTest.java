@@ -263,8 +263,7 @@ class ProcessorNodeAssemblerStrategyTest {
 
     final WorkflowNode node = new WorkflowNode(NODE_ID, "processor", Map.of());
     final ParentEdgeInfo[] parentEdges = {
-      new ParentEdgeInfo(0, "source-1", null),
-      new ParentEdgeInfo(1, "source-2", null)
+      new ParentEdgeInfo(0, "source-1", null), new ParentEdgeInfo(1, "source-2", null)
     };
     @SuppressWarnings("unchecked")
     final Flux<Message<?>>[] streams = new Flux[] {Flux.just(msg1), Flux.just(msg2), null};
@@ -318,9 +317,7 @@ class ProcessorNodeAssemblerStrategyTest {
 
   @SuppressWarnings("unchecked")
   private AssemblyContext buildContext(
-      final String nodeId,
-      final Flux<Message<?>> parentStream,
-      final AtomicBoolean skipFlag) {
+      final String nodeId, final Flux<Message<?>> parentStream, final AtomicBoolean skipFlag) {
     final Flux<Message<?>>[] streams = new Flux[] {parentStream};
     return buildContextWithStreams(nodeId, streams, skipFlag);
   }
