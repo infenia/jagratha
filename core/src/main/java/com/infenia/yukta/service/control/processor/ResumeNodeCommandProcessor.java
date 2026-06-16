@@ -22,7 +22,7 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.ResumeNo
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
-import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -40,7 +40,7 @@ import reactor.core.publisher.Mono;
 public class ResumeNodeCommandProcessor implements ControlSignalProcessor {
 
   private final ExecutionControlRegistry registry;
-  private final DefaultTaskTrackerServiceService taskTracker;
+  private final DefaultTaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ExecutionControlCommand command) {

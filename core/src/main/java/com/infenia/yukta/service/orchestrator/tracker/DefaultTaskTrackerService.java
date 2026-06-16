@@ -54,7 +54,7 @@ import reactor.util.concurrent.Queues;
 @Service
 @Validated
 @SuppressWarnings({"PMD.OnlyOneReturn"})
-public class DefaultTaskTrackerServiceService implements TaskTrackerService {
+public class DefaultTaskTrackerService implements TaskTrackerService {
 
   private static final int BATCH_SIZE = 100;
   private static final Duration BATCH_TIMEOUT = Duration.ofMillis(50);
@@ -77,11 +77,11 @@ public class DefaultTaskTrackerServiceService implements TaskTrackerService {
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
 
   /**
-   * Create a new DefaultTaskTrackerServiceService with configurable cleanup TTL.
+   * Create a new DefaultTaskTrackerService with configurable cleanup TTL.
    *
    * @param cleanupTtl the time to live for execution data after terminal status
    */
-  public DefaultTaskTrackerServiceService(
+  public DefaultTaskTrackerService(
       @Value("${yukta.tracker.cleanup-ttl:10m}") final Duration cleanupTtl) {
     this.cleanupTtl = cleanupTtl;
   }

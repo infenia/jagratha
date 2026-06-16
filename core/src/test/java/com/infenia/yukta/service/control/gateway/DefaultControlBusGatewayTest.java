@@ -42,7 +42,8 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StepNode
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopNodeCommand;
 import com.infenia.yukta.service.control.ControlBusService;
 import com.infenia.yukta.service.execution.status.ExecutionStatusEvent;
-import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +62,7 @@ import reactor.test.StepVerifier;
 class DefaultControlBusGatewayTest {
 
   @Mock private ControlBusService controlBusService;
-  @Mock private DefaultTaskTrackerServiceService taskTracker;
+  @Mock private DefaultTaskTrackerService taskTracker;
 
   private DefaultControlBusGateway gateway;
 

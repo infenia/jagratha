@@ -20,7 +20,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
-import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,11 +31,11 @@ import reactor.test.StepVerifier;
 class DefaultLogProviderTest {
 
   private DefaultLogProvider provider;
-  private DefaultTaskTrackerServiceService trackerService;
+  private DefaultTaskTrackerService trackerService;
 
   @BeforeEach
   void setUp() {
-    trackerService = mock(DefaultTaskTrackerServiceService.class);
+    trackerService = mock(DefaultTaskTrackerService.class);
     provider = new DefaultLogProvider(trackerService);
   }
 

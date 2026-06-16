@@ -21,7 +21,8 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.RestartCommand;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
-import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
+
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +43,7 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
 
   private final ExecutionControlRegistry registry;
   private final WorkflowOrchestrator orchestrator;
-  private final DefaultTaskTrackerServiceService taskTracker;
+  private final DefaultTaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ExecutionControlCommand command) {

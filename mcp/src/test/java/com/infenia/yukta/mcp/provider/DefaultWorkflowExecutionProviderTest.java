@@ -25,7 +25,7 @@ import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.WorkflowService;
-import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.session.SessionService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,14 +41,14 @@ class DefaultWorkflowExecutionProviderTest {
   private DefaultWorkflowExecutionProvider provider;
   private WorkflowService workflowService;
   private SessionService sessionService;
-  private DefaultTaskTrackerServiceService trackerService;
+  private DefaultTaskTrackerService trackerService;
   private ObjectMapper objectMapper;
 
   @BeforeEach
   void setUp() {
     workflowService = mock(WorkflowService.class);
     sessionService = mock(SessionService.class);
-    trackerService = mock(DefaultTaskTrackerServiceService.class);
+    trackerService = mock(DefaultTaskTrackerService.class);
     objectMapper = new ObjectMapper();
     provider =
         new DefaultWorkflowExecutionProvider(

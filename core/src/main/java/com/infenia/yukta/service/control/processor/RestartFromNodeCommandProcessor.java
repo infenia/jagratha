@@ -24,7 +24,8 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.RestartF
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
-import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -49,7 +50,7 @@ public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
   private final ExecutionControlRegistry registry;
   private final WorkflowOrchestrator orchestrator;
   private final NodeCheckpointStore checkpointStore;
-  private final DefaultTaskTrackerServiceService taskTracker;
+  private final DefaultTaskTrackerService taskTracker;
 
   @Override
   public boolean canProcess(final ExecutionControlCommand command) {

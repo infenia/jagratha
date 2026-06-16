@@ -19,7 +19,7 @@ import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
-import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import com.infenia.yukta.util.SpelUtils;
 import java.time.Duration;
@@ -48,7 +48,7 @@ public class LoopPredicateProcessor implements ProcessorPlugin {
 
   @Autowired private ObjectProvider<WorkflowRegistry> registryProvider;
 
-  @Autowired private ObjectProvider<DefaultTaskTrackerServiceService> trackerProvider;
+  @Autowired private ObjectProvider<DefaultTaskTrackerService> trackerProvider;
 
   /** Default constructor. */
   public LoopPredicateProcessor() {
@@ -225,7 +225,7 @@ public class LoopPredicateProcessor implements ProcessorPlugin {
 
   private Mono<Void> logIteration(
       final String executionId, final String nodeId, final int iteration) {
-    final DefaultTaskTrackerServiceService tracker = trackerProvider.getIfAvailable();
+    final DefaultTaskTrackerService tracker = trackerProvider.getIfAvailable();
     if (tracker == null) {
       return Mono.empty();
     }
@@ -236,7 +236,7 @@ public class LoopPredicateProcessor implements ProcessorPlugin {
 
   private Mono<LoopState> logAndTerminate(
       final String executionId, final String nodeId, final String reason, final LoopState state) {
-    final DefaultTaskTrackerServiceService tracker = trackerProvider.getIfAvailable();
+    final DefaultTaskTrackerService tracker = trackerProvider.getIfAvailable();
     final LoopState termState = state.withTerminated(true);
     if (tracker == null) {
       return Mono.just(termState);

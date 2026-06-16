@@ -33,13 +33,13 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import reactor.test.StepVerifier;
 
 @MockitoSettings
-class DefaultTaskTrackerServiceServiceTest {
+class DefaultTaskTrackerServiceTest {
 
-  private DefaultTaskTrackerServiceService tracker;
+  private DefaultTaskTrackerService tracker;
 
   @BeforeEach
   void setUp() {
-    tracker = new DefaultTaskTrackerServiceService(java.time.Duration.ofMillis(200));
+    tracker = new DefaultTaskTrackerService(java.time.Duration.ofMillis(200));
     tracker.init();
   }
 
@@ -495,8 +495,8 @@ class DefaultTaskTrackerServiceServiceTest {
   @Test
   void testAutoCleanupWithShortTtl() throws Exception {
     // Create a tracker with very short TTL
-    DefaultTaskTrackerServiceService shortTtlTracker =
-        new DefaultTaskTrackerServiceService(Duration.ofMillis(150));
+    DefaultTaskTrackerService shortTtlTracker =
+        new DefaultTaskTrackerService(Duration.ofMillis(150));
     shortTtlTracker.init();
 
     String sessionId = "sess-short-ttl";
@@ -520,12 +520,12 @@ class DefaultTaskTrackerServiceServiceTest {
 
   @Test
   void testInitTaskStatusErrorHandler() throws Exception {
-    DefaultTaskTrackerServiceService trackerWithError =
-        new DefaultTaskTrackerServiceService(Duration.ofMinutes(10));
+    DefaultTaskTrackerService trackerWithError =
+        new DefaultTaskTrackerService(Duration.ofMinutes(10));
 
     // Replace executionIndex with a map that throws on get()
     Field executionIndexField =
-        DefaultTaskTrackerServiceService.class.getDeclaredField("executionIndex");
+        DefaultTaskTrackerService.class.getDeclaredField("executionIndex");
     executionIndexField.setAccessible(true);
 
     // Create a mock map that throws
@@ -552,12 +552,12 @@ class DefaultTaskTrackerServiceServiceTest {
 
   @Test
   void testInitWorkflowStatusErrorHandler() throws Exception {
-    DefaultTaskTrackerServiceService trackerWithError =
-        new DefaultTaskTrackerServiceService(Duration.ofMinutes(10));
+    DefaultTaskTrackerService trackerWithError =
+        new DefaultTaskTrackerService(Duration.ofMinutes(10));
 
     // Replace executionIndex with a map that throws on get()
     Field executionIndexField =
-        DefaultTaskTrackerServiceService.class.getDeclaredField("executionIndex");
+        DefaultTaskTrackerService.class.getDeclaredField("executionIndex");
     executionIndexField.setAccessible(true);
 
     Map<String, Object> throwingMap =
@@ -582,11 +582,11 @@ class DefaultTaskTrackerServiceServiceTest {
 
   @Test
   void testInitLogErrorHandler() throws Exception {
-    DefaultTaskTrackerServiceService trackerWithError =
-        new DefaultTaskTrackerServiceService(Duration.ofMinutes(10));
+    DefaultTaskTrackerService trackerWithError =
+        new DefaultTaskTrackerService(Duration.ofMinutes(10));
 
     // Replace logSinks with a map that throws on get()
-    Field logSinksField = DefaultTaskTrackerServiceService.class.getDeclaredField("logSinks");
+    Field logSinksField = DefaultTaskTrackerService.class.getDeclaredField("logSinks");
     logSinksField.setAccessible(true);
 
     Map<String, Object> throwingMap =
@@ -1770,8 +1770,8 @@ class DefaultTaskTrackerServiceServiceTest {
   @Test
   void testNotifyStatusChangeWhenStateIsNullAfterCleanup() {
     // Create a workflow with short TTL
-    DefaultTaskTrackerServiceService shortTtlTracker =
-        new DefaultTaskTrackerServiceService(Duration.ofMillis(100));
+    DefaultTaskTrackerService shortTtlTracker =
+        new DefaultTaskTrackerService(Duration.ofMillis(100));
     shortTtlTracker.init();
 
     String sessionId = "sess-cleanup-state-null";
@@ -1838,7 +1838,7 @@ class DefaultTaskTrackerServiceServiceTest {
     // We use reflection to call emitTaskStatusEvent with null metadata
     try {
       java.lang.reflect.Method method =
-          DefaultTaskTrackerServiceService.class.getDeclaredMethod(
+          DefaultTaskTrackerService.class.getDeclaredMethod(
               "emitTaskStatusEvent",
               String.class,
               String.class,

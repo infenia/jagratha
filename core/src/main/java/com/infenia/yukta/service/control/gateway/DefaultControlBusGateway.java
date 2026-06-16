@@ -36,7 +36,7 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopNode
 import com.infenia.yukta.service.control.ControlBusService;
 import com.infenia.yukta.service.execution.status.ExecutionStatusEvent;
 import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
-import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
@@ -57,7 +57,7 @@ import reactor.util.concurrent.Queues;
  *
  * <p>Combines control bus gateway functionality with execution status publishing. Delegates
  * low-level plugin management and message operations to {@link ControlBusService}, and high-level
- * control commands and observability operations to {@link DefaultTaskTrackerServiceService}.
+ * control commands and observability operations to {@link DefaultTaskTrackerService}.
  * Manages status event publication via internal Reactor Sinks.
  */
 @Slf4j
@@ -73,7 +73,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
       Sinks.EmitFailureHandler.busyLooping(Duration.ofMillis(100));
 
   private final ControlBusService controlBusService;
-  private final DefaultTaskTrackerServiceService taskTracker;
+  private final DefaultTaskTrackerService taskTracker;
   private final Sinks.Many<ExecutionStatusEvent> statusSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
 

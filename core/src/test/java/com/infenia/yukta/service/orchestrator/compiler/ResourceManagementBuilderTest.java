@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerServiceService;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.session.SessionConfigStore;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +35,7 @@ import reactor.test.StepVerifier;
 @MockitoSettings
 class ResourceManagementBuilderTest {
 
-  @Mock private DefaultTaskTrackerServiceService mockTracker;
+  @Mock private DefaultTaskTrackerService mockTracker;
   @Mock private SessionConfigStore mockConfigService;
 
   @BeforeEach
