@@ -66,7 +66,8 @@ class DefaultWorkflowExecutionProviderTest {
   @Test
   void testTriggerWorkflowWithPayload() {
     WorkflowExecution execution = new WorkflowExecution("exec-1", Mono.empty());
-    when(workflowService.runWorkflow(eq("sess-1"), eq("wf-1"), anyMap())).thenReturn(execution);
+    when(workflowService.validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), anyMap()))
+        .thenReturn(Mono.just(execution));
 
     StepVerifier.create(provider.triggerWorkflow("sess-1", "wf-1", "{\"key\":\"val\"}"))
         .expectNext("exec-1")
@@ -76,7 +77,8 @@ class DefaultWorkflowExecutionProviderTest {
   @Test
   void testTriggerWorkflowNoPayload() {
     WorkflowExecution execution = new WorkflowExecution("exec-1", Mono.empty());
-    when(workflowService.runWorkflow(eq("sess-1"), eq("wf-1"), anyMap())).thenReturn(execution);
+    when(workflowService.validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), anyMap()))
+        .thenReturn(Mono.just(execution));
 
     StepVerifier.create(provider.triggerWorkflow("sess-1", "wf-1", null))
         .expectNext("exec-1")
@@ -86,25 +88,27 @@ class DefaultWorkflowExecutionProviderTest {
   @Test
   void testTriggerWorkflowBlankPayload() {
     WorkflowExecution execution = new WorkflowExecution("exec-1", Mono.empty());
-    when(workflowService.runWorkflow(eq("sess-1"), eq("wf-1"), anyMap())).thenReturn(execution);
+    when(workflowService.validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), anyMap()))
+        .thenReturn(Mono.just(execution));
 
     StepVerifier.create(provider.triggerWorkflow("sess-1", "wf-1", ""))
         .expectNext("exec-1")
         .verifyComplete();
 
-    verify(workflowService).runWorkflow(eq("sess-1"), eq("wf-1"), eq(Map.of()));
+    verify(workflowService).validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), eq(Map.of()));
   }
 
   @Test
   void testTriggerWorkflowWhitespacePayload() {
     WorkflowExecution execution = new WorkflowExecution("exec-1", Mono.empty());
-    when(workflowService.runWorkflow(eq("sess-1"), eq("wf-1"), anyMap())).thenReturn(execution);
+    when(workflowService.validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), anyMap()))
+        .thenReturn(Mono.just(execution));
 
     StepVerifier.create(provider.triggerWorkflow("sess-1", "wf-1", "   "))
         .expectNext("exec-1")
         .verifyComplete();
 
-    verify(workflowService).runWorkflow(eq("sess-1"), eq("wf-1"), eq(Map.of()));
+    verify(workflowService).validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), eq(Map.of()));
   }
 
   @Test

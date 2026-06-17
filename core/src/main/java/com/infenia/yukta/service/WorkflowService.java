@@ -74,13 +74,41 @@ public class WorkflowService {
       @SessionId final String sessionId,
       @WorkflowId final String workflowId,
       @NotEmpty final Map<String, Object> payload) {
+    log.atInfo()
+        .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+        .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+        .addKeyValue("payloadSize", payload.size())
+        .log("Validating and triggering workflow");
+
     return workflowDefinitionStore
         .find(sessionId, workflowId)
-        .switchIfEmpty(Mono.error(workflowNotFound(sessionId, workflowId)))
+        .doOnNext(
+            def -> {
+              log.atDebug()
+                  .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+                  .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+                  .addKeyValue("nodeCount", def.nodes().size())
+                  .addKeyValue("edgeCount", def.edges().size())
+                  .log("Workflow definition found and loaded");
+            })
+        .switchIfEmpty(
+            Mono.defer(
+                () -> {
+                  log.atWarn()
+                      .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+                      .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+                      .log("Workflow definition not found");
+                  return Mono.error(workflowNotFound(sessionId, workflowId));
+                }))
         .map(
             def -> {
               final List<String> nodeIds =
                   def.nodes().stream().map(WorkflowDefinition.Node::nodeId).toList();
+              log.atDebug()
+                  .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+                  .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+                  .addKeyValue("nodeIds", nodeIds)
+                  .log("Extracted node IDs from workflow definition");
               return runWorkflow(sessionId, workflowId, nodeIds, payload);
             });
   }
@@ -93,7 +121,7 @@ public class WorkflowService {
    * @param payload the initial trigger payload
    * @return a WorkflowExecution containing the execution ID and the result Mono
    */
-  public WorkflowExecution runWorkflow(
+  private WorkflowExecution runWorkflow(
       @SessionId final String sessionId,
       @WorkflowId final String workflowId,
       @NotEmpty final Map<String, Object> payload) {

@@ -74,7 +74,9 @@ class WorkflowServiceTest {
         .thenReturn(Mono.empty());
 
     StepVerifier.create(
-            workflowService.runWorkflow(sessionId, workflowId, java.util.Map.of()).result())
+            workflowService
+                .validateAndTriggerWorkflow(sessionId, workflowId, java.util.Map.of())
+                .flatMap(exec -> exec.result()))
         .expectNextMatches(res -> "SUCCESS".equals(res.status()))
         .verifyComplete();
   }
@@ -87,10 +89,12 @@ class WorkflowServiceTest {
     when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.empty());
 
     StepVerifier.create(
-            workflowService.runWorkflow(sessionId, workflowId, java.util.Map.of()).result())
-        .expectNextMatches(
-            res -> "FAILURE".equals(res.status()) && res.output().contains("Workflow not found"))
-        .verifyComplete();
+            workflowService.validateAndTriggerWorkflow(sessionId, workflowId, java.util.Map.of()))
+        .expectErrorMatches(
+            e ->
+                e instanceof IllegalArgumentException
+                    && e.getMessage().contains("Workflow not found"))
+        .verify();
   }
 
   @Test
@@ -103,7 +107,9 @@ class WorkflowServiceTest {
     when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.error(new RuntimeException("Fail")));
 
     StepVerifier.create(
-            workflowService.runWorkflow(sessionId, workflowId, java.util.Map.of()).result())
+            workflowService
+                .validateAndTriggerWorkflow(sessionId, workflowId, java.util.Map.of())
+                .flatMap(exec -> exec.result()))
         .expectNextMatches(
             res -> "FAILURE".equals(res.status()) && res.output().contains("Workflow failed: Fail"))
         .verifyComplete();
@@ -113,7 +119,8 @@ class WorkflowServiceTest {
   void testWorkflowQueueing() throws Exception {
     String sessionId = "sess-queue";
     String workflowId = "w-queue";
-    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
+    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
+    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -138,13 +145,19 @@ class WorkflowServiceTest {
                   });
             });
 
-    var exec1 = workflowService.runWorkflow(sessionId, workflowId, Map.of());
+    var exec1 =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+            .block();
 
     // Wait for first execution to start
     startedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
     // Now submit second workflow - it should queue
-    var exec2 = workflowService.runWorkflow(sessionId, workflowId, Map.of());
+    var exec2 =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+            .block();
 
     // Release first execution
     latch.countDown();
@@ -162,7 +175,8 @@ class WorkflowServiceTest {
   void testWorkflowQueueCleanup() throws Exception {
     String sessionId = "sess-cleanup";
     String workflowId = "w-cleanup";
-    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
+    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
+    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -186,13 +200,19 @@ class WorkflowServiceTest {
                   });
             });
 
-    var exec1 = workflowService.runWorkflow(sessionId, workflowId, Map.of());
+    var exec1 =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+            .block();
 
     // Wait for first execution to start
     startedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
     // Now submit second workflow - it should queue
-    var exec2 = workflowService.runWorkflow(sessionId, workflowId, Map.of());
+    var exec2 =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+            .block();
 
     // Release first execution
     latch.countDown();
@@ -211,7 +231,8 @@ class WorkflowServiceTest {
     String sessionId1 = "sess-multi-1";
     String sessionId2 = "sess-multi-2";
     String workflowId = "w-multi";
-    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
+    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
+    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -221,8 +242,14 @@ class WorkflowServiceTest {
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenReturn(Mono.empty());
 
-    var exec1 = workflowService.runWorkflow(sessionId1, workflowId, Map.of());
-    var exec2 = workflowService.runWorkflow(sessionId2, workflowId, Map.of());
+    var exec1 =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId1, workflowId, Map.of())
+            .block();
+    var exec2 =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId2, workflowId, Map.of())
+            .block();
 
     StepVerifier.create(exec1.result())
         .expectNextMatches(res -> "SUCCESS".equals(res.status()))
@@ -237,7 +264,8 @@ class WorkflowServiceTest {
   void testWorkflowSingleExecutionCleanup() throws Exception {
     String sessionId = "sess-single";
     String workflowId = "w-single";
-    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
+    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
+    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -247,7 +275,10 @@ class WorkflowServiceTest {
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenReturn(Mono.empty());
 
-    var exec = workflowService.runWorkflow(sessionId, workflowId, Map.of());
+    var exec =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+            .block();
 
     StepVerifier.create(exec.result())
         .expectNextMatches(res -> "SUCCESS".equals(res.status()))
@@ -261,7 +292,8 @@ class WorkflowServiceTest {
   void testWorkflowQueuedExecutionWithPreviousWorkflowError() throws Exception {
     String sessionId = "sess-error-queue";
     String workflowId = "w-error-queue";
-    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
+    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
+    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -297,13 +329,19 @@ class WorkflowServiceTest {
               }
             });
 
-    var exec1 = workflowService.runWorkflow(sessionId, workflowId, Map.of());
+    var exec1 =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+            .block();
 
     // Wait for first execution to start
     firstStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
     // Now submit second workflow - it should queue
-    var exec2 = workflowService.runWorkflow(sessionId, workflowId, Map.of());
+    var exec2 =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+            .block();
 
     // Let first execution error
     firstErrorLatch.countDown();
@@ -323,7 +361,8 @@ class WorkflowServiceTest {
   void testWorkflowErrorAfterPreparation() {
     String sessionId = "sess-prep-error";
     String workflowId = "w-prep-error";
-    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
+    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
+    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -333,7 +372,10 @@ class WorkflowServiceTest {
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenReturn(Mono.error(new RuntimeException("Execution error")));
 
-    StepVerifier.create(workflowService.runWorkflow(sessionId, workflowId, Map.of()).result())
+    StepVerifier.create(
+            workflowService
+                .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+                .flatMap(exec -> exec.result()))
         .expectNextMatches(
             res -> "FAILURE".equals(res.status()) && res.output().contains("Execution error"))
         .verifyComplete();
@@ -343,7 +385,8 @@ class WorkflowServiceTest {
   void testMultipleQueuedExecutionsWithSelectiveCleanup() throws Exception {
     String sessionId = "sess-multi-cleanup";
     String workflowId = "w-multi-cleanup";
-    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
+    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
+    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
     PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
@@ -397,13 +440,22 @@ class WorkflowServiceTest {
               }
             });
 
-    var exec1 = workflowService.runWorkflow(sessionId, workflowId, Map.of());
+    var exec1 =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+            .block();
     firstStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
-    var exec2 = workflowService.runWorkflow(sessionId, workflowId, Map.of());
+    var exec2 =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+            .block();
     secondStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
-    var exec3 = workflowService.runWorkflow(sessionId, workflowId, Map.of());
+    var exec3 =
+        workflowService
+            .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+            .block();
     thirdStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
     // Release all executions
@@ -428,13 +480,17 @@ class WorkflowServiceTest {
   void testWorkflowErrorInTerminalPhase() {
     String sessionId = "sess-terminal-error";
     String workflowId = "w-terminal-error";
-    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
+    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
+    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
 
     when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
     when(orchestrator.prepareWorkflow(any()))
         .thenReturn(Mono.error(new RuntimeException("Prep error")));
 
-    StepVerifier.create(workflowService.runWorkflow(sessionId, workflowId, Map.of()).result())
+    StepVerifier.create(
+            workflowService
+                .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+                .flatMap(exec -> exec.result()))
         .expectNextMatches(
             res -> "FAILURE".equals(res.status()) && res.output().contains("Prep error"))
         .verifyComplete();
@@ -483,20 +539,31 @@ class WorkflowServiceTest {
 
   @Test
   void runWorkflowUsesCacheHitWithoutCallingStore() {
+    final WorkflowDefinition def =
+        new WorkflowDefinition(
+            "wf1",
+            "desc",
+            List.of(new WorkflowDefinition.Node("n1", "trigger", Map.of())),
+            List.of());
     final PreparedWorkflow prepared =
         new PreparedWorkflow(
             List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
     preparedWorkflowCache.put("s1", "wf1", prepared);
+    when(workflowDefinitionStore.find("s1", "wf1")).thenReturn(Mono.just(def));
     when(orchestrator.execute(eq("s1"), eq("wf1"), any(), eq(prepared), any()))
         .thenReturn(Mono.empty());
 
-    final WorkflowExecution execution = workflowService.runWorkflow("s1", "wf1", Map.of("k", "v"));
+    final WorkflowExecution execution =
+        workflowService
+            .validateAndTriggerWorkflow("s1", "wf1", Map.of("k", "v"))
+            .block();
     StepVerifier.create(execution.result())
         .expectNextMatches(r -> "SUCCESS".equals(r.status()))
         .verifyComplete();
 
-    org.mockito.Mockito.verify(workflowDefinitionStore, org.mockito.Mockito.never())
-        .find(any(), any());
+    // validateAndTriggerWorkflow always calls find to validate the workflow exists
+    org.mockito.Mockito.verify(workflowDefinitionStore).find("s1", "wf1");
+    // But prepareWorkflow should not be called since cache hit
     org.mockito.Mockito.verify(orchestrator, org.mockito.Mockito.never()).prepareWorkflow(any());
   }
 
@@ -516,12 +583,18 @@ class WorkflowServiceTest {
     when(orchestrator.execute(eq("s1"), eq("wf1"), any(), eq(prepared), any()))
         .thenReturn(Mono.empty());
 
-    final WorkflowExecution execution = workflowService.runWorkflow("s1", "wf1", Map.of("k", "v"));
+    final WorkflowExecution execution =
+        workflowService
+            .validateAndTriggerWorkflow("s1", "wf1", Map.of("k", "v"))
+            .block();
     StepVerifier.create(execution.result())
         .expectNextMatches(r -> "SUCCESS".equals(r.status()))
         .verifyComplete();
 
-    org.mockito.Mockito.verify(workflowDefinitionStore).find("s1", "wf1");
+    // find called twice: once for validation, once in resolveAndExecute for cache miss
+    org.mockito.Mockito.verify(workflowDefinitionStore, org.mockito.Mockito.times(2))
+        .find("s1", "wf1");
+    // prepareWorkflow called once for cache miss
     org.mockito.Mockito.verify(orchestrator).prepareWorkflow(def);
   }
 
@@ -529,10 +602,12 @@ class WorkflowServiceTest {
   void runWorkflowOnStoreMissPropagatesFailure() {
     when(workflowDefinitionStore.find("s1", "wf1")).thenReturn(Mono.empty());
 
-    final WorkflowExecution execution = workflowService.runWorkflow("s1", "wf1", Map.of("k", "v"));
-    StepVerifier.create(execution.result())
-        .expectNextMatches(
-            r -> "FAILURE".equals(r.status()) && r.output().contains("Workflow not found"))
-        .verifyComplete();
+    StepVerifier.create(
+            workflowService.validateAndTriggerWorkflow("s1", "wf1", Map.of("k", "v")))
+        .expectErrorMatches(
+            e ->
+                e instanceof IllegalArgumentException
+                    && e.getMessage().contains("Workflow not found"))
+        .verify();
   }
 }

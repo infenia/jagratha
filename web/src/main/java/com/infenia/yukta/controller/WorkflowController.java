@@ -90,6 +90,13 @@ public class WorkflowController {
         "triggerWorkflow: sessionId={}, workflowId={}", request.sessionId(), request.workflowId());
     return workflowService
         .validateAndTriggerWorkflow(request.sessionId(), request.workflowId(), request.payload())
+        .doOnNext(
+            _ ->
+                log.atInfo()
+                    .log(
+                        "triggerWorkflow service call succeeded: sessionId={}, workflowId={}",
+                        request.sessionId(),
+                        request.workflowId()))
         .map(
             execution ->
                 ResponseEntity.accepted()
@@ -98,8 +105,21 @@ public class WorkflowController {
                             202,
                             "Workflow trigger accepted",
                             new TriggerResponse(execution.executionId()))))
+        .doOnSuccess(
+            _ ->
+                log.atInfo()
+                    .log(
+                        "triggerWorkflow response sent successfully: sessionId={}, workflowId={}",
+                        request.sessionId(),
+                        request.workflowId()))
         .onErrorResume(
             e -> {
+              log.atError()
+                  .log(
+                      "triggerWorkflow error occurred: sessionId={}, workflowId={}, error={}",
+                      request.sessionId(),
+                      request.workflowId(),
+                      e.getMessage());
               final String path = exchange.getRequest().getPath().value();
               final List<ApiResponse.FieldError> errors =
                   List.of(new ApiResponse.FieldError("workflow", e.getMessage()));
@@ -134,13 +154,32 @@ public class WorkflowController {
     log.atInfo().log("getWorkflowStatus: sessionId={}, executionId={}", sessionId, executionId);
     return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
         .flatMap(Mono::justOrEmpty)
+        .doOnNext(
+            _ ->
+                log.atInfo()
+                    .log(
+                        "getWorkflowStatus service call succeeded: sessionId={}, executionId={}",
+                        sessionId,
+                        executionId))
         .map(
             progress ->
                 ResponseEntity.ok(
                     ApiResponse.success(200, "Workflow status retrieved successfully", progress)))
+        .doOnSuccess(
+            _ ->
+                log.atInfo()
+                    .log(
+                        "getWorkflowStatus response sent successfully: sessionId={}, executionId={}",
+                        sessionId,
+                        executionId))
         .switchIfEmpty(
             Mono.fromSupplier(
                 () -> {
+                  log.atWarn()
+                      .log(
+                          "getWorkflowStatus execution not found: sessionId={}, executionId={}",
+                          sessionId,
+                          executionId);
                   final String path = exchange.getRequest().getPath().value();
                   final List<ApiResponse.FieldError> errors =
                       List.of(
@@ -149,7 +188,15 @@ public class WorkflowController {
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
                       .body(
                           ApiResponse.error(404, "Not Found", "Execution not found", path, errors));
-                }));
+                }))
+        .doOnError(
+            error ->
+                log.atError()
+                    .log(
+                        "getWorkflowStatus error occurred: sessionId={}, executionId={}, error={}",
+                        sessionId,
+                        executionId,
+                        error.getMessage()));
   }
 
   /**
@@ -171,7 +218,29 @@ public class WorkflowController {
     log.atInfo().log("streamWorkflowStatus: sessionId={}, executionId={}", sessionId, executionId);
     return controlBus
         .watchExecution(executionId)
-        .map(progress -> ServerSentEvent.<WorkflowProgress>builder().data(progress).build());
+        .doOnNext(
+            _ ->
+                log.atDebug()
+                    .log(
+                        "streamWorkflowStatus progress received: sessionId={}, executionId={}",
+                        sessionId,
+                        executionId))
+        .map(progress -> ServerSentEvent.<WorkflowProgress>builder().data(progress).build())
+        .doOnError(
+            error ->
+                log.atError()
+                    .log(
+                        "streamWorkflowStatus error occurred: sessionId={}, executionId={}, error={}",
+                        sessionId,
+                        executionId,
+                        error.getMessage()))
+        .doOnComplete(
+            () ->
+                log.atInfo()
+                    .log(
+                        "streamWorkflowStatus stream completed: sessionId={}, executionId={}",
+                        sessionId,
+                        executionId));
   }
 
   /**
@@ -193,6 +262,11 @@ public class WorkflowController {
     log.atInfo().log("getWorkflowHistory: sessionId={}", sessionId);
     return sessionService
         .getSessionConfig(sessionId)
+        .doOnNext(
+            config ->
+                log.atInfo()
+                    .log(
+                        "getWorkflowHistory session config retrieved: sessionId={}", sessionId))
         .flatMap(
             ignored ->
                 Mono.fromCallable(() -> controlBus.getHistory(sessionId))
@@ -201,9 +275,15 @@ public class WorkflowController {
                             ResponseEntity.ok(
                                 ApiResponse.success(
                                     200, "Workflow history retrieved successfully", history))))
+        .doOnSuccess(
+            _ ->
+                log.atInfo()
+                    .log(
+                        "getWorkflowHistory response sent successfully: sessionId={}", sessionId))
         .switchIfEmpty(
             Mono.fromSupplier(
                 () -> {
+                  log.atWarn().log("getWorkflowHistory session not found: sessionId={}", sessionId);
                   final String path = exchange.getRequest().getPath().value();
                   final List<ApiResponse.FieldError> errors =
                       List.of(
@@ -211,6 +291,13 @@ public class WorkflowController {
                               "sessionId", "Session not found: '" + sessionId + "'"));
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
                       .body(ApiResponse.error(404, "Not Found", "Session not found", path, errors));
-                }));
+                }))
+        .doOnError(
+            error ->
+                log.atError()
+                    .log(
+                        "getWorkflowHistory error occurred: sessionId={}, error={}",
+                        sessionId,
+                        error.getMessage()));
   }
 }

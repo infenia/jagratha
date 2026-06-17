@@ -17,6 +17,7 @@ package com.infenia.yukta.mcp.provider;
 
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.WorkflowService;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import com.infenia.yukta.service.session.SessionService;
@@ -56,7 +57,9 @@ public class DefaultWorkflowExecutionProvider implements WorkflowExecutionProvid
       result = parseAndTrigger(sessionId, workflowId, payloadJson);
     } else {
       result =
-          Mono.just(workflowService.runWorkflow(sessionId, workflowId, Map.of()).executionId());
+          workflowService
+              .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+              .map(WorkflowExecution::executionId);
     }
     return result;
   }
@@ -76,7 +79,10 @@ public class DefaultWorkflowExecutionProvider implements WorkflowExecutionProvid
     try {
       final Map<String, Object> payload =
           objectMapper.readValue(payloadJson, new TypeReference<>() {});
-      result = Mono.just(workflowService.runWorkflow(sessionId, workflowId, payload).executionId());
+      result =
+          workflowService
+              .validateAndTriggerWorkflow(sessionId, workflowId, payload)
+              .map(WorkflowExecution::executionId);
     } catch (final tools.jackson.core.JacksonException e) {
       log.atWarn().setCause(e).log("Failed to parse workflow payload: {}", e.getMessage());
       result =
