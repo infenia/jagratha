@@ -101,20 +101,16 @@ public class WorkflowCompiler {
     return (executionId, payload) ->
         Mono.deferContextual(
             ctx ->
-                tracker
-                    .startWorkflow(
-                        executionId, ctx.get(CTX_SESSION_ID), ctx.get(CTX_WORKFLOW_ID), nodeIds)
-                    .then(
-                        Mono.defer(
-                            () ->
-                                executeTemplate(
-                                    executionId,
-                                    payload,
-                                    nodeCount,
-                                    assemblers,
-                                    ctx.get(CTX_SESSION_ID),
-                                    ctx.get(CTX_WORKFLOW_ID),
-                                    nodeIds)))
+                Mono.defer(
+                        () ->
+                            executeTemplate(
+                                executionId,
+                                payload,
+                                nodeCount,
+                                assemblers,
+                                ctx.get(CTX_SESSION_ID),
+                                ctx.get(CTX_WORKFLOW_ID),
+                                nodeIds))
                     .contextWrite(c -> c.put(CTX_PAYLOAD, payload)));
   }
 

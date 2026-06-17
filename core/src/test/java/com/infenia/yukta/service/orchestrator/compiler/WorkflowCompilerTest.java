@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -323,7 +324,7 @@ class WorkflowCompilerTest {
   }
 
   @Test
-  void compileTemplate_instantiate_startsWorkflowTracking() {
+  void compileTemplate_instantiate_executesWithoutCallingStartWorkflow() {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of());
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
@@ -337,8 +338,6 @@ class WorkflowCompilerTest {
             any(), any(), any(), any(Integer.class), any(Integer.class), any()))
         .thenReturn(ctx -> {});
 
-    when(tracker.startWorkflow(anyString(), anyString(), anyString(), anyList()))
-        .thenReturn(Mono.empty());
     when(executionControlRegistry.findByExecutionId(EXECUTION_ID))
         .thenReturn(Optional.of(buildMinimalExecutionControl()));
     when(configService.getExecutionTimeout(SESSION_ID)).thenReturn(Mono.just(5L));
@@ -352,7 +351,8 @@ class WorkflowCompilerTest {
 
     StepVerifier.create(execution).verifyComplete();
 
-    verify(tracker).startWorkflow(EXECUTION_ID, SESSION_ID, WORKFLOW_ID, List.of("n1"));
+    // startWorkflow is the orchestrator's responsibility, not the template's
+    verify(tracker, never()).startWorkflow(any(), any(), any(), any());
   }
 
   // ── executeTemplate ────────────────────────────────────────────────────────

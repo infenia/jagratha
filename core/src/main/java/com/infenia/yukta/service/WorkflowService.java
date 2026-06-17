@@ -101,42 +101,20 @@ public class WorkflowService {
                   return Mono.error(workflowNotFound(sessionId, workflowId));
                 }))
         .map(
-            def -> {
-              final List<String> nodeIds =
-                  def.nodes().stream().map(WorkflowDefinition.Node::nodeId).toList();
+                _ -> {
               log.atDebug()
                   .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
                   .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-                  .addKeyValue("nodeIds", nodeIds)
                   .log("Extracted node IDs from workflow definition");
-              return runWorkflow(sessionId, workflowId, nodeIds, payload);
+              return runWorkflow(sessionId, workflowId, payload);
             });
   }
 
-  /**
-   * Run a specific workflow for a session.
-   *
-   * @param sessionId the session identifier
-   * @param workflowId the workflow identifier
-   * @param payload the initial trigger payload
-   * @return a WorkflowExecution containing the execution ID and the result Mono
-   */
-  private WorkflowExecution runWorkflow(
-      @SessionId final String sessionId,
-      @WorkflowId final String workflowId,
-      @NotEmpty final Map<String, Object> payload) {
-    return runWorkflow(sessionId, workflowId, List.of(), payload);
-  }
-
-  private WorkflowExecution runWorkflow(
+    private WorkflowExecution runWorkflow(
       final String sessionId,
       final String workflowId,
-      final List<String> nodeIds,
       final Map<String, Object> payload) {
     final String executionId = UUID.randomUUID().toString();
-    if (!nodeIds.isEmpty()) {
-      tracker.startWorkflow(executionId, sessionId, workflowId, nodeIds).subscribe();
-    }
     final String queueKey = sessionId + ":" + workflowId;
     final Sinks.One<TaskResponse> sink = Sinks.one();
 

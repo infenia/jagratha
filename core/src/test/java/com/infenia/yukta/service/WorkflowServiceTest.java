@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -518,7 +519,7 @@ class WorkflowServiceTest {
         .expectNextMatches(res -> "SUCCESS".equals(res.status()))
         .verifyComplete();
 
-    verify(tracker).startWorkflow(anyString(), eq(sessionId), eq(workflowId), eq(List.of("n1")));
+    verify(orchestrator, timeout(1000)).execute(eq(sessionId), eq(workflowId), anyString(), any(), any());
   }
 
   @Test
