@@ -45,6 +45,11 @@ public class TopologicalSortService {
       final List<WorkflowNode> nodes,
       final Map<String, List<WorkflowNode>> adj,
       final Map<String, List<WorkflowNode>> parents) {
+    log.atDebug()
+        .addKeyValue("nodeCount", nodes.size())
+        .addKeyValue("edgeCount", adj.size())
+        .log("Starting topological sort of workflow DAG");
+
     final Map<String, Integer> inDegree = new ConcurrentHashMap<>();
     final Map<String, WorkflowNode> nodeMap = new ConcurrentHashMap<>();
 
@@ -58,6 +63,9 @@ public class TopologicalSortService {
         (id, degree) -> {
           if (degree == 0) {
             queue.add(id);
+            log.atDebug()
+                .addKeyValue("nodeId", id)
+                .log("Added root node to processing queue");
           }
         });
 
@@ -65,14 +73,32 @@ public class TopologicalSortService {
     while (!queue.isEmpty()) {
       final String sourceNodeId = queue.poll();
       result.add(nodeMap.get(sourceNodeId));
+      log.atDebug()
+          .addKeyValue("nodeId", sourceNodeId)
+          .addKeyValue("processedCount", result.size())
+          .log("Processing node in topological order");
 
       processChildren(adj.get(sourceNodeId), inDegree, queue);
     }
 
     if (result.size() != nodes.size()) {
+      final List<String> unprocessedNodes = new ArrayList<>();
+      for (final String id : inDegree.keySet()) {
+        if (!result.contains(nodeMap.get(id))) {
+          unprocessedNodes.add(id);
+        }
+      }
+      log.atError()
+          .addKeyValue("expectedCount", nodes.size())
+          .addKeyValue("actualCount", result.size())
+          .addKeyValue("unprocessedCount", unprocessedNodes.size())
+          .log("Topological sort failed: DAG contains cycles or is invalid");
       throw new IllegalArgumentException("Workflow DAG contains cycles or is invalid");
     }
 
+    log.atInfo()
+        .addKeyValue("sortedNodeCount", result.size())
+        .log("Completed topological sort of workflow DAG");
     return result;
   }
 
@@ -82,10 +108,19 @@ public class TopologicalSortService {
       final Queue<String> queue) {
     if (children != null) {
       for (final WorkflowNode v : children) {
-        final int degree = inDegree.get(v.nodeId()) - 1;
-        inDegree.put(v.nodeId(), degree);
-        if (degree == 0) {
+        final int currentDegree = inDegree.get(v.nodeId());
+        final int newDegree = currentDegree - 1;
+        inDegree.put(v.nodeId(), newDegree);
+        log.atDebug()
+            .addKeyValue("nodeId", v.nodeId())
+            .addKeyValue("previousInDegree", currentDegree)
+            .addKeyValue("newInDegree", newDegree)
+            .log("Updated in-degree for child node");
+        if (newDegree == 0) {
           queue.add(v.nodeId());
+          log.atDebug()
+              .addKeyValue("nodeId", v.nodeId())
+              .log("Child node is now ready for processing (in-degree = 0)");
         }
       }
     }

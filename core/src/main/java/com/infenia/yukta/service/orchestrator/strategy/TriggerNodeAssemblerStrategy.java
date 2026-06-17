@@ -48,8 +48,16 @@ public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   @Override
   public boolean supports(final WorkflowPlugin plugin, final boolean hasParents) {
-    return plugin instanceof TriggerPlugin
-        && (plugin.getCategory() == PluginCategory.TRIGGER || !hasParents);
+    final boolean isSupported =
+        plugin instanceof TriggerPlugin
+            && (plugin.getCategory() == PluginCategory.TRIGGER || !hasParents);
+    if (isSupported) {
+      log.atDebug()
+          .addKeyValue("pluginType", plugin.getClass().getSimpleName())
+          .addKeyValue("hasParents", hasParents)
+          .log("TriggerNodeAssemblerStrategy supports this plugin");
+    }
+    return isSupported;
   }
 
   @Override
@@ -62,11 +70,27 @@ public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
       final ParentEdgeInfo[] parentEdges) {
     final TriggerPlugin trigger = (TriggerPlugin) plugin;
 
+    log.atDebug()
+        .addKeyValue("nodeId", node.nodeId())
+        .addKeyValue("pluginType", plugin.getClass().getSimpleName())
+        .addKeyValue("isBlocking", trigger.isBlocking())
+        .addKeyValue("timeoutMs", timeout.toMillis())
+        .addKeyValue("bufferSize", bufferSize)
+        .log("Creating trigger node assembler");
+
     return context -> {
       final var control = context.control();
 
+      log.atDebug()
+          .addKeyValue("nodeId", node.nodeId())
+          .addKeyValue("executionId", context.executionId())
+          .log("Starting trigger stream");
+
       Flux<Message<?>> stream = trigger.start(node.config());
       if (trigger.isBlocking()) {
+        log.atDebug()
+            .addKeyValue("nodeId", node.nodeId())
+            .log("Subscribing blocking trigger to virtual thread scheduler");
         stream = stream.subscribeOn(virtualThreadScheduler);
       }
 
@@ -75,6 +99,9 @@ public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
       final var nodeSafeSink = control.nodeSafeStopSinks().get(node.nodeId());
       if (nodeSafeSink != null) {
+        log.atDebug()
+            .addKeyValue("nodeId", node.nodeId())
+            .log("Applying safe stop signal to trigger stream");
         built = built.takeUntilOther(nodeSafeSink.asMono());
       }
 
@@ -86,6 +113,11 @@ public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
               bufferSize,
               context.disposables(),
               context.connectors());
+
+      log.atDebug()
+          .addKeyValue("nodeId", node.nodeId())
+          .addKeyValue("executionId", context.executionId())
+          .log("Trigger node stream assembled and registered");
     };
   }
 }

@@ -51,7 +51,13 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   @Override
   public boolean supports(final WorkflowPlugin plugin, final boolean hasParents) {
-    return plugin instanceof ProcessorPlugin;
+    final boolean isSupported = plugin instanceof ProcessorPlugin;
+    if (isSupported) {
+      log.atDebug()
+          .addKeyValue("pluginType", plugin.getClass().getSimpleName())
+          .log("ProcessorNodeAssemblerStrategy supports this plugin");
+    }
+    return isSupported;
   }
 
   @Override
@@ -64,13 +70,23 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
       final ParentEdgeInfo[] parentEdges) {
     final ProcessorPlugin processor = (ProcessorPlugin) plugin;
 
-    log.atTrace()
+    log.atDebug()
         .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
         .addKeyValue(LOG_KEY_PARENT_EDGE_COUNT, parentEdges.length)
+        .addKeyValue("pluginType", plugin.getClass().getSimpleName())
+        .addKeyValue("isBlocking", processor.isBlocking())
+        .addKeyValue("timeoutMs", timeout.toMillis())
+        .addKeyValue("bufferSize", bufferSize)
         .log("Creating processor node assembler");
 
     return context -> {
       final var control = context.control();
+
+      log.atDebug()
+          .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+          .addKeyValue("executionId", context.executionId())
+          .log("Merging input from parent streams");
+
       final Flux<Message<?>> mergedInput =
           streamTopologyDecorator.mergeParentStreams(context.streams(), parentEdges);
 
@@ -80,11 +96,20 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
       final AtomicBoolean skipFlag = control.nodeSkipFlags().get(node.nodeId());
 
       if (skipFlag != null && skipFlag.get()) {
-        log.atDebug().addKeyValue(LOG_KEY_NODE_ID, node.nodeId()).log("Node marked for skip");
+        log.atInfo()
+            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+            .addKeyValue("executionId", context.executionId())
+            .log("Node marked for skip, bypassing processor");
         stream = safeInput;
       } else {
+        log.atDebug()
+            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+            .log("Processing stream with processor plugin");
         stream = processor.process(safeInput, node.config());
         if (processor.isBlocking()) {
+          log.atDebug()
+              .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+              .log("Subscribing blocking processor to virtual thread scheduler");
           stream = stream.subscribeOn(virtualThreadScheduler);
         }
       }
@@ -99,6 +124,11 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
               bufferSize,
               context.disposables(),
               context.connectors());
+
+      log.atDebug()
+          .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+          .addKeyValue("executionId", context.executionId())
+          .log("Processor node stream assembled and registered");
     };
   }
 }

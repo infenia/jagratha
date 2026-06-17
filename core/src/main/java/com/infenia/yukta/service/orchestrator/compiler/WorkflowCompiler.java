@@ -85,10 +85,18 @@ public class WorkflowCompiler {
       final List<WorkflowNode> topologicalOrder) {
 
     final int nodeCount = topologicalOrder.size();
+    log.atDebug()
+        .addKeyValue(LOG_KEY_NODE_COUNT, nodeCount)
+        .addKeyValue("edgeCount", edges.size())
+        .log("Starting workflow template compilation");
+
     final NodeAssembler[] assemblers =
         compileAssemblers(edges, parentsList, pluginCache, topologicalOrder);
 
     final List<String> nodeIds = topologicalOrder.stream().map(WorkflowNode::nodeId).toList();
+    log.atDebug()
+        .addKeyValue(LOG_KEY_NODE_COUNT, nodeCount)
+        .log("Workflow template compiled successfully");
 
     return (executionId, payload) ->
         Mono.deferContextual(
@@ -126,16 +134,29 @@ public class WorkflowCompiler {
       final List<WorkflowNode> topologicalOrder) {
 
     final int nodeCount = topologicalOrder.size();
+    log.atDebug()
+        .addKeyValue(LOG_KEY_NODE_COUNT, nodeCount)
+        .log("Building assembler array for topological order");
+
     final Map<String, Integer> nodeToIndex = new ConcurrentHashMap<>(nodeCount);
     for (int i = 0; i < nodeCount; i++) {
       nodeToIndex.put(topologicalOrder.get(i).nodeId(), i);
     }
 
     final NodeAssembler[] assemblers = new NodeAssembler[nodeCount];
+    int successCount = 0;
     for (int i = 0; i < nodeCount; i++) {
       final WorkflowNode node = topologicalOrder.get(i);
       assemblers[i] = createNodeAssembler(edges, node, parentsList, pluginCache, nodeToIndex);
+      if (assemblers[i] != null) {
+        successCount++;
+      }
     }
+
+    log.atDebug()
+        .addKeyValue(LOG_KEY_NODE_COUNT, nodeCount)
+        .addKeyValue("assemblersCreated", successCount)
+        .log("Completed assembler compilation");
     return assemblers;
   }
 
@@ -249,6 +270,7 @@ public class WorkflowCompiler {
     final int bufferSize = getBufferSize(node, plugin);
     final boolean hasParents = !parentsList.get(node.nodeId()).isEmpty();
     final int nodeIndex = nodeToIndex.get(node.nodeId());
+    final int parentCount = hasParents ? parentsList.get(node.nodeId()).size() : 0;
 
     final ParentEdgeInfo[] parentEdges =
         edges.stream()
@@ -256,13 +278,27 @@ public class WorkflowCompiler {
             .map(e -> new ParentEdgeInfo(nodeToIndex.get(e.source()), e.source(), e.sourcePort()))
             .toArray(ParentEdgeInfo[]::new);
 
+    log.atTrace()
+        .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+        .addKeyValue("nodeIndex", nodeIndex)
+        .addKeyValue("parentCount", parentCount)
+        .addKeyValue("parentEdgeCount", parentEdges.length)
+        .log("Creating assembler for node");
+
     return assemblerStrategies.stream()
         .filter(strategy -> strategy.supports(plugin, hasParents))
         .findFirst()
         .map(
-            strategy ->
-                strategy.createAssembler(
-                    node, plugin, nodeTimeout, nodeIndex, bufferSize, parentEdges))
+            strategy -> {
+              log.atTrace()
+                  .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                  .addKeyValue(LOG_KEY_PLUGIN_TYPE, plugin != null ? plugin.getClass().getSimpleName() : "null")
+                  .addKeyValue("timeout", nodeTimeout.toMillis() + "ms")
+                  .addKeyValue("bufferSize", bufferSize)
+                  .log("Assembler strategy selected");
+              return strategy.createAssembler(
+                  node, plugin, nodeTimeout, nodeIndex, bufferSize, parentEdges);
+            })
         .orElseGet(
             () -> {
               log.atWarn()
@@ -285,8 +321,18 @@ public class WorkflowCompiler {
     final int result;
     if (bufferVal instanceof Number numValue && numValue.intValue() > 0) {
       result = numValue.intValue();
+      log.atTrace()
+          .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+          .addKeyValue("bufferSize", result)
+          .addKeyValue("source", "nodeConfig")
+          .log("Using node-specific buffer size");
     } else {
       result = plugin != null ? plugin.getDefaultBufferSize() : BUFFER_SIZE;
+      log.atTrace()
+          .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+          .addKeyValue("bufferSize", result)
+          .addKeyValue("source", plugin != null ? "pluginDefault" : "systemDefault")
+          .log("Using default buffer size");
     }
     return result;
   }
@@ -304,12 +350,27 @@ public class WorkflowCompiler {
     final Duration result;
     if (timeoutVal instanceof Number numValue && numValue.longValue() > 0) {
       result = Duration.ofSeconds(numValue.longValue());
+      log.atTrace()
+          .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+          .addKeyValue("timeoutMs", result.toMillis())
+          .addKeyValue("source", "nodeConfig")
+          .log("Using node-specific timeout");
     } else {
       final Duration defaultTimeout = plugin != null ? plugin.getDefaultTimeout() : null;
       if (defaultTimeout != null) {
         result = defaultTimeout;
+        log.atTrace()
+            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+            .addKeyValue("timeoutMs", result.toMillis())
+            .addKeyValue("source", "pluginDefault")
+            .log("Using plugin default timeout");
       } else {
         result = Duration.ofSeconds(REF_COUNT_TIMEOUT);
+        log.atTrace()
+            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+            .addKeyValue("timeoutMs", result.toMillis())
+            .addKeyValue("source", "systemDefault")
+            .log("Using system default timeout");
       }
     }
     return result;

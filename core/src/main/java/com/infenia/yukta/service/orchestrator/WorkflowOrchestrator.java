@@ -74,7 +74,19 @@ public class WorkflowOrchestrator {
    * @return a Mono containing the prepared workflow
    */
   public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
-    return preparator.prepareWorkflow(def);
+    return preparator.prepareWorkflow(def)
+        .doOnSuccess(
+            prepared ->
+                log.atDebug()
+                    .addKeyValue(LOG_KEY_WORKFLOW_ID, def.workflowId())
+                    .addKeyValue("nodeCount", prepared != null ? prepared.topologicalOrder().size() : 0)
+                    .log("Successfully prepared workflow for execution"))
+        .doOnError(
+            e ->
+                log.atError()
+                    .setCause(e)
+                    .addKeyValue(LOG_KEY_WORKFLOW_ID, def.workflowId())
+                    .log("Failed to prepare workflow"));
   }
 
   /**
@@ -104,6 +116,9 @@ public class WorkflowOrchestrator {
     final ExecutionControl control =
         executionControlFactory.create(sessionId, workflowId, executionId, prepared, payload);
     executionControlRegistry.register(control);
+    log.atDebug()
+        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+        .log("Registered execution control");
 
     final List<String> nodeIds =
         prepared.topologicalOrder().stream().map(WorkflowNode::nodeId).toList();
@@ -119,6 +134,10 @@ public class WorkflowOrchestrator {
             signal -> {
               executionControlRegistry.unregister(executionId);
               checkpointStore.clear(executionId);
+              log.atDebug()
+                  .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
+                  .addKeyValue("signal", signal)
+                  .log("Cleaned up execution resources");
             })
         .doOnSuccess(
             v ->
@@ -169,6 +188,15 @@ public class WorkflowOrchestrator {
       final String restartNodeId,
       final Map<String, Message<?>> parentCheckpoints) {
 
+    log.atInfo()
+        .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+        .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+        .addKeyValue("previousExecutionId", previousExecutionId)
+        .addKeyValue(LOG_KEY_EXECUTION_ID, newExecutionId)
+        .addKeyValue("restartNodeId", restartNodeId)
+        .addKeyValue("checkpointCount", parentCheckpoints.size())
+        .log("Starting workflow restart from node");
+
     final List<WorkflowNode> topologicalOrder = prepared.topologicalOrder();
     final int nodeCount = topologicalOrder.size();
     final Map<String, Integer> nodeToIndex = new HashMap<>(nodeCount);
@@ -177,6 +205,11 @@ public class WorkflowOrchestrator {
     }
 
     final int restartIndex = nodeToIndex.getOrDefault(restartNodeId, 0);
+    log.atDebug()
+        .addKeyValue("restartNodeId", restartNodeId)
+        .addKeyValue("restartIndex", restartIndex)
+        .addKeyValue(LOG_KEY_NODE_COUNT, nodeCount)
+        .log("Computed restart index for workflow node");
     final NodeAssembler[] assemblers =
         compiler.compileAssemblers(
             prepared.edges(), prepared.parentsList(), prepared.pluginCache(), topologicalOrder);
@@ -198,6 +231,9 @@ public class WorkflowOrchestrator {
     final ExecutionControl control =
         executionControlFactory.create(sessionId, workflowId, newExecutionId, prepared, Map.of());
     executionControlRegistry.register(control);
+    log.atDebug()
+        .addKeyValue(LOG_KEY_EXECUTION_ID, newExecutionId)
+        .log("Registered execution control for restarted workflow");
 
     return tracker
         .startWorkflow(newExecutionId, sessionId, workflowId, nodeIds)
@@ -209,6 +245,10 @@ public class WorkflowOrchestrator {
             signal -> {
               executionControlRegistry.unregister(newExecutionId);
               checkpointStore.clear(newExecutionId);
+              log.atDebug()
+                  .addKeyValue(LOG_KEY_EXECUTION_ID, newExecutionId)
+                  .addKeyValue("signal", signal)
+                  .log("Cleaned up restarted execution resources");
             })
         .doOnSuccess(
             v ->

@@ -61,6 +61,12 @@ public class WorkflowValidator {
    * @return a Mono that completes if validation is successful
    */
   public Mono<Void> validate(@NotNull @Valid final WorkflowDefinition def) {
+    log.atDebug()
+        .addKeyValue("workflowId", def.workflowId())
+        .addKeyValue("nodeCount", def.nodes().size())
+        .addKeyValue("edgeCount", def.edges().size())
+        .log("Starting workflow validation");
+
     final Set<String> targetIds =
         def.edges().stream().map(WorkflowDefinition.Edge::target).collect(Collectors.toSet());
     final Set<String> sourceIds =
@@ -75,7 +81,18 @@ public class WorkflowValidator {
         .then(validateNoCycles(def))
         .then(validateNoOrphans(def))
         .then(validateNodeContexts(def))
-        .then(validatePluginConfigs(def));
+        .then(validatePluginConfigs(def))
+        .doOnSuccess(
+            v ->
+                log.atInfo()
+                    .addKeyValue("workflowId", def.workflowId())
+                    .log("Workflow validation completed successfully"))
+        .doOnError(
+            e ->
+                log.atError()
+                    .setCause(e)
+                    .addKeyValue("workflowId", def.workflowId())
+                    .log("Workflow validation failed"));
   }
 
   private Mono<Void> validatePluginsRegistered(final WorkflowDefinition def) {
@@ -84,9 +101,17 @@ public class WorkflowValidator {
             node -> {
               final WorkflowPlugin plugin = registry.get(node.type());
               if (plugin == null) {
+                log.atWarn()
+                    .addKeyValue("nodeId", node.nodeId())
+                    .addKeyValue("pluginType", node.type())
+                    .log("Plugin not registered for node type");
                 return Mono.error(
                     new IllegalArgumentException("Plugin not found for type: " + node.type()));
               }
+              log.atDebug()
+                  .addKeyValue("nodeId", node.nodeId())
+                  .addKeyValue("pluginType", node.type())
+                  .log("Plugin found and registered");
               return Mono.empty();
             })
         .then();
@@ -102,9 +127,15 @@ public class WorkflowValidator {
                 });
 
     if (!hasTrigger) {
+      log.atError()
+          .addKeyValue("workflowId", def.workflowId())
+          .log("Workflow has no TRIGGER nodes");
       return Mono.error(
           new IllegalArgumentException("Workflow must contain at least one TRIGGER node"));
     }
+    log.atDebug()
+        .addKeyValue("workflowId", def.workflowId())
+        .log("Workflow contains at least one TRIGGER node");
     return Mono.empty();
   }
 
@@ -118,9 +149,15 @@ public class WorkflowValidator {
                 });
 
     if (!hasTerminal) {
+      log.atError()
+          .addKeyValue("workflowId", def.workflowId())
+          .log("Workflow has no TERMINAL nodes");
       return Mono.error(
           new IllegalArgumentException("Workflow must contain at least one TERMINAL node"));
     }
+    log.atDebug()
+        .addKeyValue("workflowId", def.workflowId())
+        .log("Workflow contains at least one TERMINAL node");
     return Mono.empty();
   }
 
@@ -135,11 +172,18 @@ public class WorkflowValidator {
               final boolean mustBeTrigger = plugin.getCategory() == PluginCategory.TRIGGER;
 
               if (isEntryPoint && !canBeTrigger) {
+                log.atWarn()
+                    .addKeyValue("nodeId", node.nodeId())
+                    .addKeyValue("pluginType", node.type())
+                    .log("Entry point node is not a TRIGGER");
                 return Mono.error(
                     new IllegalArgumentException(
                         "Node " + node.nodeId() + " is an entry point but not a TRIGGER"));
               }
               if (!isEntryPoint && mustBeTrigger) {
+                log.atWarn()
+                    .addKeyValue("nodeId", node.nodeId())
+                    .log("TRIGGER node has incoming edges");
                 return Mono.error(
                     new IllegalArgumentException(
                         "Trigger node " + node.nodeId() + " cannot have incoming edges"));
@@ -163,6 +207,11 @@ public class WorkflowValidator {
               // Processor nodes must have both incoming and outgoing edges
               // (unless it's an entry-point trigger, which is caught by validateEntryPoints)
               if (isProcessor && !isEntryPoint && !hasOutgoing) {
+                log.atWarn()
+                    .addKeyValue("nodeId", node.nodeId())
+                    .addKeyValue("isEntryPoint", isEntryPoint)
+                    .addKeyValue("hasOutgoing", hasOutgoing)
+                    .log("PROCESSOR node missing required edges");
                 return Mono.error(
                     new IllegalArgumentException(
                         "Processor node "
@@ -188,11 +237,18 @@ public class WorkflowValidator {
     final boolean isTerminal = plugin.getCategory() == PluginCategory.TERMINAL;
 
     if (isEndpoint && !isTerminal) {
+      log.atWarn()
+          .addKeyValue("nodeId", node.nodeId())
+          .addKeyValue("pluginType", node.type())
+          .log("Endpoint node is not a TERMINAL");
       return Mono.error(
           new IllegalArgumentException(
               "Node " + node.nodeId() + " is an endpoint but not a TERMINAL"));
     }
     if (!isEndpoint && isTerminal) {
+      log.atWarn()
+          .addKeyValue("nodeId", node.nodeId())
+          .log("TERMINAL node has outgoing edges");
       return Mono.error(
           new IllegalArgumentException(
               "Terminal node " + node.nodeId() + " cannot have outgoing edges"));
@@ -230,9 +286,16 @@ public class WorkflowValidator {
   }
 
   private Mono<Void> validateNoCycles(final WorkflowDefinition def) {
-    return hasCycles(def)
-        ? Mono.error(new IllegalArgumentException("Workflow DAG contains cycles"))
-        : Mono.empty();
+    if (hasCycles(def)) {
+      log.atError()
+          .addKeyValue("workflowId", def.workflowId())
+          .log("Workflow DAG contains cycles");
+      return Mono.error(new IllegalArgumentException("Workflow DAG contains cycles"));
+    }
+    log.atDebug()
+        .addKeyValue("workflowId", def.workflowId())
+        .log("Workflow DAG is acyclic");
+    return Mono.empty();
   }
 
   private Mono<Void> validateNoOrphans(final WorkflowDefinition def) {
@@ -247,9 +310,25 @@ public class WorkflowValidator {
         .flatMap(
             node -> {
               final WorkflowPlugin plugin = registry.get(node.type());
-              return plugin.validateConfig(node.config());
+              log.atDebug()
+                  .addKeyValue("nodeId", node.nodeId())
+                  .addKeyValue("pluginType", node.type())
+                  .log("Validating plugin configuration");
+              return plugin.validateConfig(node.config())
+                  .doOnError(
+                      e ->
+                          log.atWarn()
+                              .setCause(e)
+                              .addKeyValue("nodeId", node.nodeId())
+                              .addKeyValue("pluginType", node.type())
+                              .log("Plugin configuration validation failed"));
             })
-        .then();
+        .then()
+        .doOnSuccess(
+            v ->
+                log.atDebug()
+                    .addKeyValue("workflowId", def.workflowId())
+                    .log("All plugin configurations validated successfully"));
   }
 
   private boolean hasCycles(final WorkflowDefinition def) {

@@ -283,4 +283,34 @@ class InMemorySessionConfigStoreTest {
         .expectNextMatches(map -> "desc".equals(map.get("description")))
         .verifyComplete();
   }
+
+  @Test
+  void applySessionConfigWithMultipleWorkflows() {
+    final String sessionId = "sess-multi";
+    final WorkflowDefinition wf1 =
+        new WorkflowDefinition(
+            "wf1", "desc1", List.of(new WorkflowDefinition.Node("n1", "t1", Map.of())), List.of());
+    final WorkflowDefinition wf2 =
+        new WorkflowDefinition(
+            "wf2", "desc2", List.of(new WorkflowDefinition.Node("n2", "t2", Map.of())), List.of());
+    final SessionConfigData data =
+        new SessionConfigData(
+            sessionId,
+            "description",
+            "initiator",
+            Map.of("env", "test"),
+            "/multi/path",
+            Map.of("wf1", wf1, "wf2", wf2));
+
+    when(workflowDefinitionStore.save(sessionId, wf1)).thenReturn(Mono.empty());
+    when(workflowDefinitionStore.save(sessionId, wf2)).thenReturn(Mono.empty());
+
+    StepVerifier.create(configService.applySessionConfig(data)).verifyComplete();
+
+    verify(workflowDefinitionStore).save(sessionId, wf1);
+    verify(workflowDefinitionStore).save(sessionId, wf2);
+    StepVerifier.create(configService.getProjectPath(sessionId))
+        .expectNext("/multi/path")
+        .verifyComplete();
+  }
 }

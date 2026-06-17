@@ -69,17 +69,30 @@ public class PreparedWorkflowCache {
   public void init() {
     scheduler.scheduleAtFixedRate(
         this::evictExpired, EVICTION_INTERVAL_MS, EVICTION_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    log.atInfo()
+        .addKeyValue("ttlMs", ttlMs)
+        .addKeyValue("evictionIntervalMs", EVICTION_INTERVAL_MS)
+        .log("Initialized PreparedWorkflowCache with background eviction");
   }
 
   /** Shut down the eviction scheduler. */
   @PreDestroy
   public void shutdown() {
+    log.atInfo()
+        .addKeyValue("cacheSize", cache.size())
+        .log("Shutting down PreparedWorkflowCache");
     scheduler.shutdown();
     try {
       if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) {
+        log.atWarn().log("Eviction scheduler did not terminate gracefully, forcing shutdown");
         scheduler.shutdownNow();
+      } else {
+        log.atDebug().log("Eviction scheduler shut down gracefully");
       }
     } catch (final InterruptedException e) {
+      log.atWarn()
+          .addKeyValue("exception", e.getClass().getSimpleName())
+          .log("Interrupted while waiting for scheduler termination", e);
       scheduler.shutdownNow();
       Thread.currentThread().interrupt();
     }
@@ -94,7 +107,14 @@ public class PreparedWorkflowCache {
    */
   public void put(
       final String sessionId, final String workflowId, final PreparedWorkflow prepared) {
-    cache.put(key(sessionId, workflowId), new CacheEntry(prepared));
+    final String compositeKey = key(sessionId, workflowId);
+    final boolean isReplacement = cache.containsKey(compositeKey);
+    cache.put(compositeKey, new CacheEntry(prepared));
+    log.atDebug()
+        .addKeyValue("sessionId", sessionId)
+        .addKeyValue("workflowId", workflowId)
+        .addKeyValue("isReplacement", isReplacement)
+        .log("Cached compiled workflow");
   }
 
   /**
@@ -108,9 +128,17 @@ public class PreparedWorkflowCache {
     final CacheEntry entry = cache.get(key(sessionId, workflowId));
     final Optional<PreparedWorkflow> result;
     if (entry == null) {
+      log.atDebug()
+          .addKeyValue("sessionId", sessionId)
+          .addKeyValue("workflowId", workflowId)
+          .log("Cache miss: compiled workflow not found");
       result = Optional.empty();
     } else {
       entry.touch();
+      log.atDebug()
+          .addKeyValue("sessionId", sessionId)
+          .addKeyValue("workflowId", workflowId)
+          .log("Cache hit: retrieved and refreshed compiled workflow");
       result = Optional.of(entry.prepared);
     }
     return result;
@@ -123,7 +151,13 @@ public class PreparedWorkflowCache {
    * @param workflowId the workflow identifier
    */
   public void invalidate(final String sessionId, final String workflowId) {
-    cache.remove(key(sessionId, workflowId));
+    final String compositeKey = key(sessionId, workflowId);
+    final boolean wasPresent = cache.remove(compositeKey) != null;
+    log.atDebug()
+        .addKeyValue("sessionId", sessionId)
+        .addKeyValue("workflowId", workflowId)
+        .addKeyValue("wasPresent", wasPresent)
+        .log("Invalidated compiled workflow cache entry");
   }
 
   /**
@@ -133,19 +167,36 @@ public class PreparedWorkflowCache {
    */
   public void invalidateAll(final String sessionId) {
     final String prefix = sessionId + COMPOSITE_KEY_SEPARATOR;
+    final int initialSize = cache.size();
     cache.keySet().removeIf(k -> k.startsWith(prefix));
+    final int removed = initialSize - cache.size();
+    log.atInfo()
+        .addKeyValue("sessionId", sessionId)
+        .addKeyValue("entriesRemoved", removed)
+        .log("Invalidated all compiled workflows for session");
   }
 
   /** Evict all entries whose lastAccessTime is older than the configured TTL. */
   public void evictExpired() {
     final long now = System.currentTimeMillis();
     final Iterator<Map.Entry<String, CacheEntry>> iterator = cache.entrySet().iterator();
+    int evicted = 0;
     while (iterator.hasNext()) {
       final Map.Entry<String, CacheEntry> entry = iterator.next();
       if (now - entry.getValue().lastAccessTime.get() > ttlMs) {
         iterator.remove();
-        log.atDebug().addKeyValue("key", entry.getKey()).log("Evicted expired PreparedWorkflow");
+        evicted++;
+        log.atDebug()
+            .addKeyValue("key", entry.getKey())
+            .addKeyValue("ageMs", now - entry.getValue().lastAccessTime.get())
+            .log("Evicted expired compiled workflow");
       }
+    }
+    if (evicted > 0) {
+      log.atInfo()
+          .addKeyValue("evictedCount", evicted)
+          .addKeyValue("remainingEntries", cache.size())
+          .log("Completed cache eviction cycle");
     }
   }
 

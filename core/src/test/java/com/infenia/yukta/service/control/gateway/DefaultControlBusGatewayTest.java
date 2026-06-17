@@ -1479,5 +1479,4 @@ class DefaultControlBusGatewayTest {
     // Verify gateway is still valid after completion
     assertThat(gateway).isNotNull();
   }
-
 }

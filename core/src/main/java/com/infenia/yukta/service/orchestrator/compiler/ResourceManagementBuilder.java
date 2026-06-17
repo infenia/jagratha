@@ -142,6 +142,10 @@ public class ResourceManagementBuilder {
       final String sessionIdParam, final String executionIdParam) {
     this.sessionId = sessionIdParam;
     this.executionId = executionIdParam;
+    log.atDebug()
+        .addKeyValue("sessionId", sessionIdParam)
+        .addKeyValue("executionId", executionIdParam)
+        .log("Set execution timeout parameters");
     return this;
   }
 
@@ -164,7 +168,11 @@ public class ResourceManagementBuilder {
    * @return a Mono<Void> that manages the execution with timeout
    */
   private Mono<Void> executeWithTimeout() {
-    // Retrieve the execution timeout from the session config store
+    log.atDebug()
+        .addKeyValue("sessionId", sessionId)
+        .addKeyValue("executionId", executionId)
+        .log("Starting execution with resource management");
+
     final Mono<Long> timeoutMono =
         (sessionId != null)
             ? configStore.getExecutionTimeout(sessionId)
@@ -172,13 +180,14 @@ public class ResourceManagementBuilder {
 
     return timeoutMono.flatMap(
         timeout -> {
-          // Build the terminal mono from the list of terminals
-          final Mono<Void> terminalMono = buildTerminalMono();
+          log.atDebug()
+              .addKeyValue("executionTimeout", timeout)
+              .addKeyValue("unit", "seconds")
+              .log("Retrieved execution timeout");
 
-          // Apply timeout to the terminal execution
+          final Mono<Void> terminalMono = buildTerminalMono();
           final Mono<Void> timedMono = terminalMono.timeout(Duration.ofSeconds(timeout), scheduler);
 
-          // Run connectors on subscription and manage resources
           return Mono.using(
                   () -> disposables,
                   unused -> timedMono.doOnSubscribe(s -> runConnectors()),
@@ -211,12 +220,20 @@ public class ResourceManagementBuilder {
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
   private void runConnectors() {
     if (connectors != null && !connectors.isEmpty()) {
-      // Execute connectors in reverse order
+      log.atDebug()
+          .addKeyValue("connectorCount", connectors.size())
+          .log("Executing connectors in reverse order");
       for (int i = connectors.size() - 1; i >= 0; i--) {
         try {
           connectors.get(i).run();
+          log.atDebug()
+              .addKeyValue("connectorIndex", i)
+              .log("Connector executed successfully");
         } catch (final Exception e) {
-          log.error("Error executing connector at index {}", i, e);
+          log.atError()
+              .addKeyValue("connectorIndex", i)
+              .addKeyValue("exception", e.getClass().getSimpleName())
+              .log("Error executing connector", e);
         }
       }
     }
@@ -229,6 +246,10 @@ public class ResourceManagementBuilder {
    */
   private void emitStatus(final String status) {
     if (executionId != null) {
+      log.atInfo()
+          .addKeyValue("executionId", executionId)
+          .addKeyValue("status", status)
+          .log("Emitting workflow status event");
       tracker.emitWorkflowStatusEvent(executionId, status);
     }
   }
@@ -240,12 +261,31 @@ public class ResourceManagementBuilder {
    */
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
   private void cleanup(final List<Disposable> resource) {
+    if (resource.isEmpty()) {
+      log.atDebug().log("No disposables to clean up");
+      return;
+    }
+
+    log.atDebug()
+        .addKeyValue("disposableCount", resource.size())
+        .log("Starting resource cleanup");
+
+    int disposed = 0;
     for (final Disposable disposable : resource) {
       try {
         disposable.dispose();
+        disposed++;
       } catch (final Exception e) {
-        log.error("Error disposing resource", e);
+        log.atError()
+            .addKeyValue("exception", e.getClass().getSimpleName())
+            .addKeyValue("disposedCount", disposed)
+            .log("Error disposing resource", e);
       }
     }
+
+    log.atDebug()
+        .addKeyValue("disposedCount", disposed)
+        .addKeyValue("totalCount", resource.size())
+        .log("Resource cleanup completed");
   }
 }

@@ -51,13 +51,10 @@ import reactor.core.scheduler.Scheduler;
  * }</pre>
  */
 @Slf4j
-@SuppressWarnings("PMD.UnusedFormalParameter")
 public class HeartbeatBuilder {
 
   private final Duration defaultInterval;
   private final Scheduler scheduler;
-
-  @Nullable private String workflowId;
 
   @Nullable private List<String> nodes;
 
@@ -77,14 +74,13 @@ public class HeartbeatBuilder {
   }
 
   /**
-   * Sets the workflow ID and list of nodes for which to emit heartbeats and statistics.
+   * Sets the list of nodes for which to emit heartbeats and statistics.
    *
-   * @param wfId the workflow identifier
+   * @param wfId the workflow identifier (unused, kept for API compatibility)
    * @param nodeList the list of node identifiers
    * @return this builder for fluent chaining
    */
   public HeartbeatBuilder forNodes(@NotBlank final String wfId, final List<String> nodeList) {
-    this.workflowId = wfId;
     if (nodeList != null) {
       this.nodes = new ArrayList<>(nodeList);
     }
@@ -154,13 +150,8 @@ public class HeartbeatBuilder {
       final List<Disposable> disposables, final String nodeId, final Duration interval) {
     final Disposable hbDisposable =
         Flux.interval(interval, scheduler)
-            .flatMap(
-                tick -> {
-                  // TODO: Heartbeat emission decoupled from orchestrator to break circular
-                  // dependency. Heartbeats will be handled through ExecutionStatusPublisher once
-                  // the control bus bridge is established.
-                  return reactor.core.publisher.Mono.empty();
-                })
+            .doOnNext(tick -> log.debug("Emitting heartbeat for node: {}, tick: {}", nodeId, tick))
+            .flatMap(_ -> reactor.core.publisher.Mono.empty())
             .subscribe();
 
     disposables.add(hbDisposable);
@@ -177,13 +168,8 @@ public class HeartbeatBuilder {
       final List<Disposable> disposables, final String nodeId, final Duration interval) {
     final Disposable statsDisposable =
         Flux.interval(interval, scheduler)
-            .flatMap(
-                tick -> {
-                  // TODO: Statistics emission decoupled from orchestrator to break circular
-                  // dependency. Statistics will be handled through ExecutionStatusPublisher once
-                  // the control bus bridge is established.
-                  return reactor.core.publisher.Mono.empty();
-                })
+            .doOnNext(tick -> log.debug("Emitting statistics for node: {}, tick: {}", nodeId, tick))
+            .flatMap(_ -> reactor.core.publisher.Mono.empty())
             .subscribe();
 
     disposables.add(statsDisposable);

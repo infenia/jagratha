@@ -59,7 +59,13 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   @Override
   public boolean supports(final WorkflowPlugin plugin, final boolean hasParents) {
-    return plugin instanceof TerminalPlugin;
+    final boolean isSupported = plugin instanceof TerminalPlugin;
+    if (isSupported) {
+      log.atDebug()
+          .addKeyValue("pluginType", plugin.getClass().getSimpleName())
+          .log("TerminalNodeAssemblerStrategy supports this plugin");
+    }
+    return isSupported;
   }
 
   @Override
@@ -72,13 +78,22 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
       final ParentEdgeInfo[] parentEdges) {
     final TerminalPlugin terminal = (TerminalPlugin) plugin;
 
-    log.atTrace()
+    log.atDebug()
         .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
         .addKeyValue(LOG_KEY_PARENT_EDGE_COUNT, parentEdges.length)
+        .addKeyValue("pluginType", plugin.getClass().getSimpleName())
+        .addKeyValue("isBlocking", terminal.isBlocking())
+        .addKeyValue("timeoutMs", timeout.toMillis())
         .log("Creating terminal node assembler");
 
     return context -> {
       final var control = context.control();
+
+      log.atDebug()
+          .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+          .addKeyValue("executionId", context.executionId())
+          .log("Merging input from parent streams for terminal node");
+
       final Flux<Message<?>> mergedInput =
           streamTopologyDecorator.mergeParentStreams(context.streams(), parentEdges);
 
@@ -96,40 +111,70 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
               .transformDeferredContextual(
                   (flux, ctx) -> {
                     final ResultCollector collector = ctx.getOrDefault("resultCollector", null);
-                    return collector != null ? flux.doOnNext(collector::add) : flux;
+                    if (collector != null) {
+                      log.atDebug()
+                          .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                          .log("Terminal node is collecting results");
+                      return flux.doOnNext(collector::add);
+                    }
+                    return flux;
                   });
+
+      log.atDebug()
+          .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+          .addKeyValue("executionId", context.executionId())
+          .log("Consuming stream with terminal plugin");
 
       Mono<Void> completion = terminal.consume(inputToTerminal, node.config());
       if (terminal.isBlocking()) {
+        log.atDebug()
+            .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+            .log("Subscribing blocking terminal to virtual thread scheduler");
         completion = completion.subscribeOn(virtualThreadScheduler);
       }
 
       completion =
           completion
               .doOnSubscribe(
-                  s ->
-                      tracker.emitTaskStatusEvent(
-                          context.executionId(),
-                          node.nodeId(),
-                          DEFAULT_TASK_ID,
-                          STATUS_RUNNING,
-                          Collections.emptyMap()))
+                  s -> {
+                    log.atDebug()
+                        .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                        .addKeyValue("executionId", context.executionId())
+                        .log("Terminal node execution started");
+                    tracker.emitTaskStatusEvent(
+                        context.executionId(),
+                        node.nodeId(),
+                        DEFAULT_TASK_ID,
+                        STATUS_RUNNING,
+                        Collections.emptyMap());
+                  })
               .doOnSuccess(
-                  v ->
-                      tracker.emitTaskStatusEvent(
-                          context.executionId(),
-                          node.nodeId(),
-                          DEFAULT_TASK_ID,
-                          STATUS_SUCCESS,
-                          Collections.emptyMap()))
+                  v -> {
+                    log.atInfo()
+                        .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                        .addKeyValue("executionId", context.executionId())
+                        .log("Terminal node execution completed successfully");
+                    tracker.emitTaskStatusEvent(
+                        context.executionId(),
+                        node.nodeId(),
+                        DEFAULT_TASK_ID,
+                        STATUS_SUCCESS,
+                        Collections.emptyMap());
+                  })
               .doOnError(
-                  e ->
-                      tracker.emitTaskStatusEvent(
-                          context.executionId(),
-                          node.nodeId(),
-                          DEFAULT_TASK_ID,
-                          STATUS_FAILURE,
-                          Collections.emptyMap()));
+                  e -> {
+                    log.atWarn()
+                        .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
+                        .addKeyValue("executionId", context.executionId())
+                        .addKeyValue("error", e.getClass().getSimpleName())
+                        .log("Terminal node execution failed", e);
+                    tracker.emitTaskStatusEvent(
+                        context.executionId(),
+                        node.nodeId(),
+                        DEFAULT_TASK_ID,
+                        STATUS_FAILURE,
+                        Collections.emptyMap());
+                  });
 
       context.terminals().add(completion);
     };

@@ -89,6 +89,12 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
   /** Initialize background event consumers. */
   @PostConstruct
   public void init() {
+    log.atInfo()
+        .addKeyValue("cleanupTtl", cleanupTtl)
+        .addKeyValue("batchSize", BATCH_SIZE)
+        .addKeyValue("batchTimeoutMs", BATCH_TIMEOUT.toMillis())
+        .log("Initialized DefaultTaskTrackerService with event consumers");
+
     // Status Event Consumer
     taskStatusSink
         .asFlux()
@@ -99,7 +105,9 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
                 Mono.fromRunnable(() -> handleTaskStatusEvents(batch))
                     .onErrorResume(
                         e -> {
-                          log.atError().setCause(e).log("Error processing task status event batch");
+                          log.atError()
+                              .addKeyValue("batchSize", batch.size())
+                              .log("Error processing task status event batch", e);
                           return Mono.empty();
                         }))
         .subscribe();
@@ -115,8 +123,8 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
                     .onErrorResume(
                         e -> {
                           log.atError()
-                              .setCause(e)
-                              .log("Error processing workflow status event batch");
+                              .addKeyValue("batchSize", batch.size())
+                              .log("Error processing workflow status event batch", e);
                           return Mono.empty();
                         }))
         .subscribe();
@@ -131,7 +139,9 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
                 Mono.fromRunnable(() -> handleLogEvents(batch))
                     .onErrorResume(
                         e -> {
-                          log.atError().setCause(e).log("Error processing log event batch");
+                          log.atError()
+                              .addKeyValue("batchSize", batch.size())
+                              .log("Error processing log event batch", e);
                           return Mono.empty();
                         }))
         .subscribe();
@@ -159,7 +169,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
                   executionId, sessionId, workflowId, "RUNNING", nodeIds, LocalDateTime.now());
 
           sessionStates
-              .computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>())
+              .computeIfAbsent(sessionId, _ -> new ConcurrentHashMap<>())
               .put(executionId, state);
 
           executionIndex.put(executionId, state);
@@ -172,6 +182,13 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
           final Sinks.Many<WorkflowProgress> statusSink =
               Sinks.many().multicast().directBestEffort();
           statusSinks.put(executionId, statusSink);
+
+          log.atInfo()
+              .addKeyValue("executionId", executionId)
+              .addKeyValue("sessionId", sessionId)
+              .addKeyValue("workflowId", workflowId)
+              .addKeyValue("nodeCount", nodeIds.size())
+              .log("Started tracking workflow execution");
         });
   }
 
@@ -230,6 +247,13 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
       @NotBlank @Size(max = 256) final String module,
       @NotBlank @Size(max = 256) final String status,
       @NotNull final Map<String, Object> metadata) {
+    log.atDebug()
+        .addKeyValue("executionId", executionId)
+        .addKeyValue("nodeId", nodeId)
+        .addKeyValue("module", module)
+        .addKeyValue("status", status)
+        .addKeyValue("metadataSize", metadata.size())
+        .log("Emitting task status event");
     taskStatusSink.emitNext(
         TaskStatusEvent.create(executionId, nodeId, module, status, metadata), RETRY_HANDLER);
   }
@@ -243,6 +267,10 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
   @Override
   public void emitWorkflowStatusEvent(
       @NotBlank final String executionId, @NotBlank @Size(max = 256) final String status) {
+    log.atDebug()
+        .addKeyValue("executionId", executionId)
+        .addKeyValue("status", status)
+        .log("Emitting workflow status event");
     wfStatusSink.emitNext(WorkflowStatusEvent.create(executionId, status), RETRY_HANDLER);
   }
 
@@ -255,6 +283,10 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
   @Override
   public void emitLogEvent(
       @NotBlank final String executionId, @NotBlank @Size(max = 16_384) final String line) {
+    log.atTrace()
+        .addKeyValue("executionId", executionId)
+        .addKeyValue("lineLength", line.length())
+        .log("Emitting workflow log event");
     logSink.emitNext(WorkflowLogEvent.create(executionId, line), RETRY_HANDLER);
   }
 
@@ -268,7 +300,14 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
   @Override
   public Mono<Void> finishWorkflow(
       @NotBlank final String executionId, @NotBlank @Size(max = 256) final String status) {
-    return Mono.fromRunnable(() -> emitWorkflowStatusEvent(executionId, status));
+    return Mono.fromRunnable(
+        () -> {
+          log.atInfo()
+              .addKeyValue("executionId", executionId)
+              .addKeyValue("status", status)
+              .log("Finishing workflow execution");
+          emitWorkflowStatusEvent(executionId, status);
+        });
   }
 
   /**
@@ -404,6 +443,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
   public void removeSession(@SessionId final String sessionId) {
     final Map<String, WorkflowState> states = sessionStates.remove(sessionId);
     if (states != null) {
+      final int executionCount = states.size();
       states
           .keySet()
           .forEach(
@@ -413,6 +453,14 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
                 statusSinks.remove(execId);
               });
       latestExecs.keySet().removeIf(key -> key.startsWith(sessionId + "\0"));
+      log.atInfo()
+          .addKeyValue("sessionId", sessionId)
+          .addKeyValue("executionsRemoved", executionCount)
+          .log("Removed tracking data for session");
+    } else {
+      log.atDebug()
+          .addKeyValue("sessionId", sessionId)
+          .log("Session not found for removal");
     }
   }
 
@@ -423,13 +471,25 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
       if (state != null) {
         state.updateTask(event.nodeId(), event.module(), event.status(), event.metadata());
         execIds.add(event.executionId());
+      } else {
+        log.atDebug()
+            .addKeyValue("executionId", event.executionId())
+            .addKeyValue("nodeId", event.nodeId())
+            .log("Received task status event for unknown execution");
       }
+    }
+    if (!execIds.isEmpty()) {
+      log.atDebug()
+          .addKeyValue("eventsProcessed", events.size())
+          .addKeyValue("executionsUpdated", execIds.size())
+          .log("Processed task status event batch");
     }
     execIds.forEach(this::notifyStatusChange);
   }
 
   private void handleWorkflowStatusEvents(final List<WorkflowStatusEvent> events) {
     final Set<String> execIds = new HashSet<>();
+    int terminalCount = 0;
     for (final WorkflowStatusEvent event : events) {
       final WorkflowState state = findState(event.executionId());
       if (state != null) {
@@ -439,18 +499,46 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
 
         if (isTerminal(event.status())) {
           scheduleCleanup(event.executionId());
+          terminalCount++;
+          log.atDebug()
+              .addKeyValue("executionId", event.executionId())
+              .addKeyValue("finalStatus", event.status())
+              .log("Workflow reached terminal status, scheduled cleanup");
         }
+      } else {
+        log.atWarn()
+            .addKeyValue("executionId", event.executionId())
+            .log("Received workflow status event for unknown execution");
       }
+    }
+    if (!execIds.isEmpty()) {
+      log.atDebug()
+          .addKeyValue("eventsProcessed", events.size())
+          .addKeyValue("executionsUpdated", execIds.size())
+          .addKeyValue("terminalTransitions", terminalCount)
+          .log("Processed workflow status event batch");
     }
     execIds.forEach(this::notifyStatusChange);
   }
 
   private void handleLogEvents(final List<WorkflowLogEvent> events) {
+    int emittedCount = 0;
+    int missedCount = 0;
     for (final WorkflowLogEvent event : events) {
       final Sinks.Many<String> sink = logSinks.get(event.executionId());
       if (sink != null) {
         sink.tryEmitNext(event.line());
+        emittedCount++;
+      } else {
+        missedCount++;
       }
+    }
+    if (!events.isEmpty()) {
+      log.atDebug()
+          .addKeyValue("eventsProcessed", events.size())
+          .addKeyValue("emittedCount", emittedCount)
+          .addKeyValue("missedCount", missedCount)
+          .log("Processed workflow log event batch");
     }
   }
 
@@ -489,13 +577,23 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
   }
 
   private void scheduleCleanup(final String executionId) {
+    log.atDebug()
+        .addKeyValue("executionId", executionId)
+        .addKeyValue("delayMs", cleanupTtl.toMillis())
+        .log("Scheduled execution cleanup");
     Mono.delay(cleanupTtl)
         .subscribe(
             ignored -> cleanupExecution(executionId),
-            error -> log.atError().setCause(error).log("Error during cleanup scheduling"));
+            error ->
+                log.atError()
+                    .addKeyValue("executionId", executionId)
+                    .log("Error during cleanup scheduling", error));
   }
 
   private void cleanupExecution(final String executionId) {
+    log.atDebug()
+        .addKeyValue("executionId", executionId)
+        .log("Cleaning up execution data");
     final Sinks.Many<String> logSink = logSinks.remove(executionId);
     if (logSink != null) {
       logSink.emitComplete(RETRY_HANDLER);
@@ -505,6 +603,9 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
       statusSink.emitComplete(RETRY_HANDLER);
     }
     executionIndex.remove(executionId);
+    log.atDebug()
+        .addKeyValue("executionId", executionId)
+        .log("Completed execution cleanup");
   }
 
   private static final class WorkflowState {
@@ -543,7 +644,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
         final Map<String, Object> metadata) {
       taskMap.compute(
           nodeId,
-          (k, old) -> {
+          (_, old) -> {
             if (old == null) {
               return null;
             }

@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
@@ -34,6 +35,7 @@ import reactor.core.publisher.Mono;
  * In-memory implementation of SessionConfigStore. All configuration is session-based and updated
  * via API.
  */
+@Slf4j
 @Component
 @Validated
 @RequiredArgsConstructor
@@ -59,13 +61,24 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
               initiators.put(sessionId, data.initiator());
               initiatedTimes.put(sessionId, Instant.now().toString());
               tagsMap.put(sessionId, data.tags());
+              log.atInfo()
+                  .addKeyValue("sessionId", sessionId)
+                  .addKeyValue("projectPath", data.projectPath())
+                  .addKeyValue("initiator", data.initiator())
+                  .addKeyValue("tagCount", data.tags().size())
+                  .log("Applied session configuration");
             })
         .then(
             data.workflows().isEmpty()
                 ? Mono.empty()
                 : Flux.fromIterable(data.workflows().values())
                     .flatMap(def -> workflowDefinitionStore.save(data.sessionId(), def))
-                    .then());
+                    .then(
+                        Mono.fromRunnable(
+                            () -> log.atDebug()
+                                .addKeyValue("sessionId", data.sessionId())
+                                .addKeyValue("workflowCount", data.workflows().size())
+                                .log("Saved workflows for session"))));
   }
 
   @Override
@@ -78,6 +91,10 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
   public Mono<Void> setProjectPath(
       @SessionId final String sessionId, @ProjectPath final String path) {
     projectPaths.put(sessionId, path);
+    log.atDebug()
+        .addKeyValue("sessionId", sessionId)
+        .addKeyValue("projectPath", path)
+        .log("Set project path for session");
     return Mono.empty();
   }
 
@@ -105,7 +122,11 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
   @Override
   public Mono<Void> setDescription(@SessionId final String sessionId, final String description) {
     if (description != null) {
-      descriptions.putIfAbsent(sessionId, description);
+      final boolean isNew = descriptions.putIfAbsent(sessionId, description) == null;
+      log.atDebug()
+          .addKeyValue("sessionId", sessionId)
+          .addKeyValue("isNew", isNew)
+          .log("Set description for session");
     }
     return Mono.empty();
   }
@@ -119,7 +140,12 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
   @Override
   public Mono<Void> setInitiator(@SessionId final String sessionId, final String initiator) {
     if (initiator != null) {
-      initiators.putIfAbsent(sessionId, initiator);
+      final boolean isNew = initiators.putIfAbsent(sessionId, initiator) == null;
+      log.atDebug()
+          .addKeyValue("sessionId", sessionId)
+          .addKeyValue("initiator", initiator)
+          .addKeyValue("isNew", isNew)
+          .log("Set initiator for session");
     }
     return Mono.empty();
   }
@@ -134,7 +160,11 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
   public Mono<Void> setInitiatedTime(
       @SessionId final String sessionId, final String initiatedTime) {
     if (initiatedTime != null) {
-      initiatedTimes.putIfAbsent(sessionId, initiatedTime);
+      final boolean isNew = initiatedTimes.putIfAbsent(sessionId, initiatedTime) == null;
+      log.atDebug()
+          .addKeyValue("sessionId", sessionId)
+          .addKeyValue("isNew", isNew)
+          .log("Set initiated time for session");
     }
     return Mono.empty();
   }
@@ -148,7 +178,12 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
   @Override
   public Mono<Void> setTags(@SessionId final String sessionId, final Map<String, String> tags) {
     if (tags != null) {
-      tagsMap.putIfAbsent(sessionId, Map.copyOf(tags));
+      final boolean isNew = tagsMap.putIfAbsent(sessionId, Map.copyOf(tags)) == null;
+      log.atDebug()
+          .addKeyValue("sessionId", sessionId)
+          .addKeyValue("tagCount", tags.size())
+          .addKeyValue("isNew", isNew)
+          .log("Set tags for session");
     }
     return Mono.empty();
   }
@@ -167,6 +202,10 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
               configs.put("initiatedTime", arr[5]);
               configs.put("tags", arr[6]);
               configs.put("description", arr[7]);
+              log.atDebug()
+                  .addKeyValue("sessionId", sessionId)
+                  .addKeyValue("configCount", configs.size())
+                  .log("Retrieved all configurations for session");
               return configs;
             },
             getProjectPath(sessionId),
@@ -196,6 +235,9 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
     allSessions.addAll(initiatedTimes.keySet());
     allSessions.addAll(tagsMap.keySet());
     allSessions.addAll(descriptions.keySet());
+    log.atDebug()
+        .addKeyValue("sessionCount", allSessions.size())
+        .log("Retrieved all active session IDs");
     return Flux.fromIterable(allSessions);
   }
 }
