@@ -164,6 +164,8 @@ class InMemorySessionConfigStoreTest {
     configService.setDescription(sessionId, "Sample").block();
     configService.setProjectPath(sessionId, "/meta/path").block();
 
+    when(workflowDefinitionStore.findAll(sessionId)).thenReturn(Mono.just(Map.of()));
+
     StepVerifier.create(configService.getAllConfigs(sessionId))
         .expectNextMatches(
             map ->
@@ -174,7 +176,8 @@ class InMemorySessionConfigStoreTest {
                     && "/meta/path".equals(map.get("projectPath"))
                     && map.containsKey("executionTimeout")
                     && map.containsKey("fileLogDir")
-                    && map.containsKey("resultLogDir"))
+                    && map.containsKey("resultLogDir")
+                    && map.containsKey("workflows"))
         .verifyComplete();
   }
 
@@ -259,25 +262,28 @@ class InMemorySessionConfigStoreTest {
   @Test
   void sessionExistsChecksAllMaps() {
     String sessionId = "test-session";
-
+    when(workflowDefinitionStore.findAll(sessionId)).thenReturn(Mono.just(Map.of()));
     configService.setInitiator(sessionId, "initiator").block();
     StepVerifier.create(configService.getAllConfigs(sessionId))
         .expectNextMatches(map -> "initiator".equals(map.get("initiator")))
         .verifyComplete();
 
     String sessionId2 = "test-session2";
+    when(workflowDefinitionStore.findAll(sessionId2)).thenReturn(Mono.just(Map.of()));
     configService.setInitiatedTime(sessionId2, "2026-01-01").block();
     StepVerifier.create(configService.getAllConfigs(sessionId2))
         .expectNextMatches(map -> "2026-01-01".equals(map.get("initiatedTime")))
         .verifyComplete();
 
     String sessionId3 = "test-session3";
+    when(workflowDefinitionStore.findAll(sessionId3)).thenReturn(Mono.just(Map.of()));
     configService.setTags(sessionId3, Map.of("tag1", "val1")).block();
     StepVerifier.create(configService.getAllConfigs(sessionId3))
         .expectNextMatches(map -> Map.of("tag1", "val1").equals(map.get("tags")))
         .verifyComplete();
 
     String sessionId4 = "test-session4";
+    when(workflowDefinitionStore.findAll(sessionId4)).thenReturn(Mono.just(Map.of()));
     configService.setDescription(sessionId4, "desc").block();
     StepVerifier.create(configService.getAllConfigs(sessionId4))
         .expectNextMatches(map -> "desc".equals(map.get("description")))

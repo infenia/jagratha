@@ -298,6 +298,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
                       configs.put("initiatedTime", arr[5]);
                       configs.put("tags", arr[6]);
                       configs.put("description", arr[7]);
+                      configs.put("workflows", arr[8]);
                       return configs;
                     },
                     getProjectPath(sessionId),
@@ -307,7 +308,8 @@ public class FileSessionConfigStore implements SessionConfigStore {
                     getInitiator(sessionId),
                     getInitiatedTime(sessionId),
                     getTags(sessionId),
-                    getDescription(sessionId)));
+                    getDescription(sessionId),
+                    workflowDefinitionStore.findAll(sessionId)));
   }
 
   /**

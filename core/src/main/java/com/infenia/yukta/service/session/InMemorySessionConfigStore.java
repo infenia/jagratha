@@ -202,6 +202,7 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
               configs.put("initiatedTime", arr[5]);
               configs.put("tags", arr[6]);
               configs.put("description", arr[7]);
+              configs.put("workflows", arr[8]);
               log.atDebug()
                   .addKeyValue("sessionId", sessionId)
                   .addKeyValue("configCount", configs.size())
@@ -215,7 +216,8 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
             getInitiator(sessionId),
             getInitiatedTime(sessionId),
             getTags(sessionId),
-            getDescription(sessionId))
+            getDescription(sessionId),
+            workflowDefinitionStore.findAll(sessionId))
         : Mono.empty();
   }
 

@@ -88,7 +88,7 @@ public class SessionConfigController {
       @Parameter(description = "The unique identifier of the session") @PathVariable
           final String sessionId,
       final ServerWebExchange exchange) {
-    log.atInfo().log("getSessionDetails reached: sessionId={}", sessionId);
+    log.atInfo().log("getSessionDetails: sessionId={}", sessionId);
     return sessionService
         .getSessionConfig(sessionId)
         .doOnNext(
@@ -174,7 +174,7 @@ public class SessionConfigController {
       @Parameter(description = "The unique identifier of the workflow") @PathVariable
           final String workflowId,
       final ServerWebExchange exchange) {
-    log.atInfo().log("getWorkflow reached: sessionId={}, workflowId={}", sessionId, workflowId);
+    log.atInfo().log("getWorkflow: sessionId={}, workflowId={}", sessionId, workflowId);
     return sessionService
         .getSessionWorkflow(sessionId, workflowId)
         .doOnNext(

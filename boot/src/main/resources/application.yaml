@@ -31,7 +31,7 @@ logging:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level %logger{36} : %msg %kvp%n"
   level:
     root: INFO
-    com.infenia.yukta.service.orchestrator: DEBUG
+    com.infenia.yukta: DEBUG
     com.infenia.yukta.service.orchestrator.stream: TRACE
 
 
