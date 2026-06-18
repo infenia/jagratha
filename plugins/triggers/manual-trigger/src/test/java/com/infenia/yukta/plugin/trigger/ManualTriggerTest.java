@@ -35,7 +35,7 @@ class ManualTriggerTest {
   @Test
   void start_emitsExactlyOneMessage() {
     StepVerifier.create(trigger.start(Map.of()))
-        .assertNext(message -> assertNotNull(message))
+        .assertNext(message -> assertNotNull(message.getPayload()))
         .verifyComplete();
   }
 
@@ -60,9 +60,10 @@ class ManualTriggerTest {
 
   @Test
   void getUiDesign_isPresentAndCorrectDimensions() {
-    assertTrue(trigger.getUiDesign().isPresent());
-    assertEquals(140, trigger.getUiDesign().get().width());
-    assertEquals(80, trigger.getUiDesign().get().height());
+    var design = trigger.getUiDesign();
+    assertTrue(design.isPresent());
+    assertEquals(140, design.get().width());
+    assertEquals(80, design.get().height());
   }
 
   @Test
