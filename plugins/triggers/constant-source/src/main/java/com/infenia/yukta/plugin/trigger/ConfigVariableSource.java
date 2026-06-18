@@ -24,11 +24,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Constant source plugin emits a message with predefined variables at workflow startup. */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @SuppressWarnings({"PMD.OnlyOneReturn", "PMD.UseConcurrentHashMap"})
@@ -64,11 +66,16 @@ public class ConstantSource implements TriggerPlugin {
   public Mono<Void> prepare(final Map<String, Object> config) {
     final Map<String, Object> variables =
         (Map<String, Object>) config.getOrDefault("variables", Map.of());
+    log.atDebug().log("Preparing constant source trigger: caching {} static variable(s)", variables.size());
     return Flux.fromIterable(variables.values())
         .filter(resolver::isStatic)
         .flatMap(
-            val -> resolver.resolve(val).doOnNext(resolved -> staticValueCache.put(val, resolved)))
-        .then();
+            val -> resolver.resolve(val).doOnNext(resolved -> {
+              staticValueCache.put(val, resolved);
+              log.atDebug().log("Cached static value");
+            }))
+        .then()
+        .doFinally(signalType -> log.atDebug().log("Constant source trigger preparation completed"));
   }
 
   @Override
@@ -78,6 +85,7 @@ public class ConstantSource implements TriggerPlugin {
         (Map<String, Object>) config.getOrDefault("variables", Map.of());
     final String target = (String) config.getOrDefault("target", TARGET_PAYLOAD);
 
+    log.atDebug().log("Starting constant source trigger: emitting {} variable(s) to {}", variables.size(), target);
     return resolveVariables(variables)
         .<Message<?>>map(
             resolvedVars -> {
@@ -86,10 +94,12 @@ public class ConstantSource implements TriggerPlugin {
 
               if (TARGET_METADATA.equalsIgnoreCase(target)) {
                 resolvedVars.forEach((k, v) -> MapUtils.setNestedValue(metadata, k, v));
+                log.atDebug().log("Emitted message with variables in metadata: {} keys", resolvedVars.size());
               } else {
                 final Map<String, Object> payloadMap = new HashMap<>();
                 resolvedVars.forEach((k, v) -> MapUtils.setNestedValue(payloadMap, k, v));
                 resultPayload = payloadMap;
+                log.atDebug().log("Emitted message with variables in payload: {} keys", resolvedVars.size());
               }
 
               return DefaultMessage.create(UUID.randomUUID(), resultPayload).withMetadata(metadata);
@@ -98,21 +108,21 @@ public class ConstantSource implements TriggerPlugin {
   }
 
   private Mono<Map<String, Object>> resolveVariables(final Map<String, Object> variables) {
+    log.atDebug().log("Resolving {} variable(s)", variables.size());
     return Flux.fromIterable(variables.entrySet())
         .flatMap(
             entry -> {
               final Object val = entry.getValue();
               if (resolver.isStatic(val)) {
                 final Object cached = staticValueCache.getOrDefault(val, val);
+                log.atDebug().log("Variable '{}' resolved from cache", entry.getKey());
                 return Mono.just(Map.entry(entry.getKey(), cached));
               }
+              log.atDebug().log("Resolving variable '{}'", entry.getKey());
               return resolver.resolve(val).map(resolved -> Map.entry(entry.getKey(), resolved));
             })
-        .collectMap(Map.Entry::getKey, Map.Entry::getValue);
+        .collectMap(Map.Entry::getKey, Map.Entry::getValue)
+        .doOnNext(resolved -> log.atDebug().log("All {} variable(s) resolved successfully", resolved.size()));
   }
 
-  @Override
-  public Mono<Void> validateConfig(final Map<String, Object> config) {
-    return Mono.empty();
-  }
 }
