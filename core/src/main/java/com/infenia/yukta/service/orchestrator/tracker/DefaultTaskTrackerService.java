@@ -458,9 +458,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
           .addKeyValue("executionsRemoved", executionCount)
           .log("Removed tracking data for session");
     } else {
-      log.atDebug()
-          .addKeyValue("sessionId", sessionId)
-          .log("Session not found for removal");
+      log.atDebug().addKeyValue("sessionId", sessionId).log("Session not found for removal");
     }
   }
 
@@ -591,9 +589,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
   }
 
   private void cleanupExecution(final String executionId) {
-    log.atDebug()
-        .addKeyValue("executionId", executionId)
-        .log("Cleaning up execution data");
+    log.atDebug().addKeyValue("executionId", executionId).log("Cleaning up execution data");
     final Sinks.Many<String> logSink = logSinks.remove(executionId);
     if (logSink != null) {
       logSink.emitComplete(RETRY_HANDLER);
@@ -603,9 +599,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
       statusSink.emitComplete(RETRY_HANDLER);
     }
     executionIndex.remove(executionId);
-    log.atDebug()
-        .addKeyValue("executionId", executionId)
-        .log("Completed execution cleanup");
+    log.atDebug().addKeyValue("executionId", executionId).log("Completed execution cleanup");
   }
 
   private static final class WorkflowState {

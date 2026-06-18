@@ -288,7 +288,9 @@ public class WorkflowCompiler {
             strategy -> {
               log.atTrace()
                   .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
-                  .addKeyValue(LOG_KEY_PLUGIN_TYPE, plugin != null ? plugin.getClass().getSimpleName() : "null")
+                  .addKeyValue(
+                      LOG_KEY_PLUGIN_TYPE,
+                      plugin != null ? plugin.getClass().getSimpleName() : "null")
                   .addKeyValue("timeout", nodeTimeout.toMillis() + "ms")
                   .addKeyValue("bufferSize", bufferSize)
                   .log("Assembler strategy selected");

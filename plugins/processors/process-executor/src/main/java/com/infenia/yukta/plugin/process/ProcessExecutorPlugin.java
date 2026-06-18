@@ -65,91 +65,93 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
 
   @Override
   public String getUsagePattern() {
-    return "Configuration Parameters:\n"
-        + "\n"
-        + "REQUIRED:\n"
-        + "- command: List<String> (SpEL supported)\n"
-        + "  Command and arguments to execute\n"
-        + "  Example: [\"mvn\", \"clean\", \"test\"] or [\"./gradlew\", \"build\"]\n"
-        + "\n"
-        + "OPTIONAL:\n"
-        + "- workingDir: String (SpEL supported, default: current directory)\n"
-        + "  Working directory for process execution\n"
-        + "  Example: \"/path/to/project\"\n"
-        + "\n"
-        + "- timeout: Long (SpEL supported, default: 300 seconds)\n"
-        + "  Maximum execution time in seconds. Must be positive.\n"
-        + "  Example: 600 (for 10-minute timeout)\n"
-        + "\n"
-        + "- env: Map<String, String> (SpEL supported, default: empty)\n"
-        + "  Environment variables for the process\n"
-        + "  Example: {\"NODE_ENV\": \"production\", \"DEBUG\": \"true\"}\n"
-        + "\n"
-        + "- useShell: Boolean (default: false)\n"
-        + "  Execute command via shell (sh on Unix, cmd.exe on Windows)\n"
-        + "  Use true only if command contains pipes, redirects, or other shell features\n"
-        + "\n"
-        + "- streamOutput: Boolean (default: false)\n"
-        + "  Stream output per line (true) vs buffer entire output (false)\n"
-        + "  Recommended: true for long-running processes or large outputs\n"
-        + "\n"
-        + "- outputTarget: String (default: \"PAYLOAD\")\n"
-        + "  Where to store output: \"PAYLOAD\" or \"METADATA\"\n"
-        + "  PAYLOAD: Output becomes the message payload\n"
-        + "  METADATA: Output stored in metadata[\"process.output\"]\n"
-        + "\n"
-        + "OUTPUT BEHAVIOR:\n"
-        + "- streamOutput=true: Emits one message per output line (recommended)\n"
-        + "- streamOutput=false: Buffers entire output, emits as single message\n"
-        + "  ⚠️  WARNING: Can cause Out-of-Memory for large outputs (>100MB)\n"
-        + "\n"
-        + "EXAMPLES:\n"
-        + "\n"
-        + "Simple command (non-streaming):\n"
-        + "  config: {\"command\": [\"echo\", \"hello\"]}\n"
-        + "\n"
-        + "Streaming output (recommended for large outputs):\n"
-        + "  config: {\n"
-        + "    \"command\": [\"cat\", \"large.log\"],\n"
-        + "    \"streamOutput\": true\n"
-        + "  }\n"
-        + "\n"
-        + "With environment variables:\n"
-        + "  config: {\n"
-        + "    \"command\": [\"sh\", \"-c\", \"echo $MY_VAR\"],\n"
-        + "    \"env\": {\"MY_VAR\": \"secret_value\"},\n"
-        + "    \"useShell\": true\n"
-        + "  }\n"
-        + "\n"
-        + "With timeout and working directory:\n"
-        + "  config: {\n"
-        + "    \"command\": [\"./gradlew\", \"test\"],\n"
-        + "    \"workingDir\": \"/home/project\",\n"
-        + "    \"timeout\": 600\n"
-        + "  }\n"
-        + "\n"
-        + "Metadata output:\n"
-        + "  config: {\n"
-        + "    \"command\": [\"git\", \"status\"],\n"
-        + "    \"outputTarget\": \"METADATA\"\n"
-        + "  }\n"
-        + "\n"
-        + "ERROR HANDLING:\n"
-        + "- Non-zero exit codes throw WorkflowExecutionException\n"
-        + "- Timeout (exceeding timeout seconds) throws WorkflowExecutionException\n"
-        + "- Invalid config (missing command) throws IllegalArgumentException\n"
-        + "- Invalid outputTarget defaults to PAYLOAD with warning logged\n"
-        + "\n"
-        + "MEMORY & PERFORMANCE:\n"
-        + "- Streaming mode: Constant memory regardless of output size\n"
-        + "- Non-streaming mode: Memory consumption = output size (avoid for >100MB)\n"
-        + "- Timeout applies to total execution time, not per-line\n"
-        + "- Process cleanup is automatic (success, timeout, error)\n"
-        + "\n"
-        + "SECURITY NOTES:\n"
-        + "- Shell injection is prevented with proper argument escaping\n"
-        + "- Metadata exported as YUKTA_METADATA_* env vars (visible to child processes)\n"
-        + "- Do NOT export passwords, API keys, or tokens via metadata\n";
+    return """
+            Configuration Parameters:
+            
+            REQUIRED:
+            - command: List<String> (SpEL supported)
+              Command and arguments to execute
+              Example: ["mvn", "clean", "test"] or ["./gradlew", "build"]
+            
+            OPTIONAL:
+            - workingDir: String (SpEL supported, default: current directory)
+              Working directory for process execution
+              Example: "/path/to/project"
+            
+            - timeout: Long (SpEL supported, default: 300 seconds)
+              Maximum execution time in seconds. Must be positive.
+              Example: 600 (for 10-minute timeout)
+            
+            - env: Map<String, String> (SpEL supported, default: empty)
+              Environment variables for the process
+              Example: {"NODE_ENV": "production", "DEBUG": "true"}
+            
+            - useShell: Boolean (default: false)
+              Execute command via shell (sh on Unix, cmd.exe on Windows)
+              Use true only if command contains pipes, redirects, or other shell features
+            
+            - streamOutput: Boolean (default: false)
+              Stream output per line (true) vs buffer entire output (false)
+              Recommended: true for long-running processes or large outputs
+            
+            - outputTarget: String (default: "PAYLOAD")
+              Where to store output: "PAYLOAD" or "METADATA"
+              PAYLOAD: Output becomes the message payload
+              METADATA: Output stored in metadata["process.output"]
+            
+            OUTPUT BEHAVIOR:
+            - streamOutput=true: Emits one message per output line (recommended)
+            - streamOutput=false: Buffers entire output, emits as single message
+              ⚠️  WARNING: Can cause Out-of-Memory for large outputs (>100MB)
+            
+            EXAMPLES:
+            
+            Simple command (non-streaming):
+              config: {"command": ["echo", "hello"]}
+            
+            Streaming output (recommended for large outputs):
+              config: {
+                "command": ["cat", "large.log"],
+                "streamOutput": true
+              }
+            
+            With environment variables:
+              config: {
+                "command": ["sh", "-c", "echo $MY_VAR"],
+                "env": {"MY_VAR": "secret_value"},
+                "useShell": true
+              }
+            
+            With timeout and working directory:
+              config: {
+                "command": ["./gradlew", "test"],
+                "workingDir": "/home/project",
+                "timeout": 600
+              }
+            
+            Metadata output:
+              config: {
+                "command": ["git", "status"],
+                "outputTarget": "METADATA"
+              }
+            
+            ERROR HANDLING:
+            - Non-zero exit codes throw WorkflowExecutionException
+            - Timeout (exceeding timeout seconds) throws WorkflowExecutionException
+            - Invalid config (missing command) throws IllegalArgumentException
+            - Invalid outputTarget defaults to PAYLOAD with warning logged
+            
+            MEMORY & PERFORMANCE:
+            - Streaming mode: Constant memory regardless of output size
+            - Non-streaming mode: Memory consumption = output size (avoid for >100MB)
+            - Timeout applies to total execution time, not per-line
+            - Process cleanup is automatic (success, timeout, error)
+            
+            SECURITY NOTES:
+            - Shell injection is prevented with proper argument escaping
+            - Metadata exported as YUKTA_METADATA_* env vars (visible to child processes)
+            - Do NOT export passwords, API keys, or tokens via metadata
+            """;
   }
 
   @Override
@@ -175,20 +177,50 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
               final String outputTarget =
                   (String) resolvedConfig.getOrDefault("outputTarget", "PAYLOAD");
 
+              log.atInfo().log(
+                  "Executing process: command={}, workingDir={}, timeout={}s, streamOutput={},"
+                      + " outputTarget={}",
+                  command,
+                  workingDir,
+                  timeout,
+                  streamOutput,
+                  outputTarget);
+
               if (streamOutput) {
                 return gateway
                     .executeStream(command, workingDir, timeout, env, useShell)
-                    .map(line -> createOutputMessage(message, line, outputTarget));
+                    .doOnNext(line -> log.atDebug().log("Process output line: {}", line))
+                    .map(line -> createOutputMessage(message, line, outputTarget))
+                    .doOnComplete(
+                        () -> log.atInfo().log("Process completed successfully (streaming mode)"));
               } else {
                 return gateway
                     .executeStream(command, workingDir, timeout, env, useShell)
                     .collectList()
                     // Restore newlines between lines that were stripped by BufferedReader.lines()
                     .map(list -> String.join("\n", list))
+                    .doOnNext(
+                        output ->
+                            log.atInfo().log(
+                                "Process completed successfully: output size={} bytes",
+                                output.length()))
                     .map(output -> createOutputMessage(message, output, outputTarget))
-                    .flux();
+                    .flux()
+                    .doOnError(
+                        error ->
+                            log.atError()
+                                .setCause(error)
+                                .log(
+                                    "Process execution failed: command={}, workingDir={}",
+                                    command,
+                                    workingDir));
               }
-            });
+            })
+        .doOnError(
+            error ->
+                log.atError()
+                    .setCause(error)
+                    .log("Configuration resolution failed for process executor"));
   }
 
   @SuppressWarnings("unchecked")
@@ -225,12 +257,14 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
 
   private Mono<List<String>> resolveCommand(final List<Object> command) {
     if (command == null || command.isEmpty()) {
+      log.atWarn().log("Command resolution failed: command is mandatory");
       return Mono.error(new IllegalArgumentException("command is mandatory"));
     }
     return Flux.fromIterable(command)
         .flatMapSequential(this::resolveValue)
         .map(Object::toString)
-        .collectList();
+        .collectList()
+        .doOnNext(resolved -> log.atDebug().log("Command resolved successfully: {}", resolved));
   }
 
   private Mono<Map<String, String>> resolveEnv(final Map<String, Object> env) {
@@ -242,7 +276,10 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
             entry ->
                 resolveValue(entry.getValue())
                     .map(val -> Map.entry(entry.getKey(), val.toString())))
-        .collectMap(Map.Entry::getKey, Map.Entry::getValue);
+        .collectMap(Map.Entry::getKey, Map.Entry::getValue)
+        .doOnNext(
+            resolved ->
+                log.atDebug().log("Environment variables resolved: {} entries", resolved.size()));
   }
 
   private Mono<Object> resolveValue(final Object value) {
@@ -259,12 +296,16 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
     if (METADATA.equals(normalizedTarget)) {
       final Map<String, Object> newMetadata = new HashMap<>(original.getMetadata());
       newMetadata.put(OUTPUT_KEY, output);
+      log.atDebug().log("Output stored in metadata: {}", OUTPUT_KEY);
       return DefaultMessage.from(original, original.getPayload()).withMetadata(newMetadata);
     } else if (PAYLOAD.equals(normalizedTarget)) {
+      log.atDebug().log("Output stored in payload: {} bytes", output.length());
       return DefaultMessage.from(original, output);
     } else {
-      log.warn(
-          "Invalid outputTarget: '{}'. Must be 'PAYLOAD' or 'METADATA'. Using PAYLOAD.", target);
+      log.atWarn()
+          .log(
+              "Invalid outputTarget: '{}'. Must be 'PAYLOAD' or 'METADATA'. Using PAYLOAD.",
+              target);
       return DefaultMessage.from(original, output);
     }
   }
@@ -272,8 +313,10 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
   @Override
   public Mono<Void> validateConfig(final Map<String, Object> config) {
     if (config.get("command") == null) {
+      log.atWarn().log("Configuration validation failed: command is mandatory");
       return Mono.error(new IllegalArgumentException("command is mandatory"));
     }
+    log.atDebug().log("Configuration validation passed");
     return Mono.empty();
   }
 }

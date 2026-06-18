@@ -92,11 +92,10 @@ public class WorkflowController {
         .validateAndTriggerWorkflow(request.sessionId(), request.workflowId(), request.payload())
         .doOnNext(
             _ ->
-                log.atInfo()
-                    .log(
-                        "triggerWorkflow service call succeeded: sessionId={}, workflowId={}",
-                        request.sessionId(),
-                        request.workflowId()))
+                log.atInfo().log(
+                    "triggerWorkflow service call succeeded: sessionId={}, workflowId={}",
+                    request.sessionId(),
+                    request.workflowId()))
         .map(
             execution ->
                 ResponseEntity.accepted()
@@ -107,11 +106,10 @@ public class WorkflowController {
                             new TriggerResponse(execution.executionId()))))
         .doOnSuccess(
             _ ->
-                log.atInfo()
-                    .log(
-                        "triggerWorkflow response sent successfully: sessionId={}, workflowId={}",
-                        request.sessionId(),
-                        request.workflowId()))
+                log.atInfo().log(
+                    "triggerWorkflow response sent successfully: sessionId={}, workflowId={}",
+                    request.sessionId(),
+                    request.workflowId()))
         .onErrorResume(
             e -> {
               log.atError()
@@ -156,22 +154,20 @@ public class WorkflowController {
         .flatMap(Mono::justOrEmpty)
         .doOnNext(
             _ ->
-                log.atInfo()
-                    .log(
-                        "getWorkflowStatus service call succeeded: sessionId={}, executionId={}",
-                        sessionId,
-                        executionId))
+                log.atInfo().log(
+                    "getWorkflowStatus service call succeeded: sessionId={}, executionId={}",
+                    sessionId,
+                    executionId))
         .map(
             progress ->
                 ResponseEntity.ok(
                     ApiResponse.success(200, "Workflow status retrieved successfully", progress)))
         .doOnSuccess(
             _ ->
-                log.atInfo()
-                    .log(
-                        "getWorkflowStatus response sent successfully: sessionId={}, executionId={}",
-                        sessionId,
-                        executionId))
+                log.atInfo().log(
+                    "getWorkflowStatus response sent successfully: sessionId={}, executionId={}",
+                    sessionId,
+                    executionId))
         .switchIfEmpty(
             Mono.fromSupplier(
                 () -> {
@@ -220,27 +216,26 @@ public class WorkflowController {
         .watchExecution(executionId)
         .doOnNext(
             _ ->
-                log.atDebug()
-                    .log(
-                        "streamWorkflowStatus progress received: sessionId={}, executionId={}",
-                        sessionId,
-                        executionId))
+                log.atDebug().log(
+                    "streamWorkflowStatus progress received: sessionId={}, executionId={}",
+                    sessionId,
+                    executionId))
         .map(progress -> ServerSentEvent.<WorkflowProgress>builder().data(progress).build())
         .doOnError(
             error ->
                 log.atError()
                     .log(
-                        "streamWorkflowStatus error occurred: sessionId={}, executionId={}, error={}",
+                        "streamWorkflowStatus error occurred: sessionId={}, executionId={},"
+                            + " error={}",
                         sessionId,
                         executionId,
                         error.getMessage()))
         .doOnComplete(
             () ->
-                log.atInfo()
-                    .log(
-                        "streamWorkflowStatus stream completed: sessionId={}, executionId={}",
-                        sessionId,
-                        executionId));
+                log.atInfo().log(
+                    "streamWorkflowStatus stream completed: sessionId={}, executionId={}",
+                    sessionId,
+                    executionId));
   }
 
   /**
@@ -264,9 +259,8 @@ public class WorkflowController {
         .getSessionConfig(sessionId)
         .doOnNext(
             config ->
-                log.atInfo()
-                    .log(
-                        "getWorkflowHistory session config retrieved: sessionId={}", sessionId))
+                log.atInfo().log(
+                    "getWorkflowHistory session config retrieved: sessionId={}", sessionId))
         .flatMap(
             ignored ->
                 Mono.fromCallable(() -> controlBus.getHistory(sessionId))
@@ -277,9 +271,8 @@ public class WorkflowController {
                                     200, "Workflow history retrieved successfully", history))))
         .doOnSuccess(
             _ ->
-                log.atInfo()
-                    .log(
-                        "getWorkflowHistory response sent successfully: sessionId={}", sessionId))
+                log.atInfo().log(
+                    "getWorkflowHistory response sent successfully: sessionId={}", sessionId))
         .switchIfEmpty(
             Mono.fromSupplier(
                 () -> {

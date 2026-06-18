@@ -78,9 +78,7 @@ public class PreparedWorkflowCache {
   /** Shut down the eviction scheduler. */
   @PreDestroy
   public void shutdown() {
-    log.atInfo()
-        .addKeyValue("cacheSize", cache.size())
-        .log("Shutting down PreparedWorkflowCache");
+    log.atInfo().addKeyValue("cacheSize", cache.size()).log("Shutting down PreparedWorkflowCache");
     scheduler.shutdown();
     try {
       if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) {

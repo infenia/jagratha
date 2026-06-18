@@ -142,10 +142,6 @@ public class SessionService {
                     .addArgument(sessionId)
                     .setCause(err)
                     .log("Failed to retrieve configuration for session: {}"));
-
-
-
-
   }
 
   /**

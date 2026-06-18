@@ -226,9 +226,7 @@ public class ResourceManagementBuilder {
       for (int i = connectors.size() - 1; i >= 0; i--) {
         try {
           connectors.get(i).run();
-          log.atDebug()
-              .addKeyValue("connectorIndex", i)
-              .log("Connector executed successfully");
+          log.atDebug().addKeyValue("connectorIndex", i).log("Connector executed successfully");
         } catch (final Exception e) {
           log.atError()
               .addKeyValue("connectorIndex", i)
@@ -266,9 +264,7 @@ public class ResourceManagementBuilder {
       return;
     }
 
-    log.atDebug()
-        .addKeyValue("disposableCount", resource.size())
-        .log("Starting resource cleanup");
+    log.atDebug().addKeyValue("disposableCount", resource.size()).log("Starting resource cleanup");
 
     int disposed = 0;
     for (final Disposable disposable : resource) {

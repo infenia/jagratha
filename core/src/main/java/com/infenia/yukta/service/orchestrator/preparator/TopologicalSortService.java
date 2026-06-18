@@ -63,9 +63,7 @@ public class TopologicalSortService {
         (id, degree) -> {
           if (degree == 0) {
             queue.add(id);
-            log.atDebug()
-                .addKeyValue("nodeId", id)
-                .log("Added root node to processing queue");
+            log.atDebug().addKeyValue("nodeId", id).log("Added root node to processing queue");
           }
         });
 

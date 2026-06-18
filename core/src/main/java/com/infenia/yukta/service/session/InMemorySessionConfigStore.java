@@ -75,10 +75,11 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
                     .flatMap(def -> workflowDefinitionStore.save(data.sessionId(), def))
                     .then(
                         Mono.fromRunnable(
-                            () -> log.atDebug()
-                                .addKeyValue("sessionId", data.sessionId())
-                                .addKeyValue("workflowCount", data.workflows().size())
-                                .log("Saved workflows for session"))));
+                            () ->
+                                log.atDebug()
+                                    .addKeyValue("sessionId", data.sessionId())
+                                    .addKeyValue("workflowCount", data.workflows().size())
+                                    .log("Saved workflows for session"))));
   }
 
   @Override

@@ -246,9 +246,7 @@ public class WorkflowValidator {
               "Node " + node.nodeId() + " is an endpoint but not a TERMINAL"));
     }
     if (!isEndpoint && isTerminal) {
-      log.atWarn()
-          .addKeyValue("nodeId", node.nodeId())
-          .log("TERMINAL node has outgoing edges");
+      log.atWarn().addKeyValue("nodeId", node.nodeId()).log("TERMINAL node has outgoing edges");
       return Mono.error(
           new IllegalArgumentException(
               "Terminal node " + node.nodeId() + " cannot have outgoing edges"));
@@ -287,14 +285,10 @@ public class WorkflowValidator {
 
   private Mono<Void> validateNoCycles(final WorkflowDefinition def) {
     if (hasCycles(def)) {
-      log.atError()
-          .addKeyValue("workflowId", def.workflowId())
-          .log("Workflow DAG contains cycles");
+      log.atError().addKeyValue("workflowId", def.workflowId()).log("Workflow DAG contains cycles");
       return Mono.error(new IllegalArgumentException("Workflow DAG contains cycles"));
     }
-    log.atDebug()
-        .addKeyValue("workflowId", def.workflowId())
-        .log("Workflow DAG is acyclic");
+    log.atDebug().addKeyValue("workflowId", def.workflowId()).log("Workflow DAG is acyclic");
     return Mono.empty();
   }
 
@@ -314,7 +308,8 @@ public class WorkflowValidator {
                   .addKeyValue("nodeId", node.nodeId())
                   .addKeyValue("pluginType", node.type())
                   .log("Validating plugin configuration");
-              return plugin.validateConfig(node.config())
+              return plugin
+                  .validateConfig(node.config())
                   .doOnError(
                       e ->
                           log.atWarn()

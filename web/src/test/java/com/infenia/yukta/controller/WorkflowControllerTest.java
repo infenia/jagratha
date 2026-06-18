@@ -184,12 +184,7 @@ class WorkflowControllerTest {
             "exec-1", "sess-1", "wf-1", "RUNNING", List.of(), LocalDateTime.now(), null);
     when(controlBusGateway.getCurrentProgress("exec-1")).thenReturn(progress);
 
-    webClient
-        .get()
-        .uri("/api/workflow/sess-1/status/exec-1")
-        .exchange()
-        .expectStatus()
-        .isOk();
+    webClient.get().uri("/api/workflow/sess-1/status/exec-1").exchange().expectStatus().isOk();
 
     assertThat(output.toString())
         .contains("getWorkflowStatus: sessionId=sess-1, executionId=exec-1")
@@ -286,8 +281,7 @@ class WorkflowControllerTest {
     WorkflowProgress progress2 =
         new WorkflowProgress(
             "exec-1", "sess-1", "wf-1", "COMPLETED", List.of(), LocalDateTime.now(), null);
-    when(controlBusGateway.watchExecution("exec-1"))
-        .thenReturn(Flux.just(progress1, progress2));
+    when(controlBusGateway.watchExecution("exec-1")).thenReturn(Flux.just(progress1, progress2));
 
     webClient
         .get()
@@ -341,12 +335,7 @@ class WorkflowControllerTest {
     when(sessionService.getSessionConfig("sess-1")).thenReturn(Mono.just(Map.of()));
     when(controlBusGateway.getHistory("sess-1")).thenReturn(List.of());
 
-    webClient
-        .get()
-        .uri("/api/workflow/sess-1/history")
-        .exchange()
-        .expectStatus()
-        .isOk();
+    webClient.get().uri("/api/workflow/sess-1/history").exchange().expectStatus().isOk();
 
     assertThat(output.toString())
         .contains("getWorkflowHistory: sessionId=sess-1")
@@ -375,12 +364,7 @@ class WorkflowControllerTest {
   void testGetWorkflowHistorySessionNotFoundLogging(CapturedOutput output) {
     when(sessionService.getSessionConfig("sess-1")).thenReturn(Mono.empty());
 
-    webClient
-        .get()
-        .uri("/api/workflow/sess-1/history")
-        .exchange()
-        .expectStatus()
-        .isNotFound();
+    webClient.get().uri("/api/workflow/sess-1/history").exchange().expectStatus().isNotFound();
 
     assertThat(output.toString())
         .contains("getWorkflowHistory: sessionId=sess-1")

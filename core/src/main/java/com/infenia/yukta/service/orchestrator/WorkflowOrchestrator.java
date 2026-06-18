@@ -74,12 +74,14 @@ public class WorkflowOrchestrator {
    * @return a Mono containing the prepared workflow
    */
   public Mono<PreparedWorkflow> prepareWorkflow(@NotNull @Valid final WorkflowDefinition def) {
-    return preparator.prepareWorkflow(def)
+    return preparator
+        .prepareWorkflow(def)
         .doOnSuccess(
             prepared ->
                 log.atDebug()
                     .addKeyValue(LOG_KEY_WORKFLOW_ID, def.workflowId())
-                    .addKeyValue("nodeCount", prepared != null ? prepared.topologicalOrder().size() : 0)
+                    .addKeyValue(
+                        "nodeCount", prepared != null ? prepared.topologicalOrder().size() : 0)
                     .log("Successfully prepared workflow for execution"))
         .doOnError(
             e ->
