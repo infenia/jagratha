@@ -19,7 +19,7 @@ body:json {
     "sessionId": "cli-spotless-session",
     "description": "CLI Spotless formatting workflow",
     "initiator": "spotless-cli",
-    "projectPath": "$(pwd)",
+    "projectPath": "/home/arun-cs/IdeaProjects/yukta",
     "tags": {},
     "workflows": {
       "spotless-check": {
@@ -28,33 +28,40 @@ body:json {
         "nodes": [
           {
             "nodeId": "trigger",
-            "type": "CONSTANT_SOURCE",
+            "type": "MANUAL",
             "config": {}
           },
           {
             "nodeId": "spotless",
             "type": "PROCESS_EXECUTOR",
             "config": {
-              "command": ["./gradlew", "spotlessApply"],
-              "workingDirectory": "$(pwd)"
+              "command": ["./gradlew", "spotlessApply", "--info", "--stacktrace"],
+              "workingDir": "/home/arun-cs/IdeaProjects/yukta",
+              "timeout": 600,
+              "streamOutput": false,
+              "outputTarget": "PAYLOAD",
+              "env": {
+                "GRADLE_OPTS": "-Dorg.gradle.logging.level=info",
+                "JAVA_HOME": "/home/arun-cs/.sdkman/candidates/java/current"
+              }
             }
           },
           {
             "nodeId": "terminal",
             "type": "CONSOLE_TERMINAL",
-            "config": {}
+            "config": {
+              "displayOutput": true
+            }
           }
         ],
         "edges": [
           {
             "source": "trigger",
-            "target": "spotless",
-            "sourcePort": "default"
+            "target": "spotless"
           },
           {
             "source": "spotless",
-            "target": "terminal",
-            "sourcePort": "default"
+            "target": "terminal"
           }
         ]
       }

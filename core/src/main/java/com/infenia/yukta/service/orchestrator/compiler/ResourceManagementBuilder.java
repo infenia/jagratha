@@ -158,7 +158,7 @@ public class ResourceManagementBuilder {
    *
    * @return a Mono<Void> that manages the execution lifecycle
    */
-  public Mono<Void> build() {
+  public Mono<Void> buildAndExecute() {
     return executeWithTimeout();
   }
 
@@ -190,9 +190,9 @@ public class ResourceManagementBuilder {
 
           return Mono.using(
                   () -> disposables,
-                  unused -> timedMono.doOnSubscribe(s -> runConnectors()),
+                  _ -> timedMono.doOnSubscribe(_ -> runConnectors()),
                   this::cleanup)
-              .doOnSuccess(v -> emitStatus(STATUS_SUCCESS))
+              .doOnSuccess(_ -> emitStatus(STATUS_SUCCESS))
               .onErrorResume(
                   error -> {
                     emitStatus(STATUS_ERROR);

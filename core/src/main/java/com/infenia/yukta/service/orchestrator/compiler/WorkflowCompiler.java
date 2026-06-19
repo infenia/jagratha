@@ -241,7 +241,7 @@ public class WorkflowCompiler {
         .withTerminals(terminals)
         .withConnectors(connectors)
         .withExecutionTimeout(sessionId, executionId)
-        .build();
+        .buildAndExecute();
   }
 
   /**

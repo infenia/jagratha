@@ -23,6 +23,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeoutException;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 
@@ -49,6 +50,7 @@ import reactor.core.publisher.Flux;
  *   .build();
  * }</pre>
  */
+@Slf4j
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class StreamBuilder {
 
@@ -94,6 +96,11 @@ public class StreamBuilder {
     this.timeout = timeout;
     this.taskTrackerService = taskTrackerService;
     this.statusPublisher = statusPublisher;
+    log.atDebug()
+        .setMessage("StreamBuilder created for node: {}, timeout: {}")
+        .addArgument(node.nodeId())
+        .addArgument(timeout)
+        .log();
   }
 
   /**
@@ -104,6 +111,10 @@ public class StreamBuilder {
    */
   public StreamBuilder withSource(final Flux<Message<?>> stream) {
     this.sourceStream = stream;
+    log.atDebug()
+        .setMessage("Source stream configured for node: {}")
+        .addArgument(node.nodeId())
+        .log();
     return this;
   }
 
@@ -114,6 +125,11 @@ public class StreamBuilder {
    */
   public StreamBuilder withTimeout() {
     this.applyTimeout = true;
+    log.atDebug()
+        .setMessage("Timeout handling enabled for node: {} with duration: {}")
+        .addArgument(node.nodeId())
+        .addArgument(timeout)
+        .log();
     return this;
   }
 
@@ -126,6 +142,11 @@ public class StreamBuilder {
   public StreamBuilder withTaskTracking(final String execId) {
     this.applyTaskTracking = true;
     this.executionId = execId;
+    log.atDebug()
+        .setMessage("Task tracking enabled for execution: {} on node: {}")
+        .addArgument(execId)
+        .addArgument(node.nodeId())
+        .log();
     return this;
   }
 
@@ -138,6 +159,11 @@ public class StreamBuilder {
   public StreamBuilder withErrorHandling(final String execId) {
     this.applyErrors = true;
     this.executionId = execId;
+    log.atDebug()
+        .setMessage("Error handling enabled for execution: {} on node: {}")
+        .addArgument(execId)
+        .addArgument(node.nodeId())
+        .log();
     return this;
   }
 
@@ -151,24 +177,41 @@ public class StreamBuilder {
     Flux<Message<?>> stream = sourceStream;
 
     if (stream == null) {
+      log.atDebug()
+          .setMessage("No source stream provided for node: {}, using empty stream")
+          .addArgument(node.nodeId())
+          .log();
       stream = Flux.empty();
     }
 
     // Apply timeout wrapping
     if (applyTimeout) {
+      log.atDebug()
+          .setMessage("Applying timeout transformation for node: {}")
+          .addArgument(node.nodeId())
+          .log();
       stream = applyTimeoutTransform(stream);
     }
 
     // Apply task tracking
     if (applyTaskTracking) {
+      log.atDebug()
+          .setMessage("Applying task tracking transformation for execution: {}")
+          .addArgument(executionId)
+          .log();
       stream = applyTaskTrackingTransform(stream);
     }
 
     // Apply error handling
     if (applyErrors) {
+      log.atDebug()
+          .setMessage("Applying error handling transformation for execution: {}")
+          .addArgument(executionId)
+          .log();
       stream = applyErrorsTransform(stream);
     }
 
+    log.atDebug().setMessage("Stream build complete for node: {}").addArgument(node.nodeId()).log();
     return stream;
   }
 
@@ -179,7 +222,18 @@ public class StreamBuilder {
    * @return the flux with timeout applied
    */
   private Flux<Message<?>> applyTimeoutTransform(final Flux<Message<?>> flux) {
-    return flux.timeout(timeout).onErrorMap(TimeoutException.class, e -> e);
+    return flux.timeout(timeout)
+        .onErrorMap(
+            TimeoutException.class,
+            e -> {
+              log.atWarn()
+                  .setMessage("Stream timeout exceeded for node: {} after duration: {}")
+                  .addArgument(node.nodeId())
+                  .addArgument(timeout)
+                  .setCause(e)
+                  .log();
+              return e;
+            });
   }
 
   /**
@@ -190,29 +244,48 @@ public class StreamBuilder {
    */
   private Flux<Message<?>> applyTaskTrackingTransform(final Flux<Message<?>> flux) {
     return flux.doOnSubscribe(
-            sub ->
-                taskTrackerService.emitTaskStatusEvent(
-                    executionId,
-                    node.nodeId(),
-                    DEFAULT_TASK_ID,
-                    STATUS_RUNNING,
-                    Collections.emptyMap()))
+            sub -> {
+              log.atDebug()
+                  .setMessage("Task RUNNING - execution: {}, node: {}")
+                  .addArgument(executionId)
+                  .addArgument(node.nodeId())
+                  .log();
+              taskTrackerService.emitTaskStatusEvent(
+                  executionId,
+                  node.nodeId(),
+                  DEFAULT_TASK_ID,
+                  STATUS_RUNNING,
+                  Collections.emptyMap());
+            })
         .doOnComplete(
-            () ->
-                taskTrackerService.emitTaskStatusEvent(
-                    executionId,
-                    node.nodeId(),
-                    DEFAULT_TASK_ID,
-                    STATUS_SUCCESS,
-                    Collections.emptyMap()))
+            () -> {
+              log.atDebug()
+                  .setMessage("Task SUCCESS - execution: {}, node: {}")
+                  .addArgument(executionId)
+                  .addArgument(node.nodeId())
+                  .log();
+              taskTrackerService.emitTaskStatusEvent(
+                  executionId,
+                  node.nodeId(),
+                  DEFAULT_TASK_ID,
+                  STATUS_SUCCESS,
+                  Collections.emptyMap());
+            })
         .doOnError(
-            error ->
-                taskTrackerService.emitTaskStatusEvent(
-                    executionId,
-                    node.nodeId(),
-                    DEFAULT_TASK_ID,
-                    STATUS_FAILURE,
-                    Collections.emptyMap()));
+            error -> {
+              log.atError()
+                  .setMessage("Task FAILURE - execution: {}, node: {}")
+                  .addArgument(executionId)
+                  .addArgument(node.nodeId())
+                  .setCause(error)
+                  .log();
+              taskTrackerService.emitTaskStatusEvent(
+                  executionId,
+                  node.nodeId(),
+                  DEFAULT_TASK_ID,
+                  STATUS_FAILURE,
+                  Collections.emptyMap());
+            });
   }
 
   /**
@@ -224,7 +297,13 @@ public class StreamBuilder {
   private Flux<Message<?>> applyErrorsTransform(final Flux<Message<?>> flux) {
     return flux.doOnError(
         error -> {
-          // Emit FAILURE status to task tracker
+          log.atError()
+              .setMessage(
+                  "Stream error occurred for execution: {}, node: {} - emitting failure status")
+              .addArgument(executionId)
+              .addArgument(node.nodeId())
+              .setCause(error)
+              .log();
           taskTrackerService.emitTaskStatusEvent(
               executionId, node.nodeId(), DEFAULT_TASK_ID, STATUS_FAILURE, Collections.emptyMap());
         });

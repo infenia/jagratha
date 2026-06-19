@@ -31,14 +31,14 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
-class ConstantSourceTest {
+class ConfigVariableSourceTest {
 
   @Mock private VariableResolver resolver;
-  private ConstantSource source;
+  private ConfigVariableSource source;
 
   @BeforeEach
   void setUp() {
-    source = new ConstantSource(resolver);
+    source = new ConfigVariableSource(resolver);
   }
 
   @Test

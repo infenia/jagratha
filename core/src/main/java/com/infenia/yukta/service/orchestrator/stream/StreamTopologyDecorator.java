@@ -76,14 +76,28 @@ public class StreamTopologyDecorator {
    */
   public Flux<Message<?>> mergeParentStreams(
       final Flux<Message<?>>[] streams, final ParentEdgeInfo... parentEdges) {
+    log.atDebug().setMessage("Merging {} parent streams").addArgument(parentEdges.length).log();
+
     final List<Flux<Message<?>>> parentFluxes = new ArrayList<>(parentEdges.length);
     for (final ParentEdgeInfo edge : parentEdges) {
       parentFluxes.add(applyEdgeRouting(streams, edge));
     }
 
-    return parentFluxes.isEmpty()
-        ? Flux.empty()
-        : parentFluxes.size() == SINGLE_PARENT ? parentFluxes.get(0) : Flux.merge(parentFluxes);
+    if (parentFluxes.isEmpty()) {
+      log.atDebug().setMessage("No parent streams to merge, returning empty flux").log();
+      return Flux.empty();
+    }
+
+    if (parentFluxes.size() == SINGLE_PARENT) {
+      log.atDebug().setMessage("Single parent stream, returning without merge").log();
+      return parentFluxes.get(0);
+    }
+
+    log.atDebug()
+        .setMessage("Multiple parent streams merged: {} streams")
+        .addArgument(parentFluxes.size())
+        .log();
+    return Flux.merge(parentFluxes);
   }
 
   /**
@@ -97,10 +111,18 @@ public class StreamTopologyDecorator {
    */
   public Flux<Message<?>> applyEdgeRouting(
       final Flux<Message<?>>[] streams, final ParentEdgeInfo edge) {
+    log.atDebug()
+        .setMessage("Applying edge routing - parent index: {}, source node: {}, source port: {}")
+        .addArgument(edge.parentIndex())
+        .addArgument(edge.sourceNodeId())
+        .addArgument(edge.sourcePort())
+        .log();
+
     Flux<Message<?>> stream =
         streams[edge.parentIndex()].map(msg -> msg.withSourceNodeId(edge.sourceNodeId()));
 
     if (edge.sourcePort() != null) {
+      log.atDebug().setMessage("Filtering by source port: {}").addArgument(edge.sourcePort()).log();
       stream = stream.filter(msg -> edge.sourcePort().equals(msg.getSourcePort()));
     }
     return stream;
@@ -136,18 +158,43 @@ public class StreamTopologyDecorator {
       final int bufferSize,
       final List<Disposable> disposables,
       final List<Runnable> connectors) {
+    log.atDebug()
+        .setMessage("Applying logging and broadcasting - execution: {}, node: {}, buffer size: {}")
+        .addArgument(executionId)
+        .addArgument(nodeId)
+        .addArgument(bufferSize)
+        .log();
+
     final Flux<Message<?>> historiedStream = stream.map(msg -> msg.withAddedHistory(nodeId));
     final Flux<Message<?>> processedStream = getMessageFlux(executionId, nodeId, historiedStream);
 
     final Sinks.Many<Message<?>> sink = Sinks.many().multicast().onBackpressureBuffer(bufferSize);
 
     connectors.add(
-        () ->
-            disposables.add(
-                processedStream.subscribe(
-                    msg -> sink.emitNext(msg, RETRY_HANDLER),
-                    err -> sink.emitError(err, RETRY_HANDLER),
-                    () -> sink.emitComplete(RETRY_HANDLER))));
+        () -> {
+          log.atDebug()
+              .setMessage("Subscribing to processed stream for node: {}")
+              .addArgument(nodeId)
+              .log();
+          disposables.add(
+              processedStream.subscribe(
+                  msg -> sink.emitNext(msg, RETRY_HANDLER),
+                  err -> {
+                    log.atError()
+                        .setMessage("Error in broadcast stream for node: {}")
+                        .addArgument(nodeId)
+                        .setCause(err)
+                        .log();
+                    sink.emitError(err, RETRY_HANDLER);
+                  },
+                  () -> {
+                    log.atDebug()
+                        .setMessage("Broadcast stream completed for node: {}")
+                        .addArgument(nodeId)
+                        .log();
+                    sink.emitComplete(RETRY_HANDLER);
+                  }));
+        });
 
     return sink.asFlux();
   }
@@ -171,19 +218,38 @@ public class StreamTopologyDecorator {
    */
   private Flux<Message<?>> getMessageFlux(
       final String executionId, final String nodeId, final Flux<Message<?>> stream) {
+    log.atDebug()
+        .setMessage("Building message flux for execution: {}, node: {}")
+        .addArgument(executionId)
+        .addArgument(nodeId)
+        .log();
+
     Flux<Message<?>> logStream =
-        stream.doOnNext(msg -> log.atDebug().log("Node-{}: {}", nodeId, msg));
+        stream.doOnNext(
+            msg -> log.atDebug().setMessage("Node-{}: message received").addArgument(nodeId).log());
 
     if (messageStore != null) {
+      log.atDebug()
+          .setMessage("Applying message store wire-tap for node: {}")
+          .addArgument(nodeId)
+          .log();
       logStream = logStream.flatMap(msg -> messageStore.store(msg).thenReturn(msg));
     }
 
+    log.atDebug()
+        .setMessage("Applying checkpoint for execution: {}, node: {}")
+        .addArgument(executionId)
+        .addArgument(nodeId)
+        .log();
     logStream =
         logStream.flatMap(msg -> checkpointStore.save(executionId, nodeId, msg).thenReturn(msg));
 
     return logStream.doOnNext(
         msg -> {
-          log.atTrace().log("Processing message: {}", msg.getPayload());
+          log.atTrace()
+              .setMessage("Processing message payload: {}")
+              .addArgument(msg.getPayload())
+              .log();
           tracker.emitLogEvent(executionId, String.valueOf(msg.getPayload()));
         });
   }

@@ -67,8 +67,7 @@ class StreamBuilderTest {
   @BeforeEach
   void setUp() {
     org.mockito.Mockito.when(node.nodeId()).thenReturn(NODE_ID);
-    builder =
-        new StreamBuilder(node, TIMEOUT, taskTrackerService, statusPublisher);
+    builder = new StreamBuilder(node, TIMEOUT, taskTrackerService, statusPublisher);
   }
 
   @Test
@@ -77,8 +76,7 @@ class StreamBuilderTest {
     StreamBuilder testBuilder =
         new StreamBuilder(node, TIMEOUT, taskTrackerService, statusPublisher);
 
-    org.assertj.core.api.Assertions.assertThat(testBuilder)
-        .isNotNull();
+    org.assertj.core.api.Assertions.assertThat(testBuilder).isNotNull();
   }
 
   @Test
@@ -88,8 +86,7 @@ class StreamBuilderTest {
 
     StreamBuilder result = builder.withSource(sourceFlux);
 
-    org.assertj.core.api.Assertions.assertThat(result)
-        .isSameAs(builder);
+    org.assertj.core.api.Assertions.assertThat(result).isSameAs(builder);
   }
 
   @Test
@@ -109,8 +106,7 @@ class StreamBuilderTest {
   void withTimeout_enablesTimeoutHandling() {
     StreamBuilder result = builder.withTimeout();
 
-    org.assertj.core.api.Assertions.assertThat(result)
-        .isSameAs(builder);
+    org.assertj.core.api.Assertions.assertThat(result).isSameAs(builder);
   }
 
   @Test
@@ -128,8 +124,7 @@ class StreamBuilderTest {
   void withTaskTracking_enablesTaskTrackingWithExecutionId() {
     StreamBuilder result = builder.withTaskTracking(EXECUTION_ID);
 
-    org.assertj.core.api.Assertions.assertThat(result)
-        .isSameAs(builder);
+    org.assertj.core.api.Assertions.assertThat(result).isSameAs(builder);
   }
 
   @Test
@@ -147,8 +142,7 @@ class StreamBuilderTest {
   void withErrorHandling_enablesErrorHandlingWithExecutionId() {
     StreamBuilder result = builder.withErrorHandling(EXECUTION_ID);
 
-    org.assertj.core.api.Assertions.assertThat(result)
-        .isSameAs(builder);
+    org.assertj.core.api.Assertions.assertThat(result).isSameAs(builder);
   }
 
   @Test
@@ -166,9 +160,7 @@ class StreamBuilderTest {
   void build_noSourceProvided_returnsEmptyFlux() {
     Flux<Message<?>> result = builder.build();
 
-    StepVerifier.create(result)
-        .expectComplete()
-        .verify();
+    StepVerifier.create(result).expectComplete().verify();
   }
 
   @Test
@@ -179,9 +171,7 @@ class StreamBuilderTest {
 
     Flux<Message<?>> result = builder.withSource(sourceFlux).build();
 
-    StepVerifier.create(result)
-        .expectNext(testMessage)
-        .verifyComplete();
+    StepVerifier.create(result).expectNext(testMessage).verifyComplete();
   }
 
   @Test
@@ -189,12 +179,9 @@ class StreamBuilderTest {
   void build_withTimeoutEnabled_appliesTimeoutTransform() {
     Flux<Message<?>> sourceFlux = Flux.never();
 
-    Flux<Message<?>> result =
-        builder.withSource(sourceFlux).withTimeout().build();
+    Flux<Message<?>> result = builder.withSource(sourceFlux).withTimeout().build();
 
-    StepVerifier.create(result)
-        .expectError(TimeoutException.class)
-        .verify(TIMEOUT.plusSeconds(1));
+    StepVerifier.create(result).expectError(TimeoutException.class).verify(TIMEOUT.plusSeconds(1));
   }
 
   @Test
@@ -202,12 +189,9 @@ class StreamBuilderTest {
   void build_withTimeoutExceeded_mapsTimeoutException() {
     Flux<Message<?>> sourceFlux = Flux.never();
 
-    Flux<Message<?>> result =
-        builder.withSource(sourceFlux).withTimeout().build();
+    Flux<Message<?>> result = builder.withSource(sourceFlux).withTimeout().build();
 
-    StepVerifier.create(result)
-        .expectError(TimeoutException.class)
-        .verify(TIMEOUT.plusSeconds(1));
+    StepVerifier.create(result).expectError(TimeoutException.class).verify(TIMEOUT.plusSeconds(1));
   }
 
   @Test
@@ -216,19 +200,13 @@ class StreamBuilderTest {
     Message<?> testMessage = createTestMessage();
     Flux<Message<?>> sourceFlux = Flux.just(testMessage);
 
-    Flux<Message<?>> result =
-        builder.withSource(sourceFlux).withTaskTracking(EXECUTION_ID).build();
+    Flux<Message<?>> result = builder.withSource(sourceFlux).withTaskTracking(EXECUTION_ID).build();
 
-    StepVerifier.create(result)
-        .expectNext(testMessage)
-        .verifyComplete();
+    StepVerifier.create(result).expectNext(testMessage).verifyComplete();
 
-    verify(taskTrackerService).emitTaskStatusEvent(
-        eq(EXECUTION_ID),
-        eq(NODE_ID),
-        eq(DEFAULT_TASK_ID),
-        eq(STATUS_RUNNING),
-        anyMap());
+    verify(taskTrackerService)
+        .emitTaskStatusEvent(
+            eq(EXECUTION_ID), eq(NODE_ID), eq(DEFAULT_TASK_ID), eq(STATUS_RUNNING), anyMap());
   }
 
   @Test
@@ -237,19 +215,13 @@ class StreamBuilderTest {
     Message<?> testMessage = createTestMessage();
     Flux<Message<?>> sourceFlux = Flux.just(testMessage);
 
-    Flux<Message<?>> result =
-        builder.withSource(sourceFlux).withTaskTracking(EXECUTION_ID).build();
+    Flux<Message<?>> result = builder.withSource(sourceFlux).withTaskTracking(EXECUTION_ID).build();
 
-    StepVerifier.create(result)
-        .expectNext(testMessage)
-        .verifyComplete();
+    StepVerifier.create(result).expectNext(testMessage).verifyComplete();
 
-    verify(taskTrackerService).emitTaskStatusEvent(
-        eq(EXECUTION_ID),
-        eq(NODE_ID),
-        eq(DEFAULT_TASK_ID),
-        eq(STATUS_SUCCESS),
-        anyMap());
+    verify(taskTrackerService)
+        .emitTaskStatusEvent(
+            eq(EXECUTION_ID), eq(NODE_ID), eq(DEFAULT_TASK_ID), eq(STATUS_SUCCESS), anyMap());
   }
 
   @Test
@@ -258,19 +230,13 @@ class StreamBuilderTest {
     RuntimeException testException = new RuntimeException("Test error");
     Flux<Message<?>> sourceFlux = Flux.error(testException);
 
-    Flux<Message<?>> result =
-        builder.withSource(sourceFlux).withTaskTracking(EXECUTION_ID).build();
+    Flux<Message<?>> result = builder.withSource(sourceFlux).withTaskTracking(EXECUTION_ID).build();
 
-    StepVerifier.create(result)
-        .expectError(RuntimeException.class)
-        .verify();
+    StepVerifier.create(result).expectError(RuntimeException.class).verify();
 
-    verify(taskTrackerService).emitTaskStatusEvent(
-        eq(EXECUTION_ID),
-        eq(NODE_ID),
-        eq(DEFAULT_TASK_ID),
-        eq(STATUS_FAILURE),
-        anyMap());
+    verify(taskTrackerService)
+        .emitTaskStatusEvent(
+            eq(EXECUTION_ID), eq(NODE_ID), eq(DEFAULT_TASK_ID), eq(STATUS_FAILURE), anyMap());
   }
 
   @Test
@@ -282,16 +248,11 @@ class StreamBuilderTest {
     Flux<Message<?>> result =
         builder.withSource(sourceFlux).withErrorHandling(EXECUTION_ID).build();
 
-    StepVerifier.create(result)
-        .expectError(RuntimeException.class)
-        .verify();
+    StepVerifier.create(result).expectError(RuntimeException.class).verify();
 
-    verify(taskTrackerService).emitTaskStatusEvent(
-        eq(EXECUTION_ID),
-        eq(NODE_ID),
-        eq(DEFAULT_TASK_ID),
-        eq(STATUS_FAILURE),
-        anyMap());
+    verify(taskTrackerService)
+        .emitTaskStatusEvent(
+            eq(EXECUTION_ID), eq(NODE_ID), eq(DEFAULT_TASK_ID), eq(STATUS_FAILURE), anyMap());
   }
 
   @Test
@@ -301,28 +262,16 @@ class StreamBuilderTest {
     Flux<Message<?>> sourceFlux = Flux.just(testMessage);
 
     Flux<Message<?>> result =
-        builder
-            .withSource(sourceFlux)
-            .withTimeout()
-            .withTaskTracking(EXECUTION_ID)
-            .build();
+        builder.withSource(sourceFlux).withTimeout().withTaskTracking(EXECUTION_ID).build();
 
-    StepVerifier.create(result)
-        .expectNext(testMessage)
-        .verifyComplete();
+    StepVerifier.create(result).expectNext(testMessage).verifyComplete();
 
-    verify(taskTrackerService).emitTaskStatusEvent(
-        eq(EXECUTION_ID),
-        eq(NODE_ID),
-        eq(DEFAULT_TASK_ID),
-        eq(STATUS_RUNNING),
-        anyMap());
-    verify(taskTrackerService).emitTaskStatusEvent(
-        eq(EXECUTION_ID),
-        eq(NODE_ID),
-        eq(DEFAULT_TASK_ID),
-        eq(STATUS_SUCCESS),
-        anyMap());
+    verify(taskTrackerService)
+        .emitTaskStatusEvent(
+            eq(EXECUTION_ID), eq(NODE_ID), eq(DEFAULT_TASK_ID), eq(STATUS_RUNNING), anyMap());
+    verify(taskTrackerService)
+        .emitTaskStatusEvent(
+            eq(EXECUTION_ID), eq(NODE_ID), eq(DEFAULT_TASK_ID), eq(STATUS_SUCCESS), anyMap());
   }
 
   @Test
@@ -338,16 +287,11 @@ class StreamBuilderTest {
             .withErrorHandling(EXECUTION_ID)
             .build();
 
-    StepVerifier.create(result)
-        .expectError(RuntimeException.class)
-        .verify();
+    StepVerifier.create(result).expectError(RuntimeException.class).verify();
 
-    verify(taskTrackerService, org.mockito.Mockito.times(2)).emitTaskStatusEvent(
-        eq(EXECUTION_ID),
-        eq(NODE_ID),
-        eq(DEFAULT_TASK_ID),
-        eq(STATUS_FAILURE),
-        anyMap());
+    verify(taskTrackerService, org.mockito.Mockito.times(2))
+        .emitTaskStatusEvent(
+            eq(EXECUTION_ID), eq(NODE_ID), eq(DEFAULT_TASK_ID), eq(STATUS_FAILURE), anyMap());
   }
 
   @Test
@@ -364,23 +308,17 @@ class StreamBuilderTest {
             .withErrorHandling(EXECUTION_ID)
             .build();
 
-    StepVerifier.create(result)
-        .expectNext(testMessage)
-        .verifyComplete();
+    StepVerifier.create(result).expectNext(testMessage).verifyComplete();
 
     InOrder inOrder = inOrder(taskTrackerService);
-    inOrder.verify(taskTrackerService).emitTaskStatusEvent(
-        eq(EXECUTION_ID),
-        eq(NODE_ID),
-        eq(DEFAULT_TASK_ID),
-        eq(STATUS_RUNNING),
-        anyMap());
-    inOrder.verify(taskTrackerService).emitTaskStatusEvent(
-        eq(EXECUTION_ID),
-        eq(NODE_ID),
-        eq(DEFAULT_TASK_ID),
-        eq(STATUS_SUCCESS),
-        anyMap());
+    inOrder
+        .verify(taskTrackerService)
+        .emitTaskStatusEvent(
+            eq(EXECUTION_ID), eq(NODE_ID), eq(DEFAULT_TASK_ID), eq(STATUS_RUNNING), anyMap());
+    inOrder
+        .verify(taskTrackerService)
+        .emitTaskStatusEvent(
+            eq(EXECUTION_ID), eq(NODE_ID), eq(DEFAULT_TASK_ID), eq(STATUS_SUCCESS), anyMap());
   }
 
   @Test
@@ -395,8 +333,7 @@ class StreamBuilderTest {
             .withTaskTracking(EXECUTION_ID)
             .withErrorHandling(EXECUTION_ID);
 
-    org.assertj.core.api.Assertions.assertThat(result)
-        .isSameAs(builder);
+    org.assertj.core.api.Assertions.assertThat(result).isSameAs(builder);
   }
 
   @Test
@@ -405,30 +342,26 @@ class StreamBuilderTest {
     Message<?> testMessage = createTestMessage();
     Flux<Message<?>> sourceFlux = Flux.just(testMessage);
 
-    Flux<Message<?>> result =
-        builder.withSource(sourceFlux).withTaskTracking(EXECUTION_ID).build();
+    Flux<Message<?>> result = builder.withSource(sourceFlux).withTaskTracking(EXECUTION_ID).build();
 
-    StepVerifier.create(result)
-        .expectNext(testMessage)
-        .verifyComplete();
+    StepVerifier.create(result).expectNext(testMessage).verifyComplete();
 
     ArgumentCaptor<String> executionIdCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<String> nodeIdCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<String> taskIdCaptor = ArgumentCaptor.forClass(String.class);
 
-    verify(taskTrackerService, org.mockito.Mockito.atLeastOnce()).emitTaskStatusEvent(
-        executionIdCaptor.capture(),
-        nodeIdCaptor.capture(),
-        taskIdCaptor.capture(),
-        anyString(),
-        anyMap());
+    verify(taskTrackerService, org.mockito.Mockito.atLeastOnce())
+        .emitTaskStatusEvent(
+            executionIdCaptor.capture(),
+            nodeIdCaptor.capture(),
+            taskIdCaptor.capture(),
+            anyString(),
+            anyMap());
 
     org.assertj.core.api.Assertions.assertThat(executionIdCaptor.getValue())
         .isEqualTo(EXECUTION_ID);
-    org.assertj.core.api.Assertions.assertThat(nodeIdCaptor.getValue())
-        .isEqualTo(NODE_ID);
-    org.assertj.core.api.Assertions.assertThat(taskIdCaptor.getValue())
-        .isEqualTo(DEFAULT_TASK_ID);
+    org.assertj.core.api.Assertions.assertThat(nodeIdCaptor.getValue()).isEqualTo(NODE_ID);
+    org.assertj.core.api.Assertions.assertThat(taskIdCaptor.getValue()).isEqualTo(DEFAULT_TASK_ID);
   }
 
   @Test
@@ -447,13 +380,13 @@ class StreamBuilderTest {
   void build_timeoutPreservesExceptionDetails() {
     Flux<Message<?>> sourceFlux = Flux.never();
 
-    Flux<Message<?>> result =
-        builder.withSource(sourceFlux).withTimeout().build();
+    Flux<Message<?>> result = builder.withSource(sourceFlux).withTimeout().build();
 
     StepVerifier.create(result)
-        .expectErrorSatisfies(error ->
-            org.assertj.core.api.Assertions.assertThat(error)
-                .isInstanceOf(TimeoutException.class))
+        .expectErrorSatisfies(
+            error ->
+                org.assertj.core.api.Assertions.assertThat(error)
+                    .isInstanceOf(TimeoutException.class))
         .verify(TIMEOUT.plusSeconds(1));
   }
 
@@ -464,7 +397,8 @@ class StreamBuilderTest {
     Message<?> testMessage = createTestMessage();
     Flux<Message<?>> sourceFlux = Flux.just(testMessage);
 
-    StreamBuilder multiCallBuilder = new StreamBuilder(node, TIMEOUT, taskTrackerService, statusPublisher);
+    StreamBuilder multiCallBuilder =
+        new StreamBuilder(node, TIMEOUT, taskTrackerService, statusPublisher);
     Flux<Message<?>> result =
         multiCallBuilder
             .withSource(sourceFlux)
@@ -472,16 +406,11 @@ class StreamBuilderTest {
             .withTaskTracking(latestExecId)
             .build();
 
-    StepVerifier.create(result)
-        .expectNext(testMessage)
-        .verifyComplete();
+    StepVerifier.create(result).expectNext(testMessage).verifyComplete();
 
-    verify(taskTrackerService, org.mockito.Mockito.atLeastOnce()).emitTaskStatusEvent(
-        eq(latestExecId),
-        eq(NODE_ID),
-        eq(DEFAULT_TASK_ID),
-        anyString(),
-        anyMap());
+    verify(taskTrackerService, org.mockito.Mockito.atLeastOnce())
+        .emitTaskStatusEvent(
+            eq(latestExecId), eq(NODE_ID), eq(DEFAULT_TASK_ID), anyString(), anyMap());
   }
 
   @Test
@@ -490,19 +419,16 @@ class StreamBuilderTest {
     Message<?> testMessage = createTestMessage();
     Flux<Message<?>> sourceFlux = Flux.just(testMessage);
 
-    Flux<Message<?>> result =
-        builder.withSource(sourceFlux).withTaskTracking(EXECUTION_ID).build();
+    Flux<Message<?>> result = builder.withSource(sourceFlux).withTaskTracking(EXECUTION_ID).build();
 
-    StepVerifier.create(result)
-        .expectNext(testMessage)
-        .verifyComplete();
+    StepVerifier.create(result).expectNext(testMessage).verifyComplete();
 
     @SuppressWarnings("unchecked")
-    ArgumentCaptor<Map<String, Object>> mapCaptor =
-        ArgumentCaptor.forClass(Map.class);
+    ArgumentCaptor<Map<String, Object>> mapCaptor = ArgumentCaptor.forClass(Map.class);
 
-    verify(taskTrackerService, org.mockito.Mockito.atLeastOnce()).emitTaskStatusEvent(
-        anyString(), anyString(), anyString(), anyString(), mapCaptor.capture());
+    verify(taskTrackerService, org.mockito.Mockito.atLeastOnce())
+        .emitTaskStatusEvent(
+            anyString(), anyString(), anyString(), anyString(), mapCaptor.capture());
 
     org.assertj.core.api.Assertions.assertThat(mapCaptor.getValue())
         .isEqualTo(Collections.emptyMap());

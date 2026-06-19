@@ -59,7 +59,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
   }
@@ -80,7 +80,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -104,7 +104,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -128,7 +128,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -147,7 +147,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(null)
             .withConnectors(null)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -169,7 +169,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout(null, "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -197,7 +197,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -223,7 +223,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", null)
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -246,7 +246,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -268,7 +268,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(null)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -295,7 +295,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -320,7 +320,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -343,7 +343,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -369,7 +369,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     // Should complete normally even if connector throws exception
     StepVerifier.create(execution).verifyComplete();
@@ -396,7 +396,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     // Should complete normally even if disposable throws exception
     StepVerifier.create(execution).verifyComplete();
@@ -439,7 +439,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     StepVerifier.create(execution).verifyComplete();
 
@@ -462,7 +462,7 @@ class ResourceManagementBuilderTest {
             .withTerminals(terminals)
             .withConnectors(connectors)
             .withExecutionTimeout("session-001", "exec-001")
-            .build();
+            .buildAndExecute();
 
     // Should error out - terminal failure propagates
     StepVerifier.create(execution).verifyError(RuntimeException.class);
