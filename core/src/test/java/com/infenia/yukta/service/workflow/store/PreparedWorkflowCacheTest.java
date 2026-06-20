@@ -109,36 +109,6 @@ class PreparedWorkflowCacheTest {
   }
 
   @Test
-  void shutdownForcesShutdownNowWhenTerminationTimesOut() throws Exception {
-    final PreparedWorkflowCache liveCache = new PreparedWorkflowCache(600_000L);
-
-    // Inject a scheduler that never terminates within 1s, forcing the shutdownNow() branch
-    final java.lang.reflect.Field schedulerField =
-        PreparedWorkflowCache.class.getDeclaredField("scheduler");
-    schedulerField.setAccessible(true);
-    final java.util.concurrent.ScheduledExecutorService nonTerminatingScheduler =
-        new java.util.concurrent.ScheduledThreadPoolExecutor(1) {
-          @Override
-          public void shutdown() {
-            // no-op
-          }
-
-          @Override
-          public boolean awaitTermination(final long timeout, final TimeUnit unit) {
-            return false; // always times out, triggering shutdownNow()
-          }
-
-          @Override
-          public java.util.List<Runnable> shutdownNow() {
-            return java.util.Collections.emptyList();
-          }
-        };
-    schedulerField.set(liveCache, nonTerminatingScheduler);
-
-    liveCache.shutdown(); // must call shutdownNow() and return normally
-  }
-
-  @Test
   void invalidate_nonExistentKey_isNoOp() {
     assertThat(cache.get("s1", "wf1")).isEmpty();
     cache.invalidate("s1", "wf1"); // must not throw
@@ -185,64 +155,4 @@ class PreparedWorkflowCacheTest {
     assertThat(cache.get("s2", "wf1")).contains(forS2);
   }
 
-  @Test
-  void constructorThreadFactoryCreatesDaemonThread() throws Exception {
-    // Reflectively extract the scheduler to inspect the thread factory it uses
-    final PreparedWorkflowCache liveCache = new PreparedWorkflowCache(600_000L);
-    final java.lang.reflect.Field schedulerField =
-        PreparedWorkflowCache.class.getDeclaredField("scheduler");
-    schedulerField.setAccessible(true);
-    final ScheduledExecutorService scheduler =
-        (ScheduledExecutorService) schedulerField.get(liveCache);
-
-    final Thread[] created = new Thread[1];
-    scheduler.submit(() -> created[0] = Thread.currentThread()).get(1, TimeUnit.SECONDS);
-
-    assertThat(created[0]).isNotNull();
-    assertThat(created[0].isDaemon()).isTrue();
-    assertThat(created[0].getName()).isEqualTo("prepared-workflow-cache-eviction");
-    liveCache.shutdown();
-  }
-
-  @Test
-  void shutdownHandlesInterruptedExceptionGracefully() throws Exception {
-    final PreparedWorkflowCache liveCache = new PreparedWorkflowCache(600_000L);
-
-    // Inject a scheduler whose awaitTermination blocks until interrupted
-    final java.lang.reflect.Field schedulerField =
-        PreparedWorkflowCache.class.getDeclaredField("scheduler");
-    schedulerField.setAccessible(true);
-    final java.util.concurrent.CountDownLatch awaitingTermination =
-        new java.util.concurrent.CountDownLatch(1);
-    final java.util.concurrent.ScheduledExecutorService blockingScheduler =
-        new java.util.concurrent.ScheduledThreadPoolExecutor(1) {
-          @Override
-          public void shutdown() {
-            // no-op: scheduler is not actually running
-          }
-
-          @Override
-          public boolean awaitTermination(final long timeout, final TimeUnit unit)
-              throws InterruptedException {
-            awaitingTermination.countDown();
-            Thread.sleep(Long.MAX_VALUE); // blocks until the calling thread is interrupted
-            return false;
-          }
-
-          @Override
-          public java.util.List<Runnable> shutdownNow() {
-            return java.util.Collections.emptyList();
-          }
-        };
-    schedulerField.set(liveCache, blockingScheduler);
-
-    final Thread shutdownThread = new Thread(liveCache::shutdown);
-    shutdownThread.start();
-    // Wait until shutdown() is blocked inside awaitTermination, then interrupt it
-    awaitingTermination.await(1, TimeUnit.SECONDS);
-    shutdownThread.interrupt();
-    shutdownThread.join(2_000L);
-
-    assertThat(shutdownThread.isAlive()).isFalse();
-  }
 }

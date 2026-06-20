@@ -55,17 +55,10 @@ public class PreparedWorkflowCache {
             .recordStats()
             .removalListener(
                 (key, value, cause) -> {
-                  if (cause == RemovalCause.EXPIRED) {
-                    log.atDebug()
-                        .addKeyValue("key", key)
-                        .addKeyValue("cause", cause)
-                        .log("Evicted expired compiled workflow");
-                  } else {
-                    log.atDebug()
-                        .addKeyValue("key", key)
-                        .addKeyValue("cause", cause)
-                        .log("Evicted compiled workflow");
-                  }
+                  log.atDebug()
+                      .addKeyValue("key", key)
+                      .addKeyValue("cause", cause)
+                      .log("Evicted compiled workflow");
                 })
             .build();
     log.atInfo().addKeyValue("ttlMs", ttlMs).log("Initialized PreparedWorkflowCache with Caffeine");
@@ -95,9 +88,16 @@ public class PreparedWorkflowCache {
             .build();
   }
 
-  /** Start eviction; with Caffeine this is a no-op. */
+  /**
+   * Start eviction; with Caffeine this is a no-op.
+   *
+   * @deprecated since 2026-06. Caffeine handles expiration automatically. Kept for backward
+   *     compatibility with code that calls this directly.
+   */
+  @Deprecated(since = "2026-06", forRemoval = false)
   public void init() {
-    // Caffeine handles expiration automatically; no initialization needed
+    // No-op: Caffeine handles expiration automatically.
+    // Kept for backward compatibility with code that calls this directly.
     log.atDebug().log("PreparedWorkflowCache eviction already active via Caffeine");
   }
 
