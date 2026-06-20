@@ -76,7 +76,7 @@ class WorkflowServiceTest {
 
     StepVerifier.create(
             workflowService
-                .validateAndTriggerWorkflow(sessionId, workflowId, java.util.Map.of())
+                .validateAndStartWorkflow(sessionId, workflowId)
                 .flatMap(exec -> exec.result()))
         .expectNextMatches(res -> "SUCCESS".equals(res.status()))
         .verifyComplete();
@@ -89,8 +89,7 @@ class WorkflowServiceTest {
 
     when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.empty());
 
-    StepVerifier.create(
-            workflowService.validateAndTriggerWorkflow(sessionId, workflowId, java.util.Map.of()))
+    StepVerifier.create(workflowService.validateAndStartWorkflow(sessionId, workflowId))
         .expectErrorMatches(
             e ->
                 e instanceof IllegalArgumentException
@@ -109,7 +108,7 @@ class WorkflowServiceTest {
 
     StepVerifier.create(
             workflowService
-                .validateAndTriggerWorkflow(sessionId, workflowId, java.util.Map.of())
+                .validateAndStartWorkflow(sessionId, workflowId)
                 .flatMap(exec -> exec.result()))
         .expectNextMatches(
             res -> "FAILURE".equals(res.status()) && res.output().contains("Workflow failed: Fail"))
@@ -147,13 +146,13 @@ class WorkflowServiceTest {
                   });
             });
 
-    var exec1 = workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of()).block();
+    var exec1 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
 
     // Wait for first execution to start
     startedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
     // Now submit second workflow - it should queue
-    var exec2 = workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of()).block();
+    var exec2 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
 
     // Release first execution
     latch.countDown();
@@ -197,13 +196,13 @@ class WorkflowServiceTest {
                   });
             });
 
-    var exec1 = workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of()).block();
+    var exec1 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
 
     // Wait for first execution to start
     startedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
     // Now submit second workflow - it should queue
-    var exec2 = workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of()).block();
+    var exec2 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
 
     // Release first execution
     latch.countDown();
@@ -234,10 +233,8 @@ class WorkflowServiceTest {
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenReturn(Mono.empty());
 
-    var exec1 =
-        workflowService.validateAndTriggerWorkflow(sessionId1, workflowId, Map.of()).block();
-    var exec2 =
-        workflowService.validateAndTriggerWorkflow(sessionId2, workflowId, Map.of()).block();
+    var exec1 = workflowService.validateAndStartWorkflow(sessionId1, workflowId).block();
+    var exec2 = workflowService.validateAndStartWorkflow(sessionId2, workflowId).block();
 
     StepVerifier.create(exec1.result())
         .expectNextMatches(res -> "SUCCESS".equals(res.status()))
@@ -264,7 +261,7 @@ class WorkflowServiceTest {
     when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
         .thenReturn(Mono.empty());
 
-    var exec = workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of()).block();
+    var exec = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
 
     StepVerifier.create(exec.result())
         .expectNextMatches(res -> "SUCCESS".equals(res.status()))
@@ -316,13 +313,13 @@ class WorkflowServiceTest {
               }
             });
 
-    var exec1 = workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of()).block();
+    var exec1 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
 
     // Wait for first execution to start
     firstStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
     // Now submit second workflow - it should queue
-    var exec2 = workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of()).block();
+    var exec2 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
 
     // Let first execution error
     firstErrorLatch.countDown();
@@ -356,7 +353,7 @@ class WorkflowServiceTest {
 
     StepVerifier.create(
             workflowService
-                .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+                .validateAndStartWorkflow(sessionId, workflowId)
                 .flatMap(exec -> exec.result()))
         .expectNextMatches(
             res -> "FAILURE".equals(res.status()) && res.output().contains("Execution error"))
@@ -423,13 +420,13 @@ class WorkflowServiceTest {
               }
             });
 
-    var exec1 = workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of()).block();
+    var exec1 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
     firstStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
-    var exec2 = workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of()).block();
+    var exec2 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
     secondStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
-    var exec3 = workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of()).block();
+    var exec3 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
     thirdStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
 
     // Release all executions
@@ -464,7 +461,7 @@ class WorkflowServiceTest {
 
     StepVerifier.create(
             workflowService
-                .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
+                .validateAndStartWorkflow(sessionId, workflowId)
                 .flatMap(exec -> exec.result()))
         .expectNextMatches(
             res -> "FAILURE".equals(res.status()) && res.output().contains("Prep error"))
@@ -488,7 +485,7 @@ class WorkflowServiceTest {
 
     StepVerifier.create(
             workflowService
-                .validateAndTriggerWorkflow(sessionId, workflowId, Map.of("key", "val"))
+                .validateAndStartWorkflow(sessionId, workflowId)
                 .flatMap(exec -> exec.result()))
         .expectNextMatches(res -> "SUCCESS".equals(res.status()))
         .verifyComplete();
@@ -498,14 +495,13 @@ class WorkflowServiceTest {
   }
 
   @Test
-  void testValidateAndTriggerWorkflowNotFound() {
+  void testValidateAndStartWorkflowNotFound() {
     String sessionId = "sess-missing";
     String workflowId = "w-missing";
 
     when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.empty());
 
-    StepVerifier.create(
-            workflowService.validateAndTriggerWorkflow(sessionId, workflowId, Map.of("k", "v")))
+    StepVerifier.create(workflowService.validateAndStartWorkflow(sessionId, workflowId))
         .expectErrorMatches(
             e ->
                 e instanceof IllegalArgumentException
@@ -530,7 +526,7 @@ class WorkflowServiceTest {
         .thenReturn(Mono.empty());
 
     final WorkflowExecution execution =
-        workflowService.validateAndTriggerWorkflow("s1", "wf1", Map.of("k", "v")).block();
+        workflowService.validateAndStartWorkflow("s1", "wf1").block();
     StepVerifier.create(execution.result())
         .expectNextMatches(r -> "SUCCESS".equals(r.status()))
         .verifyComplete();
@@ -558,7 +554,7 @@ class WorkflowServiceTest {
         .thenReturn(Mono.empty());
 
     final WorkflowExecution execution =
-        workflowService.validateAndTriggerWorkflow("s1", "wf1", Map.of("k", "v")).block();
+        workflowService.validateAndStartWorkflow("s1", "wf1").block();
     StepVerifier.create(execution.result())
         .expectNextMatches(r -> "SUCCESS".equals(r.status()))
         .verifyComplete();
@@ -574,7 +570,7 @@ class WorkflowServiceTest {
   void runWorkflowOnStoreMissPropagatesFailure() {
     when(workflowDefinitionStore.find("s1", "wf1")).thenReturn(Mono.empty());
 
-    StepVerifier.create(workflowService.validateAndTriggerWorkflow("s1", "wf1", Map.of("k", "v")))
+    StepVerifier.create(workflowService.validateAndStartWorkflow("s1", "wf1"))
         .expectErrorMatches(
             e ->
                 e instanceof IllegalArgumentException

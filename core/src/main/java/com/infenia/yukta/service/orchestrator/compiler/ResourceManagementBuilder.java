@@ -185,6 +185,7 @@ public class ResourceManagementBuilder {
               .addKeyValue("unit", "seconds")
               .log("Retrieved execution timeout");
 
+          // TODO: Understand why this terminal mono is required?
           final Mono<Void> terminalMono = buildTerminalMono();
           final Mono<Void> timedMono = terminalMono.timeout(Duration.ofSeconds(timeout), scheduler);
 

@@ -16,8 +16,8 @@
 package com.infenia.yukta.controller;
 
 import com.infenia.yukta.model.api.ApiResponse;
-import com.infenia.yukta.model.api.TriggerResponse;
-import com.infenia.yukta.model.api.WorkflowTriggerRequest;
+import com.infenia.yukta.model.api.WorkflowStartRequest;
+import com.infenia.yukta.model.api.WorkflowStartResponse;
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import com.infenia.yukta.service.WorkflowService;
@@ -47,8 +47,8 @@ import reactor.core.publisher.Mono;
 /**
  * REST controller for workflow management API.
  *
- * <p>Provides endpoints for triggering workflow executions and monitoring their progress, including
- * real-time updates via Server-Sent Events.
+ * <p>Provides endpoints for starting and stoping workflow executions and monitoring their progress,
+ * including real-time updates via Server-Sent Events.
  */
 @RestController
 @RequestMapping("/api")
@@ -56,7 +56,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Tag(
     name = "Workflow API",
-    description = "Endpoints for triggering and monitoring workflow executions")
+    description = "Endpoints for starting and monitoring workflow executions")
 public class WorkflowController {
   private final WorkflowService workflowService;
   private final ControlBusGateway controlBus;
@@ -64,36 +64,37 @@ public class WorkflowController {
 
   private static final String HTTP_200 = "200";
   private static final String SESSION_ID_PARAM = "Session ID";
+  private static final String NOT_FOUND = "Not Found";
 
   /**
-   * Trigger a workflow execution for a session.
+   * Start a workflow execution for a session.
    *
-   * @param request the trigger request containing sessionId and workflowId
+   * @param request the start request containing sessionId and workflowId
    * @return response entity with acknowledgment and execution ID
    */
-  @PostMapping("/workflow/trigger")
+  @PostMapping("/workflow/start")
   @Operation(
-      summary = "Trigger a workflow",
-      description = "Triggers the execution of a specific DAG workflow for a session")
+      summary = "Start a workflow",
+      description = "Starts the execution of a specific DAG workflow for a session")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "202",
-      description = "Workflow trigger accepted")
+      description = "Workflow start accepted")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "400",
       description = "Invalid session ID or workflow ID")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "404",
       description = "Session or workflow not found")
-  public Mono<ResponseEntity<ApiResponse<TriggerResponse>>> triggerWorkflow(
-      @Valid @RequestBody final WorkflowTriggerRequest request, final ServerWebExchange exchange) {
+  public Mono<ResponseEntity<ApiResponse<WorkflowStartResponse>>> startWorkflow(
+      @Valid @RequestBody final WorkflowStartRequest request, final ServerWebExchange exchange) {
     log.atInfo().log(
-        "triggerWorkflow: sessionId={}, workflowId={}", request.sessionId(), request.workflowId());
+        "startWorkflow: sessionId={}, workflowId={}", request.sessionId(), request.workflowId());
     return workflowService
-        .validateAndTriggerWorkflow(request.sessionId(), request.workflowId(), request.payload())
+        .validateAndStartWorkflow(request.sessionId(), request.workflowId())
         .doOnNext(
             _ ->
                 log.atInfo().log(
-                    "triggerWorkflow service call succeeded: sessionId={}, workflowId={}",
+                    "startWorkflow service call succeeded: sessionId={}, workflowId={}",
                     request.sessionId(),
                     request.workflowId()))
         .map(
@@ -102,19 +103,19 @@ public class WorkflowController {
                     .body(
                         ApiResponse.success(
                             202,
-                            "Workflow trigger accepted",
-                            new TriggerResponse(execution.executionId()))))
+                            "Workflow start accepted",
+                            new WorkflowStartResponse(execution.executionId()))))
         .doOnSuccess(
             _ ->
                 log.atInfo().log(
-                    "triggerWorkflow response sent successfully: sessionId={}, workflowId={}",
+                    "startWorkflow response sent successfully: sessionId={}, workflowId={}",
                     request.sessionId(),
                     request.workflowId()))
         .onErrorResume(
             e -> {
               log.atError()
                   .log(
-                      "triggerWorkflow error occurred: sessionId={}, workflowId={}, error={}",
+                      "startWorkflow error occurred: sessionId={}, workflowId={}, error={}",
                       request.sessionId(),
                       request.workflowId(),
                       e.getMessage());
@@ -123,8 +124,74 @@ public class WorkflowController {
                   List.of(new ApiResponse.FieldError("workflow", e.getMessage()));
               return Mono.just(
                   ResponseEntity.status(HttpStatus.NOT_FOUND)
+                      .body(ApiResponse.error(404, NOT_FOUND, "Workflow not found", path, errors)));
+            });
+  }
+
+  /**
+   * Stop the active workflow execution for a session and workflow.
+   *
+   * <p>Emits a safe-stop signal that drains inflight work before terminating. The trigger plugin's
+   * stream is also severed, preventing new input from starting new executions.
+   *
+   * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @return response entity with the stopped execution ID
+   */
+  @PostMapping("/workflow/{sessionId}/{workflowId}/stop")
+  @Operation(
+      summary = "Stop a workflow",
+      description =
+          "Stops the active workflow execution and severs the trigger plugin input stream")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Workflow stop signal accepted")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "404",
+      description = "No active workflow execution found")
+  public Mono<ResponseEntity<ApiResponse<WorkflowStartResponse>>> stopWorkflow(
+      @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
+      @Parameter(description = "Workflow ID") @PathVariable final String workflowId,
+      final ServerWebExchange exchange) {
+    log.atInfo().log("stopWorkflow: sessionId={}, workflowId={}", sessionId, workflowId);
+    return controlBus
+        .stopWorkflow(sessionId, workflowId, "Stopped via REST API")
+        .doOnNext(
+            executionId ->
+                log.atInfo().log(
+                    "stopWorkflow command accepted: sessionId={}, workflowId={}, executionId={}",
+                    sessionId,
+                    workflowId,
+                    executionId))
+        .map(
+            executionId ->
+                ResponseEntity.ok(
+                    ApiResponse.success(
+                        200,
+                        "Workflow stop signal accepted",
+                        new WorkflowStartResponse(executionId))))
+        .doOnSuccess(
+            _ ->
+                log.atInfo().log(
+                    "stopWorkflow response sent successfully: sessionId={}, workflowId={}",
+                    sessionId,
+                    workflowId))
+        .onErrorResume(
+            e -> {
+              log.atError()
+                  .log(
+                      "stopWorkflow error occurred: sessionId={}, workflowId={}, error={}",
+                      sessionId,
+                      workflowId,
+                      e.getMessage());
+              final String path = exchange.getRequest().getPath().value();
+              final List<ApiResponse.FieldError> errors =
+                  List.of(new ApiResponse.FieldError("workflow", e.getMessage()));
+              return Mono.just(
+                  ResponseEntity.status(HttpStatus.NOT_FOUND)
                       .body(
-                          ApiResponse.error(404, "Not Found", "Workflow not found", path, errors)));
+                          ApiResponse.error(
+                              404, NOT_FOUND, "No active workflow execution", path, errors)));
             });
   }
 
@@ -182,8 +249,7 @@ public class WorkflowController {
                           new ApiResponse.FieldError(
                               "executionId", "Execution not found: '" + executionId + "'"));
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                      .body(
-                          ApiResponse.error(404, "Not Found", "Execution not found", path, errors));
+                      .body(ApiResponse.error(404, NOT_FOUND, "Execution not found", path, errors));
                 }))
         .doOnError(
             error ->
@@ -283,7 +349,7 @@ public class WorkflowController {
                           new ApiResponse.FieldError(
                               "sessionId", "Session not found: '" + sessionId + "'"));
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                      .body(ApiResponse.error(404, "Not Found", "Session not found", path, errors));
+                      .body(ApiResponse.error(404, NOT_FOUND, "Session not found", path, errors));
                 }))
         .doOnError(
             error ->

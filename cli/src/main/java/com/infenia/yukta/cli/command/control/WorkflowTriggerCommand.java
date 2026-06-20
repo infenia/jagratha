@@ -23,21 +23,16 @@ import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 
 @Component
 @Command(name = "trigger", description = "Trigger a workflow execution")
 public class WorkflowTriggerCommand implements Runnable {
 
   private final YuktaDaemonClient daemonClient;
-  private final ObjectMapper objectMapper;
   private final CliFormatter formatter;
 
-  public WorkflowTriggerCommand(
-      YuktaDaemonClient daemonClient, ObjectMapper objectMapper, CliFormatter formatter) {
+  public WorkflowTriggerCommand(YuktaDaemonClient daemonClient, CliFormatter formatter) {
     this.daemonClient = daemonClient;
-    this.objectMapper = objectMapper;
     this.formatter = formatter;
   }
 
@@ -46,9 +41,6 @@ public class WorkflowTriggerCommand implements Runnable {
 
   @Parameters(index = "1", description = "Workflow ID")
   private String workflowId;
-
-  @Parameters(index = "2", description = "JSON payload", defaultValue = "{}")
-  private String jsonPayload;
 
   @Option(
       names = {"-o", "--output"},
@@ -59,12 +51,10 @@ public class WorkflowTriggerCommand implements Runnable {
   @Override
   public void run() {
     try {
-      final Map<String, Object> payload =
-          objectMapper.readValue(jsonPayload, new TypeReference<Map<String, Object>>() {});
-      final String executionId = daemonClient.triggerWorkflow(sessionId, workflowId, payload);
+      final String executionId = daemonClient.triggerWorkflow(sessionId, workflowId);
 
       if ("json".equals(outputFormat)) {
-        formatter.printJson(java.util.Map.of("executionId", executionId));
+        formatter.printJson(Map.of("executionId", executionId));
       } else {
         formatter.printTable(List.of("Execution ID: " + executionId));
       }

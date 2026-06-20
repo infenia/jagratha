@@ -17,7 +17,6 @@ package com.infenia.yukta.cli.command.control;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,23 +26,19 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 
 @MockitoSettings(strictness = Strictness.STRICT_STUBS)
 class WorkflowTriggerCommandTest {
   @Mock private YuktaDaemonClient mockClient;
-  @Mock private ObjectMapper mockMapper;
   @Mock private CliFormatter mockFormatter;
   private WorkflowTriggerCommand command;
 
   @BeforeEach
   void setUp() {
-    command = new WorkflowTriggerCommand(mockClient, mockMapper, mockFormatter);
+    command = new WorkflowTriggerCommand(mockClient, mockFormatter);
   }
 
   @Test
@@ -60,11 +55,8 @@ class WorkflowTriggerCommandTest {
   void run_printsTableByDefault() throws Exception {
     setPrivateField("sessionId", "session123");
     setPrivateField("workflowId", "workflow456");
-    setPrivateField("jsonPayload", "{}");
 
-    when(mockMapper.readValue(eq("{}"), ArgumentMatchers.isA(TypeReference.class)))
-        .thenReturn(Map.of());
-    when(mockClient.triggerWorkflow("session123", "workflow456", Map.of())).thenReturn("exec789");
+    when(mockClient.triggerWorkflow("session123", "workflow456")).thenReturn("exec789");
 
     command.run();
 
@@ -75,12 +67,9 @@ class WorkflowTriggerCommandTest {
   void run_printsJsonWhenFormatIsJson() throws Exception {
     setPrivateField("sessionId", "session123");
     setPrivateField("workflowId", "workflow456");
-    setPrivateField("jsonPayload", "{}");
     setPrivateField("outputFormat", "json");
 
-    when(mockMapper.readValue(eq("{}"), ArgumentMatchers.isA(TypeReference.class)))
-        .thenReturn(Map.of());
-    when(mockClient.triggerWorkflow("session123", "workflow456", Map.of())).thenReturn("exec789");
+    when(mockClient.triggerWorkflow("session123", "workflow456")).thenReturn("exec789");
 
     command.run();
 
@@ -88,26 +77,11 @@ class WorkflowTriggerCommandTest {
   }
 
   @Test
-  void run_throwsRuntimeExceptionOnJsonParseError() throws Exception {
-    setPrivateField("sessionId", "session123");
-    setPrivateField("workflowId", "workflow456");
-    setPrivateField("jsonPayload", "invalid json");
-
-    when(mockMapper.readValue(eq("invalid json"), ArgumentMatchers.isA(TypeReference.class)))
-        .thenThrow(new RuntimeException("Invalid JSON"));
-
-    assertThatThrownBy(command::run).isInstanceOf(RuntimeException.class);
-  }
-
-  @Test
   void run_throwsRuntimeExceptionOnClientError() throws Exception {
     setPrivateField("sessionId", "session123");
     setPrivateField("workflowId", "workflow456");
-    setPrivateField("jsonPayload", "{}");
 
-    when(mockMapper.readValue(eq("{}"), ArgumentMatchers.isA(TypeReference.class)))
-        .thenReturn(Map.of());
-    when(mockClient.triggerWorkflow("session123", "workflow456", Map.of()))
+    when(mockClient.triggerWorkflow("session123", "workflow456"))
         .thenThrow(new RuntimeException("Client error"));
 
     assertThatThrownBy(command::run).isInstanceOf(RuntimeException.class);

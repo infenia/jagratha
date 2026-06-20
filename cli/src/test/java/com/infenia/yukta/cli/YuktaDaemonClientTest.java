@@ -130,7 +130,6 @@ class YuktaDaemonClientTest {
     // Given
     String sessionId = "session-123";
     String workflowId = "workflow-456";
-    Map<String, Object> payload = Map.of("key", "value");
 
     Map<String, Object> responseData = Map.of("executionId", "exec-789");
     ApiResponse<Map<String, Object>> response =
@@ -148,7 +147,7 @@ class YuktaDaemonClientTest {
     when(mockWebClient.post()).thenReturn(uriSpec);
 
     // When
-    String result = client.triggerWorkflow(sessionId, workflowId, payload);
+    String result = client.triggerWorkflow(sessionId, workflowId);
 
     // Then
     assertThat(result).isEqualTo("exec-789");
@@ -159,7 +158,6 @@ class YuktaDaemonClientTest {
     // Given
     String sessionId = "session-123";
     String workflowId = "workflow-456";
-    Map<String, Object> payload = Map.of("key", "value");
 
     WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
     when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.empty());
@@ -172,7 +170,7 @@ class YuktaDaemonClientTest {
     when(mockWebClient.post()).thenReturn(uriSpec);
 
     // When-Then
-    assertThatThrownBy(() -> client.triggerWorkflow(sessionId, workflowId, payload))
+    assertThatThrownBy(() -> client.triggerWorkflow(sessionId, workflowId))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("Failed to trigger workflow");
   }
@@ -182,7 +180,6 @@ class YuktaDaemonClientTest {
     // Given
     String sessionId = "session-123";
     String workflowId = "workflow-456";
-    Map<String, Object> payload = Map.of("key", "value");
 
     ApiResponse<Map<String, Object>> response =
         ApiResponse.success(200, "Workflow triggered", null);
@@ -199,7 +196,7 @@ class YuktaDaemonClientTest {
     when(mockWebClient.post()).thenReturn(uriSpec);
 
     // When-Then
-    assertThatThrownBy(() -> client.triggerWorkflow(sessionId, workflowId, payload))
+    assertThatThrownBy(() -> client.triggerWorkflow(sessionId, workflowId))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("Failed to trigger workflow");
   }
@@ -209,7 +206,6 @@ class YuktaDaemonClientTest {
     // Given
     String sessionId = "session-123";
     String workflowId = "workflow-456";
-    Map<String, Object> payload = Map.of("key", "value");
 
     Map<String, Object> responseData = Map.of("otherKey", "value");
     ApiResponse<Map<String, Object>> response =
@@ -227,7 +223,7 @@ class YuktaDaemonClientTest {
     when(mockWebClient.post()).thenReturn(uriSpec);
 
     // When
-    String result = client.triggerWorkflow(sessionId, workflowId, payload);
+    String result = client.triggerWorkflow(sessionId, workflowId);
 
     // Then - when executionId is not in the response data, get returns null
     assertThat(result).isNull();

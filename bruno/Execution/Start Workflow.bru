@@ -1,11 +1,11 @@
 meta {
-  name: Trigger Workflow
+  name: Start Workflow
   type: http
   seq: 1
 }
 
 post {
-  url: {{base_url}}/api/workflow/trigger
+  url: {{base_url}}/api/workflow/start
   body: json
   auth: none
 }
@@ -17,11 +17,7 @@ headers {
 body:json {
   {
     "sessionId": "cli-spotless-session",
-    "workflowId": "spotless-check",
-    "payload": {
-      "context": "test-execution",
-      "data": {}
-    }
+    "workflowId": "spotless-check"
   }
 }
 

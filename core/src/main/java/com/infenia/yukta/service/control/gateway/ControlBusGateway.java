@@ -207,6 +207,19 @@ public interface ControlBusGateway {
   Mono<Void> stepNode(String executionId, String nodeId);
 
   /**
+   * Safely stop the active workflow execution for a session and workflow.
+   *
+   * <p>Emits a safe-stop signal that drains inflight work before terminating. The trigger plugin's
+   * stream is also severed, preventing any new input from starting a new execution.
+   *
+   * @param sessionId the session that owns the workflow
+   * @param workflowId the workflow to stop
+   * @param reason human-readable explanation for logging
+   * @return a Mono containing the stopped execution ID, or an error if no active execution exists
+   */
+  Mono<String> stopWorkflow(String sessionId, String workflowId, String reason);
+
+  /**
    * Safely stop the current execution and restart the entire workflow from the beginning using the
    * original payload.
    *

@@ -31,7 +31,6 @@ import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.HashMap;
 import java.util.List;
@@ -106,7 +105,7 @@ public class WorkflowOrchestrator {
       @WorkflowId final String workflowId,
       @NotBlank final String executionId,
       @NotNull @Valid final PreparedWorkflow prepared,
-      @NotEmpty final Map<String, Object> payload) {
+      final Map<String, Object> payload) {
 
     log.atInfo()
         .addKeyValue(LOG_KEY_SESSION_ID, sessionId)

@@ -173,6 +173,23 @@ public interface ExecutionControlCommand {
   }
 
   /**
+   * Stop all nodes in an execution and terminate the workflow.
+   *
+   * <p>Uses safe-stop semantics: inflight work drains before the execution terminates. The trigger
+   * plugin's stream is also severed, preventing any new input from being accepted.
+   *
+   * @param executionId the execution identifier
+   * @param reason human-readable explanation for logging
+   */
+  record StopWorkflowCommand(String executionId, @Nullable String reason)
+      implements ExecutionControlCommand {
+    @Override
+    public String commandType() {
+      return "execution.stop-workflow";
+    }
+  }
+
+  /**
    * Stop the current execution and restart from the beginning with the original payload.
    *
    * <p>A new {@code executionId} is generated for the restarted execution.

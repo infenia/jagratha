@@ -24,27 +24,26 @@ import com.infenia.yukta.service.orchestrator.stream.StreamBuilder;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import java.time.Duration;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
+@Slf4j
 @UtilityClass
 class StreamAssemblyHelper {
 
-  /**
-   * Builds a stream with execution context and post-processing controls applied.
-   *
-   * @param node the workflow node
-   * @param stream the source stream
-   * @param timeout the node timeout duration
-   * @param tracker the task tracker service
-   * @param context the assembly context
-   * @return the built stream with context applied
-   */
   static Flux<Message<?>> buildStreamWithContext(
       final WorkflowNode node,
       final Flux<Message<?>> stream,
       final Duration timeout,
       final TaskTrackerService tracker,
       final AssemblyContext context) {
+
+    log.atDebug()
+        .addKeyValue("nodeId", node.nodeId())
+        .addKeyValue("executionId", context.executionId())
+        .addKeyValue("workflowId", context.workflowId())
+        .addKeyValue("timeout", timeout)
+        .log("Assembling stream for node");
 
     final ExecutionControl control = context.control();
     final ExecutionContextBuilder contextBuilder =
@@ -64,6 +63,14 @@ class StreamAssemblyHelper {
             .build();
 
     built = control.applyPostProcessingControls(node.nodeId(), built);
-    return contextBuilder.applyContextTo(built);
+    return contextBuilder
+        .applyContextTo(built)
+        .doOnError(
+            error ->
+                log.atError()
+                    .addKeyValue("nodeId", node.nodeId())
+                    .addKeyValue("executionId", context.executionId())
+                    .setCause(error)
+                    .log("Stream assembly failed for node"));
   }
 }

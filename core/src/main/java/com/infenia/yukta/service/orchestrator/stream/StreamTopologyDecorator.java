@@ -226,7 +226,7 @@ public class StreamTopologyDecorator {
 
     Flux<Message<?>> logStream =
         stream.doOnNext(
-            msg -> log.atDebug().setMessage("Node-{}: message received").addArgument(nodeId).log());
+            _ -> log.atDebug().setMessage("Node-{}: message received").addArgument(nodeId).log());
 
     if (messageStore != null) {
       log.atDebug()

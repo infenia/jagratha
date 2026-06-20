@@ -33,7 +33,10 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.ResumeWo
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.SkipNodeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StepNodeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopNodeCommand;
+import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopWorkflowCommand;
 import com.infenia.yukta.service.control.ControlBusService;
+import com.infenia.yukta.service.control.ExecutionControl;
+import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.execution.status.ExecutionStatusEvent;
 import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
@@ -74,6 +77,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
 
   private final ControlBusService controlBusService;
   private final DefaultTaskTrackerService taskTracker;
+  private final ExecutionControlRegistry executionControlRegistry;
   private final Sinks.Many<ExecutionStatusEvent> statusSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
 
@@ -356,6 +360,50 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("nodeId", nodeId)
                     .log("Failed to stop node"));
+  }
+
+  @Override
+  public Mono<String> stopWorkflow(
+      final String sessionId, final String workflowId, final String reason) {
+    return Mono.fromSupplier(
+            () ->
+                executionControlRegistry
+                    .findActiveByWorkflow(sessionId, workflowId)
+                    .orElseThrow(
+                        () ->
+                            new IllegalArgumentException(
+                                "No active execution found for session: "
+                                    + sessionId
+                                    + ", workflow: "
+                                    + workflowId)))
+        .flatMap(
+            (ExecutionControl control) ->
+                executeCommand(
+                        buildCommand(
+                            new StopWorkflowCommand(control.executionId(), reason),
+                            CONTROL_COMMAND_PRIORITY + 20))
+                    .thenReturn(control.executionId()))
+        .doOnSubscribe(
+            sub ->
+                log.atInfo()
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("workflowId", workflowId)
+                    .addKeyValue("reason", reason)
+                    .log("Stopping workflow"))
+        .doOnSuccess(
+            stoppedId ->
+                log.atInfo()
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("workflowId", workflowId)
+                    .addKeyValue("executionId", stoppedId)
+                    .log("Workflow stop command executed"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("workflowId", workflowId)
+                    .log("Failed to stop workflow"));
   }
 
   @Override

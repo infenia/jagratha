@@ -19,9 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.model.api.ConfigRequest;
-import com.infenia.yukta.model.api.WorkflowTriggerRequest;
+import com.infenia.yukta.model.api.WorkflowStartRequest;
+import com.infenia.yukta.model.api.WorkflowStartResponse;
 import com.infenia.yukta.model.monitoring.WorkflowProgress;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -59,25 +59,21 @@ public class WorkflowTestHarness {
    *
    * @param sessionId the session ID
    * @param workflowId the workflow ID
-   * @param payload the initial payload
    * @return the execution ID
    */
-  public String triggerWorkflow(
-      final String sessionId, final String workflowId, final Map<String, Object> payload) {
-    final ApiResponse<com.infenia.yukta.model.api.TriggerResponse> response =
+  public String triggerWorkflow(final String sessionId, final String workflowId) {
+    final ApiResponse<WorkflowStartResponse> response =
         webClient
             .post()
             .uri("/api/workflow/trigger")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(new WorkflowTriggerRequest(sessionId, workflowId, payload))
+            .bodyValue(new WorkflowStartRequest(sessionId, workflowId))
             .exchange()
             .expectStatus()
             .isAccepted()
             .expectHeader()
             .exists("X-Response-Time")
-            .returnResult(
-                new ParameterizedTypeReference<
-                    ApiResponse<com.infenia.yukta.model.api.TriggerResponse>>() {})
+            .returnResult(new ParameterizedTypeReference<ApiResponse<WorkflowStartResponse>>() {})
             .getResponseBody()
             .blockFirst();
 

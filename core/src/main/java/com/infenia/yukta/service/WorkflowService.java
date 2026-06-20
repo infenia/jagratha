@@ -24,7 +24,6 @@ import com.infenia.yukta.service.workflow.store.PreparedWorkflowCache;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
-import jakarta.validation.constraints.NotEmpty;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -64,18 +63,14 @@ public class WorkflowService {
    *
    * @param sessionId the session identifier
    * @param workflowId the workflow identifier
-   * @param payload the initial trigger payload
    * @return a Mono containing the WorkflowExecution
    * @throws IllegalArgumentException if session or workflow not found
    */
-  public Mono<WorkflowExecution> validateAndTriggerWorkflow(
-      @SessionId final String sessionId,
-      @WorkflowId final String workflowId,
-      @NotEmpty final Map<String, Object> payload) {
+  public Mono<WorkflowExecution> validateAndStartWorkflow(
+      @SessionId final String sessionId, @WorkflowId final String workflowId) {
     log.atInfo()
         .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
         .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-        .addKeyValue("payloadSize", payload.size())
         .log("Validating and triggering workflow");
 
     return workflowDefinitionStore
@@ -104,12 +99,11 @@ public class WorkflowService {
                   .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
                   .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
                   .log("Extracted node IDs from workflow definition");
-              return runWorkflow(sessionId, workflowId, payload);
+              return runWorkflow(sessionId, workflowId);
             });
   }
 
-  private WorkflowExecution runWorkflow(
-      final String sessionId, final String workflowId, final Map<String, Object> payload) {
+  private WorkflowExecution runWorkflow(final String sessionId, final String workflowId) {
     final String executionId = UUID.randomUUID().toString();
     final String queueKey = sessionId + ":" + workflowId;
     final Sinks.One<TaskResponse> sink = Sinks.one();
@@ -123,18 +117,17 @@ public class WorkflowService {
     workflowQueues
         .compute(
             queueKey,
-            (key, previousTail) -> {
+            (_, previousTail) -> {
               log.atDebug()
                   .addKeyValue(LOG_KEY_QUEUE_KEY, queueKey)
                   .addKeyValue("queuedExecutions", previousTail != null ? 1 : 0)
                   .log("Processing workflow queue");
 
               final Mono<Void> current =
-                  Mono.defer(
-                          () ->
-                              resolveAndExecute(sessionId, workflowId, executionId, payload, sink))
+                  Mono.defer(() -> resolveAndExecute(sessionId, workflowId, executionId, sink))
                       .subscribeOn(Schedulers.boundedElastic());
 
+              //TODO: What is the relevance of this code?
               final Mono<Void> nextTail;
               if (previousTail == null) {
                 log.atTrace()
@@ -208,7 +201,6 @@ public class WorkflowService {
       final String sessionId,
       final String workflowId,
       final String executionId,
-      final Map<String, Object> payload,
       final Sinks.One<TaskResponse> sink) {
     final Optional<PreparedWorkflow> cached = preparedWorkflowCache.get(sessionId, workflowId);
     final Mono<PreparedWorkflow> preparedMono;
@@ -242,7 +234,8 @@ public class WorkflowService {
     }
     return preparedMono
         .flatMap(
-            prepared -> orchestrator.execute(sessionId, workflowId, executionId, prepared, payload))
+            prepared ->
+                orchestrator.execute(sessionId, workflowId, executionId, prepared, Map.of()))
         .then(Mono.just(new TaskResponse("SUCCESS", "Workflow executed successfully")))
         .onErrorResume(
             e -> {

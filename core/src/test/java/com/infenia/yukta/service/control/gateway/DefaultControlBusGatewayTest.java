@@ -42,6 +42,7 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.SkipNode
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StepNodeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopNodeCommand;
 import com.infenia.yukta.service.control.ControlBusService;
+import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.execution.status.ExecutionStatusEvent;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import java.time.Instant;
@@ -63,12 +64,14 @@ class DefaultControlBusGatewayTest {
 
   @Mock private ControlBusService controlBusService;
   @Mock private DefaultTaskTrackerService taskTracker;
+  @Mock private ExecutionControlRegistry executionControlRegistry;
 
   private DefaultControlBusGateway gateway;
 
   @BeforeEach
   void setUp() {
-    gateway = new DefaultControlBusGateway(controlBusService, taskTracker);
+    gateway =
+        new DefaultControlBusGateway(controlBusService, taskTracker, executionControlRegistry);
   }
 
   // --- Plugin & Message Management Tests ---

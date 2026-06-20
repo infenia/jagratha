@@ -21,13 +21,10 @@ import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.WorkflowService;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import com.infenia.yukta.service.session.SessionService;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Default implementation of WorkflowExecutionProvider. Handles workflow execution operations
@@ -41,7 +38,6 @@ public class DefaultWorkflowExecutionProvider implements WorkflowExecutionProvid
   private final WorkflowService workflowService;
   private final SessionService sessionService;
   private final TaskTrackerService trackerService;
-  private final ObjectMapper objectMapper;
 
   @Override
   public Mono<WorkflowDefinition> getWorkflowDetails(
@@ -52,16 +48,9 @@ public class DefaultWorkflowExecutionProvider implements WorkflowExecutionProvid
   @Override
   public Mono<String> triggerWorkflow(
       final String sessionId, final String workflowId, final String payloadJson) {
-    final Mono<String> result;
-    if (payloadJson != null && !payloadJson.isBlank()) {
-      result = parseAndTrigger(sessionId, workflowId, payloadJson);
-    } else {
-      result =
-          workflowService
-              .validateAndTriggerWorkflow(sessionId, workflowId, Map.of())
-              .map(WorkflowExecution::executionId);
-    }
-    return result;
+    return workflowService
+        .validateAndStartWorkflow(sessionId, workflowId)
+        .map(WorkflowExecution::executionId);
   }
 
   @Override
@@ -71,23 +60,5 @@ public class DefaultWorkflowExecutionProvider implements WorkflowExecutionProvid
         .flatMapIterable(list -> list)
         .filter(s -> s.executionId().equals(executionId))
         .next();
-  }
-
-  private Mono<String> parseAndTrigger(
-      final String sessionId, final String workflowId, final String payloadJson) {
-    Mono<String> result;
-    try {
-      final Map<String, Object> payload =
-          objectMapper.readValue(payloadJson, new TypeReference<>() {});
-      result =
-          workflowService
-              .validateAndTriggerWorkflow(sessionId, workflowId, payload)
-              .map(WorkflowExecution::executionId);
-    } catch (final tools.jackson.core.JacksonException e) {
-      log.atWarn().setCause(e).log("Failed to parse workflow payload: {}", e.getMessage());
-      result =
-          Mono.error(new IllegalArgumentException("Invalid JSON payload: " + e.getMessage(), e));
-    }
-    return result;
   }
 }

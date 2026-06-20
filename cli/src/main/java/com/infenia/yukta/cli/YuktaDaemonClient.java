@@ -49,9 +49,8 @@ public class YuktaDaemonClient {
     }
   }
 
-  public String triggerWorkflow(String sessionId, String workflowId, Map<String, Object> payload) {
-    Map<String, Object> request =
-        Map.of("sessionId", sessionId, "workflowId", workflowId, "payload", payload);
+  public String triggerWorkflow(String sessionId, String workflowId) {
+    Map<String, Object> request = Map.of("sessionId", sessionId, "workflowId", workflowId);
 
     ApiResponse<Map<String, Object>> response =
         daemonWebClient

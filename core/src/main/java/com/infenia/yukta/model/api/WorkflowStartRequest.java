@@ -18,24 +18,16 @@ package com.infenia.yukta.model.api;
 import com.infenia.yukta.validation.SessionId;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Map;
 
 /**
- * Request object for triggering a workflow.
+ * Request object for starting a workflow.
  *
  * @param sessionId the session identifier
  * @param workflowId the workflow identifier
- * @param payload optional trigger payload
  */
-@Schema(description = "Request object for triggering a workflow")
-public record WorkflowTriggerRequest(
+@Schema(description = "Request object for starting a workflow")
+public record WorkflowStartRequest(
     @Schema(description = "The unique session identifier", example = "session-123") @SessionId
         String sessionId,
     @Schema(description = "The unique workflow identifier", example = "quality-check") @NotBlank
-        String workflowId,
-    @Schema(description = "Optional payload for the trigger") Map<String, Object> payload) {
-  /** Compact constructor. */
-  public WorkflowTriggerRequest {
-    payload = payload != null ? Map.copyOf(payload) : Map.of();
-  }
-}
+        String workflowId) {}

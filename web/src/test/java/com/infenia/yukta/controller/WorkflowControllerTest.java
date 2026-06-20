@@ -16,12 +16,11 @@
 package com.infenia.yukta.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.api.WorkflowTriggerRequest;
+import com.infenia.yukta.model.api.WorkflowStartRequest;
 import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import com.infenia.yukta.model.session.TaskResponse;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
@@ -63,12 +62,12 @@ class WorkflowControllerTest {
 
   @Test
   void testTriggerWorkflowSuccess() {
-    WorkflowTriggerRequest request = new WorkflowTriggerRequest("session-1", "w1", Map.of());
+    WorkflowStartRequest request = new WorkflowStartRequest("session-1", "w1");
     TaskResponse response = new TaskResponse("SUCCESS", "Build successful");
     String executionId = "exec-123";
     WorkflowExecution execution = new WorkflowExecution(executionId, Mono.just(response));
 
-    when(workflowService.validateAndTriggerWorkflow(anyString(), anyString(), any()))
+    when(workflowService.validateAndStartWorkflow(anyString(), anyString()))
         .thenReturn(Mono.just(execution));
 
     webClient
@@ -90,12 +89,12 @@ class WorkflowControllerTest {
 
   @Test
   void testTriggerWorkflowSuccessLogging(CapturedOutput output) {
-    WorkflowTriggerRequest request = new WorkflowTriggerRequest("session-1", "w1", Map.of());
+    WorkflowStartRequest request = new WorkflowStartRequest("session-1", "w1");
     TaskResponse response = new TaskResponse("SUCCESS", "Build successful");
     String executionId = "exec-123";
     WorkflowExecution execution = new WorkflowExecution(executionId, Mono.just(response));
 
-    when(workflowService.validateAndTriggerWorkflow(anyString(), anyString(), any()))
+    when(workflowService.validateAndStartWorkflow(anyString(), anyString()))
         .thenReturn(Mono.just(execution));
 
     webClient
@@ -115,9 +114,9 @@ class WorkflowControllerTest {
 
   @Test
   void testTriggerWorkflowError() {
-    WorkflowTriggerRequest request = new WorkflowTriggerRequest("session-1", "w1", Map.of());
+    WorkflowStartRequest request = new WorkflowStartRequest("session-1", "w1");
 
-    when(workflowService.validateAndTriggerWorkflow(anyString(), anyString(), any()))
+    when(workflowService.validateAndStartWorkflow(anyString(), anyString()))
         .thenReturn(Mono.error(new RuntimeException("Workflow not found")));
 
     webClient
@@ -137,9 +136,9 @@ class WorkflowControllerTest {
 
   @Test
   void testTriggerWorkflowErrorLogging(CapturedOutput output) {
-    WorkflowTriggerRequest request = new WorkflowTriggerRequest("session-1", "w1", Map.of());
+    WorkflowStartRequest request = new WorkflowStartRequest("session-1", "w1");
 
-    when(workflowService.validateAndTriggerWorkflow(anyString(), anyString(), any()))
+    when(workflowService.validateAndStartWorkflow(anyString(), anyString()))
         .thenReturn(Mono.error(new RuntimeException("Workflow not found")));
 
     webClient
@@ -386,5 +385,71 @@ class WorkflowControllerTest {
     assertThat(output.toString())
         .contains("getWorkflowHistory: sessionId=sess-1")
         .contains("getWorkflowHistory error occurred");
+  }
+
+  // --- Stop Tests ---
+
+  @Test
+  void testStopWorkflowSuccess() {
+    when(controlBusGateway.stopWorkflow("sess-1", "wf-1", "Stopped via REST API"))
+        .thenReturn(Mono.just("exec-456"));
+
+    webClient
+        .post()
+        .uri("/api/workflow/sess-1/wf-1/stop")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.status")
+        .isEqualTo(200)
+        .jsonPath("$.message")
+        .isEqualTo("Workflow stop signal accepted")
+        .jsonPath("$.data.executionId")
+        .isEqualTo("exec-456");
+  }
+
+  @Test
+  void testStopWorkflowSuccessLogging(CapturedOutput output) {
+    when(controlBusGateway.stopWorkflow("sess-1", "wf-1", "Stopped via REST API"))
+        .thenReturn(Mono.just("exec-456"));
+
+    webClient.post().uri("/api/workflow/sess-1/wf-1/stop").exchange().expectStatus().isOk();
+
+    assertThat(output.toString())
+        .contains("stopWorkflow: sessionId=sess-1, workflowId=wf-1")
+        .contains("stopWorkflow command accepted")
+        .contains("stopWorkflow response sent successfully");
+  }
+
+  @Test
+  void testStopWorkflowNotFound() {
+    when(controlBusGateway.stopWorkflow("sess-1", "wf-1", "Stopped via REST API"))
+        .thenReturn(Mono.error(new IllegalArgumentException("No active execution found")));
+
+    webClient
+        .post()
+        .uri("/api/workflow/sess-1/wf-1/stop")
+        .exchange()
+        .expectStatus()
+        .isNotFound()
+        .expectBody()
+        .jsonPath("$.status")
+        .isEqualTo(404)
+        .jsonPath("$.message")
+        .isEqualTo("No active workflow execution");
+  }
+
+  @Test
+  void testStopWorkflowNotFoundLogging(CapturedOutput output) {
+    when(controlBusGateway.stopWorkflow("sess-1", "wf-1", "Stopped via REST API"))
+        .thenReturn(Mono.error(new IllegalArgumentException("No active execution found")));
+
+    webClient.post().uri("/api/workflow/sess-1/wf-1/stop").exchange().expectStatus().isNotFound();
+
+    assertThat(output.toString())
+        .contains("stopWorkflow: sessionId=sess-1, workflowId=wf-1")
+        .contains("stopWorkflow error occurred")
+        .contains("No active execution found");
   }
 }

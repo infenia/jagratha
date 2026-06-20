@@ -19,11 +19,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-class TriggerResponseTest {
+class WorkflowStartResponseTest {
 
   @Test
   void testTriggerResponse() {
-    TriggerResponse response = new TriggerResponse("e");
+    WorkflowStartResponse response = new WorkflowStartResponse("e");
     assertEquals("e", response.executionId());
   }
 }

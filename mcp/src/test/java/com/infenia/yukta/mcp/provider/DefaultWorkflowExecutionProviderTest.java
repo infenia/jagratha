@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.mcp.provider;
 
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -29,12 +28,10 @@ import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.session.SessionService;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import tools.jackson.databind.ObjectMapper;
 
 class DefaultWorkflowExecutionProviderTest {
 
@@ -42,17 +39,14 @@ class DefaultWorkflowExecutionProviderTest {
   private WorkflowService workflowService;
   private SessionService sessionService;
   private DefaultTaskTrackerService trackerService;
-  private ObjectMapper objectMapper;
 
   @BeforeEach
   void setUp() {
     workflowService = mock(WorkflowService.class);
     sessionService = mock(SessionService.class);
     trackerService = mock(DefaultTaskTrackerService.class);
-    objectMapper = new ObjectMapper();
     provider =
-        new DefaultWorkflowExecutionProvider(
-            workflowService, sessionService, trackerService, objectMapper);
+        new DefaultWorkflowExecutionProvider(workflowService, sessionService, trackerService);
   }
 
   @Test
@@ -64,57 +58,29 @@ class DefaultWorkflowExecutionProviderTest {
   }
 
   @Test
-  void testTriggerWorkflowWithPayload() {
+  void testTriggerWorkflow() {
     WorkflowExecution execution = new WorkflowExecution("exec-1", Mono.empty());
-    when(workflowService.validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), anyMap()))
-        .thenReturn(Mono.just(execution));
-
-    StepVerifier.create(provider.triggerWorkflow("sess-1", "wf-1", "{\"key\":\"val\"}"))
-        .expectNext("exec-1")
-        .verifyComplete();
-  }
-
-  @Test
-  void testTriggerWorkflowNoPayload() {
-    WorkflowExecution execution = new WorkflowExecution("exec-1", Mono.empty());
-    when(workflowService.validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), anyMap()))
+    when(workflowService.validateAndStartWorkflow(eq("sess-1"), eq("wf-1")))
         .thenReturn(Mono.just(execution));
 
     StepVerifier.create(provider.triggerWorkflow("sess-1", "wf-1", null))
         .expectNext("exec-1")
         .verifyComplete();
+
+    verify(workflowService).validateAndStartWorkflow(eq("sess-1"), eq("wf-1"));
   }
 
   @Test
-  void testTriggerWorkflowBlankPayload() {
+  void testTriggerWorkflowIgnoresPayloadJson() {
     WorkflowExecution execution = new WorkflowExecution("exec-1", Mono.empty());
-    when(workflowService.validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), anyMap()))
+    when(workflowService.validateAndStartWorkflow(eq("sess-1"), eq("wf-1")))
         .thenReturn(Mono.just(execution));
 
-    StepVerifier.create(provider.triggerWorkflow("sess-1", "wf-1", ""))
+    StepVerifier.create(provider.triggerWorkflow("sess-1", "wf-1", "{\"key\":\"val\"}"))
         .expectNext("exec-1")
         .verifyComplete();
 
-    verify(workflowService).validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), eq(Map.of()));
-  }
-
-  @Test
-  void testTriggerWorkflowWhitespacePayload() {
-    WorkflowExecution execution = new WorkflowExecution("exec-1", Mono.empty());
-    when(workflowService.validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), anyMap()))
-        .thenReturn(Mono.just(execution));
-
-    StepVerifier.create(provider.triggerWorkflow("sess-1", "wf-1", "   "))
-        .expectNext("exec-1")
-        .verifyComplete();
-
-    verify(workflowService).validateAndTriggerWorkflow(eq("sess-1"), eq("wf-1"), eq(Map.of()));
-  }
-
-  @Test
-  void testTriggerWorkflowInvalidJson() {
-    StepVerifier.create(provider.triggerWorkflow("sess-1", "wf-1", "invalid-json"))
-        .verifyError(IllegalArgumentException.class);
+    verify(workflowService).validateAndStartWorkflow(eq("sess-1"), eq("wf-1"));
   }
 
   @Test
