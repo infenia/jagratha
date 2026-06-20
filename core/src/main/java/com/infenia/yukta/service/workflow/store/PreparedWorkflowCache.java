@@ -17,7 +17,6 @@ package com.infenia.yukta.service.workflow.store;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import jakarta.annotation.PreDestroy;
@@ -38,6 +37,8 @@ import org.springframework.stereotype.Component;
 public class PreparedWorkflowCache {
 
   private static final String COMPOSITE_KEY_SEPARATOR = "\0";
+  private static final String SESSION_ID_KEY = "sessionId";
+  private static final String WORKFLOW_ID_KEY = "workflowId";
 
   private final Cache<String, PreparedWorkflow> cache;
   private final long ttlMs;
@@ -126,8 +127,8 @@ public class PreparedWorkflowCache {
     final boolean isReplacement = cache.getIfPresent(compositeKey) != null;
     cache.put(compositeKey, prepared);
     log.atDebug()
-        .addKeyValue("sessionId", sessionId)
-        .addKeyValue("workflowId", workflowId)
+        .addKeyValue(SESSION_ID_KEY, sessionId)
+        .addKeyValue(WORKFLOW_ID_KEY, workflowId)
         .addKeyValue("isReplacement", isReplacement)
         .log("Cached compiled workflow");
   }
@@ -144,13 +145,13 @@ public class PreparedWorkflowCache {
         Optional.ofNullable(cache.getIfPresent(key(sessionId, workflowId)));
     if (result.isEmpty()) {
       log.atDebug()
-          .addKeyValue("sessionId", sessionId)
-          .addKeyValue("workflowId", workflowId)
+          .addKeyValue(SESSION_ID_KEY, sessionId)
+          .addKeyValue(WORKFLOW_ID_KEY, workflowId)
           .log("Cache miss: compiled workflow not found");
     } else {
       log.atDebug()
-          .addKeyValue("sessionId", sessionId)
-          .addKeyValue("workflowId", workflowId)
+          .addKeyValue(SESSION_ID_KEY, sessionId)
+          .addKeyValue(WORKFLOW_ID_KEY, workflowId)
           .log("Cache hit: retrieved compiled workflow");
     }
     return result;
@@ -166,8 +167,8 @@ public class PreparedWorkflowCache {
     final String compositeKey = key(sessionId, workflowId);
     cache.invalidate(compositeKey);
     log.atDebug()
-        .addKeyValue("sessionId", sessionId)
-        .addKeyValue("workflowId", workflowId)
+        .addKeyValue(SESSION_ID_KEY, sessionId)
+        .addKeyValue(WORKFLOW_ID_KEY, workflowId)
         .log("Invalidated compiled workflow cache entry");
   }
 
@@ -182,7 +183,7 @@ public class PreparedWorkflowCache {
     cache.asMap().keySet().removeIf(k -> k.startsWith(prefix));
     final int removed = initialSize - cache.asMap().size();
     log.atInfo()
-        .addKeyValue("sessionId", sessionId)
+        .addKeyValue(SESSION_ID_KEY, sessionId)
         .addKeyValue("entriesRemoved", removed)
         .log("Invalidated all compiled workflows for session");
   }
