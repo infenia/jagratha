@@ -127,7 +127,7 @@ public class WorkflowService {
                   Mono.defer(() -> resolveAndExecute(sessionId, workflowId, executionId, sink))
                       .subscribeOn(Schedulers.boundedElastic());
 
-              //TODO: What is the relevance of this code?
+              // TODO: What is the relevance of this code?
               final Mono<Void> nextTail;
               if (previousTail == null) {
                 log.atTrace()

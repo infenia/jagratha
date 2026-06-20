@@ -23,6 +23,7 @@ import jakarta.annotation.PreDestroy;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -48,6 +49,7 @@ public class PreparedWorkflowCache {
    *
    * @param ttlMs TTL in milliseconds from application properties
    */
+  @Autowired
   public PreparedWorkflowCache(@Value("${workflow.cache.ttl.ms:600000}") final long ttlMs) {
     this.ttlMs = ttlMs;
     this.cache =
