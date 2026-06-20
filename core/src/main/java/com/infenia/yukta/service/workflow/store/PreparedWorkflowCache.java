@@ -15,17 +15,14 @@
  */
 package com.infenia.yukta.service.workflow.store;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -33,20 +30,17 @@ import org.springframework.stereotype.Component;
 /**
  * In-memory cache of compiled {@link PreparedWorkflow} instances, keyed by sessionId + workflowId.
  *
- * <p>Entries expire after {@code workflow.cache.ttl.ms} milliseconds of inactivity. A background
- * thread evicts expired entries every 60 seconds. Access resets the TTL.
+ * <p>Entries expire after {@code workflow.cache.ttl.ms} milliseconds of inactivity. Caffeine
+ * automatically evicts expired entries. Access resets the TTL.
  */
 @Slf4j
 @Component
-@SuppressWarnings("PMD.DoNotUseThreads")
 public class PreparedWorkflowCache {
 
   private static final String COMPOSITE_KEY_SEPARATOR = "\0";
-  private static final long EVICTION_INTERVAL_MS = 60_000L;
 
+  private final Cache<String, PreparedWorkflow> cache;
   private final long ttlMs;
-  private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
-  private final ScheduledExecutorService scheduler;
 
   /**
    * Spring-managed constructor.
@@ -55,45 +49,68 @@ public class PreparedWorkflowCache {
    */
   public PreparedWorkflowCache(@Value("${workflow.cache.ttl.ms:600000}") final long ttlMs) {
     this.ttlMs = ttlMs;
-    this.scheduler =
-        Executors.newSingleThreadScheduledExecutor(
-            r -> {
-              final Thread thread = new Thread(r, "prepared-workflow-cache-eviction");
-              thread.setDaemon(true);
-              return thread;
-            });
+    this.cache =
+        Caffeine.newBuilder()
+            .expireAfterAccess(ttlMs, TimeUnit.MILLISECONDS)
+            .recordStats()
+            .removalListener(
+                (key, value, cause) -> {
+                  if (cause == RemovalCause.EXPIRED) {
+                    log.atDebug()
+                        .addKeyValue("key", key)
+                        .addKeyValue("cause", cause)
+                        .log("Evicted expired compiled workflow");
+                  } else {
+                    log.atDebug()
+                        .addKeyValue("key", key)
+                        .addKeyValue("cause", cause)
+                        .log("Evicted compiled workflow");
+                  }
+                })
+            .build();
+    log.atInfo().addKeyValue("ttlMs", ttlMs).log("Initialized PreparedWorkflowCache with Caffeine");
   }
 
-  /** Start the background eviction task. */
-  @PostConstruct
+  /**
+   * Testing constructor with deterministic time control via custom Ticker.
+   *
+   * @param ttlMs TTL in milliseconds
+   * @param ticker Caffeine ticker for time-controlled testing
+   */
+  public PreparedWorkflowCache(
+      final long ttlMs, final com.github.benmanes.caffeine.cache.Ticker ticker) {
+    this.ttlMs = ttlMs;
+    this.cache =
+        Caffeine.newBuilder()
+            .expireAfterAccess(ttlMs, TimeUnit.MILLISECONDS)
+            .ticker(ticker)
+            .recordStats()
+            .removalListener(
+                (key, value, cause) -> {
+                  log.atDebug()
+                      .addKeyValue("key", key)
+                      .addKeyValue("cause", cause)
+                      .log("Evicted compiled workflow");
+                })
+            .build();
+  }
+
+  /** Start eviction; with Caffeine this is a no-op. */
   public void init() {
-    scheduler.scheduleAtFixedRate(
-        this::evictExpired, EVICTION_INTERVAL_MS, EVICTION_INTERVAL_MS, TimeUnit.MILLISECONDS);
-    log.atInfo()
-        .addKeyValue("ttlMs", ttlMs)
-        .addKeyValue("evictionIntervalMs", EVICTION_INTERVAL_MS)
-        .log("Initialized PreparedWorkflowCache with background eviction");
+    // Caffeine handles expiration automatically; no initialization needed
+    log.atDebug().log("PreparedWorkflowCache eviction already active via Caffeine");
   }
 
-  /** Shut down the eviction scheduler. */
+  /** Shut down the cache and log statistics. */
   @PreDestroy
   public void shutdown() {
-    log.atInfo().addKeyValue("cacheSize", cache.size()).log("Shutting down PreparedWorkflowCache");
-    scheduler.shutdown();
-    try {
-      if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) {
-        log.atWarn().log("Eviction scheduler did not terminate gracefully, forcing shutdown");
-        scheduler.shutdownNow();
-      } else {
-        log.atDebug().log("Eviction scheduler shut down gracefully");
-      }
-    } catch (final InterruptedException e) {
-      log.atWarn()
-          .addKeyValue("exception", e.getClass().getSimpleName())
-          .log("Interrupted while waiting for scheduler termination", e);
-      scheduler.shutdownNow();
-      Thread.currentThread().interrupt();
-    }
+    final CacheStats stats = cache.stats();
+    log.atInfo()
+        .addKeyValue("cacheSize", cache.asMap().size())
+        .addKeyValue("hitCount", stats.hitCount())
+        .addKeyValue("missCount", stats.missCount())
+        .addKeyValue("evictionCount", stats.evictionCount())
+        .log("Shutting down PreparedWorkflowCache");
   }
 
   /**
@@ -106,8 +123,8 @@ public class PreparedWorkflowCache {
   public void put(
       final String sessionId, final String workflowId, final PreparedWorkflow prepared) {
     final String compositeKey = key(sessionId, workflowId);
-    final boolean isReplacement = cache.containsKey(compositeKey);
-    cache.put(compositeKey, new CacheEntry(prepared));
+    final boolean isReplacement = cache.getIfPresent(compositeKey) != null;
+    cache.put(compositeKey, prepared);
     log.atDebug()
         .addKeyValue("sessionId", sessionId)
         .addKeyValue("workflowId", workflowId)
@@ -123,21 +140,18 @@ public class PreparedWorkflowCache {
    * @return the cached workflow, or empty if absent or evicted
    */
   public Optional<PreparedWorkflow> get(final String sessionId, final String workflowId) {
-    final CacheEntry entry = cache.get(key(sessionId, workflowId));
-    final Optional<PreparedWorkflow> result;
-    if (entry == null) {
+    final Optional<PreparedWorkflow> result =
+        Optional.ofNullable(cache.getIfPresent(key(sessionId, workflowId)));
+    if (result.isEmpty()) {
       log.atDebug()
           .addKeyValue("sessionId", sessionId)
           .addKeyValue("workflowId", workflowId)
           .log("Cache miss: compiled workflow not found");
-      result = Optional.empty();
     } else {
-      entry.touch();
       log.atDebug()
           .addKeyValue("sessionId", sessionId)
           .addKeyValue("workflowId", workflowId)
-          .log("Cache hit: retrieved and refreshed compiled workflow");
-      result = Optional.of(entry.prepared);
+          .log("Cache hit: retrieved compiled workflow");
     }
     return result;
   }
@@ -150,11 +164,10 @@ public class PreparedWorkflowCache {
    */
   public void invalidate(final String sessionId, final String workflowId) {
     final String compositeKey = key(sessionId, workflowId);
-    final boolean wasPresent = cache.remove(compositeKey) != null;
+    cache.invalidate(compositeKey);
     log.atDebug()
         .addKeyValue("sessionId", sessionId)
         .addKeyValue("workflowId", workflowId)
-        .addKeyValue("wasPresent", wasPresent)
         .log("Invalidated compiled workflow cache entry");
   }
 
@@ -165,54 +178,33 @@ public class PreparedWorkflowCache {
    */
   public void invalidateAll(final String sessionId) {
     final String prefix = sessionId + COMPOSITE_KEY_SEPARATOR;
-    final int initialSize = cache.size();
-    cache.keySet().removeIf(k -> k.startsWith(prefix));
-    final int removed = initialSize - cache.size();
+    final int initialSize = cache.asMap().size();
+    cache.asMap().keySet().removeIf(k -> k.startsWith(prefix));
+    final int removed = initialSize - cache.asMap().size();
     log.atInfo()
         .addKeyValue("sessionId", sessionId)
         .addKeyValue("entriesRemoved", removed)
         .log("Invalidated all compiled workflows for session");
   }
 
-  /** Evict all entries whose lastAccessTime is older than the configured TTL. */
+  /**
+   * Trigger pending maintenance tasks in Caffeine. With Caffeine's automatic eviction, this is
+   * minimal but kept for backward compatibility with tests that call it.
+   */
   public void evictExpired() {
-    final long now = System.currentTimeMillis();
-    final Iterator<Map.Entry<String, CacheEntry>> iterator = cache.entrySet().iterator();
-    int evicted = 0;
-    while (iterator.hasNext()) {
-      final Map.Entry<String, CacheEntry> entry = iterator.next();
-      if (now - entry.getValue().lastAccessTime.get() > ttlMs) {
-        iterator.remove();
-        evicted++;
-        log.atDebug()
-            .addKeyValue("key", entry.getKey())
-            .addKeyValue("ageMs", now - entry.getValue().lastAccessTime.get())
-            .log("Evicted expired compiled workflow");
-      }
-    }
-    if (evicted > 0) {
-      log.atInfo()
-          .addKeyValue("evictedCount", evicted)
-          .addKeyValue("remainingEntries", cache.size())
-          .log("Completed cache eviction cycle");
-    }
+    cache.cleanUp();
+  }
+
+  /**
+   * Get cache statistics for observability.
+   *
+   * @return the cache statistics
+   */
+  public CacheStats getStats() {
+    return cache.stats();
   }
 
   private static String key(final String sessionId, final String workflowId) {
     return sessionId + COMPOSITE_KEY_SEPARATOR + workflowId;
-  }
-
-  private static final class CacheEntry {
-    private final PreparedWorkflow prepared;
-    private final AtomicLong lastAccessTime;
-
-    private CacheEntry(final PreparedWorkflow prepared) {
-      this.prepared = prepared;
-      this.lastAccessTime = new AtomicLong(System.currentTimeMillis());
-    }
-
-    private void touch() {
-      this.lastAccessTime.set(System.currentTimeMillis());
-    }
   }
 }
