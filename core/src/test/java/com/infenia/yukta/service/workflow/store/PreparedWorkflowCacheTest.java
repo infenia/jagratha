@@ -18,11 +18,13 @@ package com.infenia.yukta.service.workflow.store;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class PreparedWorkflowCacheTest {
@@ -155,4 +157,43 @@ class PreparedWorkflowCacheTest {
     assertThat(cache.get("s2", "wf1")).contains(forS2);
   }
 
+  @Test
+  @DisplayName("handles concurrent put and get operations")
+  void testConcurrentOperations() throws InterruptedException {
+    String sessionId = "session-123";
+    CountDownLatch latch = new CountDownLatch(10);
+    List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+    for (int i = 0; i < 10; i++) {
+      final int index = i;
+      futures.add(
+          CompletableFuture.runAsync(
+              () -> {
+                cache.put(sessionId, "workflow-" + index, mockPrepared());
+                cache.get(sessionId, "workflow-" + index);
+                latch.countDown();
+              }));
+    }
+
+    latch.await();
+    for (var future : futures) {
+      future.join();
+    }
+
+    assertThat(cache.getStats().hitCount()).isGreaterThan(0);
+  }
+
+  @Test
+  @DisplayName("stats correctly track hits and misses")
+  void testStatsAccuracy() {
+    cache.put("s1", "w1", mockPrepared());
+    cache.get("s1", "w1");
+    cache.get("s1", "w1");
+    cache.get("s1", "missing1");
+    cache.get("s1", "missing2");
+
+    var stats = cache.getStats();
+    assertThat(stats.hitCount()).isEqualTo(2L);
+    assertThat(stats.missCount()).isEqualTo(3L); // put() also counts as a miss via getIfPresent()
+  }
 }
