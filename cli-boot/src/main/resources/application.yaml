@@ -12,6 +12,7 @@ logging:
     org.springframework: WARN
 
 yukta:
+  heartbeat-interval-seconds: 10
   daemon:
     port: 8080
     startup-timeout-seconds: 60

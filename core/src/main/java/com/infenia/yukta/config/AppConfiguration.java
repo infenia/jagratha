@@ -31,7 +31,7 @@ import tools.jackson.databind.ObjectMapper;
 
 /** Configuration for the application. */
 @Configuration
-@EnableConfigurationProperties(SessionConfigProperties.class)
+@EnableConfigurationProperties({SessionConfigProperties.class, YuktaProperties.class})
 public class AppConfiguration {
 
   /** Public constructor for PMD. */
@@ -66,11 +66,12 @@ public class AppConfiguration {
   /**
    * Global heartbeat interval for nodes in seconds.
    *
+   * @param properties the Yukta configuration properties
    * @return the heartbeat interval duration
    */
   @Bean
-  public Duration heartbeatInterval() {
-    return Duration.ofSeconds(10);
+  public Duration heartbeatInterval(final YuktaProperties properties) {
+    return Duration.ofSeconds(properties.getHeartbeatIntervalSeconds());
   }
 
   /**
