@@ -42,6 +42,8 @@ public class SessionConfigStoreFactory {
       final SessionConfigStore configuredStore, final SessionConfigProperties props) {
     this.configuredStore = configuredStore;
     this.props = props;
+    final String storeType = props.getStoreType();
+    log.info("Using SessionConfigStore with type: {}", storeType);
   }
 
   /**
@@ -50,8 +52,6 @@ public class SessionConfigStoreFactory {
    * @return the configured SessionConfigStore instance
    */
   public SessionConfigStore getStore() {
-    final String storeType = props.getStoreType();
-    log.info("Using SessionConfigStore with type: {}", storeType);
     return configuredStore;
   }
 }
