@@ -44,8 +44,8 @@ import tools.jackson.databind.ObjectMapper;
  * File-based implementation of SessionConfigStore that persists session configuration to disk. Each
  * session's configuration is stored as JSON in a separate file for durability and easy inspection.
  *
- * <p>This component is conditionally created as a Spring bean when {@code
- * yukta.session.store-type} is set to {@code file}.
+ * <p>This component is conditionally created as a Spring bean when {@code yukta.session.store-type}
+ * is set to {@code file}.
  */
 @Component
 @ConditionalOnProperty(name = "yukta.session.store-type", havingValue = "file")
@@ -54,7 +54,6 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 @SuppressWarnings({
   "PMD.OnlyOneReturn",
-  "PMD.DataClass",
   "PMD.VariableCanBeInlined",
   "PMD.UseConcurrentHashMap",
   "PMD.UseExplicitTypes"
@@ -68,44 +67,15 @@ public class FileSessionConfigStore implements SessionConfigStore {
   // In-memory cache for faster access
   private final Map<String, SessionConfig> sessionCache = new ConcurrentHashMap<>();
 
-  /** Internal data class for serializing session configuration to file. */
-  public static class SessionConfig {
-    public String sessionId;
-    public String projectPath;
-    public Map<String, WorkflowDefinition> workflows;
-    public String description;
-    public String initiator;
-    public String initiatedTime;
-    public Map<String, String> tags;
-
-    /**
-     * Full constructor.
-     *
-     * @param sessionId the session ID
-     * @param projectPath the project path
-     * @param workflows the workflows map
-     * @param description the description
-     * @param initiator the initiator
-     * @param initiatedTime the initiated time
-     * @param tags the tags
-     */
-    public SessionConfig(
-        final String sessionId,
-        final String projectPath,
-        final Map<String, WorkflowDefinition> workflows,
-        final String description,
-        final String initiator,
-        final String initiatedTime,
-        final Map<String, String> tags) {
-      this.sessionId = sessionId;
-      this.projectPath = projectPath;
-      this.workflows = workflows;
-      this.description = description;
-      this.initiator = initiator;
-      this.initiatedTime = initiatedTime;
-      this.tags = tags;
-    }
-  }
+  /** Immutable data record for serializing session configuration to file. */
+  public record SessionConfig(
+      String sessionId,
+      String projectPath,
+      Map<String, WorkflowDefinition> workflows,
+      String description,
+      String initiator,
+      String initiatedTime,
+      Map<String, String> tags) {}
 
   @Override
   public Mono<Void> applySessionConfig(@Valid final SessionConfigData data) {
@@ -132,7 +102,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
   @Override
   public Mono<String> getProjectPath(@SessionId final String sessionId) {
     return loadSessionConfig(sessionId)
-        .map(config -> config.projectPath != null ? config.projectPath : "")
+        .map(config -> config.projectPath() != null ? config.projectPath() : "")
         .defaultIfEmpty("");
   }
 
@@ -143,8 +113,16 @@ public class FileSessionConfigStore implements SessionConfigStore {
         .defaultIfEmpty(new SessionConfig(sessionId, "", Map.of(), "", "", "", Map.of()))
         .flatMap(
             config -> {
-              config.projectPath = path;
-              return saveSessionConfig(sessionId, config);
+              final SessionConfig updated =
+                  new SessionConfig(
+                      config.sessionId(),
+                      path,
+                      config.workflows(),
+                      config.description(),
+                      config.initiator(),
+                      config.initiatedTime(),
+                      config.tags());
+              return saveSessionConfig(sessionId, updated);
             });
   }
 
@@ -166,7 +144,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
   @Override
   public Mono<String> getDescription(@SessionId final String sessionId) {
     return loadSessionConfig(sessionId)
-        .map(config -> config.description != null ? config.description : "")
+        .map(config -> config.description() != null ? config.description() : "")
         .defaultIfEmpty("");
   }
 
@@ -181,11 +159,17 @@ public class FileSessionConfigStore implements SessionConfigStore {
               if (Files.exists(configPath)) {
                 final String json = Files.readString(configPath, StandardCharsets.UTF_8);
                 final SessionConfig existing = objectMapper.readValue(json, SessionConfig.class);
-                if (existing.description != null && !existing.description.isEmpty()) {
+                if (existing.description() != null && !existing.description().isEmpty()) {
                   return existing;
                 }
-                existing.description = description;
-                return existing;
+                return new SessionConfig(
+                    existing.sessionId(),
+                    existing.projectPath(),
+                    existing.workflows(),
+                    description,
+                    existing.initiator(),
+                    existing.initiatedTime(),
+                    existing.tags());
               }
               return new SessionConfig(sessionId, "", Map.of(), description, "", "", Map.of());
             })
@@ -196,7 +180,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
   @Override
   public Mono<String> getInitiator(@SessionId final String sessionId) {
     return loadSessionConfig(sessionId)
-        .map(config -> config.initiator != null ? config.initiator : "")
+        .map(config -> config.initiator() != null ? config.initiator() : "")
         .defaultIfEmpty("");
   }
 
@@ -212,11 +196,17 @@ public class FileSessionConfigStore implements SessionConfigStore {
               if (Files.exists(configPath)) {
                 final String json = Files.readString(configPath, StandardCharsets.UTF_8);
                 final SessionConfig existing = objectMapper.readValue(json, SessionConfig.class);
-                if (existing.initiator != null && !existing.initiator.isEmpty()) {
+                if (existing.initiator() != null && !existing.initiator().isEmpty()) {
                   return existing; // Already set, don't update
                 }
-                existing.initiator = initiator;
-                return existing;
+                return new SessionConfig(
+                    existing.sessionId(),
+                    existing.projectPath(),
+                    existing.workflows(),
+                    existing.description(),
+                    initiator,
+                    existing.initiatedTime(),
+                    existing.tags());
               }
               // Create new
               return new SessionConfig(sessionId, "", Map.of(), "", initiator, "", Map.of());
@@ -228,7 +218,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
   @Override
   public Mono<String> getInitiatedTime(@SessionId final String sessionId) {
     return loadSessionConfig(sessionId)
-        .map(config -> config.initiatedTime != null ? config.initiatedTime : "")
+        .map(config -> config.initiatedTime() != null ? config.initiatedTime() : "")
         .defaultIfEmpty("");
   }
 
@@ -244,11 +234,17 @@ public class FileSessionConfigStore implements SessionConfigStore {
               if (Files.exists(configPath)) {
                 final String json = Files.readString(configPath, StandardCharsets.UTF_8);
                 final SessionConfig existing = objectMapper.readValue(json, SessionConfig.class);
-                if (existing.initiatedTime != null && !existing.initiatedTime.isEmpty()) {
+                if (existing.initiatedTime() != null && !existing.initiatedTime().isEmpty()) {
                   return existing;
                 }
-                existing.initiatedTime = initiatedTime;
-                return existing;
+                return new SessionConfig(
+                    existing.sessionId(),
+                    existing.projectPath(),
+                    existing.workflows(),
+                    existing.description(),
+                    existing.initiator(),
+                    initiatedTime,
+                    existing.tags());
               }
               return new SessionConfig(sessionId, "", Map.of(), "", "", initiatedTime, Map.of());
             })
@@ -259,7 +255,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
   @Override
   public Mono<Map<String, String>> getTags(@SessionId final String sessionId) {
     return loadSessionConfig(sessionId)
-        .map(config -> config.tags != null ? config.tags : Map.<String, String>of())
+        .map(config -> config.tags() != null ? config.tags() : Map.<String, String>of())
         .defaultIfEmpty(Map.of());
   }
 
@@ -274,11 +270,17 @@ public class FileSessionConfigStore implements SessionConfigStore {
               if (Files.exists(configPath)) {
                 final String json = Files.readString(configPath, StandardCharsets.UTF_8);
                 final SessionConfig existing = objectMapper.readValue(json, SessionConfig.class);
-                if (existing.tags != null && !existing.tags.isEmpty()) {
+                if (existing.tags() != null && !existing.tags().isEmpty()) {
                   return existing;
                 }
-                existing.tags = Map.copyOf(tags);
-                return existing;
+                return new SessionConfig(
+                    existing.sessionId(),
+                    existing.projectPath(),
+                    existing.workflows(),
+                    existing.description(),
+                    existing.initiator(),
+                    existing.initiatedTime(),
+                    Map.copyOf(tags));
               }
               return new SessionConfig(sessionId, "", Map.of(), "", "", "", Map.copyOf(tags));
             })

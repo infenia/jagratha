@@ -21,8 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Factory for providing the configured SessionConfigStore instance. Store selection is
- * delegated to Spring's conditional bean creation based on yukta.session.store-type property.
+ * Factory for providing the configured SessionConfigStore instance. Store selection is delegated to
+ * Spring's conditional bean creation based on yukta.session.store-type property.
  */
 @Slf4j
 @Component
@@ -39,8 +39,7 @@ public class SessionConfigStoreFactory {
    */
   @Autowired
   public SessionConfigStoreFactory(
-      final SessionConfigStore configuredStore,
-      final SessionConfigProperties props) {
+      final SessionConfigStore configuredStore, final SessionConfigProperties props) {
     this.configuredStore = configuredStore;
     this.props = props;
   }

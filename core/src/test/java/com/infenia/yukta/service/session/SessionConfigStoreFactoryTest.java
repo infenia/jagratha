@@ -29,8 +29,8 @@ import org.springframework.test.context.TestPropertySource;
 
 /**
  * Tests for SessionConfigStoreFactory with in-memory store type. Verifies that conditional bean
- * creation correctly instantiates InMemorySessionConfigStore when the store-type property is set
- * to "in-memory".
+ * creation correctly instantiates InMemorySessionConfigStore when the store-type property is set to
+ * "in-memory".
  */
 @SpringBootTest
 @TestPropertySource(properties = "yukta.session.store-type=in-memory")

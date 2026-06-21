@@ -28,9 +28,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Tests for SessionConfigStoreFactory with file store type. Verifies that conditional bean
- * creation correctly instantiates FileSessionConfigStore when the store-type property is set to
- * "file".
+ * Tests for SessionConfigStoreFactory with file store type. Verifies that conditional bean creation
+ * correctly instantiates FileSessionConfigStore when the store-type property is set to "file".
  */
 @SpringBootTest
 @TestPropertySource(properties = "yukta.session.store-type=file")
