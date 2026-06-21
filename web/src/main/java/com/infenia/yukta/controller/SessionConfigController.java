@@ -181,12 +181,27 @@ public class SessionConfigController {
                         sessionList)))
         .doOnSuccess(
             _ -> log.atInfo().log("listSessions: response sent successfully"))
-        .doOnError(
-            error ->
-                log.atError()
-                    .log(
-                        "listSessions: error occurred: {}",
-                        error.getMessage()));
+        .onErrorResume(
+            error -> {
+              log.atError()
+                  .log(
+                      "listSessions: error occurred: {}",
+                      error.getMessage());
+              final String path = "/api/sessions";
+              final List<ApiResponse.FieldError> errors =
+                  List.of(
+                      new ApiResponse.FieldError(
+                          "listSessions", "Failed to retrieve sessions: " + error.getMessage()));
+              return Mono.just(
+                  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                      .body(
+                          ApiResponse.error(
+                              HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                              "Internal Server Error",
+                              "Failed to retrieve sessions",
+                              path,
+                              errors)));
+            });
   }
 
   /**
