@@ -16,6 +16,7 @@
 package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.config.SessionConfigProperties;
+import com.infenia.yukta.model.session.SessionConfig;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import com.infenia.yukta.validation.ProjectPath;
@@ -42,17 +43,13 @@ import reactor.core.publisher.Mono;
 @Component
 @Validated
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.UseConcurrentHashMap", "PMD.TooManyMethods"})
+@SuppressWarnings({"PMD.TooManyMethods"})
 public class InMemorySessionConfigStore implements SessionConfigStore {
 
   private final SessionConfigProperties props;
   private final WorkflowDefinitionStore workflowDefinitionStore;
 
-  private final Map<String, String> projectPaths = new ConcurrentHashMap<>();
-  private final Map<String, String> initiators = new ConcurrentHashMap<>();
-  private final Map<String, String> initiatedTimes = new ConcurrentHashMap<>();
-  private final Map<String, Map<String, String>> tagsMap = new ConcurrentHashMap<>();
-  private final Map<String, String> descriptions = new ConcurrentHashMap<>();
+  private final Map<String, SessionConfig> sessions = new ConcurrentHashMap<>();
 
   @PostConstruct
   void logInitialization() {
@@ -64,16 +61,19 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
     return Mono.fromRunnable(
             () -> {
               final String sessionId = data.sessionId();
-              projectPaths.put(sessionId, data.projectPath());
-              descriptions.put(sessionId, data.description());
-              initiators.put(sessionId, data.initiator());
-              initiatedTimes.put(sessionId, Instant.now().toString());
-              tagsMap.put(sessionId, data.tags());
+              final SessionConfig config =
+                  new SessionConfig(
+                      data.projectPath(),
+                      data.initiator(),
+                      Instant.now().toString(),
+                      data.tags(),
+                      data.description());
+              sessions.put(sessionId, config);
               log.atInfo()
                   .addKeyValue("sessionId", sessionId)
-                  .addKeyValue("projectPath", data.projectPath())
-                  .addKeyValue("initiator", data.initiator())
-                  .addKeyValue("tagCount", data.tags().size())
+                  .addKeyValue("projectPath", config.projectPath())
+                  .addKeyValue("initiator", config.initiator())
+                  .addKeyValue("tagCount", config.tags().size())
                   .log("Applied session configuration");
             })
         .then(
@@ -92,14 +92,26 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
 
   @Override
   public Mono<String> getProjectPath(@SessionId final String sessionId) {
-    final String result = projectPaths.get(sessionId);
-    return Mono.just(result != null ? result : "");
+    final SessionConfig config = sessions.get(sessionId);
+    return Mono.just(config != null ? config.projectPath() : "");
   }
 
   @Override
   public Mono<Void> setProjectPath(
       @SessionId final String sessionId, @ProjectPath final String path) {
-    projectPaths.put(sessionId, path);
+    sessions.compute(
+        sessionId,
+        (key, config) -> {
+          if (config == null) {
+            return new SessionConfig(path, "", "", Map.of(), "");
+          }
+          return new SessionConfig(
+              path,
+              config.initiator(),
+              config.initiatedTime(),
+              config.tags(),
+              config.description());
+        });
     log.atDebug()
         .addKeyValue("sessionId", sessionId)
         .addKeyValue("projectPath", path)
@@ -124,17 +136,34 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
 
   @Override
   public Mono<String> getDescription(@SessionId final String sessionId) {
-    final String result = descriptions.get(sessionId);
-    return Mono.just(result != null ? result : "");
+    final SessionConfig config = sessions.get(sessionId);
+    return Mono.just(config != null ? config.description() : "");
   }
 
   @Override
   public Mono<Void> setDescription(@SessionId final String sessionId, final String description) {
     if (description != null) {
-      final boolean isNew = descriptions.putIfAbsent(sessionId, description) == null;
+      final boolean[] isNew = {false};
+      sessions.compute(
+          sessionId,
+          (key, config) -> {
+            if (config == null) {
+              isNew[0] = true;
+              return new SessionConfig("", "", "", Map.of(), description);
+            } else if (config.description().isEmpty()) {
+              isNew[0] = true;
+              return new SessionConfig(
+                  config.projectPath(),
+                  config.initiator(),
+                  config.initiatedTime(),
+                  config.tags(),
+                  description);
+            }
+            return config;
+          });
       log.atDebug()
           .addKeyValue("sessionId", sessionId)
-          .addKeyValue("isNew", isNew)
+          .addKeyValue("isNew", isNew[0])
           .log("Set description for session");
     }
     return Mono.empty();
@@ -142,18 +171,35 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
 
   @Override
   public Mono<String> getInitiator(@SessionId final String sessionId) {
-    final String result = initiators.get(sessionId);
-    return Mono.just(result != null ? result : "");
+    final SessionConfig config = sessions.get(sessionId);
+    return Mono.just(config != null ? config.initiator() : "");
   }
 
   @Override
   public Mono<Void> setInitiator(@SessionId final String sessionId, final String initiator) {
     if (initiator != null) {
-      final boolean isNew = initiators.putIfAbsent(sessionId, initiator) == null;
+      final boolean[] isNew = {false};
+      sessions.compute(
+          sessionId,
+          (key, config) -> {
+            if (config == null) {
+              isNew[0] = true;
+              return new SessionConfig("", initiator, "", Map.of(), "");
+            } else if (config.initiator().isEmpty()) {
+              isNew[0] = true;
+              return new SessionConfig(
+                  config.projectPath(),
+                  initiator,
+                  config.initiatedTime(),
+                  config.tags(),
+                  config.description());
+            }
+            return config;
+          });
       log.atDebug()
           .addKeyValue("sessionId", sessionId)
           .addKeyValue("initiator", initiator)
-          .addKeyValue("isNew", isNew)
+          .addKeyValue("isNew", isNew[0])
           .log("Set initiator for session");
     }
     return Mono.empty();
@@ -161,18 +207,35 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
 
   @Override
   public Mono<String> getInitiatedTime(@SessionId final String sessionId) {
-    final String result = initiatedTimes.get(sessionId);
-    return Mono.just(result != null ? result : "");
+    final SessionConfig config = sessions.get(sessionId);
+    return Mono.just(config != null ? config.initiatedTime() : "");
   }
 
   @Override
   public Mono<Void> setInitiatedTime(
       @SessionId final String sessionId, final String initiatedTime) {
     if (initiatedTime != null) {
-      final boolean isNew = initiatedTimes.putIfAbsent(sessionId, initiatedTime) == null;
+      final boolean[] isNew = {false};
+      sessions.compute(
+          sessionId,
+          (key, config) -> {
+            if (config == null) {
+              isNew[0] = true;
+              return new SessionConfig("", "", initiatedTime, Map.of(), "");
+            } else if (config.initiatedTime().isEmpty()) {
+              isNew[0] = true;
+              return new SessionConfig(
+                  config.projectPath(),
+                  config.initiator(),
+                  initiatedTime,
+                  config.tags(),
+                  config.description());
+            }
+            return config;
+          });
       log.atDebug()
           .addKeyValue("sessionId", sessionId)
-          .addKeyValue("isNew", isNew)
+          .addKeyValue("isNew", isNew[0])
           .log("Set initiated time for session");
     }
     return Mono.empty();
@@ -180,18 +243,35 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
 
   @Override
   public Mono<Map<String, String>> getTags(@SessionId final String sessionId) {
-    final Map<String, String> result = tagsMap.get(sessionId);
-    return Mono.just(result != null ? result : Map.of());
+    final SessionConfig config = sessions.get(sessionId);
+    return Mono.just(config != null ? config.tags() : Map.of());
   }
 
   @Override
   public Mono<Void> setTags(@SessionId final String sessionId, final Map<String, String> tags) {
     if (tags != null) {
-      final boolean isNew = tagsMap.putIfAbsent(sessionId, Map.copyOf(tags)) == null;
+      final boolean[] isNew = {false};
+      sessions.compute(
+          sessionId,
+          (key, config) -> {
+            if (config == null) {
+              isNew[0] = true;
+              return new SessionConfig("", "", "", tags, "");
+            } else if (config.tags().isEmpty()) {
+              isNew[0] = true;
+              return new SessionConfig(
+                  config.projectPath(),
+                  config.initiator(),
+                  config.initiatedTime(),
+                  tags,
+                  config.description());
+            }
+            return config;
+          });
       log.atDebug()
           .addKeyValue("sessionId", sessionId)
           .addKeyValue("tagCount", tags.size())
-          .addKeyValue("isNew", isNew)
+          .addKeyValue("isNew", isNew[0])
           .log("Set tags for session");
     }
     return Mono.empty();
@@ -231,24 +311,14 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
   }
 
   private boolean sessionExists(final String sessionId) {
-    return projectPaths.containsKey(sessionId)
-        || initiators.containsKey(sessionId)
-        || initiatedTimes.containsKey(sessionId)
-        || tagsMap.containsKey(sessionId)
-        || descriptions.containsKey(sessionId);
+    return sessions.containsKey(sessionId);
   }
 
   @Override
   public Flux<String> getSessionIds() {
-    final java.util.Set<String> allSessions = new java.util.HashSet<>();
-    allSessions.addAll(projectPaths.keySet());
-    allSessions.addAll(initiators.keySet());
-    allSessions.addAll(initiatedTimes.keySet());
-    allSessions.addAll(tagsMap.keySet());
-    allSessions.addAll(descriptions.keySet());
     log.atDebug()
-        .addKeyValue("sessionCount", allSessions.size())
+        .addKeyValue("sessionCount", sessions.size())
         .log("Retrieved all active session IDs");
-    return Flux.fromIterable(allSessions);
+    return Flux.fromIterable(sessions.keySet());
   }
 }
