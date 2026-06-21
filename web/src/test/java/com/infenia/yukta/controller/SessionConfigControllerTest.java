@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.dto.request.ConfigRequest;
 import com.infenia.yukta.dto.request.WorkflowDefinitionRequest;
 import com.infenia.yukta.dto.request.WorkflowDefinitionRequest.NodeRequest;
-import com.infenia.yukta.mapper.AppConfigMapper;
+import com.infenia.yukta.mapper.SessionMapper;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.session.SessionService;
@@ -35,6 +35,7 @@ import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @WebFluxTest(SessionConfigController.class)
@@ -43,7 +44,7 @@ class SessionConfigControllerTest {
   @Autowired private WebTestClient webTestClient;
 
   @MockitoBean private SessionService sessionService;
-  @MockitoBean private AppConfigMapper configMapper;
+  @MockitoBean private SessionMapper sessionMapper;
 
   @Test
   void testGetSessionDetails() {
@@ -98,7 +99,7 @@ class SessionConfigControllerTest {
             "session-1", "desc", "initiator-1", Map.of(), "/new/path", Map.of("w1", workflow));
 
     lenient()
-        .when(configMapper.toData(any()))
+        .when(sessionMapper.configRequestToSessionConfigData(any()))
         .thenReturn(
             new SessionConfigData(
                 "session-1", "desc", "initiator-1", Map.of(), "/new/path", Map.of()));
@@ -118,7 +119,7 @@ class SessionConfigControllerTest {
         .jsonPath("$.message")
         .isEqualTo("Configuration applied successfully");
 
-    verify(configMapper).toData(any());
+    verify(sessionMapper).configRequestToSessionConfigData(any());
     verify(sessionService).applyConfig(any());
   }
 
@@ -310,7 +311,7 @@ class SessionConfigControllerTest {
             Map.of("w1", workflow1, "w2", workflow2));
 
     lenient()
-        .when(configMapper.toData(any()))
+        .when(sessionMapper.configRequestToSessionConfigData(any()))
         .thenReturn(
             new SessionConfigData(
                 "session-multi", "multi-desc", "initiator-1", Map.of(), "/multi/path", Map.of()));
@@ -339,7 +340,7 @@ class SessionConfigControllerTest {
             "session-1", "desc", "initiator-1", null, "/new/path", Map.of("w1", workflow));
 
     lenient()
-        .when(configMapper.toData(any()))
+        .when(sessionMapper.configRequestToSessionConfigData(any()))
         .thenReturn(
             new SessionConfigData(
                 "session-1", "desc", "initiator-1", Map.of(), "/new/path", Map.of()));
@@ -391,7 +392,7 @@ class SessionConfigControllerTest {
             "error-session", "desc", "initiator-1", Map.of(), "/new/path", Map.of("w1", workflow));
 
     lenient()
-        .when(configMapper.toData(any()))
+        .when(sessionMapper.configRequestToSessionConfigData(any()))
         .thenReturn(
             new SessionConfigData(
                 "error-session", "desc", "initiator-1", Map.of(), "/new/path", Map.of()));
@@ -406,5 +407,62 @@ class SessionConfigControllerTest {
         .exchange()
         .expectStatus()
         .is5xxServerError();
+  }
+
+  @Test
+  void testListSessions_WithSessions() {
+    // Arrange
+    List<String> expectedSessionIds = List.of("session-1", "session-2", "session-3");
+    when(sessionService.getSessionIds()).thenReturn(Flux.fromIterable(expectedSessionIds));
+
+    // Act & Assert
+    webTestClient
+        .get()
+        .uri("/api/sessions")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.status")
+        .isEqualTo(200)
+        .jsonPath("$.message")
+        .isEqualTo("Sessions retrieved successfully")
+        .jsonPath("$.data.sessionIds")
+        .isArray()
+        .jsonPath("$.data.sessionIds.length()")
+        .isEqualTo(3)
+        .jsonPath("$.data.sessionIds[0]")
+        .isEqualTo("session-1")
+        .jsonPath("$.data.sessionIds[1]")
+        .isEqualTo("session-2")
+        .jsonPath("$.data.sessionIds[2]")
+        .isEqualTo("session-3");
+
+    verify(sessionService).getSessionIds();
+  }
+
+  @Test
+  void testListSessions_NoSessions() {
+    // Arrange
+    when(sessionService.getSessionIds()).thenReturn(Flux.empty());
+
+    // Act & Assert
+    webTestClient
+        .get()
+        .uri("/api/sessions")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.status")
+        .isEqualTo(200)
+        .jsonPath("$.message")
+        .isEqualTo("Sessions retrieved successfully")
+        .jsonPath("$.data.sessionIds")
+        .isArray()
+        .jsonPath("$.data.sessionIds.length()")
+        .isEqualTo(0);
+
+    verify(sessionService).getSessionIds();
   }
 }
