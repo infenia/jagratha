@@ -45,6 +45,7 @@ coverageConfig {
 
 dependencies {
     implementation(project(":core"))
+    implementation(project(":web"))
     implementation(libs.jte.starter)
     implementation(libs.htmx.spring.boot)
     implementation(libs.spring.boot.starter.webflux)

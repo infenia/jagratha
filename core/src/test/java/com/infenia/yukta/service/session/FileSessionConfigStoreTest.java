@@ -32,11 +32,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.ObjectMapper;
 
-@MockitoSettings
+@MockitoSettings(strictness = Strictness.LENIENT)
 class FileSessionConfigStoreTest {
 
   @TempDir Path tempDir;
@@ -54,6 +55,8 @@ class FileSessionConfigStoreTest {
     props.setResultLogSubDir("results");
     props.setExecutionTimeoutSeconds(3600L);
     final ObjectMapper objectMapper = new ObjectMapper();
+    when(workflowDefinitionStore.findAll(org.mockito.ArgumentMatchers.anyString()))
+        .thenReturn(Mono.just(Map.of()));
     configStore = new FileSessionConfigStore(props, objectMapper, workflowDefinitionStore);
   }
 
