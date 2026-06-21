@@ -465,4 +465,28 @@ class SessionConfigControllerTest {
 
     verify(sessionService).getSessionIds();
   }
+
+  @Test
+  void testListSessions_WithError() {
+    // Arrange
+    when(sessionService.getSessionIds())
+        .thenReturn(Flux.error(new RuntimeException("Database connection failed")));
+
+    // Act & Assert
+    webTestClient
+        .get()
+        .uri("/api/sessions")
+        .exchange()
+        .expectStatus()
+        .is5xxServerError()
+        .expectBody()
+        .jsonPath("$.status")
+        .isEqualTo(500)
+        .jsonPath("$.data")
+        .doesNotExist()
+        .jsonPath("$.errors[0].field")
+        .isEqualTo("listSessions");
+
+    verify(sessionService).getSessionIds();
+  }
 }
