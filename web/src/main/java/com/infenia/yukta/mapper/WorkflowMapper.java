@@ -15,9 +15,6 @@
  */
 package com.infenia.yukta.mapper;
 
-import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
-import com.infenia.yukta.model.execution.WorkflowProgress;
-import com.infenia.yukta.model.workflow.WorkflowExecution;
 import org.mapstruct.Mapper;
 
 /**
@@ -27,22 +24,4 @@ import org.mapstruct.Mapper;
  * tracking workflow execution state. Controllers return these directly to clients via REST API.
  */
 @Mapper(componentModel = "spring")
-public interface WorkflowMapper {
-
-  /**
-   * Map core WorkflowExecution domain model to WorkflowExecutionSummary monitoring model.
-   *
-   * @param workflowExecution the core domain model
-   * @return the monitoring model
-   */
-  WorkflowExecutionSummary workflowExecutionToWorkflowExecutionSummary(
-      WorkflowExecution workflowExecution);
-
-  /**
-   * Map core WorkflowExecution domain model to WorkflowProgress monitoring model.
-   *
-   * @param workflowExecution the core domain model
-   * @return the monitoring model
-   */
-  WorkflowProgress workflowExecutionToWorkflowProgress(WorkflowExecution workflowExecution);
-}
+public interface WorkflowMapper {}

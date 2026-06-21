@@ -16,11 +16,12 @@
 package com.infenia.yukta.mapper;
 
 import com.infenia.yukta.dto.request.ConfigRequest;
-import com.infenia.yukta.dto.response.SessionDetails;
-import com.infenia.yukta.dto.response.SessionExecutionInfo;
-import com.infenia.yukta.dto.response.SessionInfo;
+import com.infenia.yukta.dto.request.WorkflowDefinitionRequest;
 import com.infenia.yukta.model.session.SessionConfigData;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.model.workflow.WorkflowDefinition.Edge;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 /** MapStruct mapper for converting between web DTOs and core domain session models. */
 @Mapper(componentModel = "spring")
@@ -35,18 +36,20 @@ public interface SessionMapper {
   SessionConfigData configRequestToSessionConfigData(ConfigRequest configRequest);
 
   /**
-   * Map core SessionConfigData domain model to web SessionDetails response DTO.
+   * Map workflow definition request to domain model.
    *
-   * @param sessionConfigData the core domain model
-   * @return the web response DTO
+   * @param request the workflow definition request
+   * @return the domain model
    */
-  SessionDetails sessionConfigDataToSessionDetails(SessionConfigData sessionConfigData);
+  WorkflowDefinition workflowDefinitionRequestToWorkflowDefinition(
+      WorkflowDefinitionRequest request);
 
   /**
-   * Map core SessionExecutionInfo domain model to web SessionInfo response DTO.
+   * Map edge request to domain edge, applying default sourcePort value if null.
    *
-   * @param sessionExecutionInfo the core domain model
-   * @return the web response DTO
+   * @param edgeRequest the edge request
+   * @return the domain edge with default sourcePort if necessary
    */
-  SessionInfo sessionExecutionInfoToSessionInfo(SessionExecutionInfo sessionExecutionInfo);
+  @Mapping(target = "sourcePort", source = "sourcePort", defaultValue = "default")
+  Edge edgeRequestToEdge(WorkflowDefinitionRequest.EdgeRequest edgeRequest);
 }

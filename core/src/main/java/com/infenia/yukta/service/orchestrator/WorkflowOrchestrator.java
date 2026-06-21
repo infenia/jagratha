@@ -141,7 +141,7 @@ public class WorkflowOrchestrator {
                   .log("Cleaned up execution resources");
             })
         .doOnSuccess(
-            v ->
+                _ ->
                 log.atInfo()
                     .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
                     .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
@@ -252,7 +252,7 @@ public class WorkflowOrchestrator {
                   .log("Cleaned up restarted execution resources");
             })
         .doOnSuccess(
-            v ->
+                _ ->
                 log.atInfo()
                     .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
                     .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)

@@ -79,11 +79,11 @@ public class WorkflowValidator {
         .then(validateProcessors(def, targetIds, sourceIds))
         .then(validateEndpoints(def, sourceIds))
         .then(validateNoCycles(def))
-        .then(validateNoOrphans(def))
+        .then(validateNoOrphans())
         .then(validateNodeContexts(def))
         .then(validatePluginConfigs(def))
         .doOnSuccess(
-            v ->
+                _ ->
                 log.atInfo()
                     .addKeyValue("workflowId", def.workflowId())
                     .log("Workflow validation completed successfully"))
@@ -292,7 +292,7 @@ public class WorkflowValidator {
     return Mono.empty();
   }
 
-  private Mono<Void> validateNoOrphans(final WorkflowDefinition def) {
+  private Mono<Void> validateNoOrphans() {
     // All nodes are guaranteed to be reachable from at least one trigger due to earlier
     // validations (validateEntryPoints ensures no isolated non-trigger nodes can exist).
     // Therefore, no separate orphan validation is needed.
@@ -320,7 +320,7 @@ public class WorkflowValidator {
             })
         .then()
         .doOnSuccess(
-            v ->
+                _ ->
                 log.atDebug()
                     .addKeyValue("workflowId", def.workflowId())
                     .log("All plugin configurations validated successfully"));
