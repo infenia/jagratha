@@ -32,6 +32,7 @@ configure<DependencyManagementExtension> {
 
 dependencies {
     api(project(":core"))
+    api(project(":web"))
 
     implementation(libs.picocli)
     implementation(libs.spring.boot.starter)
