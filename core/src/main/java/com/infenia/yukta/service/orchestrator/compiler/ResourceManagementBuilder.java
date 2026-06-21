@@ -16,7 +16,7 @@
 package com.infenia.yukta.service.orchestrator.compiler;
 
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
-import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.service.session.store.SessionConfigStore;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.util.ArrayList;

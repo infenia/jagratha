@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
-import com.infenia.yukta.service.WorkflowService;
+import com.infenia.yukta.service.workflow.WorkflowService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.session.SessionService;
 import java.time.LocalDateTime;

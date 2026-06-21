@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.session;
+package com.infenia.yukta.service.session.store;
 
 import com.infenia.yukta.config.SessionConfigProperties;
+import com.infenia.yukta.model.session.SessionConfig;
 import com.infenia.yukta.model.session.SessionConfigData;
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
@@ -60,18 +60,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
   private final ObjectMapper objectMapper;
   private final WorkflowDefinitionStore workflowDefinitionStore;
 
-  // In-memory cache for faster access
   private final Map<String, SessionConfig> sessionCache = new ConcurrentHashMap<>();
-
-  /** Immutable data record for serializing session configuration to file. */
-  public record SessionConfig(
-      String sessionId,
-      String projectPath,
-      Map<String, WorkflowDefinition> workflows,
-      String description,
-      String initiator,
-      String initiatedTime,
-      Map<String, String> tags) {}
 
   @PostConstruct
   void logInitialization() {
@@ -83,21 +72,30 @@ public class FileSessionConfigStore implements SessionConfigStore {
     return Mono.fromCallable(
             () ->
                 new SessionConfig(
-                    data.sessionId(),
                     data.projectPath(),
-                    null, // workflows stored in WorkflowDefinitionStore, not file
-                    data.description(),
                     data.initiator(),
                     Instant.now().toString(),
-                    data.tags()))
-        .flatMap(config -> saveSessionConfig(data.sessionId(), config))
+                    data.tags(),
+                    data.description()))
+        .flatMap(config -> saveSessionConfig(data.sessionId(), config)
+            .doOnSuccess(unused -> log.atInfo()
+                .addKeyValue("sessionId", data.sessionId())
+                .addKeyValue("projectPath", config.projectPath())
+                .addKeyValue("initiator", config.initiator())
+                .addKeyValue("tagCount", config.tags().size())
+                .log("Applied session configuration")))
         .then(
             data.workflows().isEmpty()
                 ? Mono.empty()
                 : Flux.fromIterable(data.workflows().values())
                     .flatMap(def -> workflowDefinitionStore.save(data.sessionId(), def))
-                    .then())
-        .subscribeOn(Schedulers.boundedElastic());
+                    .then(
+                        Mono.fromRunnable(
+                            () ->
+                                log.atDebug()
+                                    .addKeyValue("sessionId", data.sessionId())
+                                    .addKeyValue("workflowCount", data.workflows().size())
+                                    .log("Saved workflows for session"))));
   }
 
   @Override
@@ -111,20 +109,23 @@ public class FileSessionConfigStore implements SessionConfigStore {
   public Mono<Void> setProjectPath(
       @SessionId final String sessionId, @ProjectPath final String path) {
     return loadSessionConfig(sessionId)
-        .defaultIfEmpty(new SessionConfig(sessionId, "", Map.of(), "", "", "", Map.of()))
+        .defaultIfEmpty(new SessionConfig("", "", "", Map.of(), ""))
         .flatMap(
-            config -> {
-              final SessionConfig updated =
-                  new SessionConfig(
-                      config.sessionId(),
-                      path,
-                      config.workflows(),
-                      config.description(),
-                      config.initiator(),
-                      config.initiatedTime(),
-                      config.tags());
-              return saveSessionConfig(sessionId, updated);
-            });
+            config ->
+                saveSessionConfig(
+                    sessionId,
+                    new SessionConfig(
+                        path,
+                        config.initiator(),
+                        config.initiatedTime(),
+                        config.tags(),
+                        config.description())))
+        .doOnSuccess(
+            unused ->
+                log.atDebug()
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("projectPath", path)
+                    .log("Set project path for session"));
   }
 
   @Override
@@ -154,28 +155,26 @@ public class FileSessionConfigStore implements SessionConfigStore {
     if (description == null) {
       return Mono.empty();
     }
-    return Mono.fromCallable(
-            () -> {
-              final Path configPath = getSessionConfigPath(sessionId);
-              if (Files.exists(configPath)) {
-                final String json = Files.readString(configPath, StandardCharsets.UTF_8);
-                final SessionConfig existing = objectMapper.readValue(json, SessionConfig.class);
-                if (existing.description() != null && !existing.description().isEmpty()) {
-                  return existing;
-                }
-                return new SessionConfig(
-                    existing.sessionId(),
-                    existing.projectPath(),
-                    existing.workflows(),
-                    description,
-                    existing.initiator(),
-                    existing.initiatedTime(),
-                    existing.tags());
-              }
-              return new SessionConfig(sessionId, "", Map.of(), description, "", "", Map.of());
-            })
-        .flatMap(config -> saveSessionConfig(sessionId, config))
-        .subscribeOn(Schedulers.boundedElastic());
+    return loadSessionConfig(sessionId)
+        .switchIfEmpty(Mono.just(new SessionConfig("", "", "", Map.of(), "")))
+        .filter(config -> config.description() == null || config.description().isEmpty())
+        .flatMap(
+            config ->
+                saveSessionConfig(
+                    sessionId,
+                    new SessionConfig(
+                        config.projectPath(),
+                        config.initiator(),
+                        config.initiatedTime(),
+                        config.tags(),
+                        description)))
+        .doOnSuccess(
+            unused ->
+                log.atDebug()
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("description", description)
+                    .log("Set description for session"))
+        .then();
   }
 
   @Override
@@ -190,30 +189,26 @@ public class FileSessionConfigStore implements SessionConfigStore {
     if (initiator == null) {
       return Mono.empty();
     }
-    return Mono.fromCallable(
-            () -> {
-              // Check if initiator already set
-              final Path configPath = getSessionConfigPath(sessionId);
-              if (Files.exists(configPath)) {
-                final String json = Files.readString(configPath, StandardCharsets.UTF_8);
-                final SessionConfig existing = objectMapper.readValue(json, SessionConfig.class);
-                if (existing.initiator() != null && !existing.initiator().isEmpty()) {
-                  return existing; // Already set, don't update
-                }
-                return new SessionConfig(
-                    existing.sessionId(),
-                    existing.projectPath(),
-                    existing.workflows(),
-                    existing.description(),
-                    initiator,
-                    existing.initiatedTime(),
-                    existing.tags());
-              }
-              // Create new
-              return new SessionConfig(sessionId, "", Map.of(), "", initiator, "", Map.of());
-            })
-        .flatMap(config -> saveSessionConfig(sessionId, config))
-        .subscribeOn(Schedulers.boundedElastic());
+    return loadSessionConfig(sessionId)
+        .switchIfEmpty(Mono.just(new SessionConfig("", "", "", Map.of(), "")))
+        .filter(config -> config.initiator() == null || config.initiator().isEmpty())
+        .flatMap(
+            config ->
+                saveSessionConfig(
+                    sessionId,
+                    new SessionConfig(
+                        config.projectPath(),
+                        initiator,
+                        config.initiatedTime(),
+                        config.tags(),
+                        config.description())))
+        .doOnSuccess(
+            unused ->
+                log.atDebug()
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("initiator", initiator)
+                    .log("Set initiator for session"))
+        .then();
   }
 
   @Override
@@ -229,28 +224,25 @@ public class FileSessionConfigStore implements SessionConfigStore {
     if (initiatedTime == null) {
       return Mono.empty();
     }
-    return Mono.fromCallable(
-            () -> {
-              final Path configPath = getSessionConfigPath(sessionId);
-              if (Files.exists(configPath)) {
-                final String json = Files.readString(configPath, StandardCharsets.UTF_8);
-                final SessionConfig existing = objectMapper.readValue(json, SessionConfig.class);
-                if (existing.initiatedTime() != null && !existing.initiatedTime().isEmpty()) {
-                  return existing;
-                }
-                return new SessionConfig(
-                    existing.sessionId(),
-                    existing.projectPath(),
-                    existing.workflows(),
-                    existing.description(),
-                    existing.initiator(),
-                    initiatedTime,
-                    existing.tags());
-              }
-              return new SessionConfig(sessionId, "", Map.of(), "", "", initiatedTime, Map.of());
-            })
-        .flatMap(config -> saveSessionConfig(sessionId, config))
-        .subscribeOn(Schedulers.boundedElastic());
+    return loadSessionConfig(sessionId)
+        .switchIfEmpty(Mono.just(new SessionConfig("", "", "", Map.of(), "")))
+        .filter(config -> config.initiatedTime() == null || config.initiatedTime().isEmpty())
+        .flatMap(
+            config ->
+                saveSessionConfig(
+                    sessionId,
+                    new SessionConfig(
+                        config.projectPath(),
+                        config.initiator(),
+                        initiatedTime,
+                        config.tags(),
+                        config.description())))
+        .doOnSuccess(
+            unused ->
+                log.atDebug()
+                    .addKeyValue("sessionId", sessionId)
+                    .log("Set initiated time for session"))
+        .then();
   }
 
   @Override
@@ -265,28 +257,26 @@ public class FileSessionConfigStore implements SessionConfigStore {
     if (tags == null) {
       return Mono.empty();
     }
-    return Mono.fromCallable(
-            () -> {
-              final Path configPath = getSessionConfigPath(sessionId);
-              if (Files.exists(configPath)) {
-                final String json = Files.readString(configPath, StandardCharsets.UTF_8);
-                final SessionConfig existing = objectMapper.readValue(json, SessionConfig.class);
-                if (existing.tags() != null && !existing.tags().isEmpty()) {
-                  return existing;
-                }
-                return new SessionConfig(
-                    existing.sessionId(),
-                    existing.projectPath(),
-                    existing.workflows(),
-                    existing.description(),
-                    existing.initiator(),
-                    existing.initiatedTime(),
-                    Map.copyOf(tags));
-              }
-              return new SessionConfig(sessionId, "", Map.of(), "", "", "", Map.copyOf(tags));
-            })
-        .flatMap(config -> saveSessionConfig(sessionId, config))
-        .subscribeOn(Schedulers.boundedElastic());
+    return loadSessionConfig(sessionId)
+        .switchIfEmpty(Mono.just(new SessionConfig("", "", "", Map.of(), "")))
+        .filter(config -> config.tags() == null || config.tags().isEmpty())
+        .flatMap(
+            config ->
+                saveSessionConfig(
+                    sessionId,
+                    new SessionConfig(
+                        config.projectPath(),
+                        config.initiator(),
+                        config.initiatedTime(),
+                        tags,
+                        config.description())))
+        .doOnSuccess(
+            unused ->
+                log.atDebug()
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("tagCount", tags.size())
+                    .log("Set tags for session"))
+        .then();
   }
 
   @Override
@@ -319,6 +309,13 @@ public class FileSessionConfigStore implements SessionConfigStore {
                     workflowDefinitionStore.findAll(sessionId)));
   }
 
+  record SessionConfigFile(
+      String projectPath,
+      String initiator,
+      String initiatedTime,
+      Map<String, String> tags,
+      String description) {}
+
   /**
    * Load session configuration from file (with caching).
    *
@@ -337,11 +334,20 @@ public class FileSessionConfigStore implements SessionConfigStore {
                 return null;
               }
               final String json = Files.readString(configPath, StandardCharsets.UTF_8);
-              return objectMapper.readValue(json, SessionConfig.class);
+              final SessionConfigFile fileConfig =
+                  objectMapper.readValue(json, SessionConfigFile.class);
+              return new SessionConfig(
+                  fileConfig.projectPath(),
+                  fileConfig.initiator(),
+                  fileConfig.initiatedTime(),
+                  fileConfig.tags(),
+                  fileConfig.description());
             })
         .doOnNext(
             config -> {
-              sessionCache.put(sessionId, config);
+              if (config != null) {
+                sessionCache.put(sessionId, config);
+              }
             })
         .flatMap(Mono::just)
         .subscribeOn(Schedulers.boundedElastic());
@@ -359,7 +365,14 @@ public class FileSessionConfigStore implements SessionConfigStore {
             () -> {
               ensureSessionDir();
               final Path configPath = getSessionConfigPath(sessionId);
-              final String json = objectMapper.writeValueAsString(config);
+              final SessionConfigFile fileConfig =
+                  new SessionConfigFile(
+                      config.projectPath(),
+                      config.initiator(),
+                      config.initiatedTime(),
+                      config.tags(),
+                      config.description());
+              final String json = objectMapper.writeValueAsString(fileConfig);
               Files.writeString(
                   configPath,
                   json,
@@ -367,11 +380,11 @@ public class FileSessionConfigStore implements SessionConfigStore {
                   StandardOpenOption.CREATE,
                   StandardOpenOption.WRITE,
                   StandardOpenOption.TRUNCATE_EXISTING);
-              return true;
+              return config;
             })
         .doOnNext(
-            unused -> {
-              sessionCache.put(sessionId, config);
+            savedConfig -> {
+              sessionCache.put(sessionId, savedConfig);
               log.debug("Session config saved for sessionId: {}", sessionId);
             })
         .subscribeOn(Schedulers.boundedElastic())
@@ -428,6 +441,11 @@ public class FileSessionConfigStore implements SessionConfigStore {
   @Override
   public Flux<String> getSessionIds() {
     return Mono.fromCallable(this::getSessionFiles)
+        .doOnNext(
+            files ->
+                log.atDebug()
+                    .addKeyValue("sessionCount", files.size())
+                    .log("Retrieved all active session IDs"))
         .flatMapMany(Flux::fromIterable)
         .map(this::extractSessionIdFromFile)
         .subscribeOn(Schedulers.boundedElastic());

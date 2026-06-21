@@ -34,7 +34,7 @@ import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
-import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.service.session.store.SessionConfigStore;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;

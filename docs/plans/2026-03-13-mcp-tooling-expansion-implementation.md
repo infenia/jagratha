@@ -211,7 +211,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.infenia.yukta.service.session.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
-import com.infenia.yukta.service.WorkflowService;
+import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.*;
@@ -372,7 +372,7 @@ import reactor.test.StepVerifier;
 import tools.jackson.databind.ObjectMapper;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
-import com.infenia.yukta.service.WorkflowService;
+import com.infenia.yukta.service.workflow.WorkflowService;
 
 import java.time.Duration;
 
@@ -636,7 +636,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
-import com.infenia.yukta.service.WorkflowService;
+import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
@@ -785,7 +785,7 @@ import reactor.test.StepVerifier;
 import com.infenia.yukta.service.session.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
-import com.infenia.yukta.service.WorkflowService;
+import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.mockito.Mockito.when;
@@ -944,7 +944,7 @@ import reactor.test.StepVerifier;
 import com.infenia.yukta.service.session.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
-import com.infenia.yukta.service.WorkflowService;
+import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.*;
@@ -1335,7 +1335,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.infenia.yukta.service.session.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
-import com.infenia.yukta.service.WorkflowService;
+import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 import reactor.core.publisher.Flux;
 
@@ -1549,7 +1549,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.infenia.yukta.service.session.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
-import com.infenia.yukta.service.WorkflowService;
+import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.*;

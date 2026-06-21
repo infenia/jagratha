@@ -24,7 +24,7 @@ import com.infenia.yukta.dto.request.WorkflowStartRequest;
 import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.model.session.TaskResponse;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
-import com.infenia.yukta.service.WorkflowService;
+import com.infenia.yukta.service.workflow.WorkflowService;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.session.SessionService;
 import java.time.LocalDateTime;

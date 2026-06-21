@@ -42,17 +42,15 @@ public class PreparedWorkflowCache {
   private static final String WORKFLOW_ID_KEY = "workflowId";
 
   private final Cache<String, PreparedWorkflow> cache;
-  private final long ttlMs;
 
-  /**
+    /**
    * Spring-managed constructor.
    *
    * @param ttlMs TTL in milliseconds from application properties
    */
   @Autowired
   public PreparedWorkflowCache(@Value("${workflow.cache.ttl.ms:600000}") final long ttlMs) {
-    this.ttlMs = ttlMs;
-    this.cache =
+      this.cache =
         Caffeine.newBuilder()
             .expireAfterAccess(ttlMs, TimeUnit.MILLISECONDS)
             .recordStats()
@@ -65,30 +63,6 @@ public class PreparedWorkflowCache {
                 })
             .build();
     log.atInfo().addKeyValue("ttlMs", ttlMs).log("Initialized PreparedWorkflowCache with Caffeine");
-  }
-
-  /**
-   * Testing constructor with deterministic time control via custom Ticker.
-   *
-   * @param ttlMs TTL in milliseconds
-   * @param ticker Caffeine ticker for time-controlled testing
-   */
-  public PreparedWorkflowCache(
-      final long ttlMs, final com.github.benmanes.caffeine.cache.Ticker ticker) {
-    this.ttlMs = ttlMs;
-    this.cache =
-        Caffeine.newBuilder()
-            .expireAfterAccess(ttlMs, TimeUnit.MILLISECONDS)
-            .ticker(ticker)
-            .recordStats()
-            .removalListener(
-                (key, value, cause) -> {
-                  log.atDebug()
-                      .addKeyValue("key", key)
-                      .addKeyValue("cause", cause)
-                      .log("Evicted compiled workflow");
-                })
-            .build();
   }
 
   /**

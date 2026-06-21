@@ -986,7 +986,7 @@ You will need `@Mock WorkflowDefinitionStore workflowDefinitionStore` and `Prepa
 - [ ] **Step 4: Run the updated tests**
 
 ```bash
-./gradlew :core:test --tests com.infenia.yukta.service.WorkflowServiceTest
+./gradlew :core:test --tests com.infenia.yukta.service.workflow.WorkflowServiceTest
 ```
 
 Expected: all tests PASS including the three new ones.
@@ -1138,7 +1138,7 @@ Apply the same pattern to `FileSessionConfigStoreTest.java`.
 - [ ] **Step 5: Verify compilation and tests**
 
 ```bash
-./gradlew :core:test --tests "com.infenia.yukta.service.session.InMemorySessionConfigStoreTest,com.infenia.yukta.service.session.FileSessionConfigStoreTest"
+./gradlew :core:test --tests "com.infenia.yukta.service.session.store.InMemorySessionConfigStoreTest,com.infenia.yukta.service.session.store.FileSessionConfigStoreTest"
 ```
 
 Expected: all tests PASS.

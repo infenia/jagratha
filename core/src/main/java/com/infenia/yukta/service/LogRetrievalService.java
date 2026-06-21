@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.service.session.store.SessionConfigStore;
 import com.infenia.yukta.validation.FileName;
 import com.infenia.yukta.validation.SessionId;
 import java.io.IOException;

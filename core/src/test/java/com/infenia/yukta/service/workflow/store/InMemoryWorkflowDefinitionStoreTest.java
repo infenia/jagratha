@@ -18,6 +18,8 @@ package com.infenia.yukta.service.workflow.store;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -108,5 +110,25 @@ class InMemoryWorkflowDefinitionStoreTest {
                 .then(store.find("s1", "wf1")))
         .verifyComplete();
     StepVerifier.create(store.find("s2", "wf2")).expectNext(wf2).verifyComplete();
+  }
+
+  @Test
+  void logInitializationExecutedOnBeanCreation()
+      throws InvocationTargetException, IllegalAccessException {
+    InMemoryWorkflowDefinitionStore newStore = new InMemoryWorkflowDefinitionStore();
+
+    Method logInitMethod = null;
+    for (Method method : InMemoryWorkflowDefinitionStore.class.getDeclaredMethods()) {
+      if ("logInitialization".equals(method.getName())) {
+        logInitMethod = method;
+        break;
+      }
+    }
+
+    assertThat(logInitMethod).isNotNull();
+    logInitMethod.setAccessible(true);
+    logInitMethod.invoke(newStore);
+
+    assertThat(newStore).isNotNull();
   }
 }

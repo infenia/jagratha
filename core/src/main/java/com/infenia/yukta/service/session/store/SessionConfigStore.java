@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.session;
+package com.infenia.yukta.service.session.store;
 
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.validation.ProjectPath;

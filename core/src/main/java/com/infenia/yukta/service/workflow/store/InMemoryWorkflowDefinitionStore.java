@@ -16,9 +16,11 @@
 package com.infenia.yukta.service.workflow.store;
 
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import jakarta.annotation.PostConstruct;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -28,11 +30,17 @@ import reactor.core.publisher.Mono;
  * <p>Thread-safe via ConcurrentHashMap.
  */
 @Slf4j
+@ConditionalOnProperty(name = "yukta.session.store-type", havingValue = "in-memory")
 @Component
 @SuppressWarnings("PMD.AtLeastOneConstructor")
 public class InMemoryWorkflowDefinitionStore implements WorkflowDefinitionStore {
 
   private final Map<String, Map<String, WorkflowDefinition>> store = new ConcurrentHashMap<>();
+
+  @PostConstruct
+  void logInitialization() {
+    log.info("Using WorkflowDefinitionStore with type: in-memory");
+  }
 
   @Override
   public Mono<Void> save(final String sessionId, final WorkflowDefinition definition) {

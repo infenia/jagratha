@@ -17,11 +17,10 @@ package com.infenia.yukta.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.service.control.store.ExecutionControlStore;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
-import com.infenia.yukta.service.session.SessionConfigStore;
+import com.infenia.yukta.service.session.store.SessionConfigStore;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -96,8 +95,8 @@ class AppConfigurationTest {
 
   @Test
   void shouldRegisterSessionConfigProperties() {
-    this.contextRunner
-        .run(context -> assertThat(context).hasSingleBean(SessionConfigProperties.class));
+    this.contextRunner.run(
+        context -> assertThat(context).hasSingleBean(SessionConfigProperties.class));
   }
 
   @Configuration
