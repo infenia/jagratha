@@ -16,8 +16,8 @@
 package com.infenia.yukta.controller;
 
 import com.infenia.yukta.model.api.ApiResponse;
-import com.infenia.yukta.model.api.WorkflowStartRequest;
-import com.infenia.yukta.model.api.WorkflowStartResponse;
+import com.infenia.yukta.dto.request.WorkflowStartRequest;
+import com.infenia.yukta.dto.response.WorkflowStartResponse;
 import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
 import com.infenia.yukta.model.monitoring.WorkflowProgress;
 import com.infenia.yukta.service.WorkflowService;

@@ -15,10 +15,10 @@
  */
 package com.infenia.yukta.controller;
 
-import com.infenia.yukta.mapper.AppConfigMapper;
+import com.infenia.yukta.dto.request.ConfigRequest;
+import com.infenia.yukta.dto.response.SessionDetails;
+import com.infenia.yukta.mapper.SessionMapper;
 import com.infenia.yukta.model.api.ApiResponse;
-import com.infenia.yukta.model.api.ConfigRequest;
-import com.infenia.yukta.model.api.SessionDetails;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.session.SessionService;
@@ -56,7 +56,7 @@ public class SessionConfigController {
   private static final String APPLICATION_JSON = "application/json";
 
   private final SessionService sessionService;
-  private final AppConfigMapper configMapper;
+  private final SessionMapper sessionMapper;
 
   /**
    * Get details of a specific session.
@@ -268,7 +268,7 @@ public class SessionConfigController {
           @RequestBody
           final ConfigRequest request) {
     log.atInfo().log("applyConfig: sessionId={}", request.sessionId());
-    final SessionConfigData configData = configMapper.toData(request);
+    final SessionConfigData configData = sessionMapper.configRequestToSessionConfigData(request);
     return sessionService
         .applyConfig(configData)
         .doOnSuccess(

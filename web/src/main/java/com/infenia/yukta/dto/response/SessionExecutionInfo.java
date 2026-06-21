@@ -13,21 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.model.api;
+package com.infenia.yukta.dto.response;
 
-import com.infenia.yukta.validation.SessionId;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 
 /**
- * Request object for starting a workflow.
+ * Record representing execution information for a session.
  *
  * @param sessionId the session identifier
- * @param workflowId the workflow identifier
+ * @param activeExecutions the number of active executions
+ * @param totalWorkflows the total number of workflows
  */
-@Schema(description = "Request object for starting a workflow")
-public record WorkflowStartRequest(
-    @Schema(description = "The unique session identifier", example = "session-123") @SessionId
-        String sessionId,
-    @Schema(description = "The unique workflow identifier", example = "quality-check") @NotBlank
-        String workflowId) {}
+@Schema(description = "Record representing execution information for a session")
+public record SessionExecutionInfo(
+    @Schema(description = "The session identifier", example = "session-123") String sessionId,
+    @Schema(description = "The number of active executions", example = "5") int activeExecutions,
+    @Schema(description = "The total number of workflows", example = "10") int totalWorkflows) {}

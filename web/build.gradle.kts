@@ -23,8 +23,11 @@ dependencies {
     implementation(libs.spring.boot.starter.webflux)
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.springdoc.openapi)
+    implementation(libs.mapstruct)
 
     annotationProcessor(libs.spring.boot.configuration.processor)
+    annotationProcessor(libs.mapstruct.processor)
+    annotationProcessor(libs.lombok.mapstruct.binding)
 
     testImplementation(libs.spring.boot.starter.webflux.test)
     testImplementation(libs.spring.boot.starter.validation.test)
