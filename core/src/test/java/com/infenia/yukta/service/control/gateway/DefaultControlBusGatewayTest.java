@@ -41,6 +41,7 @@ import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.ResumeWo
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.SkipNodeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StepNodeCommand;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopNodeCommand;
+import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.StopWorkflowCommand;
 import com.infenia.yukta.service.control.ControlBusService;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.execution.status.ExecutionStatusEvent;
@@ -48,6 +49,7 @@ import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +60,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import com.infenia.yukta.service.control.ExecutionControl;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultControlBusGatewayTest {
@@ -287,6 +290,217 @@ class DefaultControlBusGatewayTest {
     Message<?> emittedMessage = captor.getValue();
     StopNodeCommand cmd = (StopNodeCommand) emittedMessage.getPayload();
     assertThat(cmd.immediate()).isTrue();
+  }
+
+  // --- stopWorkflow Tests ---
+
+  @Test
+  void stopWorkflow_activeExecutionFound_stopsWorkflowAndReturnsExecutionId() {
+    // Given
+    String sessionId = "sess-stop-wf";
+    String workflowId = "wf-stop";
+    String executionId = "exec-to-stop";
+    String reason = "User requested stop";
+
+    ExecutionControl control = mock(ExecutionControl.class);
+    when(control.executionId()).thenReturn(executionId);
+    when(executionControlRegistry.findActiveByWorkflow(sessionId, workflowId))
+        .thenReturn(Optional.of(control));
+    when(controlBusService.emit(any())).thenReturn(Mono.empty());
+
+    // When
+    Mono<String> result = gateway.stopWorkflow(sessionId, workflowId, reason);
+
+    // Then
+    StepVerifier.create(result)
+        .assertNext(
+            stoppedId -> {
+              assertThat(stoppedId).isEqualTo(executionId);
+            })
+        .verifyComplete();
+
+    verify(executionControlRegistry).findActiveByWorkflow(sessionId, workflowId);
+    verify(controlBusService).emit(any());
+  }
+
+  @Test
+  void stopWorkflow_noActiveExecution_throwsIllegalArgumentException() {
+    // Given
+    String sessionId = "sess-no-exec";
+    String workflowId = "wf-no-exec";
+    String reason = "stop";
+    when(executionControlRegistry.findActiveByWorkflow(sessionId, workflowId))
+        .thenReturn(Optional.empty());
+
+    // When
+    Mono<String> result = gateway.stopWorkflow(sessionId, workflowId, reason);
+
+    // Then
+    StepVerifier.create(result)
+        .expectErrorMatches(
+            err ->
+                err instanceof IllegalArgumentException
+                    && err.getMessage().contains("No active execution found")
+                    && err.getMessage().contains(sessionId)
+                    && err.getMessage().contains(workflowId))
+        .verify();
+  }
+
+  @Test
+  void stopWorkflow_correctStopWorkflowCommandBuilt_withElevatedPriority() {
+    // Given
+    String sessionId = "sess-cmd-build";
+    String workflowId = "wf-cmd-build";
+    String executionId = "exec-cmd";
+    String reason = "priority test";
+
+    ExecutionControl control = mock(ExecutionControl.class);
+    when(control.executionId()).thenReturn(executionId);
+    when(executionControlRegistry.findActiveByWorkflow(sessionId, workflowId))
+        .thenReturn(Optional.of(control));
+    when(controlBusService.emit(any())).thenReturn(Mono.empty());
+
+    // When
+    Mono<String> result = gateway.stopWorkflow(sessionId, workflowId, reason);
+
+    // Then
+    StepVerifier.create(result).assertNext(id -> assertThat(id).isEqualTo(executionId)).verifyComplete();
+
+    ArgumentCaptor<Message<?>> captor = ArgumentCaptor.forClass(Message.class);
+    verify(controlBusService).emit(captor.capture());
+    Message<?> emittedMessage = captor.getValue();
+
+    assertThat(emittedMessage.getPayload()).isInstanceOf(StopWorkflowCommand.class);
+    StopWorkflowCommand cmd = (StopWorkflowCommand) emittedMessage.getPayload();
+    assertThat(cmd.executionId()).isEqualTo(executionId);
+    assertThat(cmd.reason()).isEqualTo(reason);
+    assertThat(emittedMessage.getPriority()).isEqualTo(120); // CONTROL_COMMAND_PRIORITY + 20
+    assertThat(emittedMessage.getSourceNodeId()).isEqualTo("CONTROL_BUS");
+    assertThat(emittedMessage.isControlMessage()).isTrue();
+  }
+
+  @Test
+  void stopWorkflow_withSpecificReason_reasonIncludedInCommand() {
+    // Given
+    String sessionId = "sess-reason";
+    String workflowId = "wf-reason";
+    String executionId = "exec-reason";
+    String reason = "Timeout exceeded";
+
+    ExecutionControl control = mock(ExecutionControl.class);
+    when(control.executionId()).thenReturn(executionId);
+    when(executionControlRegistry.findActiveByWorkflow(sessionId, workflowId))
+        .thenReturn(Optional.of(control));
+    when(controlBusService.emit(any())).thenReturn(Mono.empty());
+
+    // When
+    Mono<String> result = gateway.stopWorkflow(sessionId, workflowId, reason);
+
+    // Then
+    StepVerifier.create(result).assertNext(id -> assertThat(id).isEqualTo(executionId)).verifyComplete();
+
+    ArgumentCaptor<Message<?>> captor = ArgumentCaptor.forClass(Message.class);
+    verify(controlBusService).emit(captor.capture());
+    Message<?> emittedMessage = captor.getValue();
+    StopWorkflowCommand cmd = (StopWorkflowCommand) emittedMessage.getPayload();
+    assertThat(cmd.reason()).isEqualTo(reason);
+  }
+
+  @Test
+  void stopWorkflow_executeCommandFails_propagatesError() {
+    // Given
+    String sessionId = "sess-fail";
+    String workflowId = "wf-fail";
+    String executionId = "exec-fail";
+    String reason = "should fail";
+
+    ExecutionControl control = mock(ExecutionControl.class);
+    when(control.executionId()).thenReturn(executionId);
+    when(executionControlRegistry.findActiveByWorkflow(sessionId, workflowId))
+        .thenReturn(Optional.of(control));
+
+    RuntimeException testError = new RuntimeException("Command execution failed");
+    when(controlBusService.emit(any())).thenReturn(Mono.error(testError));
+
+    // When
+    Mono<String> result = gateway.stopWorkflow(sessionId, workflowId, reason);
+
+    // Then
+    StepVerifier.create(result).expectError(RuntimeException.class).verify();
+  }
+
+  @Test
+  void stopWorkflow_sessionAndWorkflowIdsPassed_queriesRegistryCorrectly() {
+    // Given
+    String sessionId = "sess-registry";
+    String workflowId = "wf-registry";
+    String executionId = "exec-registry";
+    String reason = "registry test";
+
+    ExecutionControl control = mock(ExecutionControl.class);
+    when(control.executionId()).thenReturn(executionId);
+    when(executionControlRegistry.findActiveByWorkflow(sessionId, workflowId))
+        .thenReturn(Optional.of(control));
+    when(controlBusService.emit(any())).thenReturn(Mono.empty());
+
+    // When
+    Mono<String> result = gateway.stopWorkflow(sessionId, workflowId, reason);
+
+    // Then
+    StepVerifier.create(result).assertNext(id -> assertThat(id).isNotNull()).verifyComplete();
+
+    verify(executionControlRegistry).findActiveByWorkflow(sessionId, workflowId);
+  }
+
+  @Test
+  void stopWorkflow_multipleReasons_eachReasonStoredInCommand() {
+    // Test with first reason
+    String sessionId = "sess-multi-reason";
+    String workflowId = "wf-multi-reason";
+    String executionId1 = "exec-reason-1";
+    String reason1 = "Timeout";
+
+    ExecutionControl control1 = mock(ExecutionControl.class);
+    when(control1.executionId()).thenReturn(executionId1);
+    when(executionControlRegistry.findActiveByWorkflow(sessionId, workflowId))
+        .thenReturn(Optional.of(control1));
+    when(controlBusService.emit(any())).thenReturn(Mono.empty());
+
+    // When
+    Mono<String> result1 = gateway.stopWorkflow(sessionId, workflowId, reason1);
+
+    // Then
+    StepVerifier.create(result1)
+        .assertNext(id -> assertThat(id).isEqualTo(executionId1))
+        .verifyComplete();
+
+    ArgumentCaptor<Message<?>> captor1 = ArgumentCaptor.forClass(Message.class);
+    verify(controlBusService).emit(captor1.capture());
+    StopWorkflowCommand cmd1 = (StopWorkflowCommand) captor1.getValue().getPayload();
+    assertThat(cmd1.reason()).isEqualTo(reason1);
+  }
+
+  @Test
+  void stopWorkflow_emitError_logsErrorAndPropagates() {
+    // Given
+    String sessionId = "sess-emit-error";
+    String workflowId = "wf-emit-error";
+    String executionId = "exec-emit-error";
+    String reason = "emit test";
+
+    ExecutionControl control = mock(ExecutionControl.class);
+    when(control.executionId()).thenReturn(executionId);
+    when(executionControlRegistry.findActiveByWorkflow(sessionId, workflowId))
+        .thenReturn(Optional.of(control));
+
+    RuntimeException testError = new RuntimeException("Emit failed");
+    when(controlBusService.emit(any())).thenReturn(Mono.error(testError));
+
+    // When
+    Mono<String> result = gateway.stopWorkflow(sessionId, workflowId, reason);
+
+    // Then - error is propagated through doOnError
+    StepVerifier.create(result).expectError(RuntimeException.class).verify();
   }
 
   @Test
