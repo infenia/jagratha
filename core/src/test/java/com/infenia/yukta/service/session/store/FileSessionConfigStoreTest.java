@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.config.SessionConfigProperties;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.service.session.store.FileSessionConfigStore;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import java.io.IOException;
 import java.nio.file.Files;

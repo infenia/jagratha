@@ -18,6 +18,7 @@ package com.infenia.yukta.service.session;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.config.SessionConfigProperties;
+import com.infenia.yukta.service.session.store.InMemorySessionConfigStore;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

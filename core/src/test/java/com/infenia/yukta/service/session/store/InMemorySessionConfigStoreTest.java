@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.session;
+package com.infenia.yukta.service.session.store;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +23,8 @@ import com.infenia.yukta.config.SessionConfigProperties;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -390,5 +393,34 @@ class InMemorySessionConfigStoreTest {
     StepVerifier.create(configService.getTags(sessionId))
         .expectNext(Map.of("k1", "v1"))
         .verifyComplete();
+  }
+
+  @Test
+  void logInitializationExecutedOnBeanCreation()
+      throws InvocationTargetException, IllegalAccessException {
+    SessionConfigProperties props = new SessionConfigProperties();
+    props.setBaseDir(System.getProperty("user.home") + "/.yukta");
+    props.setFileLogSubDir("modified-files");
+    props.setResultLogSubDir("results");
+    props.setExecutionTimeoutSeconds(3600L);
+
+    WorkflowDefinitionStore workflowDefinitionStore =
+        org.mockito.Mockito.mock(WorkflowDefinitionStore.class);
+    InMemorySessionConfigStore store =
+        new InMemorySessionConfigStore(props, workflowDefinitionStore);
+
+    Method logInitMethod = null;
+    for (Method method : InMemorySessionConfigStore.class.getDeclaredMethods()) {
+      if ("logInitialization".equals(method.getName())) {
+        logInitMethod = method;
+        break;
+      }
+    }
+
+    assertThat(logInitMethod).isNotNull();
+    logInitMethod.setAccessible(true);
+    logInitMethod.invoke(store);
+
+    assertThat(store).isNotNull();
   }
 }

@@ -101,7 +101,7 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
       @SessionId final String sessionId, @ProjectPath final String path) {
     sessions.compute(
         sessionId,
-        (key, config) -> {
+        (_, config) -> {
           if (config == null) {
             return new SessionConfig(path, "", "", Map.of(), "");
           }
@@ -146,7 +146,7 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
       final boolean[] isNew = {false};
       sessions.compute(
           sessionId,
-          (key, config) -> {
+          (_, config) -> {
             if (config == null) {
               isNew[0] = true;
               return new SessionConfig("", "", "", Map.of(), description);
@@ -181,7 +181,7 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
       final boolean[] isNew = {false};
       sessions.compute(
           sessionId,
-          (key, config) -> {
+          (_, config) -> {
             if (config == null) {
               isNew[0] = true;
               return new SessionConfig("", initiator, "", Map.of(), "");
@@ -218,7 +218,7 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
       final boolean[] isNew = {false};
       sessions.compute(
           sessionId,
-          (key, config) -> {
+          (_, config) -> {
             if (config == null) {
               isNew[0] = true;
               return new SessionConfig("", "", initiatedTime, Map.of(), "");
@@ -253,7 +253,7 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
       final boolean[] isNew = {false};
       sessions.compute(
           sessionId,
-          (key, config) -> {
+          (_, config) -> {
             if (config == null) {
               isNew[0] = true;
               return new SessionConfig("", "", "", tags, "");
