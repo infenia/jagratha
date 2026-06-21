@@ -28,41 +28,41 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Tests for SessionConfigStoreFactory with in-memory store type. Verifies that conditional bean
- * creation correctly instantiates InMemorySessionConfigStore when the store-type property is set
- * to "in-memory".
+ * Tests for SessionConfigStoreFactory with file store type. Verifies that conditional bean
+ * creation correctly instantiates FileSessionConfigStore when the store-type property is set to
+ * "file".
  */
 @SpringBootTest
-@TestPropertySource(properties = "yukta.session.store-type=in-memory")
-@DisplayName("SessionConfigStore with in-memory store type")
-class SessionConfigStoreFactoryTest {
+@TestPropertySource(properties = "yukta.session.store-type=file")
+@DisplayName("SessionConfigStore with file store type")
+class SessionConfigStoreFactoryFileTest {
 
   @Autowired private ApplicationContext context;
 
   @Autowired private SessionConfigStoreFactory factory;
 
   @Test
-  @DisplayName("should create InMemorySessionConfigStore bean when store-type is in-memory")
-  void testInMemoryStoreCreated() {
-    // Verify InMemorySessionConfigStore bean exists
-    InMemorySessionConfigStore store = context.getBean(InMemorySessionConfigStore.class);
-    assertNotNull(store, "InMemorySessionConfigStore bean should exist");
+  @DisplayName("should create FileSessionConfigStore bean when store-type is file")
+  void testFileStoreCreated() {
+    // Verify FileSessionConfigStore bean exists
+    FileSessionConfigStore store = context.getBean(FileSessionConfigStore.class);
+    assertNotNull(store, "FileSessionConfigStore bean should exist");
 
-    // Verify FileSessionConfigStore bean does NOT exist
+    // Verify InMemorySessionConfigStore bean does NOT exist
     assertThrows(
         NoSuchBeanDefinitionException.class,
-        () -> context.getBean(FileSessionConfigStore.class),
-        "FileSessionConfigStore bean should not exist when store-type=in-memory");
+        () -> context.getBean(InMemorySessionConfigStore.class),
+        "InMemorySessionConfigStore bean should not exist when store-type=file");
   }
 
   @Test
-  @DisplayName("should return InMemorySessionConfigStore from factory")
-  void testFactoryReturnsInMemoryStore() {
+  @DisplayName("should return FileSessionConfigStore from factory")
+  void testFactoryReturnsFileStore() {
     SessionConfigStore store = factory.getStore();
     assertNotNull(store, "Factory should return a non-null store");
     assertInstanceOf(
-        InMemorySessionConfigStore.class,
+        FileSessionConfigStore.class,
         store,
-        "Factory should return InMemorySessionConfigStore instance");
+        "Factory should return FileSessionConfigStore instance");
   }
 }
