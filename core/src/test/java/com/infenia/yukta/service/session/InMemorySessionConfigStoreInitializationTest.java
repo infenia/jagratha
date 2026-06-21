@@ -19,14 +19,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.config.SessionConfigProperties;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.test.util.ReflectionTestUtils;
 
 class InMemorySessionConfigStoreInitializationTest {
 
   @Test
-  void postConstructLogsInitializationMessage() throws Exception {
+  void logInitializationExecutedOnBeanCreation()
+      throws InvocationTargetException, IllegalAccessException {
     SessionConfigProperties props = new SessionConfigProperties();
     props.setBaseDir(System.getProperty("user.home") + "/.yukta");
     props.setFileLogSubDir("modified-files");
@@ -37,7 +39,17 @@ class InMemorySessionConfigStoreInitializationTest {
     InMemorySessionConfigStore store =
         new InMemorySessionConfigStore(props, workflowDefinitionStore);
 
-    ReflectionTestUtils.invokeMethod(store, "logInitialization");
+    Method logInitMethod = null;
+    for (Method method : InMemorySessionConfigStore.class.getDeclaredMethods()) {
+      if ("logInitialization".equals(method.getName())) {
+        logInitMethod = method;
+        break;
+      }
+    }
+
+    assertThat(logInitMethod).isNotNull();
+    logInitMethod.setAccessible(true);
+    logInitMethod.invoke(store);
 
     assertThat(store).isNotNull();
   }
