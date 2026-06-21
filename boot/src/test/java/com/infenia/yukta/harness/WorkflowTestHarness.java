@@ -17,11 +17,11 @@ package com.infenia.yukta.harness;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.infenia.yukta.model.api.ApiResponse;
-import com.infenia.yukta.model.api.ConfigRequest;
+import com.infenia.yukta.dto.request.ConfigRequest;
 import com.infenia.yukta.dto.request.WorkflowStartRequest;
 import com.infenia.yukta.dto.response.WorkflowStartResponse;
-import com.infenia.yukta.model.monitoring.WorkflowProgress;
+import com.infenia.yukta.model.api.ApiResponse;
+import com.infenia.yukta.model.execution.WorkflowProgress;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;

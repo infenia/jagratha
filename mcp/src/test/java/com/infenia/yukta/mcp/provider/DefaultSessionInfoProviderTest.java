@@ -21,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.api.PluginReference;
-import com.infenia.yukta.model.api.SessionCreationGuide;
+import com.infenia.yukta.dto.response.PluginReference;
+import com.infenia.yukta.dto.response.SessionCreationGuide;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.service.registry.WorkflowRegistry;

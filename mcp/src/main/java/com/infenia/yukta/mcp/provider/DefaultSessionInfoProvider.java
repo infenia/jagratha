@@ -15,12 +15,12 @@
  */
 package com.infenia.yukta.mcp.provider;
 
-import com.infenia.yukta.model.api.ErrorExample;
-import com.infenia.yukta.model.api.PluginReference;
-import com.infenia.yukta.model.api.SessionCreationGuide;
-import com.infenia.yukta.model.api.SessionCreationResponse;
-import com.infenia.yukta.model.api.SessionDetails;
-import com.infenia.yukta.model.api.SessionInfo;
+import com.infenia.yukta.dto.response.ErrorExample;
+import com.infenia.yukta.dto.response.PluginReference;
+import com.infenia.yukta.dto.response.SessionCreationGuide;
+import com.infenia.yukta.dto.response.SessionCreationResponse;
+import com.infenia.yukta.dto.response.SessionDetails;
+import com.infenia.yukta.dto.response.SessionInfo;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import com.infenia.yukta.service.session.SessionService;

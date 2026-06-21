@@ -15,8 +15,8 @@
  */
 package com.infenia.yukta.mapper;
 
-import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
-import com.infenia.yukta.model.monitoring.WorkflowProgress;
+import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
+import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
 import org.mapstruct.Mapper;
 

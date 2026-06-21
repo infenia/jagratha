@@ -15,8 +15,8 @@
  */
 package com.infenia.yukta.service.orchestrator.tracker;
 
-import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
-import com.infenia.yukta.model.monitoring.WorkflowProgress;
+import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
+import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.validation.NodeId;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;

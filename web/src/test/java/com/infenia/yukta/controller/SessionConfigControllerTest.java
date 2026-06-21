@@ -20,10 +20,10 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.dto.request.ConfigRequest;
+import com.infenia.yukta.dto.request.WorkflowDefinitionRequest;
+import com.infenia.yukta.dto.request.WorkflowDefinitionRequest.NodeRequest;
 import com.infenia.yukta.mapper.AppConfigMapper;
-import com.infenia.yukta.model.api.ConfigRequest;
-import com.infenia.yukta.model.api.WorkflowDefinitionRequest;
-import com.infenia.yukta.model.api.WorkflowDefinitionRequest.NodeRequest;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.session.SessionService;

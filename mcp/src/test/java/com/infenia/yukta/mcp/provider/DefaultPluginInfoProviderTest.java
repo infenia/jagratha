@@ -22,9 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.api.PluginCreationGuide;
-import com.infenia.yukta.model.api.PluginDetails;
-import com.infenia.yukta.model.api.PluginSummary;
+import com.infenia.yukta.dto.response.PluginCreationGuide;
+import com.infenia.yukta.dto.response.PluginDetails;
+import com.infenia.yukta.dto.response.PluginSummary;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.service.registry.WorkflowRegistry;

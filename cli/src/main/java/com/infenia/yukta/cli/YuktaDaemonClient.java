@@ -15,8 +15,8 @@
  */
 package com.infenia.yukta.cli;
 
+import com.infenia.yukta.dto.request.ConfigRequest;
 import com.infenia.yukta.model.api.ApiResponse;
-import com.infenia.yukta.model.api.ConfigRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;

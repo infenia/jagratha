@@ -21,7 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.dto.request.WorkflowStartRequest;
-import com.infenia.yukta.model.monitoring.WorkflowProgress;
+import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.model.session.TaskResponse;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
 import com.infenia.yukta.service.WorkflowService;

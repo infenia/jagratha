@@ -15,10 +15,10 @@
  */
 package com.infenia.yukta.mcp.provider;
 
+import com.infenia.yukta.dto.response.PluginCreationGuide;
+import com.infenia.yukta.dto.response.PluginDetails;
+import com.infenia.yukta.dto.response.PluginSummary;
 import com.infenia.yukta.mcp.util.PluginTemplateBuilder;
-import com.infenia.yukta.model.api.PluginCreationGuide;
-import com.infenia.yukta.model.api.PluginDetails;
-import com.infenia.yukta.model.api.PluginSummary;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import java.util.List;

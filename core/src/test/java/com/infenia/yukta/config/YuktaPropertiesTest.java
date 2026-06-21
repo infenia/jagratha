@@ -78,7 +78,8 @@ class YuktaPropertiesTest {
   }
 
   @Test
-  @DisplayName("hashCode returns different value for instances with different heartbeatIntervalSeconds")
+  @DisplayName(
+      "hashCode returns different value for instances with different heartbeatIntervalSeconds")
   void testHashCodeWithDifferentValues() {
     YuktaProperties other = new YuktaProperties();
     other.setHeartbeatIntervalSeconds(20L);

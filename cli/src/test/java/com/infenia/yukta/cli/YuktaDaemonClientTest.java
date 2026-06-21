@@ -25,9 +25,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import com.infenia.yukta.dto.request.ConfigRequest;
+import com.infenia.yukta.dto.request.WorkflowDefinitionRequest;
 import com.infenia.yukta.model.api.ApiResponse;
-import com.infenia.yukta.model.api.ConfigRequest;
-import com.infenia.yukta.model.api.WorkflowDefinitionRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

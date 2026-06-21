@@ -249,7 +249,7 @@ public interface ControlBusGateway {
    * @param executionId the execution to watch
    * @return a Flux of progress updates that completes when execution finishes
    */
-  reactor.core.publisher.Flux<com.infenia.yukta.model.monitoring.WorkflowProgress> watchExecution(
+  reactor.core.publisher.Flux<com.infenia.yukta.model.execution.WorkflowProgress> watchExecution(
       String executionId);
 
   /**
@@ -272,7 +272,7 @@ public interface ControlBusGateway {
    * @param executionId the execution to query
    * @return the current progress, or null if execution not found
    */
-  com.infenia.yukta.model.monitoring.WorkflowProgress getCurrentProgress(String executionId);
+  com.infenia.yukta.model.execution.WorkflowProgress getCurrentProgress(String executionId);
 
   /**
    * Get execution history for a session.
@@ -283,7 +283,7 @@ public interface ControlBusGateway {
    * @param sessionId the session to query
    * @return list of execution summaries
    */
-  List<com.infenia.yukta.model.monitoring.WorkflowExecutionSummary> getHistory(String sessionId);
+  List<com.infenia.yukta.model.execution.WorkflowExecutionSummary> getHistory(String sessionId);
 
   // --- State Queries ---
 

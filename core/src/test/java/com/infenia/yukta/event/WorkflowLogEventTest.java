@@ -168,5 +168,4 @@ class WorkflowLogEventTest {
 
     assertEquals(specialLog, event.line());
   }
-
 }

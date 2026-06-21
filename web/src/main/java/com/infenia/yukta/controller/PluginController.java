@@ -15,9 +15,9 @@
  */
 package com.infenia.yukta.controller;
 
-import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.dto.response.PluginDetails;
 import com.infenia.yukta.dto.response.PluginSummary;
+import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.service.registry.WorkflowRegistry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

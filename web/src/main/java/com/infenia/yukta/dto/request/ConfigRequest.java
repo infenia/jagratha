@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.dto.request;
 
-import com.infenia.yukta.dto.request.WorkflowDefinitionRequest;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
 import io.swagger.v3.oas.annotations.media.Schema;

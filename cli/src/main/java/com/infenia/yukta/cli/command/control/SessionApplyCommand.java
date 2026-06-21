@@ -17,7 +17,7 @@ package com.infenia.yukta.cli.command.control;
 
 import com.infenia.yukta.cli.CliFormatter;
 import com.infenia.yukta.cli.YuktaDaemonClient;
-import com.infenia.yukta.model.api.ConfigRequest;
+import com.infenia.yukta.dto.request.ConfigRequest;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;

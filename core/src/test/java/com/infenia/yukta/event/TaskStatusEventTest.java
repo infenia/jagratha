@@ -89,12 +89,14 @@ class TaskStatusEventTest {
     TaskStatusEvent event =
         TaskStatusEvent.create("exec4", "node4", "module4", "SUCCESS", mutableMetadata);
 
-    assertThrows(UnsupportedOperationException.class, () -> event.metadata().put("newKey", "newValue"));
+    assertThrows(
+        UnsupportedOperationException.class, () -> event.metadata().put("newKey", "newValue"));
   }
 
   @Test
   void create_withMultipleMetadataEntries_allEntriesPreserved() {
-    Map<String, Object> metadata = Map.of("status_code", 200, "duration_ms", 500, "request_id", "req-123");
+    Map<String, Object> metadata =
+        Map.of("status_code", 200, "duration_ms", 500, "request_id", "req-123");
     TaskStatusEvent event =
         TaskStatusEvent.create("exec5", "node5", "module5", "COMPLETED", metadata);
 
