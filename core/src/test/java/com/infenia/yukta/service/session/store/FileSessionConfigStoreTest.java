@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.session;
+package com.infenia.yukta.service.session.store;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,7 +21,6 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.config.SessionConfigProperties;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.service.session.store.FileSessionConfigStore;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -226,9 +225,7 @@ class FileSessionConfigStoreTest {
     // Create file with empty metadata
     Files.writeString(
         sessionsDir.resolve(sessionId + ".json"),
-        "{\"sessionId\":\""
-            + sessionId
-            + "\",\"description\":\"\",\"initiator\":\"\",\"initiatedTime\":\"\",\"tags\":{}}");
+        "{\"projectPath\":\"\",\"description\":\"\",\"initiator\":\"\",\"initiatedTime\":\"\",\"tags\":{}}");
 
     String newDesc = "New Description";
     StepVerifier.create(configStore.setDescription(sessionId, newDesc)).verifyComplete();
@@ -257,7 +254,7 @@ class FileSessionConfigStoreTest {
     // Create file without tags field
     Files.writeString(
         sessionsDir.resolve(sessionId + ".json"),
-        "{\"sessionId\":\"" + sessionId + "\",\"projectPath\":\"/path\"}");
+        "{\"projectPath\":\"/path\"}");
 
     Map<String, String> newTags = Map.of("new", "tag");
     StepVerifier.create(configStore.setTags(sessionId, newTags)).verifyComplete();
@@ -280,7 +277,7 @@ class FileSessionConfigStoreTest {
     Files.createDirectories(sessionsDir);
     // Create file without metadata fields
     Files.writeString(
-        sessionsDir.resolve(sessionId + ".json"), "{\"sessionId\":\"" + sessionId + "\"}");
+        sessionsDir.resolve(sessionId + ".json"), "{}");
 
     String newDesc = "New Description";
     StepVerifier.create(configStore.setDescription(sessionId, newDesc)).verifyComplete();
@@ -329,8 +326,8 @@ class FileSessionConfigStoreTest {
 
     assert Files.exists(sessionFile);
     String content = Files.readString(sessionFile);
-    assert content.contains("sessionId");
-    assert content.contains("sess-structure");
+    assert content.contains("projectPath");
+    assert content.contains("/test/path");
   }
 
   @Test
@@ -478,5 +475,13 @@ class FileSessionConfigStoreTest {
     StepVerifier.create(configStore.applySessionConfig(data)).verifyComplete();
 
     StepVerifier.create(configStore.getProjectPath(sessionId)).expectNext("/path").verifyComplete();
+  }
+
+  @Test
+  void testLogInitialization() throws Exception {
+    java.lang.reflect.Method logInitMethod =
+        FileSessionConfigStore.class.getDeclaredMethod("logInitialization");
+    logInitMethod.setAccessible(true);
+    logInitMethod.invoke(configStore);
   }
 }
