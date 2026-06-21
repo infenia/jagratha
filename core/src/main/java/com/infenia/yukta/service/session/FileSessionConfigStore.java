@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -42,9 +44,11 @@ import tools.jackson.databind.ObjectMapper;
  * File-based implementation of SessionConfigStore that persists session configuration to disk. Each
  * session's configuration is stored as JSON in a separate file for durability and easy inspection.
  *
- * <p>This implementation is created by the SessionConfigStoreFactory and is not a Spring component
- * itself.
+ * <p>This component is conditionally created as a Spring bean when {@code
+ * yukta.session.store-type} is set to {@code file}.
  */
+@Component
+@ConditionalOnProperty(name = "yukta.session.store-type", havingValue = "file")
 @Slf4j
 @Validated
 @RequiredArgsConstructor
