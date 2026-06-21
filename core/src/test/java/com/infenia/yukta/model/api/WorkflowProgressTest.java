@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.infenia.yukta.model.monitoring.WorkflowProgress;
+import com.infenia.yukta.model.execution.WorkflowProgress;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

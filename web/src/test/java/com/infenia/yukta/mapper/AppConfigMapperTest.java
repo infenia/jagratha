@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.api.ConfigRequest;
-import com.infenia.yukta.model.api.WorkflowDefinitionRequest;
+import com.infenia.yukta.dto.request.ConfigRequest;
+import com.infenia.yukta.dto.request.WorkflowDefinitionRequest;
 import com.infenia.yukta.model.session.SessionConfigData;
 import java.util.List;
 import java.util.Map;

@@ -17,7 +17,7 @@ package com.infenia.yukta.model.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
+import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 

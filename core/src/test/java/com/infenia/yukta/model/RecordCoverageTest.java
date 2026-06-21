@@ -17,10 +17,10 @@ package com.infenia.yukta.model;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.infenia.yukta.model.api.ControlBusStatus;
-import com.infenia.yukta.model.api.PluginCreationGuide;
-import com.infenia.yukta.model.api.SystemHealthMetrics;
-import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
+import com.infenia.yukta.dto.response.ControlBusStatus;
+import com.infenia.yukta.dto.response.PluginCreationGuide;
+import com.infenia.yukta.dto.response.SystemHealthMetrics;
+import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.service.resequence.ResequencerStore.ResequenceConfig;
 import com.infenia.yukta.service.resequence.ResequencerStore.ResequenceResult;

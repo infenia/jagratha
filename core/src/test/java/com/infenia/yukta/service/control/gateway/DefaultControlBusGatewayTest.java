@@ -24,8 +24,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.monitoring.WorkflowExecutionSummary;
-import com.infenia.yukta.model.monitoring.WorkflowProgress;
+import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
+import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.DefaultMessage;

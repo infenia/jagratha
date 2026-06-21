@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.infenia.yukta.model.monitoring.WorkflowProgress;
+import com.infenia.yukta.model.execution.WorkflowProgress;
 import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Collections;
@@ -330,7 +330,7 @@ class DefaultTaskTrackerServiceTest {
   @Test
   void testGetHistoryUnknownSession() {
     // getHistory for unknown session should return empty list
-    List<com.infenia.yukta.model.monitoring.WorkflowExecutionSummary> history =
+    List<com.infenia.yukta.model.execution.WorkflowExecutionSummary> history =
         tracker.getHistory("unknown-session");
     assertEquals(0, history.size());
   }
@@ -1942,7 +1942,7 @@ class DefaultTaskTrackerServiceTest {
     }
 
     // getHistory
-    List<com.infenia.yukta.model.monitoring.WorkflowExecutionSummary> history =
+    List<com.infenia.yukta.model.execution.WorkflowExecutionSummary> history =
         tracker.getHistory(sessionId);
     assertTrue(history.size() >= 1);
 

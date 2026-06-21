@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.model.monitoring;
+package com.infenia.yukta.model.execution;
 
 import java.time.LocalDateTime;
 import java.util.Map;

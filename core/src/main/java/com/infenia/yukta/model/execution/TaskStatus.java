@@ -13,18 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.model.api;
+package com.infenia.yukta.model.execution;
 
-import com.infenia.yukta.plugin.core.PluginCategory;
-import io.swagger.v3.oas.annotations.media.Schema;
+/** Status enumeration for task execution states. */
+public enum TaskStatus {
+  PENDING,
+  RUNNING,
+  SUCCESS,
+  FAILURE,
+  ERROR;
 
-/**
- * Summary of a workflow plugin.
- *
- * @param type the plugin type
- * @param category the plugin category
- */
-@Schema(description = "Summary of a workflow plugin")
-public record PluginSummary(
-    @Schema(description = "The plugin type") String type,
-    @Schema(description = "The plugin category") PluginCategory category) {}
+  /**
+   * Check if this status is a terminal state.
+   *
+   * @return true if status is SUCCESS, FAILURE, or ERROR; false otherwise
+   */
+  public boolean isTerminal() {
+    return this == SUCCESS || this == FAILURE || this == ERROR;
+  }
+}

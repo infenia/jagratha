@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.infenia.yukta.model.api.WorkflowDefinitionRequest.NodeRequest;
+import com.infenia.yukta.dto.request.WorkflowDefinitionRequest.NodeRequest;
 import jakarta.validation.Validator;
 import java.util.List;
 import java.util.Map;
