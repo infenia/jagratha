@@ -29,6 +29,11 @@ import reactor.core.publisher.Mono;
 @NullMarked
 public class RequestLoggingFilter implements WebFilter {
 
+  /** Default constructor. */
+  public RequestLoggingFilter() {
+    super();
+  }
+
   @Override
   public Mono<Void> filter(final ServerWebExchange exchange, final WebFilterChain chain) {
     final long startTime = System.currentTimeMillis();

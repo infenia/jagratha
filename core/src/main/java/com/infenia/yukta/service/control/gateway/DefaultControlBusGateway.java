@@ -98,7 +98,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     log.atDebug().log("Subscribing to status event stream");
     statusSink
         .asFlux()
-        .doOnSubscribe(sub -> log.atDebug().log("Status event stream subscription established"))
+        .doOnSubscribe(_ -> log.atDebug().log("Status event stream subscription established"))
         .doOnNext(
             event ->
                 log.atTrace()
@@ -120,7 +120,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
                       event.status(),
                       event.metadata() != null ? event.metadata() : Map.of())
                   .doOnSuccess(
-                      v ->
+                      _ ->
                           log.atDebug()
                               .addKeyValue("executionId", event.executionId())
                               .log("Task status updated successfully"))
@@ -150,7 +150,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
               return controlBusService.emit(signal);
             })
         .doOnSuccess(
-            v ->
+            _ ->
                 log.atDebug()
                     .addKeyValue("sourceNodeId", signal.getSourceNodeId())
                     .log("Message emitted successfully"))
@@ -202,7 +202,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
               return controlBusService.sendCommand(workflowId, nodeId, command);
             })
         .doOnSuccess(
-            response ->
+            _ ->
                 log.atDebug()
                     .addKeyValue("workflowId", workflowId)
                     .addKeyValue("nodeId", nodeId)
@@ -232,7 +232,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
               return controlBusService.compileAndCacheWorkflow(sessionId, workflowDefinition);
             })
         .doOnSuccess(
-            v ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("sessionId", sessionId)
                     .addKeyValue("workflowId", workflowDefinition.workflowId())
@@ -261,9 +261,9 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return executeCommand(
             buildCommand(new PauseWorkflowCommand(executionId), CONTROL_COMMAND_PRIORITY))
         .doOnSubscribe(
-            sub -> log.atInfo().addKeyValue("executionId", executionId).log("Pausing workflow"))
+            _ -> log.atInfo().addKeyValue("executionId", executionId).log("Pausing workflow"))
         .doOnSuccess(
-            v ->
+            _ ->
                 log.atDebug()
                     .addKeyValue("executionId", executionId)
                     .log("Workflow pause command executed"))
@@ -280,9 +280,9 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return executeCommand(
             buildCommand(new ResumeWorkflowCommand(executionId), CONTROL_COMMAND_PRIORITY))
         .doOnSubscribe(
-            sub -> log.atInfo().addKeyValue("executionId", executionId).log("Resuming workflow"))
+            _ -> log.atInfo().addKeyValue("executionId", executionId).log("Resuming workflow"))
         .doOnSuccess(
-            v ->
+            _ ->
                 log.atDebug()
                     .addKeyValue("executionId", executionId)
                     .log("Workflow resume command executed"))
@@ -299,13 +299,13 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return executeCommand(
             buildCommand(new PauseNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("nodeId", nodeId)
                     .log("Pausing node"))
         .doOnSuccess(
-            v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node pause command executed"))
+            _ -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node pause command executed"))
         .doOnError(
             err ->
                 log.atError()
@@ -320,13 +320,13 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return executeCommand(
             buildCommand(new ResumeNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("nodeId", nodeId)
                     .log("Resuming node"))
         .doOnSuccess(
-            v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node resume command executed"))
+            _ -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node resume command executed"))
         .doOnError(
             err ->
                 log.atError()
@@ -344,7 +344,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
                 new StopNodeCommand(executionId, nodeId, immediate, reason),
                 CONTROL_COMMAND_PRIORITY + 10))
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("nodeId", nodeId)
@@ -352,7 +352,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
                     .addKeyValue("reason", reason)
                     .log("Stopping node"))
         .doOnSuccess(
-            v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node stop command executed"))
+            _ -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node stop command executed"))
         .doOnError(
             err ->
                 log.atError()
@@ -384,7 +384,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
                             CONTROL_COMMAND_PRIORITY + 20))
                     .thenReturn(control.executionId()))
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("sessionId", sessionId)
                     .addKeyValue("workflowId", workflowId)
@@ -411,14 +411,14 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return executeCommand(
             buildCommand(new SkipNodeCommand(executionId, nodeId, skip), CONTROL_COMMAND_PRIORITY))
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("nodeId", nodeId)
                     .addKeyValue("skip", skip)
                     .log("Toggling node skip"))
         .doOnSuccess(
-            v ->
+            _ ->
                 log.atDebug()
                     .addKeyValue("nodeId", nodeId)
                     .addKeyValue("skip", skip)
@@ -437,12 +437,12 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return executeCommand(
             buildCommand(new EnableStepModeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("nodeId", nodeId)
                     .log("Enabling step mode"))
-        .doOnSuccess(v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Step mode enabled"))
+        .doOnSuccess(_ -> log.atDebug().addKeyValue("nodeId", nodeId).log("Step mode enabled"))
         .doOnError(
             err ->
                 log.atError()
@@ -457,12 +457,12 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return executeCommand(
             buildCommand(new DisableStepModeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("nodeId", nodeId)
                     .log("Disabling step mode"))
-        .doOnSuccess(v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Step mode disabled"))
+        .doOnSuccess(_ -> log.atDebug().addKeyValue("nodeId", nodeId).log("Step mode disabled"))
         .doOnError(
             err ->
                 log.atError()
@@ -477,13 +477,13 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return executeCommand(
             buildCommand(new StepNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("nodeId", nodeId)
                     .log("Stepping through node"))
         .doOnSuccess(
-            v -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node step command executed"))
+            _ -> log.atDebug().addKeyValue("nodeId", nodeId).log("Node step command executed"))
         .doOnError(
             err ->
                 log.atError()
@@ -499,7 +499,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return executeCommand(
             buildCommand(new RestartCommand(executionId), CONTROL_COMMAND_PRIORITY + 20))
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("newExecutionId", newExecutionId)
@@ -526,7 +526,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
             buildCommand(
                 new RestartFromNodeCommand(executionId, fromNodeId), CONTROL_COMMAND_PRIORITY + 20))
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("fromNodeId", fromNodeId)
@@ -559,7 +559,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return taskTracker
         .getStatusStream(executionId)
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atDebug()
                     .addKeyValue("executionId", executionId)
                     .log("Subscribed to execution status stream"))
@@ -584,7 +584,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     return taskTracker
         .getLogStream(executionId)
         .doOnSubscribe(
-            sub ->
+            _ ->
                 log.atDebug()
                     .addKeyValue("executionId", executionId)
                     .log("Subscribed to log stream"))

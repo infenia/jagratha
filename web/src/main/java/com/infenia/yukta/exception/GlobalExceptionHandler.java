@@ -19,6 +19,7 @@ import com.infenia.yukta.model.api.ApiResponse;
 import jakarta.annotation.Nullable;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -136,7 +137,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         exception.getResourceType() != null && exception.getResourceId() != null
             ? List.of(
                 new ApiResponse.FieldError(
-                    exception.getResourceType().toLowerCase(), exception.getMessage()))
+                    exception.getResourceType().toLowerCase(Locale.ENGLISH),
+                    exception.getMessage()))
             : List.of();
 
     final String path = request.getPath().value();

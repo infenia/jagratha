@@ -72,7 +72,7 @@ class WorkflowControllerTest {
 
     webClient
         .post()
-        .uri("/api/workflow/trigger")
+        .uri("/api/workflow/start")
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(request)
         .exchange()
@@ -82,7 +82,7 @@ class WorkflowControllerTest {
         .jsonPath("$.status")
         .isEqualTo(202)
         .jsonPath("$.message")
-        .isEqualTo("Workflow trigger accepted")
+        .isEqualTo("Workflow start accepted")
         .jsonPath("$.data.executionId")
         .isEqualTo(executionId);
   }
@@ -99,7 +99,7 @@ class WorkflowControllerTest {
 
     webClient
         .post()
-        .uri("/api/workflow/trigger")
+        .uri("/api/workflow/start")
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(request)
         .exchange()
@@ -107,9 +107,9 @@ class WorkflowControllerTest {
         .isAccepted();
 
     assertThat(output.toString())
-        .contains("triggerWorkflow: sessionId=session-1, workflowId=w1")
-        .contains("triggerWorkflow service call succeeded")
-        .contains("triggerWorkflow response sent successfully");
+        .contains("startWorkflow: sessionId=session-1, workflowId=w1")
+        .contains("startWorkflow service call succeeded")
+        .contains("startWorkflow response sent successfully");
   }
 
   @Test
@@ -121,7 +121,7 @@ class WorkflowControllerTest {
 
     webClient
         .post()
-        .uri("/api/workflow/trigger")
+        .uri("/api/workflow/start")
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(request)
         .exchange()
@@ -143,7 +143,7 @@ class WorkflowControllerTest {
 
     webClient
         .post()
-        .uri("/api/workflow/trigger")
+        .uri("/api/workflow/start")
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(request)
         .exchange()
@@ -151,8 +151,8 @@ class WorkflowControllerTest {
         .isNotFound();
 
     assertThat(output.toString())
-        .contains("triggerWorkflow: sessionId=session-1, workflowId=w1")
-        .contains("triggerWorkflow error occurred")
+        .contains("startWorkflow: sessionId=session-1, workflowId=w1")
+        .contains("startWorkflow error occurred")
         .contains("Workflow not found");
   }
 

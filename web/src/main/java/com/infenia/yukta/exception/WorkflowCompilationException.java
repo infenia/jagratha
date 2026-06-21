@@ -18,6 +18,8 @@ package com.infenia.yukta.exception;
 /** Thrown when a workflow fails to compile or cache during preparation. */
 public class WorkflowCompilationException extends RuntimeException {
 
+  private static final long serialVersionUID = 1L;
+
   private final String sessionId;
   private final String workflowId;
 

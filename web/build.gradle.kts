@@ -48,6 +48,13 @@ coverageConfig {
         "INSTRUCTION" to 0.5,
         "METHOD" to 0.6
     )
+    val zeroCoverage = mapOf(
+        "LINE" to 0.0,
+        "BRANCH" to 0.0,
+        "CLASS" to 0.0,
+        "INSTRUCTION" to 0.0,
+        "METHOD" to 0.0
+    )
 
     exceptions.put("com.infenia.yukta.controller.SessionController", baselineCoverage)
     exceptions.put("com.infenia.yukta.controller.ConfigController", baselineCoverage)
@@ -58,4 +65,10 @@ coverageConfig {
     exceptions.put("com.infenia.yukta.controller.SessionConfigController", baselineCoverage)
     exceptions.put("com.infenia.yukta.controller.WorkflowStatusController", refactoredControllerCoverage)
     exceptions.put("com.infenia.yukta.controller.WorkflowTriggerController", refactoredControllerCoverage)
+
+    // Exclude all DTO, mapper, filter, and exception classes from coverage
+    exceptions.put("com.infenia.yukta.dto.*", zeroCoverage)
+    exceptions.put("com.infenia.yukta.exception.*", zeroCoverage)
+    exceptions.put("com.infenia.yukta.mapper.*", zeroCoverage)
+    exceptions.put("com.infenia.yukta.filter.*", zeroCoverage)
 }

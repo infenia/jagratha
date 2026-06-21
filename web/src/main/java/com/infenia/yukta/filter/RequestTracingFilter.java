@@ -31,6 +31,11 @@ public class RequestTracingFilter implements WebFilter {
   private static final String X_REQUEST_ID = "X-Request-ID";
   private static final String X_CORRELATION_ID = "X-Correlation-ID";
 
+  /** Default constructor. */
+  public RequestTracingFilter() {
+    super();
+  }
+
   @Override
   public Mono<Void> filter(final ServerWebExchange exchange, final WebFilterChain chain) {
     final String requestId = exchange.getRequest().getHeaders().getFirst(X_REQUEST_ID);

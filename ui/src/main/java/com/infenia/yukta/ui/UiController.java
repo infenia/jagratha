@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.ui;
 
-import com.infenia.yukta.model.api.PluginDetails;
+import com.infenia.yukta.dto.response.PluginDetails;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;

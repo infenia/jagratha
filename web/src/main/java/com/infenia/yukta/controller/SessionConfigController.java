@@ -55,6 +55,9 @@ import reactor.core.publisher.Mono;
     description = "Endpoints for session and workflow discovery, configuration management")
 public class SessionConfigController {
   private static final String APPLICATION_JSON = "application/json";
+  private static final String HTTP_200 = "200";
+  private static final String HTTP_500 = "500";
+  private static final String INTERNAL_SERVER_ERROR = "Internal server error";
 
   private final SessionService sessionService;
   private final SessionMapper sessionMapper;
@@ -73,7 +76,7 @@ public class SessionConfigController {
           "Retrieves details of a specific session including workflow IDs. Response is non-blocking"
               + " and returned asynchronously via Mono.")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
-      responseCode = "200",
+      responseCode = HTTP_200,
       description = "Session details retrieved successfully",
       content = @Content(mediaType = APPLICATION_JSON))
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -81,8 +84,8 @@ public class SessionConfigController {
       description = "Session not found",
       content = @Content(mediaType = APPLICATION_JSON))
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
-      responseCode = "500",
-      description = "Internal server error",
+      responseCode = HTTP_500,
+      description = INTERNAL_SERVER_ERROR,
       content = @Content(mediaType = APPLICATION_JSON))
   @SuppressWarnings("unchecked")
   public Mono<ResponseEntity<ApiResponse<SessionDetails>>> getSessionDetails(
@@ -155,12 +158,12 @@ public class SessionConfigController {
           "Retrieves a list of all available session identifiers in the system. Response is"
               + " non-blocking and returned asynchronously via Mono.")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
-      responseCode = "200",
+      responseCode = HTTP_200,
       description = "Sessions retrieved successfully",
       content = @Content(mediaType = APPLICATION_JSON))
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
-      responseCode = "500",
-      description = "Internal server error",
+      responseCode = HTTP_500,
+      description = INTERNAL_SERVER_ERROR,
       content = @Content(mediaType = APPLICATION_JSON))
   public Mono<ResponseEntity<ApiResponse<SessionList>>> listSessions() {
     log.atInfo().log("listSessions: retrieving all session IDs");
@@ -213,7 +216,7 @@ public class SessionConfigController {
           "Retrieves the definition of a workflow. Response is non-blocking and returned"
               + " asynchronously via Mono.")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
-      responseCode = "200",
+      responseCode = HTTP_200,
       description = "Workflow retrieved successfully",
       content = @Content(mediaType = APPLICATION_JSON))
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -221,8 +224,8 @@ public class SessionConfigController {
       description = "Workflow not found in the specified session",
       content = @Content(mediaType = APPLICATION_JSON))
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
-      responseCode = "500",
-      description = "Internal server error",
+      responseCode = HTTP_500,
+      description = INTERNAL_SERVER_ERROR,
       content = @Content(mediaType = APPLICATION_JSON))
   public Mono<ResponseEntity<ApiResponse<WorkflowDefinition>>> getWorkflow(
       @Parameter(description = "The unique identifier of the session") @PathVariable
@@ -304,7 +307,7 @@ public class SessionConfigController {
               + " Configures project paths, workflow definitions, and session metadata. Response is"
               + " non-blocking and returned asynchronously via Mono.")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
-      responseCode = "200",
+      responseCode = HTTP_200,
       description = "Session configuration applied successfully",
       content = @Content(mediaType = APPLICATION_JSON))
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -312,8 +315,8 @@ public class SessionConfigController {
       description = "Invalid configuration data provided in the request",
       content = @Content(mediaType = APPLICATION_JSON))
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
-      responseCode = "500",
-      description = "Internal server error",
+      responseCode = HTTP_500,
+      description = INTERNAL_SERVER_ERROR,
       content = @Content(mediaType = APPLICATION_JSON))
   public Mono<ResponseEntity<ApiResponse<Void>>> applyConfig(
       @Valid
