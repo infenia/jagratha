@@ -17,6 +17,7 @@ package com.infenia.yukta.controller;
 
 import com.infenia.yukta.dto.request.ConfigRequest;
 import com.infenia.yukta.dto.response.SessionDetails;
+import com.infenia.yukta.dto.response.SessionList;
 import com.infenia.yukta.mapper.SessionMapper;
 import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.model.session.SessionConfigData;
@@ -139,6 +140,52 @@ public class SessionConfigController {
                     .log(
                         "getSessionDetails error occurred: sessionId={}, error={}",
                         sessionId,
+                        error.getMessage()));
+  }
+
+  /**
+   * List all available sessions.
+   *
+   * @return list of all session identifiers
+   */
+  @GetMapping
+  @Operation(
+      summary = "List all sessions",
+      description =
+          "Retrieves a list of all available session identifiers in the system. Response is"
+              + " non-blocking and returned asynchronously via Mono.")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Sessions retrieved successfully",
+      content = @Content(mediaType = APPLICATION_JSON))
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "500",
+      description = "Internal server error",
+      content = @Content(mediaType = APPLICATION_JSON))
+  public Mono<ResponseEntity<ApiResponse<SessionList>>> listSessions() {
+    log.atInfo().log("listSessions: retrieving all session IDs");
+    return sessionService
+        .getSessionIds()
+        .collectList()
+        .map(
+            sessionIds -> {
+              log.atDebug().log("listSessions: found {} sessions", sessionIds.size());
+              return new SessionList(sessionIds);
+            })
+        .map(
+            sessionList ->
+                ResponseEntity.ok(
+                    ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        "Sessions retrieved successfully",
+                        sessionList)))
+        .doOnSuccess(
+            _ -> log.atInfo().log("listSessions: response sent successfully"))
+        .doOnError(
+            error ->
+                log.atError()
+                    .log(
+                        "listSessions: error occurred: {}",
                         error.getMessage()));
   }
 
