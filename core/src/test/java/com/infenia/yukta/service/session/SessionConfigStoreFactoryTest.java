@@ -39,8 +39,6 @@ class SessionConfigStoreFactoryTest {
 
   @Autowired private ApplicationContext context;
 
-  @Autowired private SessionConfigStoreFactory factory;
-
   @Test
   @DisplayName("should create InMemorySessionConfigStore bean when store-type is in-memory")
   void testInMemoryStoreCreated() {
@@ -56,13 +54,13 @@ class SessionConfigStoreFactoryTest {
   }
 
   @Test
-  @DisplayName("should return InMemorySessionConfigStore from factory")
-  void testFactoryReturnsInMemoryStore() {
-    SessionConfigStore store = factory.getStore();
-    assertNotNull(store, "Factory should return a non-null store");
+  @DisplayName("should inject InMemorySessionConfigStore bean")
+  void testInMemoryStoreInjected() {
+    SessionConfigStore store = context.getBean(SessionConfigStore.class);
+    assertNotNull(store, "SessionConfigStore bean should exist");
     assertInstanceOf(
         InMemorySessionConfigStore.class,
         store,
-        "Factory should return InMemorySessionConfigStore instance");
+        "Injected store should be InMemorySessionConfigStore instance");
   }
 }

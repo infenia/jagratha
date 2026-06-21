@@ -21,6 +21,7 @@ import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
+import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -76,6 +77,11 @@ public class FileSessionConfigStore implements SessionConfigStore {
       String initiator,
       String initiatedTime,
       Map<String, String> tags) {}
+
+  @PostConstruct
+  void logInitialization() {
+    log.info("Using SessionConfigStore with type: file");
+  }
 
   @Override
   public Mono<Void> applySessionConfig(@Valid final SessionConfigData data) {

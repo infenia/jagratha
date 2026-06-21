@@ -38,8 +38,6 @@ class SessionConfigStoreFactoryFileTest {
 
   @Autowired private ApplicationContext context;
 
-  @Autowired private SessionConfigStoreFactory factory;
-
   @Test
   @DisplayName("should create FileSessionConfigStore bean when store-type is file")
   void testFileStoreCreated() {
@@ -55,13 +53,13 @@ class SessionConfigStoreFactoryFileTest {
   }
 
   @Test
-  @DisplayName("should return FileSessionConfigStore from factory")
-  void testFactoryReturnsFileStore() {
-    SessionConfigStore store = factory.getStore();
-    assertNotNull(store, "Factory should return a non-null store");
+  @DisplayName("should inject FileSessionConfigStore bean")
+  void testFileStoreInjected() {
+    SessionConfigStore store = context.getBean(SessionConfigStore.class);
+    assertNotNull(store, "SessionConfigStore bean should exist");
     assertInstanceOf(
         FileSessionConfigStore.class,
         store,
-        "Factory should return FileSessionConfigStore instance");
+        "Injected store should be FileSessionConfigStore instance");
   }
 }

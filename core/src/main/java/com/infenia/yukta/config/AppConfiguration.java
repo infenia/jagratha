@@ -17,8 +17,6 @@ package com.infenia.yukta.config;
 
 import com.infenia.yukta.service.control.store.ExecutionControlStore;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
-import com.infenia.yukta.service.session.SessionConfigStore;
-import com.infenia.yukta.service.session.SessionConfigStoreFactory;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -72,18 +70,6 @@ public class AppConfiguration {
   @Bean
   public Duration heartbeatInterval(final YuktaProperties properties) {
     return Duration.ofSeconds(properties.getHeartbeatIntervalSeconds());
-  }
-
-  /**
-   * Provide the configured SessionConfigStore instance based on store-type property.
-   *
-   * @param factory the store factory
-   * @return the configured SessionConfigStore
-   */
-  @Bean
-  @ConditionalOnMissingBean
-  public SessionConfigStore sessionConfigStore(final SessionConfigStoreFactory factory) {
-    return factory.getStore();
   }
 
   /**

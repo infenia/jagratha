@@ -20,6 +20,7 @@ import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import com.infenia.yukta.validation.ProjectPath;
 import com.infenia.yukta.validation.SessionId;
+import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Map;
@@ -52,6 +53,11 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
   private final Map<String, String> initiatedTimes = new ConcurrentHashMap<>();
   private final Map<String, Map<String, String>> tagsMap = new ConcurrentHashMap<>();
   private final Map<String, String> descriptions = new ConcurrentHashMap<>();
+
+  @PostConstruct
+  void logInitialization() {
+    log.info("Using SessionConfigStore with type: in-memory");
+  }
 
   @Override
   public Mono<Void> applySessionConfig(@Valid final SessionConfigData data) {
