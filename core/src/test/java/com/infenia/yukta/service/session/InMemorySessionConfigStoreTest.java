@@ -319,4 +319,76 @@ class InMemorySessionConfigStoreTest {
         .expectNext("/multi/path")
         .verifyComplete();
   }
+
+  @Test
+  void setInitiatorOnExistingSessionWithEmptyInitiator() {
+    String sessionId = "sess-empty-initiator";
+    configService.setProjectPath(sessionId, "/path").block();
+
+    StepVerifier.create(configService.setInitiator(sessionId, "new-initiator")).verifyComplete();
+    StepVerifier.create(configService.getInitiator(sessionId))
+        .expectNext("new-initiator")
+        .verifyComplete();
+  }
+
+  @Test
+  void setDescriptionOnExistingSessionWithEmptyDescription() {
+    String sessionId = "sess-empty-description";
+    configService.setProjectPath(sessionId, "/path").block();
+
+    StepVerifier.create(configService.setDescription(sessionId, "new-description"))
+        .verifyComplete();
+    StepVerifier.create(configService.getDescription(sessionId))
+        .expectNext("new-description")
+        .verifyComplete();
+  }
+
+  @Test
+  void setInitiatedTimeOnExistingSessionWithEmptyInitiatedTime() {
+    String sessionId = "sess-empty-time";
+    configService.setProjectPath(sessionId, "/path").block();
+
+    StepVerifier.create(configService.setInitiatedTime(sessionId, "2026-06-21T10:00:00Z"))
+        .verifyComplete();
+    StepVerifier.create(configService.getInitiatedTime(sessionId))
+        .expectNext("2026-06-21T10:00:00Z")
+        .verifyComplete();
+  }
+
+  @Test
+  void setTagsOnExistingSessionWithEmptyTags() {
+    String sessionId = "sess-empty-tags";
+    configService.setProjectPath(sessionId, "/path").block();
+
+    Map<String, String> newTags = Map.of("env", "test");
+    StepVerifier.create(configService.setTags(sessionId, newTags)).verifyComplete();
+    StepVerifier.create(configService.getTags(sessionId)).expectNext(newTags).verifyComplete();
+  }
+
+  @Test
+  void multipleFieldsCanBeSetIndependentlyOnNewSession() {
+    String sessionId = "sess-multi-fields";
+
+    configService.setProjectPath(sessionId, "/path").block();
+    configService.setInitiator(sessionId, "initiator1").block();
+    configService.setDescription(sessionId, "desc1").block();
+    configService.setInitiatedTime(sessionId, "time1").block();
+    configService.setTags(sessionId, Map.of("k1", "v1")).block();
+
+    StepVerifier.create(configService.getProjectPath(sessionId))
+        .expectNext("/path")
+        .verifyComplete();
+    StepVerifier.create(configService.getInitiator(sessionId))
+        .expectNext("initiator1")
+        .verifyComplete();
+    StepVerifier.create(configService.getDescription(sessionId))
+        .expectNext("desc1")
+        .verifyComplete();
+    StepVerifier.create(configService.getInitiatedTime(sessionId))
+        .expectNext("time1")
+        .verifyComplete();
+    StepVerifier.create(configService.getTags(sessionId))
+        .expectNext(Map.of("k1", "v1"))
+        .verifyComplete();
+  }
 }
