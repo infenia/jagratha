@@ -16,42 +16,32 @@
 package com.infenia.yukta.service.session;
 
 import com.infenia.yukta.config.SessionConfigProperties;
-import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.ObjectMapper;
 
 /**
- * Factory for creating SessionConfigStore instances based on configuration. Allows runtime
- * selection of store implementation via the yukta.session.store-type property.
+ * Factory for providing the configured SessionConfigStore instance. Store selection is
+ * delegated to Spring's conditional bean creation based on yukta.session.store-type property.
  */
 @Slf4j
 @Component
 public class SessionConfigStoreFactory {
 
-  private final InMemorySessionConfigStore inMemoryStore;
-
-  private final FileSessionConfigStore fileStore;
-
+  private final SessionConfigStore configuredStore;
   private final SessionConfigProperties props;
 
   /**
-   * Constructs the factory with available store implementations.
+   * Constructs the factory with the conditionally-created store implementation.
    *
-   * @param inMemoryStore the in-memory store implementation
-   * @param objectMapper the JSON object mapper
+   * @param configuredStore the store implementation selected by Spring based on configuration
    * @param props the session configuration properties
-   * @param workflowDefinitionStore the workflow definition store
    */
   @Autowired
   public SessionConfigStoreFactory(
-      final InMemorySessionConfigStore inMemoryStore,
-      final ObjectMapper objectMapper,
-      final SessionConfigProperties props,
-      final WorkflowDefinitionStore workflowDefinitionStore) {
-    this.inMemoryStore = inMemoryStore;
-    this.fileStore = new FileSessionConfigStore(props, objectMapper, workflowDefinitionStore);
+      final SessionConfigStore configuredStore,
+      final SessionConfigProperties props) {
+    this.configuredStore = configuredStore;
     this.props = props;
   }
 
@@ -62,15 +52,7 @@ public class SessionConfigStoreFactory {
    */
   public SessionConfigStore getStore() {
     final String storeType = props.getStoreType();
-    log.info("Creating SessionConfigStore with type: {}", storeType);
-
-    return switch (storeType) {
-      case "in-memory" -> inMemoryStore;
-      case "file" -> fileStore;
-      default -> {
-        log.warn("Unknown store type '{}', defaulting to in-memory", storeType);
-        yield inMemoryStore;
-      }
-    };
+    log.info("Using SessionConfigStore with type: {}", storeType);
+    return configuredStore;
   }
 }
