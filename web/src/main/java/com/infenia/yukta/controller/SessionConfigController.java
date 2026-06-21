@@ -176,17 +176,11 @@ public class SessionConfigController {
             sessionList ->
                 ResponseEntity.ok(
                     ApiResponse.success(
-                        HttpStatus.OK.value(),
-                        "Sessions retrieved successfully",
-                        sessionList)))
-        .doOnSuccess(
-            _ -> log.atInfo().log("listSessions: response sent successfully"))
+                        HttpStatus.OK.value(), "Sessions retrieved successfully", sessionList)))
+        .doOnSuccess(_ -> log.atInfo().log("listSessions: response sent successfully"))
         .onErrorResume(
             error -> {
-              log.atError()
-                  .log(
-                      "listSessions: error occurred: {}",
-                      error.getMessage());
+              log.atError().log("listSessions: error occurred: {}", error.getMessage());
               final String path = "/api/sessions";
               final List<ApiResponse.FieldError> errors =
                   List.of(
