@@ -16,25 +16,16 @@
 package com.infenia.yukta.service.workflow;
 
 import com.infenia.yukta.model.session.TaskResponse;
-import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
-import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
-import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
-import com.infenia.yukta.service.workflow.store.PreparedWorkflowCache;
-import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
-import reactor.core.scheduler.Schedulers;
 
 /** Service for orchestrating workflow execution. */
 @Slf4j
@@ -44,19 +35,11 @@ import reactor.core.scheduler.Schedulers;
 @SuppressWarnings("PMD.LongVariable")
 public class WorkflowService {
 
-  // Logging key constants
   private static final String LOG_KEY_SESSION_ID = "sessionId";
   private static final String LOG_KEY_WORKFLOW_ID = "workflowId";
   private static final String LOG_KEY_EXECUTION_ID = "executionId";
-  private static final String LOG_KEY_QUEUE_KEY = "queueKey";
-  private static final String LOG_KEY_ERROR_MSG = "errorMessage";
 
-  private final WorkflowOrchestrator orchestrator;
-  private final TaskTrackerService tracker;
-  private final WorkflowDefinitionStore workflowDefinitionStore;
-  private final PreparedWorkflowCache preparedWorkflowCache;
-
-  private final Map<String, Mono<Void>> workflowQueues = new ConcurrentHashMap<>();
+  private final ControlBusGateway controlBus;
 
   /**
    * Validate and run a specific workflow for a session.
@@ -73,189 +56,31 @@ public class WorkflowService {
         .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
         .log("Validating and triggering workflow");
 
-    return workflowDefinitionStore
-        .find(sessionId, workflowId)
-        .doOnNext(
-            def -> {
-              log.atDebug()
-                  .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
-                  .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-                  .addKeyValue("nodeCount", def.nodes().size())
-                  .addKeyValue("edgeCount", def.edges().size())
-                  .log("Workflow definition found and loaded");
-            })
-        .switchIfEmpty(
-            Mono.defer(
-                () -> {
-                  log.atWarn()
-                      .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
-                      .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-                      .log("Workflow definition not found");
-                  return Mono.error(workflowNotFound(sessionId, workflowId));
-                }))
+    return controlBus
+        .startWorkflow(sessionId, workflowId)
         .map(
-            _ -> {
+            executionId -> {
               log.atDebug()
-                  .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
-                  .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-                  .log("Extracted node IDs from workflow definition");
-              return runWorkflow(sessionId, workflowId);
-            });
-  }
-
-  private WorkflowExecution runWorkflow(final String sessionId, final String workflowId) {
-    final String executionId = UUID.randomUUID().toString();
-    final String queueKey = sessionId + ":" + workflowId;
-    final Sinks.One<TaskResponse> sink = Sinks.one();
-
-    log.atInfo()
-        .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
-        .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-        .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-        .log("Submitting workflow execution request");
-
-    workflowQueues
-        .compute(
-            queueKey,
-            (_, previousTail) -> {
-              log.atDebug()
-                  .addKeyValue(LOG_KEY_QUEUE_KEY, queueKey)
-                  .addKeyValue("queuedExecutions", previousTail != null ? 1 : 0)
-                  .log("Processing workflow queue");
-
-              final Mono<Void> current =
-                  Mono.defer(() -> resolveAndExecute(sessionId, workflowId, executionId, sink))
-                      .subscribeOn(Schedulers.boundedElastic());
-
-              // TODO: What is the relevance of this code?
-              final Mono<Void> nextTail;
-              if (previousTail == null) {
-                log.atTrace()
-                    .addKeyValue(LOG_KEY_QUEUE_KEY, queueKey)
-                    .log("First execution in queue, starting immediately");
-                nextTail = current;
-              } else {
-                log.atDebug()
-                    .addKeyValue(LOG_KEY_QUEUE_KEY, queueKey)
-                    .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                    .log("Queueing execution behind previous workflow");
-                nextTail =
-                    previousTail
-                        .onErrorResume(
-                            e -> {
-                              log.atWarn()
-                                  .setCause(e)
-                                  .addKeyValue(LOG_KEY_QUEUE_KEY, queueKey)
-                                  .log("Previous workflow failed, proceeding with current");
-                              return Mono.empty();
-                            })
-                        .then(current);
-              }
-              @SuppressWarnings("unchecked")
-              final Mono<Void>[] tailRef = new Mono[1];
-              tailRef[0] =
-                  nextTail
-                      .doOnSuccess(
-                          v ->
-                              log.atDebug()
-                                  .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                                  .log("Workflow completed successfully"))
-                      .doOnError(
-                          e ->
-                              log.atError()
-                                  .setCause(e)
-                                  .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                                  .log("Workflow execution error"))
-                      .doOnTerminate(
-                          () -> {
-                            log.atTrace()
-                                .addKeyValue(LOG_KEY_QUEUE_KEY, queueKey)
-                                .log("Cleaning up queue entry");
-                            workflowQueues.computeIfPresent(
-                                queueKey,
-                                (k, tail) -> {
-                                  if (tail.equals(tailRef[0])) {
-                                    log.atDebug()
-                                        .addKeyValue(LOG_KEY_QUEUE_KEY, queueKey)
-                                        .log("Removing queue entry");
-                                    return null;
-                                  }
-                                  return tail;
-                                });
-                          })
-                      .cache();
-              return tailRef[0];
-            })
-        .subscribe();
-
-    return new WorkflowExecution(executionId, sink.asMono());
-  }
-
-  private static IllegalArgumentException workflowNotFound(
-      final String sessionId, final String workflowId) {
-    return new IllegalArgumentException(
-        "Workflow not found for session: " + sessionId + ", workflow: " + workflowId);
-  }
-
-  private Mono<Void> resolveAndExecute(
-      final String sessionId,
-      final String workflowId,
-      final String executionId,
-      final Sinks.One<TaskResponse> sink) {
-    final Optional<PreparedWorkflow> cached = preparedWorkflowCache.get(sessionId, workflowId);
-    final Mono<PreparedWorkflow> preparedMono;
-    if (cached.isPresent()) {
-      log.atDebug()
-          .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
-          .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-          .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-          .log("Using cached PreparedWorkflow");
-      preparedMono = Mono.just(cached.get());
-    } else {
-      preparedMono =
-          workflowDefinitionStore
-              .find(sessionId, workflowId)
-              .switchIfEmpty(Mono.error(workflowNotFound(sessionId, workflowId)))
-              .flatMap(
-                  def -> {
-                    log.atTrace()
-                        .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
-                        .log("Workflow definition loaded from store");
-                    return orchestrator
-                        .prepareWorkflow(def)
-                        .doOnNext(
-                            p -> {
-                              log.atDebug()
-                                  .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                                  .log("Workflow prepared and cached");
-                              preparedWorkflowCache.put(sessionId, workflowId, p);
-                            });
-                  });
-    }
-    return preparedMono
-        .flatMap(
-            prepared ->
-                orchestrator.execute(sessionId, workflowId, executionId, prepared, Map.of()))
-        .then(Mono.just(new TaskResponse("SUCCESS", "Workflow executed successfully")))
-        .onErrorResume(
-            e -> {
-              log.atError()
-                  .setCause(e)
                   .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
                   .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
                   .addKeyValue(LOG_KEY_EXECUTION_ID, executionId)
-                  .addKeyValue(LOG_KEY_ERROR_MSG, e.getMessage())
-                  .log("Workflow execution failed");
-              return tracker
-                  .finishWorkflow(executionId, "FAILURE")
-                  .onErrorComplete()
-                  .thenReturn(new TaskResponse("FAILURE", "Workflow failed: " + e.getMessage()));
+                  .log("Workflow execution initiated via control bus");
+              final Mono<TaskResponse> resultMono =
+                  Mono.just(new TaskResponse("PENDING", "Workflow execution in progress"));
+              return new WorkflowExecution(executionId, resultMono);
             })
-        .flatMap(
-            response -> {
-              sink.tryEmitValue(response);
-              return Mono.empty();
-            })
-        .then();
+        .doOnSuccess(
+            _ ->
+                log.atInfo()
+                    .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+                    .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+                    .log("Workflow validation and start completed"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
+                    .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
+                    .log("Failed to validate and start workflow"));
   }
 }

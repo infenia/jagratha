@@ -39,7 +39,10 @@ import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.execution.status.ExecutionStatusEvent;
 import com.infenia.yukta.service.execution.status.ExecutionStatusPublisher;
+import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
+import com.infenia.yukta.service.workflow.store.PreparedWorkflowCache;
+import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
@@ -78,6 +81,9 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
   private final ControlBusService controlBusService;
   private final DefaultTaskTrackerService taskTracker;
   private final ExecutionControlRegistry executionControlRegistry;
+  private final WorkflowOrchestrator orchestrator;
+  private final WorkflowDefinitionStore workflowDefinitionStore;
+  private final PreparedWorkflowCache preparedWorkflowCache;
   private final Sinks.Many<ExecutionStatusEvent> statusSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
 
@@ -247,6 +253,98 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
   }
 
   // --- Execution Control ---
+
+  @Override
+  public Mono<String> startWorkflow(final String sessionId, final String workflowId) {
+    log.atInfo()
+        .addKeyValue("sessionId", sessionId)
+        .addKeyValue("workflowId", workflowId)
+        .log("Starting workflow execution");
+
+    return workflowDefinitionStore
+        .find(sessionId, workflowId)
+        .switchIfEmpty(
+            Mono.defer(
+                () -> {
+                  log.atWarn()
+                      .addKeyValue("sessionId", sessionId)
+                      .addKeyValue("workflowId", workflowId)
+                      .log("Workflow definition not found");
+                  return Mono.error(
+                      new IllegalArgumentException(
+                          "Workflow not found for session: "
+                              + sessionId
+                              + ", workflow: "
+                              + workflowId));
+                }))
+        .flatMap(
+            def -> {
+              log.atDebug()
+                  .addKeyValue("sessionId", sessionId)
+                  .addKeyValue("workflowId", workflowId)
+                  .addKeyValue("nodeCount", def.nodes().size())
+                  .addKeyValue("edgeCount", def.edges().size())
+                  .log("Workflow definition found and loaded");
+
+              final String executionId = UUID.randomUUID().toString();
+              return prepareAndExecute(sessionId, workflowId, def, executionId);
+            })
+        .doOnSuccess(
+            executionId ->
+                log.atInfo()
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("workflowId", workflowId)
+                    .addKeyValue("executionId", executionId)
+                    .log("Workflow execution started successfully"))
+        .doOnError(
+            err ->
+                log.atError()
+                    .setCause(err)
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("workflowId", workflowId)
+                    .log("Failed to start workflow execution"));
+  }
+
+  private Mono<String> prepareAndExecute(
+      final String sessionId,
+      final String workflowId,
+      final com.infenia.yukta.model.workflow.WorkflowDefinition def,
+      final String executionId) {
+    return Mono.defer(
+            () -> {
+              log.atDebug()
+                  .addKeyValue("sessionId", sessionId)
+                  .addKeyValue("workflowId", workflowId)
+                  .addKeyValue("executionId", executionId)
+                  .log("Preparing workflow for execution");
+
+              final java.util.Optional<com.infenia.yukta.model.workflow.PreparedWorkflow> cached =
+                  preparedWorkflowCache.get(sessionId, workflowId);
+              if (cached.isPresent()) {
+                log.atDebug()
+                    .addKeyValue("sessionId", sessionId)
+                    .addKeyValue("workflowId", workflowId)
+                    .addKeyValue("executionId", executionId)
+                    .log("Using cached PreparedWorkflow");
+                return Mono.just(cached.get());
+              } else {
+                return orchestrator
+                    .prepareWorkflow(def)
+                    .doOnNext(
+                        prepared -> {
+                          log.atDebug()
+                              .addKeyValue("executionId", executionId)
+                              .log("Workflow prepared and caching");
+                          preparedWorkflowCache.put(sessionId, workflowId, prepared);
+                        });
+              }
+            })
+        .flatMap(
+            prepared ->
+                orchestrator
+                    .execute(sessionId, workflowId, executionId, prepared, Map.of())
+                    .thenReturn(executionId));
+  }
 
   @Override
   public <T extends ExecutionControlCommand> Mono<Void> executeCommand(final Message<T> command) {

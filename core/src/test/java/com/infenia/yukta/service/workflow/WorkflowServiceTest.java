@@ -15,24 +15,11 @@
  */
 package com.infenia.yukta.service.workflow;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.session.TaskResponse;
-import com.infenia.yukta.model.workflow.PreparedWorkflow;
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowExecution;
-import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
-import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
-import com.infenia.yukta.service.workflow.store.PreparedWorkflowCache;
-import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
-import java.util.List;
-import java.util.Map;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,462 +31,42 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class WorkflowServiceTest {
 
-  @Mock private WorkflowOrchestrator orchestrator;
-  @Mock private TaskTrackerService tracker;
-  @Mock private WorkflowDefinitionStore workflowDefinitionStore;
+  @Mock private ControlBusGateway controlBus;
 
-  private PreparedWorkflowCache preparedWorkflowCache;
   private WorkflowService workflowService;
 
   @BeforeEach
   void setUp() {
-    lenient().when(tracker.startWorkflow(any(), any(), any(), any())).thenReturn(Mono.empty());
-    lenient().when(tracker.finishWorkflow(any(), any())).thenReturn(Mono.empty());
-    preparedWorkflowCache = new PreparedWorkflowCache(600_000L); // real instance, long TTL
-    workflowService =
-        new WorkflowService(orchestrator, tracker, workflowDefinitionStore, preparedWorkflowCache);
+    workflowService = new WorkflowService(controlBus);
   }
 
   @Test
-  void testRunWorkflowSuccess() {
-    String sessionId = "sess-success";
-    String workflowId = "w-success";
-    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
-    PreparedWorkflow prepared =
-        new PreparedWorkflow(
-            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
+  void testValidateAndStartWorkflowSuccess() {
+    String sessionId = "sess-123";
+    String workflowId = "wf-456";
+    String executionId = "exec-789";
 
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
-    when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
-        .thenReturn(Mono.empty());
-
-    StepVerifier.create(
-            workflowService
-                .validateAndStartWorkflow(sessionId, workflowId)
-                .flatMap(exec -> exec.result()))
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-  }
-
-  @Test
-  void testRunWorkflowNoWorkflow() {
-    String sessionId = "sess-none";
-    String workflowId = "w-none";
-
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.empty());
+    when(controlBus.startWorkflow(sessionId, workflowId)).thenReturn(Mono.just(executionId));
 
     StepVerifier.create(workflowService.validateAndStartWorkflow(sessionId, workflowId))
-        .expectErrorMatches(
-            e ->
-                e instanceof IllegalArgumentException
-                    && e.getMessage().contains("Workflow not found"))
-        .verify();
-  }
-
-  @Test
-  void testRunWorkflowError() {
-    String sessionId = "sess-error";
-    String workflowId = "w-error";
-    WorkflowDefinition def = new WorkflowDefinition("test-workflow", "desc", List.of(), List.of());
-
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.error(new RuntimeException("Fail")));
-
-    StepVerifier.create(
-            workflowService
-                .validateAndStartWorkflow(sessionId, workflowId)
-                .flatMap(exec -> exec.result()))
-        .expectNextMatches(
-            res -> "FAILURE".equals(res.status()) && res.output().contains("Workflow failed: Fail"))
+        .assertNext(
+            execution -> {
+              assert execution.executionId().equals(executionId);
+              assert execution.result() != null;
+            })
         .verifyComplete();
-  }
-
-  @Test
-  void testWorkflowQueueing() throws Exception {
-    String sessionId = "sess-queue";
-    String workflowId = "w-queue";
-    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
-    WorkflowDefinition def =
-        new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
-    PreparedWorkflow prepared =
-        new PreparedWorkflow(
-            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
-
-    // Use a CountDownLatch to control execution timing
-    java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
-    java.util.concurrent.CountDownLatch startedLatch = new java.util.concurrent.CountDownLatch(1);
-
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
-    when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
-        .thenAnswer(
-            invocation -> {
-              startedLatch.countDown();
-              return Mono.fromRunnable(
-                  () -> {
-                    try {
-                      latch.await();
-                    } catch (InterruptedException e) {
-                      Thread.currentThread().interrupt();
-                    }
-                  });
-            });
-
-    var exec1 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
-
-    // Wait for first execution to start
-    startedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
-
-    // Now submit second workflow - it should queue
-    var exec2 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
-
-    // Release first execution
-    latch.countDown();
-
-    StepVerifier.create(exec1.result())
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-
-    StepVerifier.create(exec2.result())
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-  }
-
-  @Test
-  void testWorkflowQueueCleanup() throws Exception {
-    String sessionId = "sess-cleanup";
-    String workflowId = "w-cleanup";
-    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
-    WorkflowDefinition def =
-        new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
-    PreparedWorkflow prepared =
-        new PreparedWorkflow(
-            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
-
-    java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
-    java.util.concurrent.CountDownLatch startedLatch = new java.util.concurrent.CountDownLatch(1);
-
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
-    when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
-        .thenAnswer(
-            invocation -> {
-              startedLatch.countDown();
-              return Mono.fromRunnable(
-                  () -> {
-                    try {
-                      latch.await();
-                    } catch (InterruptedException e) {
-                      Thread.currentThread().interrupt();
-                    }
-                  });
-            });
-
-    var exec1 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
-
-    // Wait for first execution to start
-    startedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
-
-    // Now submit second workflow - it should queue
-    var exec2 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
-
-    // Release first execution
-    latch.countDown();
-
-    StepVerifier.create(exec1.result())
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-
-    StepVerifier.create(exec2.result())
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-  }
-
-  @Test
-  void testWorkflowMultipleQueuesDifferentSessions() {
-    String sessionId1 = "sess-multi-1";
-    String sessionId2 = "sess-multi-2";
-    String workflowId = "w-multi";
-    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
-    WorkflowDefinition def =
-        new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
-    PreparedWorkflow prepared =
-        new PreparedWorkflow(
-            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
-
-    when(workflowDefinitionStore.find(anyString(), anyString())).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
-    when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
-        .thenReturn(Mono.empty());
-
-    var exec1 = workflowService.validateAndStartWorkflow(sessionId1, workflowId).block();
-    var exec2 = workflowService.validateAndStartWorkflow(sessionId2, workflowId).block();
-
-    StepVerifier.create(exec1.result())
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-
-    StepVerifier.create(exec2.result())
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-  }
-
-  @Test
-  void testWorkflowSingleExecutionCleanup() throws Exception {
-    String sessionId = "sess-single";
-    String workflowId = "w-single";
-    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
-    WorkflowDefinition def =
-        new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
-    PreparedWorkflow prepared =
-        new PreparedWorkflow(
-            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
-
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
-    when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
-        .thenReturn(Mono.empty());
-
-    var exec = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
-
-    StepVerifier.create(exec.result())
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-
-    // Wait for async cleanup to complete
-    Thread.sleep(500);
-  }
-
-  @Test
-  void testWorkflowQueuedExecutionWithPreviousWorkflowError() throws Exception {
-    String sessionId = "sess-error-queue";
-    String workflowId = "w-error-queue";
-    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
-    WorkflowDefinition def =
-        new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
-    PreparedWorkflow prepared =
-        new PreparedWorkflow(
-            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
-
-    java.util.concurrent.CountDownLatch firstErrorLatch =
-        new java.util.concurrent.CountDownLatch(1);
-    java.util.concurrent.CountDownLatch firstStartedLatch =
-        new java.util.concurrent.CountDownLatch(1);
-    java.util.concurrent.atomic.AtomicInteger executeCallCount =
-        new java.util.concurrent.atomic.AtomicInteger(0);
-
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
-    when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
-        .thenAnswer(
-            invocation -> {
-              int callCount = executeCallCount.incrementAndGet();
-              firstStartedLatch.countDown();
-              if (callCount == 1) {
-                // First execution errors
-                return Mono.fromRunnable(
-                        () -> {
-                          try {
-                            firstErrorLatch.await();
-                          } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                          }
-                        })
-                    .then(Mono.error(new RuntimeException("First workflow error")));
-              } else {
-                // Second execution succeeds (onErrorResume recovery)
-                return Mono.just(new TaskResponse("SUCCESS", "Workflow executed successfully"));
-              }
-            });
-
-    var exec1 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
-
-    // Wait for first execution to start
-    firstStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
-
-    // Now submit second workflow - it should queue
-    var exec2 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
-
-    // Let first execution error
-    firstErrorLatch.countDown();
-
-    // First execution should fail
-    StepVerifier.create(exec1.result())
-        .expectNextMatches(res -> "FAILURE".equals(res.status()))
-        .verifyComplete();
-
-    // Second execution should succeed (onErrorResume path - previous workflow error recovery)
-    StepVerifier.create(exec2.result())
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-  }
-
-  @Test
-  void testWorkflowErrorAfterPreparation() {
-    String sessionId = "sess-prep-error";
-    String workflowId = "w-prep-error";
-    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
-    WorkflowDefinition def =
-        new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
-    PreparedWorkflow prepared =
-        new PreparedWorkflow(
-            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
-
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
-    when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
-        .thenReturn(Mono.error(new RuntimeException("Execution error")));
-
-    StepVerifier.create(
-            workflowService
-                .validateAndStartWorkflow(sessionId, workflowId)
-                .flatMap(exec -> exec.result()))
-        .expectNextMatches(
-            res -> "FAILURE".equals(res.status()) && res.output().contains("Execution error"))
-        .verifyComplete();
-  }
-
-  @Test
-  void testMultipleQueuedExecutionsWithSelectiveCleanup() throws Exception {
-    String sessionId = "sess-multi-cleanup";
-    String workflowId = "w-multi-cleanup";
-    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
-    WorkflowDefinition def =
-        new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
-    PreparedWorkflow prepared =
-        new PreparedWorkflow(
-            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
-
-    java.util.concurrent.CountDownLatch firstLatch = new java.util.concurrent.CountDownLatch(1);
-    java.util.concurrent.CountDownLatch secondLatch = new java.util.concurrent.CountDownLatch(1);
-    java.util.concurrent.CountDownLatch thirdLatch = new java.util.concurrent.CountDownLatch(1);
-    java.util.concurrent.CountDownLatch firstStartedLatch =
-        new java.util.concurrent.CountDownLatch(1);
-    java.util.concurrent.CountDownLatch secondStartedLatch =
-        new java.util.concurrent.CountDownLatch(1);
-    java.util.concurrent.CountDownLatch thirdStartedLatch =
-        new java.util.concurrent.CountDownLatch(1);
-
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
-    when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
-        .thenAnswer(
-            invocation -> {
-              String execId = (String) invocation.getArguments()[2];
-              if (execId.contains("1")) {
-                firstStartedLatch.countDown();
-                return Mono.fromRunnable(
-                    () -> {
-                      try {
-                        firstLatch.await();
-                      } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                      }
-                    });
-              } else if (execId.contains("2")) {
-                secondStartedLatch.countDown();
-                return Mono.fromRunnable(
-                    () -> {
-                      try {
-                        secondLatch.await();
-                      } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                      }
-                    });
-              } else {
-                thirdStartedLatch.countDown();
-                return Mono.fromRunnable(
-                    () -> {
-                      try {
-                        thirdLatch.await();
-                      } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                      }
-                    });
-              }
-            });
-
-    var exec1 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
-    firstStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
-
-    var exec2 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
-    secondStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
-
-    var exec3 = workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
-    thirdStartedLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
-
-    // Release all executions
-    firstLatch.countDown();
-    secondLatch.countDown();
-    thirdLatch.countDown();
-
-    StepVerifier.create(exec1.result())
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-
-    StepVerifier.create(exec2.result())
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-
-    StepVerifier.create(exec3.result())
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-  }
-
-  @Test
-  void testWorkflowErrorInTerminalPhase() {
-    String sessionId = "sess-terminal-error";
-    String workflowId = "w-terminal-error";
-    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
-    WorkflowDefinition def =
-        new WorkflowDefinition("test-workflow", "desc", List.of(node), List.of());
-
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(any()))
-        .thenReturn(Mono.error(new RuntimeException("Prep error")));
-
-    StepVerifier.create(
-            workflowService
-                .validateAndStartWorkflow(sessionId, workflowId)
-                .flatMap(exec -> exec.result()))
-        .expectNextMatches(
-            res -> "FAILURE".equals(res.status()) && res.output().contains("Prep error"))
-        .verifyComplete();
-  }
-
-  @Test
-  void testValidateAndTriggerRegistersExecutionEagerly() {
-    String sessionId = "sess-eager";
-    String workflowId = "w-eager";
-    var node = new WorkflowDefinition.Node("n1", "CONSTANT_SOURCE", Map.of());
-    WorkflowDefinition def = new WorkflowDefinition(workflowId, "desc", List.of(node), List.of());
-    PreparedWorkflow prepared =
-        new PreparedWorkflow(
-            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
-
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(any())).thenReturn(Mono.just(prepared));
-    when(orchestrator.execute(anyString(), anyString(), anyString(), any(), any()))
-        .thenReturn(Mono.empty());
-
-    StepVerifier.create(
-            workflowService
-                .validateAndStartWorkflow(sessionId, workflowId)
-                .flatMap(exec -> exec.result()))
-        .expectNextMatches(res -> "SUCCESS".equals(res.status()))
-        .verifyComplete();
-
-    verify(orchestrator, timeout(1000))
-        .execute(eq(sessionId), eq(workflowId), anyString(), any(), any());
   }
 
   @Test
   void testValidateAndStartWorkflowNotFound() {
     String sessionId = "sess-missing";
-    String workflowId = "w-missing";
+    String workflowId = "wf-missing";
 
-    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.empty());
+    when(controlBus.startWorkflow(sessionId, workflowId))
+        .thenReturn(
+            Mono.error(
+                new IllegalArgumentException(
+                    "Workflow not found for session: " + sessionId + ", workflow: " + workflowId)));
 
     StepVerifier.create(workflowService.validateAndStartWorkflow(sessionId, workflowId))
         .expectErrorMatches(
@@ -510,71 +77,17 @@ class WorkflowServiceTest {
   }
 
   @Test
-  void runWorkflowUsesCacheHitWithoutCallingStore() {
-    final WorkflowDefinition def =
-        new WorkflowDefinition(
-            "wf1",
-            "desc",
-            List.of(new WorkflowDefinition.Node("n1", "trigger", Map.of())),
-            List.of());
-    final PreparedWorkflow prepared =
-        new PreparedWorkflow(
-            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
-    preparedWorkflowCache.put("s1", "wf1", prepared);
-    when(workflowDefinitionStore.find("s1", "wf1")).thenReturn(Mono.just(def));
-    when(orchestrator.execute(eq("s1"), eq("wf1"), any(), eq(prepared), any()))
-        .thenReturn(Mono.empty());
+  void testValidateAndStartWorkflowReturnsExecutionWithId() {
+    String sessionId = "sess-exec";
+    String workflowId = "wf-exec";
+    String executionId = "exec-001";
 
-    final WorkflowExecution execution =
-        workflowService.validateAndStartWorkflow("s1", "wf1").block();
-    StepVerifier.create(execution.result())
-        .expectNextMatches(r -> "SUCCESS".equals(r.status()))
-        .verifyComplete();
+    when(controlBus.startWorkflow(sessionId, workflowId)).thenReturn(Mono.just(executionId));
 
-    // validateAndTriggerWorkflow always calls find to validate the workflow exists
-    org.mockito.Mockito.verify(workflowDefinitionStore).find("s1", "wf1");
-    // But prepareWorkflow should not be called since cache hit
-    org.mockito.Mockito.verify(orchestrator, org.mockito.Mockito.never()).prepareWorkflow(any());
-  }
+    WorkflowExecution execution =
+        workflowService.validateAndStartWorkflow(sessionId, workflowId).block();
 
-  @Test
-  void runWorkflowOnCacheMissLoadsFromStoreAndCompiles() {
-    final WorkflowDefinition def =
-        new WorkflowDefinition(
-            "wf1",
-            "desc",
-            List.of(new WorkflowDefinition.Node("n1", "trigger", Map.of())),
-            List.of());
-    final PreparedWorkflow prepared =
-        new PreparedWorkflow(
-            List.of(), Map.of(), Map.of(), Map.of(), List.of(), (e, p) -> Mono.empty());
-    when(workflowDefinitionStore.find("s1", "wf1")).thenReturn(Mono.just(def));
-    when(orchestrator.prepareWorkflow(def)).thenReturn(Mono.just(prepared));
-    when(orchestrator.execute(eq("s1"), eq("wf1"), any(), eq(prepared), any()))
-        .thenReturn(Mono.empty());
-
-    final WorkflowExecution execution =
-        workflowService.validateAndStartWorkflow("s1", "wf1").block();
-    StepVerifier.create(execution.result())
-        .expectNextMatches(r -> "SUCCESS".equals(r.status()))
-        .verifyComplete();
-
-    // find called twice: once for validation, once in resolveAndExecute for cache miss
-    org.mockito.Mockito.verify(workflowDefinitionStore, org.mockito.Mockito.times(2))
-        .find("s1", "wf1");
-    // prepareWorkflow called once for cache miss
-    org.mockito.Mockito.verify(orchestrator).prepareWorkflow(def);
-  }
-
-  @Test
-  void runWorkflowOnStoreMissPropagatesFailure() {
-    when(workflowDefinitionStore.find("s1", "wf1")).thenReturn(Mono.empty());
-
-    StepVerifier.create(workflowService.validateAndStartWorkflow("s1", "wf1"))
-        .expectErrorMatches(
-            e ->
-                e instanceof IllegalArgumentException
-                    && e.getMessage().contains("Workflow not found"))
-        .verify();
+    assert execution != null;
+    assert execution.executionId().equals(executionId);
   }
 }

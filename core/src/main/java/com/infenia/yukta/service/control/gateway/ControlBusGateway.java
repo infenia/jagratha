@@ -220,6 +220,15 @@ public interface ControlBusGateway {
   Mono<String> stopWorkflow(String sessionId, String workflowId, String reason);
 
   /**
+   * Start a new workflow execution for a session.
+   *
+   * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @return a Mono containing the execution ID
+   */
+  Mono<String> startWorkflow(String sessionId, String workflowId);
+
+  /**
    * Safely stop the current execution and restart the entire workflow from the beginning using the
    * original payload.
    *
