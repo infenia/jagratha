@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;

@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service.join;
 
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.Message;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.Map;

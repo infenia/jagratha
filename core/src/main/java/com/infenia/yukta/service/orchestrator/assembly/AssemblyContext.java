@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service.orchestrator.assembly;
 
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.service.control.ExecutionControl;
 import java.util.List;
 import java.util.Map;

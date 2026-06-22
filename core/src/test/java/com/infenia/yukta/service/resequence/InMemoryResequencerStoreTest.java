@@ -22,8 +22,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.plugin.message.DefaultMessage;
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.DefaultMessage;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.service.resequence.ResequencerStore.ResequenceConfig;
 import com.infenia.yukta.service.resequence.ResequencerStore.ResequenceResult;
 import java.time.Duration;

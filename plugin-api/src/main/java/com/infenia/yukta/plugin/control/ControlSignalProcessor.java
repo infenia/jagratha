@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.plugin.control;
 
-import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
+import com.infenia.yukta.message.control.ExecutionControlCommand;
 import reactor.core.publisher.Mono;
 
 /**

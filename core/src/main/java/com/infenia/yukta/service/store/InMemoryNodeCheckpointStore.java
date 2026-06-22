@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service.store;
 
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

@@ -17,8 +17,8 @@ package com.infenia.yukta.service.control.directive;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.infenia.yukta.plugin.message.DefaultMessage;
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.DefaultMessage;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;

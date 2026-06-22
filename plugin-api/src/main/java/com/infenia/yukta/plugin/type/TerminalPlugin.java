@@ -17,7 +17,7 @@ package com.infenia.yukta.plugin.type;
 
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.Plugin;
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.Message;
 import java.util.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

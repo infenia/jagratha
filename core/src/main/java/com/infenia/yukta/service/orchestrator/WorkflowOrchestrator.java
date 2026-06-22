@@ -19,7 +19,7 @@ import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.factory.ExecutionControlFactory;

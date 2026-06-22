@@ -19,6 +19,7 @@ plugins {
 
 dependencies {
     api(project(":plugin-api"))
+    api(project(":messaging"))
 
     // Default plugins
 

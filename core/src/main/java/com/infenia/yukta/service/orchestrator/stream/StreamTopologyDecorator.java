@@ -16,7 +16,7 @@
 package com.infenia.yukta.service.orchestrator.stream;
 
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;

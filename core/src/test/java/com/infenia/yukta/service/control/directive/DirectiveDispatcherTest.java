@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
-import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
+import com.infenia.yukta.message.control.ExecutionControlCommand;
 import com.infenia.yukta.service.control.ControlBusService;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;

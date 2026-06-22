@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service.control.directive;
 
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.Message;
 
 /**
  * Handler for a specific type of control signal.

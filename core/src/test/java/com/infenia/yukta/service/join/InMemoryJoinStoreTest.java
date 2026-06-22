@@ -17,8 +17,8 @@ package com.infenia.yukta.service.join;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.infenia.yukta.plugin.message.DefaultMessage;
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.DefaultMessage;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.service.join.JoinStore.JoinConfig;
 import com.infenia.yukta.service.join.JoinStore.JoinResult;
 import java.util.List;

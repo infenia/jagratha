@@ -19,9 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
-import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.PauseWorkflowCommand;
-import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.ResumeWorkflowCommand;
+import com.infenia.yukta.message.control.ExecutionControlCommand;
+import com.infenia.yukta.message.control.ExecutionControlCommand.PauseWorkflowCommand;
+import com.infenia.yukta.message.control.ExecutionControlCommand.ResumeWorkflowCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;

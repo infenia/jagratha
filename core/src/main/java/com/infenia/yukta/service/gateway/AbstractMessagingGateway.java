@@ -16,8 +16,8 @@
 package com.infenia.yukta.service.gateway;
 
 import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
-import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.plugin.message.MessageMapper;
+import com.infenia.yukta.message.Message;
+import com.infenia.yukta.message.MessageMapper;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;

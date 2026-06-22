@@ -18,8 +18,8 @@ package com.infenia.yukta.service.orchestrator.assembly;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.infenia.yukta.plugin.message.DefaultMessage;
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.DefaultMessage;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.service.control.ExecutionControl;
 import java.util.List;
 import java.util.Map;

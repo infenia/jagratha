@@ -19,8 +19,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.plugin.message.DefaultMessage;
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.DefaultMessage;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;

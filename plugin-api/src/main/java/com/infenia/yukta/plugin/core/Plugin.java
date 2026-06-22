@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.plugin.core;
 
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.Message;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;

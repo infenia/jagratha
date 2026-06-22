@@ -19,9 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.infenia.yukta.plugin.message.DefaultMessage;
-import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.plugin.message.MessageMapper;
+import com.infenia.yukta.message.DefaultMessage;
+import com.infenia.yukta.message.Message;
+import com.infenia.yukta.message.MessageMapper;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
