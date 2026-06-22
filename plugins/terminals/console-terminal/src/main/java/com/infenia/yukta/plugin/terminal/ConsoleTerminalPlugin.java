@@ -16,7 +16,7 @@
 package com.infenia.yukta.plugin.terminal;
 
 import com.infenia.yukta.plugin.core.UiDesign;
-import com.infenia.yukta.plugin.message.Message;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import java.util.Map;
 import java.util.Optional;

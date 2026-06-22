@@ -20,6 +20,7 @@ plugins {
 version = "1.0.0"
 
 dependencies {
+    api(project(":messaging"))
     implementation(project(":plugin-api"))
     implementation(libs.spring.boot.starter.webflux)
 }

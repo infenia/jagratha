@@ -15,8 +15,8 @@
  */
 package com.infenia.yukta.plugin.core.util;
 
-import com.infenia.yukta.plugin.message.Message;
-import com.infenia.yukta.plugin.message.MessageMapper;
+import com.infenia.yukta.message.Message;
+import com.infenia.yukta.message.MessageMapper;
 import java.util.Map;
 
 /** Example MessageMapper that maps between a generic Message and a Map domain object. */
