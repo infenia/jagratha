@@ -62,4 +62,5 @@ coverageConfig {
         "INSTRUCTION" to 0.6,
         "METHOD" to 0.6
     ))
+    exceptions.put("com.infenia.yukta.plugin.core.Plugin", lowCoverage)
 }

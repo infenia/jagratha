@@ -21,7 +21,6 @@ import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.service.plugin.PluginRegistry;
-
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;

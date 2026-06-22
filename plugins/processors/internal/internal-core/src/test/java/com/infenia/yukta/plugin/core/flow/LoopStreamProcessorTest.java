@@ -19,9 +19,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.plugin.PluginRegistry;
@@ -134,8 +134,7 @@ class LoopStreamProcessorTest {
   @Test
   void testNotAProcessor() {
     when(registry.contains("trigger")).thenReturn(true);
-    when(registry.get("trigger"))
-        .thenReturn(org.mockito.Mockito.mock(Plugin.class));
+    when(registry.get("trigger")).thenReturn(org.mockito.Mockito.mock(Plugin.class));
     StepVerifier.create(
             processor.process(
                 Flux.just(DefaultMessage.create(UUID.randomUUID(), "test")),

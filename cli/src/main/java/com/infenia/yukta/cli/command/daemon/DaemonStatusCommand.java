@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 
+/** CLI command to display the current daemon status. */
 @Component
 @RequiredArgsConstructor
 @Command(name = "status", description = "Show daemon status")
@@ -30,6 +31,7 @@ public class DaemonStatusCommand implements Runnable {
   private final DaemonManager daemonManager;
   private final CliFormatter formatter;
 
+  /** Executes the command to retrieve and display daemon status. */
   @Override
   public void run() {
     try {

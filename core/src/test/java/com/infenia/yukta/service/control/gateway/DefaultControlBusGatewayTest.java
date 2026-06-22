@@ -24,10 +24,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
-import com.infenia.yukta.model.execution.WorkflowProgress;
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.message.control.ExecutionControlCommand.DisableStepModeCommand;
@@ -42,7 +38,12 @@ import com.infenia.yukta.message.control.ExecutionControlCommand.SkipNodeCommand
 import com.infenia.yukta.message.control.ExecutionControlCommand.StepNodeCommand;
 import com.infenia.yukta.message.control.ExecutionControlCommand.StopNodeCommand;
 import com.infenia.yukta.message.control.ExecutionControlCommand.StopWorkflowCommand;
+import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
+import com.infenia.yukta.model.execution.WorkflowProgress;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.service.control.ControlBusService;
+import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.execution.status.ExecutionStatusEvent;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
@@ -63,7 +64,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import com.infenia.yukta.service.control.ExecutionControl;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultControlBusGatewayTest {
@@ -376,7 +376,9 @@ class DefaultControlBusGatewayTest {
     Mono<String> result = gateway.stopWorkflow(sessionId, workflowId, reason);
 
     // Then
-    StepVerifier.create(result).assertNext(id -> assertThat(id).isEqualTo(executionId)).verifyComplete();
+    StepVerifier.create(result)
+        .assertNext(id -> assertThat(id).isEqualTo(executionId))
+        .verifyComplete();
 
     ArgumentCaptor<Message<?>> captor = ArgumentCaptor.forClass(Message.class);
     verify(controlBusService).emit(captor.capture());
@@ -409,7 +411,9 @@ class DefaultControlBusGatewayTest {
     Mono<String> result = gateway.stopWorkflow(sessionId, workflowId, reason);
 
     // Then
-    StepVerifier.create(result).assertNext(id -> assertThat(id).isEqualTo(executionId)).verifyComplete();
+    StepVerifier.create(result)
+        .assertNext(id -> assertThat(id).isEqualTo(executionId))
+        .verifyComplete();
 
     ArgumentCaptor<Message<?>> captor = ArgumentCaptor.forClass(Message.class);
     verify(controlBusService).emit(captor.capture());

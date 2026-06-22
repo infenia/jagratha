@@ -16,7 +16,6 @@
 package com.infenia.yukta.model.workflow;
 
 import com.infenia.yukta.plugin.core.Plugin;
-
 import java.util.List;
 import java.util.Map;
 

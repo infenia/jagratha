@@ -24,6 +24,7 @@ import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+/** Default implementation of HTTP client adapter using Java HTTP client. */
 @Component
 @Slf4j
 public class DefaultHttpClientAdapter implements HttpClientAdapter {
@@ -31,6 +32,13 @@ public class DefaultHttpClientAdapter implements HttpClientAdapter {
   private final HttpClient httpClient =
       HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(1)).build();
 
+  /**
+   * Performs a health check against the daemon's health endpoint.
+   *
+   * @param port the daemon port
+   * @return true if health check succeeds (200 status)
+   * @throws Exception if connection or timeout occurs
+   */
   @Override
   public boolean healthCheck(int port) throws Exception {
     String url = "http://127.0.0.1:" + port + "/actuator/health";

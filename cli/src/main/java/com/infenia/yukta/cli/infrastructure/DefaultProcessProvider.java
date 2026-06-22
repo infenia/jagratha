@@ -20,9 +20,20 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
+/** Default implementation of process provider using Java ProcessBuilder. */
 @Component
 public class DefaultProcessProvider implements ProcessProvider {
 
+  /**
+   * Starts a new process with the given command and redirects.
+   *
+   * @param command the command with arguments
+   * @param workDir the working directory
+   * @param stdout the file to redirect stdout to
+   * @param stderr the file to redirect stderr to
+   * @return the started Process
+   * @throws Exception if process creation fails
+   */
   @Override
   public Process startProcess(List<String> command, File workDir, File stdout, File stderr)
       throws Exception {
@@ -33,16 +44,32 @@ public class DefaultProcessProvider implements ProcessProvider {
     return pb.start();
   }
 
+  /**
+   * Finds a process by its process ID.
+   *
+   * @param pid the process ID
+   * @return the ProcessHandle if found
+   */
   @Override
   public Optional<ProcessHandle> findProcess(long pid) {
     return ProcessHandle.of(pid);
   }
 
+  /**
+   * Gets the process ID of the current JVM.
+   *
+   * @return the current process PID
+   */
   @Override
   public long currentProcessPid() {
     return ProcessHandle.current().pid();
   }
 
+  /**
+   * Gets the command used to start the current process.
+   *
+   * @return the process command if available
+   */
   @Override
   public Optional<String> currentProcessCommand() {
     return ProcessHandle.current().info().command();

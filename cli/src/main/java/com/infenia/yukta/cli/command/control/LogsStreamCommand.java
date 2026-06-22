@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
+/** CLI command to stream execution logs in real-time. */
 @Component
 @RequiredArgsConstructor
 @Command(name = "logs-stream", description = "Stream execution logs in real-time")
@@ -31,6 +32,7 @@ public class LogsStreamCommand implements Runnable {
   @Parameters(index = "0", description = "Execution ID")
   private String executionId;
 
+  /** Executes the command to stream and display execution logs. */
   @Override
   public void run() {
     daemonClient.streamLogs(executionId, System.out::println);

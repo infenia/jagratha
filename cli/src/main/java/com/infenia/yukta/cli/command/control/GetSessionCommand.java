@@ -24,6 +24,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+/** CLI command to retrieve session details by session ID. */
 @Component
 @Command(name = "get-session", description = "Get session details by session ID")
 public class GetSessionCommand implements Runnable {
@@ -31,6 +32,12 @@ public class GetSessionCommand implements Runnable {
   private final YuktaDaemonClient daemonClient;
   private final CliFormatter formatter;
 
+  /**
+   * Constructs a new GetSessionCommand with dependencies.
+   *
+   * @param daemonClient the daemon client
+   * @param formatter the CLI formatter
+   */
   public GetSessionCommand(YuktaDaemonClient daemonClient, CliFormatter formatter) {
     this.daemonClient = daemonClient;
     this.formatter = formatter;
@@ -45,6 +52,7 @@ public class GetSessionCommand implements Runnable {
       defaultValue = "table")
   private String outputFormat;
 
+  /** Executes the command to retrieve and display session details. */
   @Override
   public void run() {
     try {

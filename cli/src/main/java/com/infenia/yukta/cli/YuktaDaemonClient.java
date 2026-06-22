@@ -26,6 +26,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+/** HTTP client for communicating with the Yukta daemon. */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -34,6 +35,11 @@ public class YuktaDaemonClient {
   private final WebClient daemonWebClient;
   private final DaemonProperties props;
 
+  /**
+   * Applies session configuration to the daemon.
+   *
+   * @param request the session configuration request
+   */
   public void applySession(ConfigRequest request) {
     ApiResponse<Void> response =
         daemonWebClient
@@ -49,6 +55,13 @@ public class YuktaDaemonClient {
     }
   }
 
+  /**
+   * Triggers a workflow execution.
+   *
+   * @param sessionId the session ID
+   * @param workflowId the workflow ID
+   * @return the execution ID
+   */
   public String triggerWorkflow(String sessionId, String workflowId) {
     Map<String, Object> request = Map.of("sessionId", sessionId, "workflowId", workflowId);
 
@@ -67,6 +80,12 @@ public class YuktaDaemonClient {
     throw new RuntimeException("Failed to trigger workflow");
   }
 
+  /**
+   * Gets active nodes for a workflow.
+   *
+   * @param workflowId the workflow ID
+   * @return list of active node IDs
+   */
   public List<String> getActiveNodes(String workflowId) {
     ApiResponse<List<String>> response =
         daemonWebClient
@@ -79,6 +98,11 @@ public class YuktaDaemonClient {
     return response != null ? response.data() : List.of();
   }
 
+  /**
+   * Gets all active nodes across all workflows.
+   *
+   * @return list of all active node IDs
+   */
   public List<String> getAllActiveNodes() {
     ApiResponse<List<String>> response =
         daemonWebClient
@@ -91,6 +115,13 @@ public class YuktaDaemonClient {
     return response != null ? response.data() : List.of();
   }
 
+  /**
+   * Gets the last heartbeat from a node.
+   *
+   * @param workflowId the workflow ID
+   * @param nodeId the node ID
+   * @return heartbeat data map
+   */
   public Map<String, Object> getLastHeartbeat(String workflowId, String nodeId) {
     ApiResponse<Map<String, Object>> response =
         daemonWebClient
@@ -103,6 +134,14 @@ public class YuktaDaemonClient {
     return response != null ? response.data() : Map.of();
   }
 
+  /**
+   * Sends a command to a node.
+   *
+   * @param workflowId the workflow ID
+   * @param nodeId the node ID
+   * @param payload the command payload
+   * @return response data map
+   */
   public Map<String, Object> sendCommand(
       String workflowId, String nodeId, Map<String, Object> payload) {
     ApiResponse<Map<String, Object>> response =
@@ -117,6 +156,12 @@ public class YuktaDaemonClient {
     return response != null ? response.data() : Map.of();
   }
 
+  /**
+   * Gets execution progress.
+   *
+   * @param executionId the execution ID
+   * @return progress data map
+   */
   public Map<String, Object> getProgress(String executionId) {
     ApiResponse<Map<String, Object>> response =
         daemonWebClient
@@ -129,6 +174,12 @@ public class YuktaDaemonClient {
     return response != null ? response.data() : Map.of();
   }
 
+  /**
+   * Gets session execution history.
+   *
+   * @param sessionId the session ID
+   * @return list of history records
+   */
   public List<Map<String, Object>> getHistory(String sessionId) {
     ApiResponse<List<Map<String, Object>>> response =
         daemonWebClient
@@ -141,6 +192,12 @@ public class YuktaDaemonClient {
     return response != null ? response.data() : List.of();
   }
 
+  /**
+   * Streams execution progress in real-time.
+   *
+   * @param executionId the execution ID
+   * @param lineConsumer consumer for progress lines
+   */
   public void streamProgress(String executionId, Consumer<String> lineConsumer) {
     daemonWebClient
         .get()
@@ -151,6 +208,12 @@ public class YuktaDaemonClient {
         .blockLast();
   }
 
+  /**
+   * Streams execution logs in real-time.
+   *
+   * @param executionId the execution ID
+   * @param lineConsumer consumer for log lines
+   */
   public void streamLogs(String executionId, Consumer<String> lineConsumer) {
     daemonWebClient
         .get()
@@ -161,6 +224,12 @@ public class YuktaDaemonClient {
         .blockLast();
   }
 
+  /**
+   * Gets session details.
+   *
+   * @param sessionId the session ID
+   * @return session details map
+   */
   public Map<String, Object> getSessionDetails(String sessionId) {
     ApiResponse<Map<String, Object>> response =
         daemonWebClient
@@ -173,6 +242,13 @@ public class YuktaDaemonClient {
     return response != null ? response.data() : Map.of();
   }
 
+  /**
+   * Gets workflow details.
+   *
+   * @param sessionId the session ID
+   * @param workflowId the workflow ID
+   * @return workflow details map
+   */
   public Map<String, Object> getWorkflow(String sessionId, String workflowId) {
     ApiResponse<Map<String, Object>> response =
         daemonWebClient

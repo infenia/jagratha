@@ -25,6 +25,7 @@ import picocli.CommandLine.Parameters;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
+/** CLI command to send a command to a node. */
 @Component
 @Command(name = "send-command", description = "Send a command to a node")
 public class SendCommandCommand implements Runnable {
@@ -33,6 +34,13 @@ public class SendCommandCommand implements Runnable {
   private final ObjectMapper objectMapper;
   private final CliFormatter formatter;
 
+  /**
+   * Constructs a new SendCommandCommand with dependencies.
+   *
+   * @param daemonClient the daemon client
+   * @param objectMapper the JSON object mapper
+   * @param formatter the CLI formatter
+   */
   public SendCommandCommand(
       YuktaDaemonClient daemonClient, ObjectMapper objectMapper, CliFormatter formatter) {
     this.daemonClient = daemonClient;
@@ -55,6 +63,7 @@ public class SendCommandCommand implements Runnable {
       defaultValue = "table")
   private String outputFormat;
 
+  /** Executes the command to send a command to a node and display the response. */
   @Override
   public void run() {
     try {

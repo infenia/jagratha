@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 
+/** CLI command to stop the Yukta daemon. */
 @Component
 @RequiredArgsConstructor
 @Command(name = "stop", description = "Stop the Yukta daemon")
@@ -29,6 +30,7 @@ public class DaemonStopCommand implements Runnable {
   private final DaemonManager daemonManager;
   private final CliFormatter formatter;
 
+  /** Executes the command to stop the daemon and display the result. */
   @Override
   public void run() {
     try {

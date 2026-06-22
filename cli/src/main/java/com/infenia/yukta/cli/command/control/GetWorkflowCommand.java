@@ -24,6 +24,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+/** CLI command to retrieve workflow definition details. */
 @Component
 @Command(
     name = "get-workflow",
@@ -33,6 +34,12 @@ public class GetWorkflowCommand implements Runnable {
   private final YuktaDaemonClient daemonClient;
   private final CliFormatter formatter;
 
+  /**
+   * Constructs a new GetWorkflowCommand with dependencies.
+   *
+   * @param daemonClient the daemon client
+   * @param formatter the CLI formatter
+   */
   public GetWorkflowCommand(YuktaDaemonClient daemonClient, CliFormatter formatter) {
     this.daemonClient = daemonClient;
     this.formatter = formatter;
@@ -50,6 +57,7 @@ public class GetWorkflowCommand implements Runnable {
       defaultValue = "json")
   private String outputFormat;
 
+  /** Executes the command to retrieve and display workflow details. */
   @Override
   public void run() {
     try {

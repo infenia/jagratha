@@ -18,10 +18,12 @@ package com.infenia.yukta.cli.command;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 
+/** CLI command for control bus operations. */
 @Component
 @Command(name = "control", mixinStandardHelpOptions = true, description = "Control bus operations")
 public class ControlCommand implements Runnable {
 
+  /** Displays usage information for the control command. */
   @Override
   public void run() {
     new picocli.CommandLine(this).usage(System.out);

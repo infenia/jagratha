@@ -134,7 +134,8 @@ public class WorkflowPreparator {
                       return plugin
                           .initialize(node.config())
                           .doOnSuccess(
-                                  _ -> log.atDebug()
+                              _ ->
+                                  log.atDebug()
                                       .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
                                       .addKeyValue(LOG_KEY_PLUGIN_TYPE, node.type())
                                       .log("Plugin initialized successfully"))

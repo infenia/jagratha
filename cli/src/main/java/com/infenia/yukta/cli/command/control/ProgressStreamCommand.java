@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
+/** CLI command to stream execution progress in real-time. */
 @Component
 @RequiredArgsConstructor
 @Command(name = "progress-stream", description = "Stream execution progress in real-time")
@@ -31,6 +32,7 @@ public class ProgressStreamCommand implements Runnable {
   @Parameters(index = "0", description = "Execution ID")
   private String executionId;
 
+  /** Executes the command to stream and display execution progress. */
   @Override
   public void run() {
     daemonClient.streamProgress(executionId, System.out::println);

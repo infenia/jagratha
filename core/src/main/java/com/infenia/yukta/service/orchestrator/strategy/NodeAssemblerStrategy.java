@@ -19,7 +19,6 @@ import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.Plugin;
-
 import java.time.Duration;
 
 /** Strategy for assembling workflow nodes with appropriate operators. */

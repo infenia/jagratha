@@ -18,6 +18,7 @@ package com.infenia.yukta.cli.command;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 
+/** CLI command for managing the Yukta daemon. */
 @Component
 @Command(
     name = "daemon",
@@ -25,6 +26,7 @@ import picocli.CommandLine.Command;
     description = "Manage the Yukta background daemon")
 public class DaemonCommand implements Runnable {
 
+  /** Throws an exception requesting a subcommand. */
   @Override
   public void run() {
     throw new picocli.CommandLine.ExecutionException(

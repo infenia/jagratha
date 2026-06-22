@@ -83,7 +83,7 @@ public class WorkflowValidator {
         .then(validateNodeContexts(def))
         .then(validatePluginConfigs(def))
         .doOnSuccess(
-                _ ->
+            _ ->
                 log.atInfo()
                     .addKeyValue("workflowId", def.workflowId())
                     .log("Workflow validation completed successfully"))
@@ -320,7 +320,7 @@ public class WorkflowValidator {
             })
         .then()
         .doOnSuccess(
-                _ ->
+            _ ->
                 log.atDebug()
                     .addKeyValue("workflowId", def.workflowId())
                     .log("All plugin configurations validated successfully"));

@@ -15,9 +15,9 @@
  */
 package com.infenia.yukta.service.control.gateway;
 
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.core.Plugin;
-import com.infenia.yukta.message.Message;
 import java.util.List;
 import reactor.core.publisher.Mono;
 
@@ -102,8 +102,8 @@ public interface ControlBusGateway {
    * @param command the control command message to execute
    * @return a Mono that completes when the command has been routed through the bus
    */
-  <T extends com.infenia.yukta.message.control.ExecutionControlCommand>
-      Mono<Void> executeCommand(Message<T> command);
+  <T extends com.infenia.yukta.message.control.ExecutionControlCommand> Mono<Void> executeCommand(
+      Message<T> command);
 
   /**
    * Pause all nodes in an execution via global backpressure.

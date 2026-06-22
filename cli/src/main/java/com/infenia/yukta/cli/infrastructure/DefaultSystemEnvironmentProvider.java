@@ -18,14 +18,29 @@ package com.infenia.yukta.cli.infrastructure;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
+/**
+ * Default implementation of system environment provider using System.getProperty and System.getenv.
+ */
 @Component
 public class DefaultSystemEnvironmentProvider implements SystemEnvironmentProvider {
 
+  /**
+   * Gets a system property by key.
+   *
+   * @param key the property key
+   * @return the property value if found
+   */
   @Override
   public Optional<String> getProperty(String key) {
     return Optional.ofNullable(System.getProperty(key));
   }
 
+  /**
+   * Gets an environment variable by key.
+   *
+   * @param key the variable name
+   * @return the variable value if found
+   */
   @Override
   public Optional<String> getEnvironment(String key) {
     return Optional.ofNullable(System.getenv(key));

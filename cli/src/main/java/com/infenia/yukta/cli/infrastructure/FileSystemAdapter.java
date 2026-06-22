@@ -18,6 +18,7 @@ package com.infenia.yukta.cli.infrastructure;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 
+/** Adapter interface for file system operations. */
 public interface FileSystemAdapter {
   /**
    * Creates directories including all parent directories.

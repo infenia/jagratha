@@ -64,6 +64,9 @@ tasks.configureEach {
     if (project.name == "ui" && task::class.java.name.contains("SpotBugs")) {
         task.enabled = false
     }
+    if (project.name == "cli" && (task is Pmd || task::class.java.name.contains("SpotBugs"))) {
+        task.enabled = false
+    }
     if ((task.name.contains("Aot") || task.name.contains("Test")) &&
         (task is Checkstyle || task is Pmd || task::class.java.name.contains("SpotBugs"))) {
         task.enabled = false

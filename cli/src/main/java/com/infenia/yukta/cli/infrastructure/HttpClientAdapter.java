@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.cli.infrastructure;
 
+/** Adapter interface for HTTP client operations. */
 public interface HttpClientAdapter {
   /**
    * Performs a health check by sending an HTTP GET request to the daemon's health endpoint.

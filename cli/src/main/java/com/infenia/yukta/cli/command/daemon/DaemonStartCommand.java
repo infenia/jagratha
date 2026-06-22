@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 
+/** CLI command to start the Yukta daemon. */
 @Component
 @RequiredArgsConstructor
 @Command(name = "start", description = "Start the Yukta daemon if not already running")
@@ -29,6 +30,7 @@ public class DaemonStartCommand implements Runnable {
   private final DaemonManager daemonManager;
   private final CliFormatter formatter;
 
+  /** Executes the command to start the daemon and display its URL. */
   @Override
   public void run() {
     try {

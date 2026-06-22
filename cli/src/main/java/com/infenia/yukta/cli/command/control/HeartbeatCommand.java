@@ -24,6 +24,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+/** CLI command to retrieve the last heartbeat for a node. */
 @Component
 @RequiredArgsConstructor
 @Command(name = "heartbeat", description = "Get last heartbeat for a node in a workflow")
@@ -44,6 +45,7 @@ public class HeartbeatCommand implements Runnable {
       defaultValue = "table")
   private String outputFormat;
 
+  /** Executes the command to retrieve and display node heartbeat data. */
   @Override
   public void run() {
     final Map<String, Object> hb = daemonClient.getLastHeartbeat(workflowId, nodeId);

@@ -25,6 +25,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+/** CLI command to retrieve session execution history. */
 @Component
 @RequiredArgsConstructor
 @Command(name = "history", description = "Get session execution history")
@@ -42,6 +43,7 @@ public class HistoryCommand implements Runnable {
       defaultValue = "table")
   private String outputFormat;
 
+  /** Executes the command to retrieve and display execution history. */
   @Override
   public void run() {
     final List<Map<String, Object>> history = daemonClient.getHistory(sessionId);

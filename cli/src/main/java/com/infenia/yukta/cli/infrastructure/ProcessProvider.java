@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Optional;
 
+/** Adapter interface for process management operations. */
 public interface ProcessProvider {
   /**
    * Starts a new process with the given command, working directory, and I/O redirects.

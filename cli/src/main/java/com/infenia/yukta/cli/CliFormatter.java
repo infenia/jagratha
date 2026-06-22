@@ -19,23 +19,47 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
+/** Utility class for formatting output in CLI commands. */
 @Component
 public class CliFormatter {
 
   private final ObjectMapper objectMapper;
 
+  /**
+   * Constructs a CLI formatter with an ObjectMapper.
+   *
+   * @param objectMapper the JSON object mapper
+   */
   public CliFormatter(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
   }
 
+  /**
+   * Formats an object as pretty-printed JSON.
+   *
+   * @param value the object to format
+   * @return the JSON string
+   * @throws Exception if serialization fails
+   */
   public String formatAsJson(Object value) throws Exception {
     return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(value);
   }
 
+  /**
+   * Prints table rows to standard output.
+   *
+   * @param items the items to print
+   */
   public void printTable(List<String> items) {
     items.forEach(System.out::println);
   }
 
+  /**
+   * Prints an object as JSON to standard output.
+   *
+   * @param value the object to print
+   * @throws Exception if serialization fails
+   */
   public void printJson(Object value) throws Exception {
     System.out.println(formatAsJson(value));
   }

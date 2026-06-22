@@ -37,6 +37,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine;
 
+/** Spring ApplicationRunner that orchestrates CLI command execution. */
 @Component
 @RequiredArgsConstructor
 public class CliRunner implements ApplicationRunner {

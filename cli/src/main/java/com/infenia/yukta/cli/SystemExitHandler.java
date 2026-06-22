@@ -15,7 +15,13 @@
  */
 package com.infenia.yukta.cli;
 
+/** Functional interface for handling system exits. */
 @FunctionalInterface
 public interface SystemExitHandler {
+  /**
+   * Exits the system with the given exit code.
+   *
+   * @param code the exit code
+   */
   void exit(int code);
 }

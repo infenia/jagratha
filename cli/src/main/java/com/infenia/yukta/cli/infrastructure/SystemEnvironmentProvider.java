@@ -17,6 +17,7 @@ package com.infenia.yukta.cli.infrastructure;
 
 import java.util.Optional;
 
+/** Adapter interface for system environment operations. */
 public interface SystemEnvironmentProvider {
   /**
    * Gets a system property by key.

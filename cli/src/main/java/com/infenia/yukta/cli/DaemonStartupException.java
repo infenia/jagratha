@@ -15,12 +15,24 @@
  */
 package com.infenia.yukta.cli;
 
+/** Exception thrown when daemon startup fails. */
 public class DaemonStartupException extends RuntimeException {
 
+  /**
+   * Constructs a new exception with the specified detail message.
+   *
+   * @param message the detail message
+   */
   public DaemonStartupException(String message) {
     super(message);
   }
 
+  /**
+   * Constructs a new exception with the specified detail message and cause.
+   *
+   * @param message the detail message
+   * @param cause the cause
+   */
   public DaemonStartupException(String message, Throwable cause) {
     super(message, cause);
   }

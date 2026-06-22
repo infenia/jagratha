@@ -21,8 +21,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.dto.response.ControlBusStatus;
-import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.Plugin;
+import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.service.plugin.PluginRegistry;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;

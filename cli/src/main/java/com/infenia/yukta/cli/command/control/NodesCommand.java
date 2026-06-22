@@ -18,10 +18,12 @@ package com.infenia.yukta.cli.command.control;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 
+/** CLI command group for node management operations. */
 @Component
 @Command(name = "nodes", mixinStandardHelpOptions = true, description = "Node management commands")
 public class NodesCommand implements Runnable {
 
+  /** Displays usage information for the nodes command. */
   @Override
   public void run() {
     new picocli.CommandLine(this).usage(System.out);

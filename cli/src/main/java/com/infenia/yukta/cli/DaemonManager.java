@@ -32,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+/** Manages the Yukta daemon process lifecycle. */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -43,6 +44,11 @@ public class DaemonManager {
   private final ProcessProvider processProvider;
   private final FileSystemAdapter fileSystemAdapter;
 
+  /**
+   * Checks if the daemon is currently running.
+   *
+   * @return true if daemon is running, false otherwise
+   */
   public boolean isRunning() {
     try {
       return httpHealthCheck();
@@ -52,6 +58,13 @@ public class DaemonManager {
     }
   }
 
+  /**
+   * Starts the daemon process.
+   *
+   * @return the daemon Process, or null if already running
+   * @throws IOException if process creation fails
+   * @throws DaemonStartupException if startup validation fails
+   */
   public Process startDaemon() throws IOException, DaemonStartupException {
     Path pidFilePath = props.getPidFilePath();
     Path logFilePath = props.getLogFilePath();
@@ -109,6 +122,12 @@ public class DaemonManager {
     }
   }
 
+  /**
+   * Waits for the daemon to be ready (health check passes).
+   *
+   * @throws DaemonStartupException if timeout is exceeded
+   * @throws InterruptedException if the wait is interrupted
+   */
   public void waitForReady() throws DaemonStartupException, InterruptedException {
     Instant deadline = Instant.now().plusSeconds(props.getStartupTimeoutSeconds());
 
@@ -135,6 +154,14 @@ public class DaemonManager {
             + " for details.");
   }
 
+  /**
+   * Ensures the daemon is running, starting it if necessary.
+   *
+   * @return the daemon URL
+   * @throws DaemonStartupException if startup fails
+   * @throws InterruptedException if the operation is interrupted
+   * @throws IOException if process creation fails
+   */
   public String ensureRunning() throws DaemonStartupException, InterruptedException, IOException {
     if (isRunning()) {
       log.info("Using existing daemon at http://127.0.0.1:{}", props.getPort());
@@ -147,6 +174,11 @@ public class DaemonManager {
     return "http://127.0.0.1:" + props.getPort();
   }
 
+  /**
+   * Stops the daemon process.
+   *
+   * @return true if daemon was stopped, false if it wasn't running
+   */
   public boolean stopDaemon() {
     Path pidFilePath = props.getPidFilePath();
 
@@ -177,12 +209,18 @@ public class DaemonManager {
     }
   }
 
+  /**
+   * Gets the current status of the daemon.
+   *
+   * @return the daemon status
+   */
   public DaemonStatus status() {
     boolean running = isRunning();
     long pid = -1;
     try {
       pid = readPidFile();
     } catch (Exception ignored) {
+      // PID file not readable, return default
     }
     String url = running ? "http://127.0.0.1:" + props.getPort() : null;
     return new DaemonStatus(running, pid, url);

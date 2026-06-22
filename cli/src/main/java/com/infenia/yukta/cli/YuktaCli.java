@@ -18,6 +18,7 @@ package com.infenia.yukta.cli;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
+/** Root CLI command for Yukta. */
 @Command(
     name = "yukta",
     mixinStandardHelpOptions = true,
@@ -25,6 +26,7 @@ import picocli.CommandLine.Command;
     description = "Yukta CLI")
 public class YuktaCli implements Runnable {
 
+  /** Runs the Yukta CLI root command and displays usage. */
   @Override
   public void run() {
     CommandLine.usage(this, System.out);

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
+/** CLI command to retrieve all active nodes across workflows. */
 @Component
 @RequiredArgsConstructor
 @Command(name = "get-all", description = "Get all active nodes across workflows")
@@ -37,6 +38,7 @@ public class GetAllNodesCommand implements Runnable {
       defaultValue = "table")
   private String outputFormat;
 
+  /** Executes the command to retrieve and display all active nodes. */
   @Override
   public void run() {
     final List<String> nodes = daemonClient.getAllActiveNodes();

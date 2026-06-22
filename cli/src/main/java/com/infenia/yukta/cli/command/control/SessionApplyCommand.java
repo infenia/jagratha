@@ -27,6 +27,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import tools.jackson.databind.ObjectMapper;
 
+/** CLI command to apply session configuration from a JSON file or string. */
 @Component
 @Command(
     name = "session-apply",
@@ -37,6 +38,13 @@ public class SessionApplyCommand implements Runnable {
   private final ObjectMapper objectMapper;
   private final CliFormatter formatter;
 
+  /**
+   * Constructs a new SessionApplyCommand with dependencies.
+   *
+   * @param daemonClient the daemon client
+   * @param objectMapper the JSON object mapper
+   * @param formatter the CLI formatter
+   */
   public SessionApplyCommand(
       YuktaDaemonClient daemonClient, ObjectMapper objectMapper, CliFormatter formatter) {
     this.daemonClient = daemonClient;
@@ -55,6 +63,7 @@ public class SessionApplyCommand implements Runnable {
       defaultValue = "table")
   private String outputFormat;
 
+  /** Executes the command to apply session configuration. */
   @Override
   public void run() {
     try {
@@ -74,6 +83,13 @@ public class SessionApplyCommand implements Runnable {
     }
   }
 
+  /**
+   * Reads config input from a file or treats it as inline JSON.
+   *
+   * @param input file path or JSON string
+   * @return the JSON content
+   * @throws Exception if reading the file fails
+   */
   private String readConfigInput(final String input) throws Exception {
     try {
       final Path path = Path.of(input);

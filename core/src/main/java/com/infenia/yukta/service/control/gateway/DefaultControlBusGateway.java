@@ -15,10 +15,6 @@
  */
 package com.infenia.yukta.service.control.gateway;
 
-import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
-import com.infenia.yukta.model.execution.WorkflowProgress;
-import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.message.control.ExecutionControlCommand;
@@ -34,6 +30,10 @@ import com.infenia.yukta.message.control.ExecutionControlCommand.SkipNodeCommand
 import com.infenia.yukta.message.control.ExecutionControlCommand.StepNodeCommand;
 import com.infenia.yukta.message.control.ExecutionControlCommand.StopNodeCommand;
 import com.infenia.yukta.message.control.ExecutionControlCommand.StopWorkflowCommand;
+import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
+import com.infenia.yukta.model.execution.WorkflowProgress;
+import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.service.control.ControlBusService;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
@@ -169,8 +169,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
   }
 
   @Override
-  public void registerPlugin(
-      final String workflowId, final String nodeId, final Plugin plugin) {
+  public void registerPlugin(final String workflowId, final String nodeId, final Plugin plugin) {
     log.atInfo()
         .addKeyValue("workflowId", workflowId)
         .addKeyValue("nodeId", nodeId)

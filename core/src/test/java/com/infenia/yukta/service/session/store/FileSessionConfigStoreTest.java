@@ -252,9 +252,7 @@ class FileSessionConfigStoreTest {
     Path sessionsDir = tempDir.resolve("sessions");
     Files.createDirectories(sessionsDir);
     // Create file without tags field
-    Files.writeString(
-        sessionsDir.resolve(sessionId + ".json"),
-        "{\"projectPath\":\"/path\"}");
+    Files.writeString(sessionsDir.resolve(sessionId + ".json"), "{\"projectPath\":\"/path\"}");
 
     Map<String, String> newTags = Map.of("new", "tag");
     StepVerifier.create(configStore.setTags(sessionId, newTags)).verifyComplete();
@@ -276,8 +274,7 @@ class FileSessionConfigStoreTest {
     Path sessionsDir = tempDir.resolve("sessions");
     Files.createDirectories(sessionsDir);
     // Create file without metadata fields
-    Files.writeString(
-        sessionsDir.resolve(sessionId + ".json"), "{}");
+    Files.writeString(sessionsDir.resolve(sessionId + ".json"), "{}");
 
     String newDesc = "New Description";
     StepVerifier.create(configStore.setDescription(sessionId, newDesc)).verifyComplete();

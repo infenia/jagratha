@@ -15,4 +15,11 @@
  */
 package com.infenia.yukta.cli;
 
+/**
+ * Represents the status of the daemon process.
+ *
+ * @param running whether the daemon is running
+ * @param pid the process ID of the daemon
+ * @param url the URL where the daemon is accessible
+ */
 public record DaemonStatus(boolean running, long pid, String url) {}

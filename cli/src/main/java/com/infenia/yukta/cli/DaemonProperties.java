@@ -21,6 +21,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/** Configuration properties for daemon management. */
 @ConfigurationProperties(prefix = "yukta.daemon")
 @Data
 @NoArgsConstructor
@@ -34,6 +35,7 @@ public class DaemonProperties {
   private String jarPath;
   private String notRunningMessage = "Daemon is not running. Start it with: yukta daemon start";
 
+  /** Initializes default property values if not set. */
   @PostConstruct
   public void setDefaults() {
     if (pidFile == null) {

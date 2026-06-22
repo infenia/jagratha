@@ -24,6 +24,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+/** CLI command to retrieve a snapshot of execution progress. */
 @Component
 @RequiredArgsConstructor
 @Command(name = "progress", description = "Get execution progress snapshot")
@@ -41,6 +42,7 @@ public class ProgressCommand implements Runnable {
       defaultValue = "table")
   private String outputFormat;
 
+  /** Executes the command to retrieve and display execution progress. */
   @Override
   public void run() {
     final Map<String, Object> progress = daemonClient.getProgress(executionId);

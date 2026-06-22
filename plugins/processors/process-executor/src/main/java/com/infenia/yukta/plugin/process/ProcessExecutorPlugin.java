@@ -15,9 +15,9 @@
  */
 package com.infenia.yukta.plugin.process;
 
-import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
+import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.util.MapUtils;
 import com.infenia.yukta.util.VariableResolver;
@@ -66,93 +66,31 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
 
   @Override
   public String getUsagePattern() {
-    return """
-    Configuration Parameters:
-
-    REQUIRED:
-    - command: List<String> (SpEL supported)
-      Command and arguments to execute
-      Example: ["mvn", "clean", "test"] or ["./gradlew", "build"]
-
-    OPTIONAL:
-    - workingDir: String (SpEL supported, default: current directory)
-      Working directory for process execution
-      Example: "/path/to/project"
-
-    - timeout: Long (SpEL supported, default: 300 seconds)
-      Maximum execution time in seconds. Must be positive.
-      Example: 600 (for 10-minute timeout)
-
-    - env: Map<String, String> (SpEL supported, default: empty)
-      Environment variables for the process
-      Example: {"NODE_ENV": "production", "DEBUG": "true"}
-
-    - useShell: Boolean (default: false)
-      Execute command via shell (sh on Unix, cmd.exe on Windows)
-      Use true only if command contains pipes, redirects, or other shell features
-
-    - streamOutput: Boolean (default: false)
-      Stream output per line (true) vs buffer entire output (false)
-      Recommended: true for long-running processes or large outputs
-
-    - outputTarget: String (default: "PAYLOAD")
-      Where to store output: "PAYLOAD" or "METADATA"
-      PAYLOAD: Output becomes the message payload
-      METADATA: Output stored in metadata["process.output"]
-
-    OUTPUT BEHAVIOR:
-    - streamOutput=true: Emits one message per output line (recommended)
-    - streamOutput=false: Buffers entire output, emits as single message
-      ⚠️  WARNING: Can cause Out-of-Memory for large outputs (>100MB)
-
-    EXAMPLES:
-
-    Simple command (non-streaming):
-      config: {"command": ["echo", "hello"]}
-
-    Streaming output (recommended for large outputs):
-      config: {
-        "command": ["cat", "large.log"],
-        "streamOutput": true
-      }
-
-    With environment variables:
-      config: {
-        "command": ["sh", "-c", "echo $MY_VAR"],
-        "env": {"MY_VAR": "secret_value"},
-        "useShell": true
-      }
-
-    With timeout and working directory:
-      config: {
-        "command": ["./gradlew", "test"],
-        "workingDir": "/home/project",
-        "timeout": 600
-      }
-
-    Metadata output:
-      config: {
-        "command": ["git", "status"],
-        "outputTarget": "METADATA"
-      }
-
-    ERROR HANDLING:
-    - Non-zero exit codes throw WorkflowExecutionException
-    - Timeout (exceeding timeout seconds) throws WorkflowExecutionException
-    - Invalid config (missing command) throws IllegalArgumentException
-    - Invalid outputTarget defaults to PAYLOAD with warning logged
-
-    MEMORY & PERFORMANCE:
-    - Streaming mode: Constant memory regardless of output size
-    - Non-streaming mode: Memory consumption = output size (avoid for >100MB)
-    - Timeout applies to total execution time, not per-line
-    - Process cleanup is automatic (success, timeout, error)
-
-    SECURITY NOTES:
-    - Shell injection is prevented with proper argument escaping
-    - Metadata exported as YUKTA_METADATA_* env vars (visible to child processes)
-    - Do NOT export passwords, API keys, or tokens via metadata
-    """;
+    return "Configuration Parameters:\n\n"
+        + "REQUIRED:\n"
+        + "- command: List<String> (SpEL supported)\n"
+        + "  Command and arguments to execute\n"
+        + "  Example: [\"mvn\", \"clean\", \"test\"] or [\"./gradlew\", \"build\"]\n"
+        + "\nOPTIONAL:\n"
+        + "- workingDir: String (SpEL supported, default: current directory)\n"
+        + "  Working directory for process execution\n"
+        + "  Example: \"/path/to/project\"\n"
+        + "\n- timeout: Long (SpEL supported, default: 300 seconds)\n"
+        + "  Maximum execution time in seconds. Must be positive.\n"
+        + "  Example: 600 (for 10-minute timeout)\n"
+        + "\n- env: Map<String, String> (SpEL supported, default: empty)\n"
+        + "  Environment variables for the process\n"
+        + "  Example: {\"NODE_ENV\": \"production\", \"DEBUG\": \"true\"}\n"
+        + "\n- useShell: Boolean (default: false)\n"
+        + "  Execute command via shell (sh on Unix, cmd.exe on Windows)\n"
+        + "  Use true only if command contains pipes, redirects, or other shell features\n"
+        + "\n- streamOutput: Boolean (default: false)\n"
+        + "  Stream output per line (true) vs buffer entire output (false)\n"
+        + "  Recommended: true for long-running processes or large outputs\n"
+        + "\n- outputTarget: String (default: \"PAYLOAD\")\n"
+        + "  Where to store output: \"PAYLOAD\" or \"METADATA\"\n"
+        + "  PAYLOAD: Output becomes the message payload\n"
+        + "  METADATA: Output stored in metadata[\"process.output\"]\n";
   }
 
   @Override

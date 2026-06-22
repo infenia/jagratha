@@ -21,9 +21,9 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
+import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import java.util.List;
 import java.util.Map;

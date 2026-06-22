@@ -24,6 +24,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+/** CLI command to trigger a workflow execution. */
 @Component
 @Command(name = "trigger", description = "Trigger a workflow execution")
 public class WorkflowTriggerCommand implements Runnable {
@@ -31,6 +32,12 @@ public class WorkflowTriggerCommand implements Runnable {
   private final YuktaDaemonClient daemonClient;
   private final CliFormatter formatter;
 
+  /**
+   * Constructs a new WorkflowTriggerCommand with dependencies.
+   *
+   * @param daemonClient the daemon client
+   * @param formatter the CLI formatter
+   */
   public WorkflowTriggerCommand(YuktaDaemonClient daemonClient, CliFormatter formatter) {
     this.daemonClient = daemonClient;
     this.formatter = formatter;
@@ -48,6 +55,7 @@ public class WorkflowTriggerCommand implements Runnable {
       defaultValue = "table")
   private String outputFormat;
 
+  /** Executes the command to trigger a workflow and display the execution ID. */
   @Override
   public void run() {
     try {

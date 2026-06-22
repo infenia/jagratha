@@ -15,7 +15,6 @@
  */
 package com.infenia.yukta.service.workflow;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.model.workflow.WorkflowExecution;

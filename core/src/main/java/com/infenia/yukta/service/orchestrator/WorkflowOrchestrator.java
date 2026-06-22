@@ -15,11 +15,11 @@
  */
 package com.infenia.yukta.service.orchestrator;
 
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.message.Message;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.factory.ExecutionControlFactory;
@@ -141,7 +141,7 @@ public class WorkflowOrchestrator {
                   .log("Cleaned up execution resources");
             })
         .doOnSuccess(
-                _ ->
+            _ ->
                 log.atInfo()
                     .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
                     .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)
@@ -252,7 +252,7 @@ public class WorkflowOrchestrator {
                   .log("Cleaned up restarted execution resources");
             })
         .doOnSuccess(
-                _ ->
+            _ ->
                 log.atInfo()
                     .addKeyValue(LOG_KEY_SESSION_ID, sessionId)
                     .addKeyValue(LOG_KEY_WORKFLOW_ID, workflowId)

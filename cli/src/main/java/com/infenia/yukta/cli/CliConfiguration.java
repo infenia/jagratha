@@ -23,15 +23,27 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 
+/** Spring configuration for CLI and daemon client beans. */
 @Configuration
 @EnableConfigurationProperties(DaemonProperties.class)
 public class CliConfiguration {
 
+  /**
+   * Creates a SystemExitHandler that delegates to System.exit.
+   *
+   * @return the exit handler
+   */
   @Bean
   public SystemExitHandler systemExitHandler() {
     return System::exit;
   }
 
+  /**
+   * Creates a WebClient configured for daemon communication.
+   *
+   * @param props daemon properties for configuration
+   * @return the web client
+   */
   @Bean
   public WebClient daemonWebClient(DaemonProperties props) {
     HttpClient httpClient = HttpClient.create().responseTimeout(Duration.ofSeconds(30));

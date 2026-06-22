@@ -20,12 +20,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.infenia.yukta.message.DefaultMessage;
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.plugin.exception.FilterEvaluationException;
 import com.infenia.yukta.plugin.exception.JoinTimeoutException;
 import com.infenia.yukta.plugin.exception.NoMatchingBranchException;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
-import com.infenia.yukta.message.DefaultMessage;
-import com.infenia.yukta.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;

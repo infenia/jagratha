@@ -77,13 +77,17 @@ public class FileSessionConfigStore implements SessionConfigStore {
                     Instant.now().toString(),
                     data.tags(),
                     data.description()))
-        .flatMap(config -> saveSessionConfig(data.sessionId(), config)
-            .doOnSuccess(unused -> log.atInfo()
-                .addKeyValue("sessionId", data.sessionId())
-                .addKeyValue("projectPath", config.projectPath())
-                .addKeyValue("initiator", config.initiator())
-                .addKeyValue("tagCount", config.tags().size())
-                .log("Applied session configuration")))
+        .flatMap(
+            config ->
+                saveSessionConfig(data.sessionId(), config)
+                    .doOnSuccess(
+                        unused ->
+                            log.atInfo()
+                                .addKeyValue("sessionId", data.sessionId())
+                                .addKeyValue("projectPath", config.projectPath())
+                                .addKeyValue("initiator", config.initiator())
+                                .addKeyValue("tagCount", config.tags().size())
+                                .log("Applied session configuration")))
         .then(
             data.workflows().isEmpty()
                 ? Mono.empty()

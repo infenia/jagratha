@@ -43,14 +43,14 @@ public class PreparedWorkflowCache {
 
   private final Cache<String, PreparedWorkflow> cache;
 
-    /**
+  /**
    * Spring-managed constructor.
    *
    * @param ttlMs TTL in milliseconds from application properties
    */
   @Autowired
   public PreparedWorkflowCache(@Value("${workflow.cache.ttl.ms:600000}") final long ttlMs) {
-      this.cache =
+    this.cache =
         Caffeine.newBuilder()
             .expireAfterAccess(ttlMs, TimeUnit.MILLISECONDS)
             .recordStats()

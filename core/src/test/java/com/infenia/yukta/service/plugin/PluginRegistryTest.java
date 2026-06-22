@@ -25,7 +25,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.plugin.core.Plugin;
-import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,12 +34,12 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 @SpringJUnitConfig(LocalValidatorFactoryBean.class)
 class PluginRegistryTest {
 
-    @BeforeEach
+  @BeforeEach
   void setUp() {
-        try (LocalValidatorFactoryBean validatorFactoryBean = new LocalValidatorFactoryBean()) {
-            validatorFactoryBean.afterPropertiesSet();
-        }
+    try (LocalValidatorFactoryBean validatorFactoryBean = new LocalValidatorFactoryBean()) {
+      validatorFactoryBean.afterPropertiesSet();
     }
+  }
 
   @Test
   void testConstructorWithSinglePlugin() {

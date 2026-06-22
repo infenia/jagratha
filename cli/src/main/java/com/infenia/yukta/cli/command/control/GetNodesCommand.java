@@ -24,6 +24,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+/** CLI command to retrieve active nodes in a specific workflow. */
 @Component
 @RequiredArgsConstructor
 @Command(name = "get", description = "Get active nodes in a workflow")
@@ -41,6 +42,7 @@ public class GetNodesCommand implements Runnable {
       defaultValue = "table")
   private String outputFormat;
 
+  /** Executes the command to retrieve and display nodes for a workflow. */
   @Override
   public void run() {
     final List<String> nodes = daemonClient.getActiveNodes(workflowId);

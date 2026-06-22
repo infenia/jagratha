@@ -15,9 +15,9 @@
  */
 package com.infenia.yukta.service.control;
 
+import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.core.Plugin;
-import com.infenia.yukta.message.Message;
 import com.infenia.yukta.service.control.directive.ControlSignalHandler;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.workflow.store.PreparedWorkflowCache;
@@ -310,9 +310,7 @@ public class ControlBusService {
    * @param plugin the plugin instance
    */
   public void registerPlugin(
-      @NotBlank final String workflowId,
-      @NotBlank final String nodeId,
-      final Plugin plugin) {
+      @NotBlank final String workflowId, @NotBlank final String nodeId, final Plugin plugin) {
     final String key = compositeKey(workflowId, nodeId);
     activePlugins.put(key, plugin);
     log.atDebug()
