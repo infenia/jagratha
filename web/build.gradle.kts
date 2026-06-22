@@ -19,6 +19,7 @@ plugins {
 
 dependencies {
     api(project(":core"))
+    api(project(":messaging"))
 
     implementation(libs.spring.boot.starter.webflux)
     implementation(libs.spring.boot.starter.validation)
