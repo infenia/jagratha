@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand.DisableStepModeCommand;
@@ -110,7 +110,7 @@ class DefaultControlBusGatewayTest {
     // Given
     String workflowId = "workflow-1";
     String nodeId = "node-1";
-    WorkflowPlugin plugin = mock(WorkflowPlugin.class);
+    Plugin plugin = mock(Plugin.class);
 
     // When
     gateway.registerPlugin(workflowId, nodeId, plugin);
@@ -1502,8 +1502,8 @@ class DefaultControlBusGatewayTest {
     String workflowId = "wf-multi";
     String nodeId1 = "node-1";
     String nodeId2 = "node-2";
-    WorkflowPlugin plugin1 = mock(WorkflowPlugin.class);
-    WorkflowPlugin plugin2 = mock(WorkflowPlugin.class);
+    Plugin plugin1 = mock(Plugin.class);
+    Plugin plugin2 = mock(Plugin.class);
 
     // When
     gateway.registerPlugin(workflowId, nodeId1, plugin1);

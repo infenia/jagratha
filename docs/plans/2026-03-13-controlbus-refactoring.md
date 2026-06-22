@@ -45,7 +45,7 @@ Replace entire file with:
  */
 package com.infenia.yukta.plugin.gateway;
 
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.message.Message;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -465,7 +465,7 @@ head -60 core/src/main/java/com/infenia/yukta/service/ControlBusService.java
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.ControlSignalHandler;
 import jakarta.annotation.PostConstruct;
@@ -739,7 +739,7 @@ cat core/src/main/java/com/infenia/yukta/service/DefaultControlBusGateway.java
  */
 package com.infenia.yukta.service;
 
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.gateway.ControlBusGateway;
 import com.infenia.yukta.plugin.message.Message;
 import jakarta.validation.constraints.NotBlank;

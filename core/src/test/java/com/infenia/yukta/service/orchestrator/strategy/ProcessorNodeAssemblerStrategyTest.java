@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
@@ -102,7 +102,7 @@ class ProcessorNodeAssemblerStrategyTest {
 
   @Test
   void supports_genericWorkflowPlugin_returnsFalse() {
-    final WorkflowPlugin plugin = mock(WorkflowPlugin.class);
+    final Plugin plugin = mock(Plugin.class);
     assertThat(strategy.supports(plugin, false)).isFalse();
   }
 

@@ -22,7 +22,7 @@ import com.infenia.yukta.dto.response.SessionCreationResponse;
 import com.infenia.yukta.dto.response.SessionDetails;
 import com.infenia.yukta.dto.response.SessionInfo;
 import com.infenia.yukta.model.session.SessionConfigData;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.plugin.PluginRegistry;
 import com.infenia.yukta.service.session.SessionService;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -46,7 +46,7 @@ import tools.jackson.databind.ObjectMapper;
 public class DefaultSessionInfoProvider implements SessionInfoProvider {
 
   private final SessionService sessionService;
-  private final WorkflowRegistry registry;
+  private final PluginRegistry registry;
   private final ObjectMapper objectMapper;
 
   @Override
@@ -162,7 +162,7 @@ public class DefaultSessionInfoProvider implements SessionInfoProvider {
         List.of(
             new ErrorExample(
                 "Plugin Not Found",
-                "Used a plugin type that is not registered in the WorkflowRegistry. "
+                "Used a plugin type that is not registered in the PluginRegistry. "
                     + "For example, referencing 'invalid-plugin' when only 'gradle-checker' is "
                     + "available.",
                 "Check the available plugins using the listPlugins() tool. Ensure the 'type' "

@@ -19,8 +19,8 @@ import com.infenia.yukta.dto.response.PluginCreationGuide;
 import com.infenia.yukta.dto.response.PluginDetails;
 import com.infenia.yukta.dto.response.PluginSummary;
 import com.infenia.yukta.mcp.util.PluginTemplateBuilder;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.plugin.core.Plugin;
+import com.infenia.yukta.service.plugin.PluginRegistry;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -34,7 +34,7 @@ import org.springframework.stereotype.Component;
 @SuppressWarnings("PMD.LongVariable")
 public class DefaultPluginInfoProvider implements PluginInfoProvider {
 
-  private final WorkflowRegistry registry;
+  private final PluginRegistry registry;
 
   @Override
   public List<PluginSummary> listPlugins() {
@@ -45,7 +45,7 @@ public class DefaultPluginInfoProvider implements PluginInfoProvider {
 
   @Override
   public PluginDetails getPluginDetails(final String type) {
-    final WorkflowPlugin plugin = registry.get(type);
+    final Plugin plugin = registry.get(type);
     if (plugin == null) {
       throw new IllegalArgumentException("Plugin not found: " + type);
     }

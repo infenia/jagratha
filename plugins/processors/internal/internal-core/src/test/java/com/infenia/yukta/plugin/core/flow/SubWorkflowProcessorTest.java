@@ -40,7 +40,7 @@ class SubWorkflowProcessorTest {
 
   @Mock private WorkflowGateway workflowGateway;
 
-  @InjectMocks private SubWorkflowProcessor processor;
+  @InjectMocks private SubProcessor processor;
 
   @Test
   @SuppressWarnings("unchecked")

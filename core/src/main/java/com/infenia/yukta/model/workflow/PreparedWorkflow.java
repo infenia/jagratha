@@ -15,7 +15,8 @@
  */
 package com.infenia.yukta.model.workflow;
 
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
+
 import java.util.List;
 import java.util.Map;
 
@@ -33,7 +34,7 @@ public record PreparedWorkflow(
     List<WorkflowEdge> edges,
     Map<String, List<WorkflowNode>> adjacencyList,
     Map<String, List<WorkflowNode>> parentsList,
-    Map<String, WorkflowPlugin> pluginCache,
+    Map<String, Plugin> pluginCache,
     List<WorkflowNode> topologicalOrder,
     WorkflowTemplate template) {
 

@@ -30,10 +30,11 @@ import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.WorkflowEdge;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
 import com.infenia.yukta.service.orchestrator.validator.WorkflowValidator;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.plugin.PluginRegistry;
+
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,11 +48,11 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class WorkflowPreparatorTest {
 
-  @Mock private WorkflowRegistry registry;
+  @Mock private PluginRegistry registry;
   @Mock private WorkflowValidator validator;
   @Mock private TopologicalSortService topologicalSortService;
   @Mock private WorkflowCompiler compiler;
-  @Mock private WorkflowPlugin plugin;
+  @Mock private Plugin plugin;
   @Mock private WorkflowTemplate template;
 
   private WorkflowPreparator preparator;

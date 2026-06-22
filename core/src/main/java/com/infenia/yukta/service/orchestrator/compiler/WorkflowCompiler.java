@@ -20,7 +20,7 @@ import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowEdge;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
@@ -81,7 +81,7 @@ public class WorkflowCompiler {
   public WorkflowTemplate compileTemplate(
       final List<WorkflowEdge> edges,
       final Map<String, List<WorkflowNode>> parentsList,
-      final Map<String, WorkflowPlugin> pluginCache,
+      final Map<String, Plugin> pluginCache,
       final List<WorkflowNode> topologicalOrder) {
 
     final int nodeCount = topologicalOrder.size();
@@ -126,7 +126,7 @@ public class WorkflowCompiler {
   public NodeAssembler[] compileAssemblers(
       final List<WorkflowEdge> edges,
       final Map<String, List<WorkflowNode>> parentsList,
-      final Map<String, WorkflowPlugin> pluginCache,
+      final Map<String, Plugin> pluginCache,
       final List<WorkflowNode> topologicalOrder) {
 
     final int nodeCount = topologicalOrder.size();
@@ -258,10 +258,10 @@ public class WorkflowCompiler {
       final List<WorkflowEdge> edges,
       final WorkflowNode node,
       final Map<String, List<WorkflowNode>> parentsList,
-      final Map<String, WorkflowPlugin> pluginCache,
+      final Map<String, Plugin> pluginCache,
       final Map<String, Integer> nodeToIndex) {
 
-    final WorkflowPlugin plugin = pluginCache.get(node.nodeId());
+    final Plugin plugin = pluginCache.get(node.nodeId());
     final Duration nodeTimeout = getNodeTimeout(node, plugin);
     final int bufferSize = getBufferSize(node, plugin);
     final boolean hasParents = !parentsList.get(node.nodeId()).isEmpty();
@@ -314,7 +314,7 @@ public class WorkflowCompiler {
    * @param plugin the plugin
    * @return the buffer size
    */
-  private int getBufferSize(final WorkflowNode node, final WorkflowPlugin plugin) {
+  private int getBufferSize(final WorkflowNode node, final Plugin plugin) {
     final Object bufferVal = node.config().get("bufferSize");
     final int result;
     if (bufferVal instanceof Number numValue && numValue.intValue() > 0) {
@@ -342,7 +342,7 @@ public class WorkflowCompiler {
    * @param plugin the plugin
    * @return the timeout duration
    */
-  private Duration getNodeTimeout(final WorkflowNode node, final WorkflowPlugin plugin) {
+  private Duration getNodeTimeout(final WorkflowNode node, final Plugin plugin) {
     final Object timeoutVal = node.config().get("timeoutSeconds");
 
     final Duration result;

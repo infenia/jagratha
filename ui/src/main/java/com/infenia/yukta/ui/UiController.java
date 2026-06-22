@@ -17,10 +17,11 @@ package com.infenia.yukta.ui;
 
 import com.infenia.yukta.dto.response.PluginDetails;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.service.LogRetrievalService;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.plugin.PluginRegistry;
 import com.infenia.yukta.service.session.SessionService;
 import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
@@ -53,7 +54,7 @@ public class UiController {
   private final SessionService sessionService;
   private final LogRetrievalService retrievalService;
   private final TaskTrackerService tracker;
-  private final WorkflowRegistry registry;
+  private final PluginRegistry registry;
   private final ControlBusGateway controlBus;
   private final TemplateEngine templateEngine;
 
@@ -237,7 +238,7 @@ public class UiController {
             .filter(java.util.Objects::nonNull)
             .collect(
                 Collectors.toMap(
-                    com.infenia.yukta.plugin.core.WorkflowPlugin::getType,
+                    Plugin::getType,
                     p ->
                         new PluginDetails(
                             p.getType(),
@@ -302,7 +303,7 @@ public class UiController {
                       .filter(java.util.Objects::nonNull)
                       .collect(
                           Collectors.toMap(
-                              com.infenia.yukta.plugin.core.WorkflowPlugin::getType,
+                              Plugin::getType,
                               p ->
                                   new PluginDetails(
                                       p.getType(),

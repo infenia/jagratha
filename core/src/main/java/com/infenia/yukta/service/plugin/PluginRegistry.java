@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.registry;
+package com.infenia.yukta.service.plugin;
 
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.validation.PluginName;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
@@ -27,15 +27,15 @@ import org.springframework.validation.annotation.Validated;
 /** Registry for workflow plugins. */
 @Service
 @Validated
-public class WorkflowRegistry {
-  private final Map<String, WorkflowPlugin> plugins = new ConcurrentHashMap<>();
+public class PluginRegistry {
+  private final Map<String, Plugin> plugins = new ConcurrentHashMap<>();
 
   /**
    * Public constructor.
    *
    * @param pluginList list of plugins discovered by Spring
    */
-  public WorkflowRegistry(@NotEmpty final List<WorkflowPlugin> pluginList) {
+  public PluginRegistry(@NotEmpty final List<Plugin> pluginList) {
     pluginList.forEach(plugin -> plugins.put(plugin.getType(), plugin));
   }
 
@@ -45,7 +45,7 @@ public class WorkflowRegistry {
    * @param type the plugin type
    * @return the plugin, or null if not found
    */
-  public WorkflowPlugin get(@PluginName final String type) {
+  public Plugin get(@PluginName final String type) {
     return plugins.get(type);
   }
 
@@ -64,7 +64,7 @@ public class WorkflowRegistry {
    *
    * @return list of all plugins
    */
-  public List<WorkflowPlugin> listPlugins() {
+  public List<Plugin> listPlugins() {
     return List.copyOf(plugins.values());
   }
 }

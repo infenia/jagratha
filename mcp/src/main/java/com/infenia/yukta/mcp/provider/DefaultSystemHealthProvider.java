@@ -21,7 +21,7 @@ import com.infenia.yukta.dto.response.PluginRegistryEntry;
 import com.infenia.yukta.dto.response.SessionExecutionInfo;
 import com.infenia.yukta.dto.response.SystemHealthMetrics;
 import com.infenia.yukta.mcp.util.UptimeFormatter;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.plugin.PluginRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +36,7 @@ import org.springframework.stereotype.Component;
 @SuppressWarnings({"PMD.DoNotUseThreads", "PMD.UselessParentheses"})
 public class DefaultSystemHealthProvider implements SystemHealthProvider {
 
-  private final WorkflowRegistry registry;
+  private final PluginRegistry registry;
 
   @Override
   public ControlBusStatus getControlBusStatus(final String filterType) {

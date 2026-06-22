@@ -18,7 +18,7 @@ package com.infenia.yukta.service.control.gateway;
 import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.message.control.ExecutionControlCommand;
@@ -170,7 +170,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
 
   @Override
   public void registerPlugin(
-      final String workflowId, final String nodeId, final WorkflowPlugin plugin) {
+      final String workflowId, final String nodeId, final Plugin plugin) {
     log.atInfo()
         .addKeyValue("workflowId", workflowId)
         .addKeyValue("nodeId", nodeId)

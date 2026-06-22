@@ -17,10 +17,11 @@ package com.infenia.yukta.controller;
 
 import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.UiDesign;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.plugin.PluginRegistry;
+
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -35,11 +36,11 @@ class PluginControllerTest {
 
   @Autowired private WebTestClient webTestClient;
 
-  @MockitoBean private WorkflowRegistry registry;
+  @MockitoBean private PluginRegistry registry;
 
   @Test
   void testListPlugins() {
-    WorkflowPlugin plugin = Mockito.mock(WorkflowPlugin.class);
+    Plugin plugin = Mockito.mock(Plugin.class);
     when(plugin.getType()).thenReturn("test-plugin");
     when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(registry.listPlugins()).thenReturn(List.of(plugin));
@@ -57,7 +58,7 @@ class PluginControllerTest {
 
   @Test
   void testGetPluginDetails() {
-    WorkflowPlugin plugin = Mockito.mock(WorkflowPlugin.class);
+    Plugin plugin = Mockito.mock(Plugin.class);
     when(plugin.getType()).thenReturn("test-plugin");
     when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(plugin.getDescription()).thenReturn("desc");
@@ -90,7 +91,7 @@ class PluginControllerTest {
 
   @Test
   void testGetPluginDetailsWithoutUiDesign() {
-    WorkflowPlugin plugin = Mockito.mock(WorkflowPlugin.class);
+    Plugin plugin = Mockito.mock(Plugin.class);
     when(plugin.getType()).thenReturn("test-plugin");
     when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(plugin.getDescription()).thenReturn("desc");

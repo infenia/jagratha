@@ -16,7 +16,7 @@
 package com.infenia.yukta.service.control;
 
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.directive.ControlSignalHandler;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
@@ -59,7 +59,7 @@ public class ControlBusService {
   private final List<ControlSignalHandler> handlers;
   private final PreparedWorkflowCache preparedWorkflowCache;
   private final WorkflowOrchestrator orchestrator;
-  private final Map<String, WorkflowPlugin> activePlugins = new ConcurrentHashMap<>();
+  private final Map<String, Plugin> activePlugins = new ConcurrentHashMap<>();
   private Sinks.Many<Message<?>> controlSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
@@ -312,7 +312,7 @@ public class ControlBusService {
   public void registerPlugin(
       @NotBlank final String workflowId,
       @NotBlank final String nodeId,
-      final WorkflowPlugin plugin) {
+      final Plugin plugin) {
     final String key = compositeKey(workflowId, nodeId);
     activePlugins.put(key, plugin);
     log.atDebug()
@@ -330,7 +330,7 @@ public class ControlBusService {
    */
   public void unregisterPlugin(@NotBlank final String workflowId, @NotBlank final String nodeId) {
     final String key = compositeKey(workflowId, nodeId);
-    final WorkflowPlugin removed = activePlugins.remove(key);
+    final Plugin removed = activePlugins.remove(key);
     if (removed != null) {
       log.atDebug()
           .addArgument(nodeId)
@@ -356,7 +356,7 @@ public class ControlBusService {
   public Mono<Message<?>> sendCommand(
       @NotBlank final String workflowId, @NotBlank final String nodeId, final Message<?> command) {
     final String key = compositeKey(workflowId, nodeId);
-    final WorkflowPlugin plugin = activePlugins.get(key);
+    final Plugin plugin = activePlugins.get(key);
     if (plugin == null) {
       log.atWarn()
           .addArgument(nodeId)

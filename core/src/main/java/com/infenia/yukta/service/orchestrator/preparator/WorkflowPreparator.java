@@ -20,10 +20,10 @@ import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import com.infenia.yukta.model.workflow.WorkflowEdge;
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.service.orchestrator.compiler.WorkflowCompiler;
 import com.infenia.yukta.service.orchestrator.validator.WorkflowValidator;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.plugin.PluginRegistry;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -51,7 +51,7 @@ public class WorkflowPreparator {
   private static final String LOG_KEY_PORT = "port";
   private static final String LOG_KEY_PLUGIN_COUNT = "pluginCount";
 
-  private final WorkflowRegistry registry;
+  private final PluginRegistry registry;
   private final WorkflowValidator validator;
   private final TopologicalSortService topologicalSortService;
   private final WorkflowCompiler compiler;
@@ -71,7 +71,7 @@ public class WorkflowPreparator {
 
     final Map<String, List<WorkflowNode>> adjacencyList = new ConcurrentHashMap<>(numNodes);
     final Map<String, List<WorkflowNode>> parentsList = new ConcurrentHashMap<>(numNodes);
-    final Map<String, WorkflowPlugin> pluginCache = new ConcurrentHashMap<>(numNodes);
+    final Map<String, Plugin> pluginCache = new ConcurrentHashMap<>(numNodes);
     final Map<String, Node> nodeMap = new ConcurrentHashMap<>(numNodes);
 
     def.nodes()
@@ -80,7 +80,7 @@ public class WorkflowPreparator {
               nodeMap.put(node.nodeId(), node);
               adjacencyList.put(node.nodeId(), new ArrayList<>());
               parentsList.put(node.nodeId(), new ArrayList<>());
-              final WorkflowPlugin plugin = registry.get(node.type());
+              final Plugin plugin = registry.get(node.type());
               if (plugin != null) {
                 pluginCache.put(node.nodeId(), plugin);
                 log.atTrace()
@@ -122,7 +122,7 @@ public class WorkflowPreparator {
             Flux.fromIterable(def.nodes())
                 .flatMap(
                     node -> {
-                      final WorkflowPlugin plugin = pluginCache.get(node.nodeId());
+                      final Plugin plugin = pluginCache.get(node.nodeId());
                       if (plugin == null) {
                         log.atError()
                             .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
@@ -173,7 +173,7 @@ public class WorkflowPreparator {
                   .flatMap(
                       entry -> {
                         final String nodeId = entry.getKey();
-                        final WorkflowPlugin plugin = entry.getValue();
+                        final Plugin plugin = entry.getValue();
 
                         log.atDebug()
                             .addKeyValue(LOG_KEY_NODE_ID, nodeId)

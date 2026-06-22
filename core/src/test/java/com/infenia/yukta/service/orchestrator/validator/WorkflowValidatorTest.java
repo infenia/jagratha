@@ -23,7 +23,7 @@ import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.plugin.PluginRegistry;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +36,7 @@ import reactor.test.StepVerifier;
 @MockitoSettings
 class WorkflowValidatorTest {
 
-  @Mock private WorkflowRegistry registry;
+  @Mock private PluginRegistry registry;
   @Mock private TriggerPlugin triggerPlugin;
   @Mock private ProcessorPlugin processorPlugin;
   @Mock private TerminalPlugin terminalPlugin;

@@ -210,7 +210,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.infenia.yukta.service.session.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.registry.PluginRegistry;
 import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 
@@ -371,7 +371,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.ObjectMapper;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.registry.PluginRegistry;
 import com.infenia.yukta.service.workflow.WorkflowService;
 
 import java.time.Duration;
@@ -635,7 +635,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.registry.PluginRegistry;
 import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 
@@ -784,7 +784,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import com.infenia.yukta.service.session.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.registry.PluginRegistry;
 import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 
@@ -943,7 +943,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import com.infenia.yukta.service.session.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.registry.PluginRegistry;
 import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 
@@ -1334,7 +1334,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.infenia.yukta.service.session.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.registry.PluginRegistry;
 import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 import reactor.core.publisher.Flux;
@@ -1548,7 +1548,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.infenia.yukta.service.session.SessionService;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.registry.PluginRegistry;
 import com.infenia.yukta.service.workflow.WorkflowService;
 import tools.jackson.databind.ObjectMapper;
 

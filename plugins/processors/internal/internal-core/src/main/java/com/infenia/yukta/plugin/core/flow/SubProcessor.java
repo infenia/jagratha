@@ -35,14 +35,14 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Component
 @SuppressWarnings({"PMD.OnlyOneReturn", "PMD.LawOfDemeter"})
-public class SubWorkflowProcessor implements ProcessorPlugin {
+public class SubProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "SUB_WORKFLOW";
 
   @Autowired private WorkflowGateway workflowGateway;
 
   /** Default constructor. */
-  public SubWorkflowProcessor() {
+  public SubProcessor() {
     super();
   }
 

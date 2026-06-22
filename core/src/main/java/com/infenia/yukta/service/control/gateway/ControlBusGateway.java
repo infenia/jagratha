@@ -16,7 +16,7 @@
 package com.infenia.yukta.service.control.gateway;
 
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.message.Message;
 import java.util.List;
 import reactor.core.publisher.Mono;
@@ -58,7 +58,7 @@ public interface ControlBusGateway {
    * @param nodeId the node identifier
    * @param plugin the plugin instance
    */
-  void registerPlugin(String workflowId, String nodeId, WorkflowPlugin plugin);
+  void registerPlugin(String workflowId, String nodeId, Plugin plugin);
 
   /**
    * Unregister a plugin from the control bus.

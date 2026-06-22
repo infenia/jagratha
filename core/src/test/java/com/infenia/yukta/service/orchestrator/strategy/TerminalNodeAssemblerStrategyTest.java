@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.message.DefaultMessage;
 import com.infenia.yukta.plugin.message.Message;
@@ -106,7 +106,7 @@ class TerminalNodeAssemblerStrategyTest {
 
   @Test
   void supports_genericWorkflowPlugin_returnsFalse() {
-    final WorkflowPlugin plugin = mock(WorkflowPlugin.class);
+    final Plugin plugin = mock(Plugin.class);
     assertThat(strategy.supports(plugin, false)).isFalse();
   }
 

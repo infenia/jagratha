@@ -18,7 +18,7 @@ package com.infenia.yukta.controller;
 import com.infenia.yukta.dto.response.PluginDetails;
 import com.infenia.yukta.dto.response.PluginSummary;
 import com.infenia.yukta.model.api.ApiResponse;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.plugin.PluginRegistry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -46,7 +46,7 @@ import reactor.core.publisher.Mono;
 public class PluginController {
   private static final String APPLICATION_JSON = "application/json";
 
-  private final WorkflowRegistry registry;
+  private final PluginRegistry registry;
 
   /**
    * List all available plugins.

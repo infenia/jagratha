@@ -23,9 +23,9 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.dto.response.PluginReference;
 import com.infenia.yukta.dto.response.SessionCreationGuide;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.core.PluginCategory;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.plugin.PluginRegistry;
 import com.infenia.yukta.service.session.SessionService;
 import java.util.List;
 import java.util.Map;
@@ -40,13 +40,13 @@ class DefaultSessionInfoProviderTest {
 
   private DefaultSessionInfoProvider provider;
   private SessionService sessionService;
-  private WorkflowRegistry registry;
+  private PluginRegistry registry;
   private ObjectMapper objectMapper;
 
   @BeforeEach
   void setUp() {
     sessionService = mock(SessionService.class);
-    registry = mock(WorkflowRegistry.class);
+    registry = mock(PluginRegistry.class);
     objectMapper = new ObjectMapper();
     provider = new DefaultSessionInfoProvider(sessionService, registry, objectMapper);
   }
@@ -92,12 +92,12 @@ class DefaultSessionInfoProviderTest {
   @Test
   void testGetSessionCreationInstructionsWithPlugins() {
     // Mock plugins to cover the PluginReference creation code path
-    WorkflowPlugin plugin1 = mock(WorkflowPlugin.class);
+    Plugin plugin1 = mock(Plugin.class);
     when(plugin1.getType()).thenReturn("test-plugin");
     when(plugin1.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(plugin1.getDescription()).thenReturn("Test plugin description");
 
-    WorkflowPlugin plugin2 = mock(WorkflowPlugin.class);
+    Plugin plugin2 = mock(Plugin.class);
     when(plugin2.getType()).thenReturn("another-plugin");
     when(plugin2.getCategory()).thenReturn(PluginCategory.TRIGGER);
     when(plugin2.getDescription()).thenReturn("Another plugin");

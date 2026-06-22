@@ -29,7 +29,7 @@ import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowEdge;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.model.workflow.WorkflowTemplate;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.strategy.NodeAssemblerStrategy;
@@ -57,7 +57,7 @@ class WorkflowCompilerTest {
   @Mock private SessionConfigStore configService;
   @Mock private ExecutionControlRegistry executionControlRegistry;
   @Mock private NodeAssemblerStrategy assemblerStrategy;
-  @Mock private WorkflowPlugin plugin;
+  @Mock private Plugin plugin;
 
   private WorkflowCompiler compiler;
 
@@ -84,7 +84,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of());
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin);
     final List<WorkflowNode> order = List.of(node);
 
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
@@ -107,7 +107,7 @@ class WorkflowCompilerTest {
     final WorkflowNode n2 = new WorkflowNode("n2", "processor", Map.of());
     final List<WorkflowEdge> edges = List.of(new WorkflowEdge("n1", "n2", null));
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of(), "n2", List.of(n1));
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin, "n2", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin, "n2", plugin);
     final List<WorkflowNode> order = List.of(n1, n2);
 
     final NodeAssembler a1 = mock(NodeAssembler.class);
@@ -132,7 +132,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "unknown", Map.of());
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin);
     final List<WorkflowNode> order = List.of(node);
 
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
@@ -151,7 +151,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of());
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = new HashMap<>();
+    final Map<String, Plugin> plugins = new HashMap<>();
     plugins.put("n1", null);
     final List<WorkflowNode> order = List.of(node);
 
@@ -172,7 +172,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of("bufferSize", 256));
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin);
     final List<WorkflowNode> order = List.of(node);
 
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
@@ -191,7 +191,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of("timeoutSeconds", 120));
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin);
     final List<WorkflowNode> order = List.of(node);
 
     when(plugin.getDefaultBufferSize()).thenReturn(1024);
@@ -211,7 +211,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of());
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin);
     final List<WorkflowNode> order = List.of(node);
 
     when(plugin.getDefaultTimeout()).thenReturn(null);
@@ -233,7 +233,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of("bufferSize", 0));
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin);
     final List<WorkflowNode> order = List.of(node);
 
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
@@ -253,7 +253,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of("timeoutSeconds", 0));
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin);
     final List<WorkflowNode> order = List.of(node);
 
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(45));
@@ -276,7 +276,7 @@ class WorkflowCompilerTest {
     final WorkflowEdge edge = new WorkflowEdge("n1", "n2", "out");
     final List<WorkflowEdge> edges = List.of(edge);
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of(), "n2", List.of(n1));
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin, "n2", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin, "n2", plugin);
     final List<WorkflowNode> order = List.of(n1, n2);
 
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
@@ -306,7 +306,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of());
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin);
     final List<WorkflowNode> order = List.of(node);
 
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
@@ -326,7 +326,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of());
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin);
     final List<WorkflowNode> order = List.of(node);
 
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
@@ -445,7 +445,7 @@ class WorkflowCompilerTest {
         new WorkflowNode("n1", "trigger", Map.of("bufferSize", "not-a-number"));
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin);
     final List<WorkflowNode> order = List.of(node);
 
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
@@ -465,7 +465,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of());
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = new HashMap<>();
+    final Map<String, Plugin> plugins = new HashMap<>();
     plugins.put("n1", null);
     final List<WorkflowNode> order = List.of(node);
 
@@ -487,7 +487,7 @@ class WorkflowCompilerTest {
         new WorkflowNode("n1", "trigger", Map.of("timeoutSeconds", "bad-value"));
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = Map.of("n1", plugin);
+    final Map<String, Plugin> plugins = Map.of("n1", plugin);
     final List<WorkflowNode> order = List.of(node);
 
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(60));
@@ -508,7 +508,7 @@ class WorkflowCompilerTest {
     final WorkflowNode node = new WorkflowNode("n1", "trigger", Map.of());
     final List<WorkflowEdge> edges = List.of();
     final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of());
-    final Map<String, WorkflowPlugin> plugins = new HashMap<>();
+    final Map<String, Plugin> plugins = new HashMap<>();
     plugins.put("n1", null);
     final List<WorkflowNode> order = List.of(node);
 

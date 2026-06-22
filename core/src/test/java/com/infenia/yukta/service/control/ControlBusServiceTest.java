@@ -20,7 +20,7 @@ import static org.mockito.Mockito.*;
 
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.service.control.directive.ControlSignalHandler;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
@@ -58,7 +58,7 @@ class ControlBusServiceTest {
   @Mock private WorkflowOrchestrator orchestrator;
   @Mock private ControlSignalHandler handler1;
   @Mock private ControlSignalHandler handler2;
-  @Mock private WorkflowPlugin plugin;
+  @Mock private Plugin plugin;
   @Mock private Message message;
   @Mock private WorkflowDefinition workflowDefinition;
   @Mock private PreparedWorkflow preparedWorkflow;
@@ -297,7 +297,7 @@ class ControlBusServiceTest {
     @DisplayName("should maintain separate plugins for different nodes")
     void registerPlugin_differentNodes_storedSeparately() {
       String altNodeId = "other-node";
-      WorkflowPlugin altPlugin = mock(WorkflowPlugin.class);
+      Plugin altPlugin = mock(Plugin.class);
 
       when(plugin.onControlSignal(message)).thenReturn(Mono.just(message));
 

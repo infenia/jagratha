@@ -18,8 +18,8 @@ package com.infenia.yukta.service.orchestrator.strategy;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.core.PluginCategory;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
@@ -47,7 +47,7 @@ public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
   private final StreamTopologyDecorator streamTopologyDecorator;
 
   @Override
-  public boolean supports(final WorkflowPlugin plugin, final boolean hasParents) {
+  public boolean supports(final Plugin plugin, final boolean hasParents) {
     final boolean isSupported =
         plugin instanceof TriggerPlugin
             && (plugin.getCategory() == PluginCategory.TRIGGER || !hasParents);
@@ -63,7 +63,7 @@ public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
   @Override
   public NodeAssembler createAssembler(
       final WorkflowNode node,
-      final WorkflowPlugin plugin,
+      final Plugin plugin,
       final Duration timeout,
       final int index,
       final int bufferSize,

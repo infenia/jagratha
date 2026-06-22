@@ -16,11 +16,11 @@
 package com.infenia.yukta.plugin.core.flow;
 
 import com.infenia.yukta.plugin.core.UiDesign;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.message.Message;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.plugin.PluginRegistry;
 import com.infenia.yukta.util.SpelUtils;
 import java.time.Duration;
 import java.util.List;
@@ -43,7 +43,7 @@ public class LoopStreamProcessor implements ProcessorPlugin {
 
   private static final String TYPE = "LOOP_STREAM";
 
-  @Autowired private ObjectProvider<WorkflowRegistry> registryProvider;
+  @Autowired private ObjectProvider<PluginRegistry> registryProvider;
 
   @Autowired private ObjectProvider<DefaultTaskTrackerService> trackerProvider;
 
@@ -107,13 +107,13 @@ public class LoopStreamProcessor implements ProcessorPlugin {
   @Override
   public Flux<Message<?>> process(final Flux<Message<?>> input, final Map<String, Object> config) {
     final String targetId = (String) config.get("targetPluginId");
-    final WorkflowRegistry registry = registryProvider.getIfAvailable();
+    final PluginRegistry registry = registryProvider.getIfAvailable();
 
     if (registry == null || !registry.contains(targetId)) {
       return Flux.error(new IllegalArgumentException("Target plugin not found: " + targetId));
     }
 
-    final WorkflowPlugin targetPlugin = registry.get(targetId);
+    final Plugin targetPlugin = registry.get(targetId);
     if (!(targetPlugin instanceof ProcessorPlugin processor)) {
       return Flux.error(
           new IllegalArgumentException("Target plugin must be a ProcessorPlugin: " + targetId));

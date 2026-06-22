@@ -16,12 +16,12 @@
 package com.infenia.yukta.service.orchestrator.validator;
 
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.WorkflowContext;
 import com.infenia.yukta.plugin.core.WorkflowContext.WorkflowEdge;
-import com.infenia.yukta.plugin.core.WorkflowPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
-import com.infenia.yukta.service.registry.WorkflowRegistry;
+import com.infenia.yukta.service.plugin.PluginRegistry;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -52,7 +52,7 @@ import reactor.core.publisher.Mono;
 })
 public class WorkflowValidator {
 
-  private final WorkflowRegistry registry;
+  private final PluginRegistry registry;
 
   /**
    * Validate the structural integrity of a workflow definition.
@@ -99,7 +99,7 @@ public class WorkflowValidator {
     return Flux.fromIterable(def.nodes())
         .flatMap(
             node -> {
-              final WorkflowPlugin plugin = registry.get(node.type());
+              final Plugin plugin = registry.get(node.type());
               if (plugin == null) {
                 log.atWarn()
                     .addKeyValue("nodeId", node.nodeId())
@@ -122,7 +122,7 @@ public class WorkflowValidator {
         def.nodes().stream()
             .anyMatch(
                 node -> {
-                  final WorkflowPlugin plugin = registry.get(node.type());
+                  final Plugin plugin = registry.get(node.type());
                   return plugin instanceof TriggerPlugin;
                 });
 
@@ -144,7 +144,7 @@ public class WorkflowValidator {
         def.nodes().stream()
             .anyMatch(
                 node -> {
-                  final WorkflowPlugin plugin = registry.get(node.type());
+                  final Plugin plugin = registry.get(node.type());
                   return plugin != null && plugin.getCategory() == PluginCategory.TERMINAL;
                 });
 
@@ -166,7 +166,7 @@ public class WorkflowValidator {
     return Flux.fromIterable(def.nodes())
         .flatMap(
             node -> {
-              final WorkflowPlugin plugin = registry.get(node.type());
+              final Plugin plugin = registry.get(node.type());
               final boolean isEntryPoint = !targetIds.contains(node.nodeId());
               final boolean canBeTrigger = plugin instanceof TriggerPlugin;
               final boolean mustBeTrigger = plugin.getCategory() == PluginCategory.TRIGGER;
@@ -198,7 +198,7 @@ public class WorkflowValidator {
     return Flux.fromIterable(def.nodes())
         .flatMap(
             node -> {
-              final WorkflowPlugin plugin = registry.get(node.type());
+              final Plugin plugin = registry.get(node.type());
               // Plugin is guaranteed non-null by validatePluginsRegistered (runs first)
               final boolean isProcessor = plugin.getCategory() == PluginCategory.PROCESSOR;
               final boolean isEntryPoint = !targetIds.contains(node.nodeId());
@@ -231,7 +231,7 @@ public class WorkflowValidator {
 
   private Mono<Void> validateEndpointNode(
       final WorkflowDefinition.Node node, final Set<String> sourceIds) {
-    final WorkflowPlugin plugin = registry.get(node.type());
+    final Plugin plugin = registry.get(node.type());
     // Plugin is guaranteed non-null by validatePluginsRegistered (runs first)
     final boolean isEndpoint = !sourceIds.contains(node.nodeId());
     final boolean isTerminal = plugin.getCategory() == PluginCategory.TERMINAL;
@@ -258,7 +258,7 @@ public class WorkflowValidator {
     return Flux.fromIterable(def.nodes())
         .flatMap(
             node -> {
-              final WorkflowPlugin plugin = registry.get(node.type());
+              final Plugin plugin = registry.get(node.type());
               // Plugin is guaranteed non-null by validatePluginsRegistered (runs first)
               final WorkflowContext context = buildContext(node.nodeId(), def);
               return plugin.validateInContext(context, node.config());
@@ -303,7 +303,7 @@ public class WorkflowValidator {
     return Flux.fromIterable(def.nodes())
         .flatMap(
             node -> {
-              final WorkflowPlugin plugin = registry.get(node.type());
+              final Plugin plugin = registry.get(node.type());
               log.atDebug()
                   .addKeyValue("nodeId", node.nodeId())
                   .addKeyValue("pluginType", node.type())

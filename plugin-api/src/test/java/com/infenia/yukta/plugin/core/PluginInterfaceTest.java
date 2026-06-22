@@ -150,7 +150,7 @@ class PluginInterfaceTest {
 
   @Test
   void testDefaultWorkflowPluginMethods() {
-    WorkflowPlugin plugin = new MockWorkflowPlugin();
+    Plugin plugin = new MockPlugin();
 
     // Lifecycle methods
     StepVerifier.create(plugin.initialize(Map.of())).verifyComplete();
@@ -271,7 +271,7 @@ class PluginInterfaceTest {
     assertEquals(0, collector.getResults().size());
   }
 
-  private static class MockWorkflowPlugin implements WorkflowPlugin {
+  private static class MockPlugin implements Plugin {
     @Override
     public String getType() {
       return "test";
