@@ -24,12 +24,10 @@ import org.springframework.stereotype.Component;
 /** Default provider — returns a singleton DirectNodeMessageChannel for every node. */
 @Component
 @ConditionalOnMissingBean(NodeMessageChannelProvider.class)
+@SuppressWarnings("PMD.AtLeastOneConstructor")
 public class DirectNodeMessageChannelProvider implements NodeMessageChannelProvider {
 
   private static final DirectNodeMessageChannel INSTANCE = new DirectNodeMessageChannel();
-
-  /** Constructs a new DirectNodeMessageChannelProvider. */
-  public DirectNodeMessageChannelProvider() {}
 
   @Override
   public NodeMessageChannel channelFor(final String nodeId, final Map<String, Object> config) {

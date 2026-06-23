@@ -20,10 +20,8 @@ import com.infenia.yukta.plugin.channel.NodeMessageChannel;
 import reactor.core.publisher.Flux;
 
 /** Zero-overhead passthrough channel. Both sides return the Flux unchanged. */
+@SuppressWarnings("PMD.AtLeastOneConstructor")
 public class DirectNodeMessageChannel implements NodeMessageChannel {
-
-  /** Constructs a new DirectNodeMessageChannel. */
-  public DirectNodeMessageChannel() {}
 
   @Override
   public Flux<Message<?>> inbound(

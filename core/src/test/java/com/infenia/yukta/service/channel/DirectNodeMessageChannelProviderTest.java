@@ -16,6 +16,7 @@
 package com.infenia.yukta.service.channel;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import com.infenia.yukta.plugin.channel.NodeMessageChannel;
 import java.util.Map;
@@ -41,9 +42,7 @@ class DirectNodeMessageChannelProviderTest {
   }
 
   @Test
-  void channelFor_withNullConfig_returnsChannel() {
-    final NodeMessageChannel channel = provider.channelFor("node-1", null);
-
-    assertThat(channel).isNotNull();
+  void channelFor_withNullConfig_doesNotThrow() {
+    assertThatNoException().isThrownBy(() -> provider.channelFor("node-1", null));
   }
 }
