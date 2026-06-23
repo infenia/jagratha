@@ -19,6 +19,8 @@ import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
+import com.infenia.yukta.plugin.channel.NodeMessageChannel;
+import com.infenia.yukta.plugin.channel.NodeMessageChannelProvider;
 import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
@@ -56,6 +58,8 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
   private final Scheduler virtualThreadScheduler;
 
   private final StreamTopologyDecorator streamTopologyDecorator;
+
+  private final NodeMessageChannelProvider channelProvider;
 
   @Override
   public boolean supports(final Plugin plugin, final boolean hasParents) {
@@ -125,7 +129,11 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
           .addKeyValue("executionId", context.executionId())
           .log("Consuming stream with terminal plugin");
 
-      Mono<Void> completion = terminal.consume(inputToTerminal, node.config());
+      final NodeMessageChannel channel = channelProvider.channelFor(node.nodeId(), node.config());
+      Mono<Void> completion =
+          terminal.consume(
+              channel.inbound(node.nodeId(), context.executionId(), inputToTerminal),
+              node.config());
       if (terminal.isBlocking()) {
         log.atDebug()
             .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())

@@ -29,11 +29,14 @@ import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
+import com.infenia.yukta.plugin.channel.NodeMessageChannel;
+import com.infenia.yukta.plugin.channel.NodeMessageChannelProvider;
 import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.channel.DirectNodeMessageChannel;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
@@ -63,6 +66,7 @@ class TerminalNodeAssemblerStrategyTest {
 
   @Mock private TaskTrackerService tracker;
   @Mock private StreamTopologyDecorator streamTopologyDecorator;
+  @Mock private NodeMessageChannelProvider channelProvider;
 
   private TerminalNodeAssemblerStrategy strategy;
 
@@ -73,9 +77,10 @@ class TerminalNodeAssemblerStrategyTest {
 
   @BeforeEach
   void setUp() {
+    when(channelProvider.channelFor(any(), any())).thenReturn(new DirectNodeMessageChannel());
     strategy =
         new TerminalNodeAssemblerStrategy(
-            tracker, Schedulers.boundedElastic(), streamTopologyDecorator);
+            tracker, Schedulers.boundedElastic(), streamTopologyDecorator, channelProvider);
   }
 
   // ── supports() ────────────────────────────────────────────────────────────
@@ -331,6 +336,32 @@ class TerminalNodeAssemblerStrategyTest {
     a2.assemble(context);
 
     assertThat(context.terminals()).hasSize(2);
+  }
+
+  @Test
+  void createAssembler_callsInboundChannel() {
+    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "input");
+    final NodeMessageChannel channel = mock(NodeMessageChannel.class);
+    when(channelProvider.channelFor(eq(NODE_ID), any())).thenReturn(channel);
+    when(channel.inbound(eq(NODE_ID), eq(EXECUTION_ID), any())).thenAnswer(i -> i.getArgument(2));
+
+    final TerminalPlugin terminal = mock(TerminalPlugin.class);
+    when(terminal.consume(any(), any())).thenReturn(Mono.empty());
+    when(terminal.isBlocking()).thenReturn(false);
+
+    final WorkflowNode node = new WorkflowNode(NODE_ID, "terminal", Map.of());
+    final AssemblyContext context = buildContext(NODE_ID, Flux.just(msg));
+
+    when(streamTopologyDecorator.mergeParentStreams(any(), any(ParentEdgeInfo[].class)))
+        .thenReturn(Flux.just(msg));
+
+    final NodeAssembler assembler =
+        strategy.createAssembler(
+            node, terminal, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
+    assembler.assemble(context);
+
+    verify(channelProvider).channelFor(eq(NODE_ID), any());
+    verify(channel).inbound(eq(NODE_ID), eq(EXECUTION_ID), any());
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
