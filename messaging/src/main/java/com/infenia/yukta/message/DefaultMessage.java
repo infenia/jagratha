@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.With;
 
 /**
  * Default implementation of the {@link Message} interface using a Java record.
@@ -52,27 +53,27 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings("PMD.ExcessivePublicCount")
 public record DefaultMessage<T>(
     @SuppressWarnings("PMD.ShortVariable") String id,
-    String traceId,
-    String correlationId,
-    String replyTo,
-    long expiration,
-    String formatIndicator,
-    Map<String, Object> metadata,
+    @With String traceId,
+    @With String correlationId,
+    @With String replyTo,
+    @With long expiration,
+    @With String formatIndicator,
+    @With Map<String, Object> metadata,
     List<String> messageHistory,
     String sequenceId,
     int sequenceNumber,
     int sequenceSize,
-    int priority,
+    @With int priority,
     boolean controlMessage,
     String origDest,
     String failureReason,
     String exceptionDetail,
-    int retryCount,
+    @With int retryCount,
     T payload,
-    Instant timestamp,
-    String sourcePort,
-    String sourceNodeId,
-    String workflowId)
+    @With Instant timestamp,
+    @With String sourcePort,
+    @With String sourceNodeId,
+    @With String workflowId)
     implements Message<T> {
 
   /** Compact constructor to ensure metadata and history are immutable. */
@@ -200,249 +201,6 @@ public record DefaultMessage<T>(
   }
 
   @Override
-  public Message<T> withTraceId(final String traceId) {
-    return new DefaultMessage<>(
-        id,
-        traceId,
-        correlationId,
-        replyTo,
-        expiration,
-        formatIndicator,
-        metadata,
-        messageHistory,
-        sequenceId,
-        sequenceNumber,
-        sequenceSize,
-        priority,
-        controlMessage,
-        origDest,
-        failureReason,
-        exceptionDetail,
-        retryCount,
-        payload,
-        timestamp,
-        sourcePort,
-        sourceNodeId,
-        workflowId);
-  }
-
-  @Override
-  public Message<T> withTimestamp(final Instant timestamp) {
-    return new DefaultMessage<>(
-        id,
-        traceId,
-        correlationId,
-        replyTo,
-        expiration,
-        formatIndicator,
-        metadata,
-        messageHistory,
-        sequenceId,
-        sequenceNumber,
-        sequenceSize,
-        priority,
-        controlMessage,
-        origDest,
-        failureReason,
-        exceptionDetail,
-        retryCount,
-        payload,
-        timestamp,
-        sourcePort,
-        sourceNodeId,
-        workflowId);
-  }
-
-  @Override
-  public Message<T> withCorrelationId(final String correlationId) {
-    return new DefaultMessage<>(
-        id,
-        traceId,
-        correlationId,
-        replyTo,
-        expiration,
-        formatIndicator,
-        metadata,
-        messageHistory,
-        sequenceId,
-        sequenceNumber,
-        sequenceSize,
-        priority,
-        controlMessage,
-        origDest,
-        failureReason,
-        exceptionDetail,
-        retryCount,
-        payload,
-        timestamp,
-        sourcePort,
-        sourceNodeId,
-        workflowId);
-  }
-
-  @Override
-  public Message<T> withReplyTo(final String replyTo) {
-    return new DefaultMessage<>(
-        id,
-        traceId,
-        correlationId,
-        replyTo,
-        expiration,
-        formatIndicator,
-        metadata,
-        messageHistory,
-        sequenceId,
-        sequenceNumber,
-        sequenceSize,
-        priority,
-        controlMessage,
-        origDest,
-        failureReason,
-        exceptionDetail,
-        retryCount,
-        payload,
-        timestamp,
-        sourcePort,
-        sourceNodeId,
-        workflowId);
-  }
-
-  @Override
-  public Message<T> withSourcePort(final String sourcePort) {
-    return new DefaultMessage<>(
-        id,
-        traceId,
-        correlationId,
-        replyTo,
-        expiration,
-        formatIndicator,
-        metadata,
-        messageHistory,
-        sequenceId,
-        sequenceNumber,
-        sequenceSize,
-        priority,
-        controlMessage,
-        origDest,
-        failureReason,
-        exceptionDetail,
-        retryCount,
-        payload,
-        timestamp,
-        sourcePort,
-        sourceNodeId,
-        workflowId);
-  }
-
-  @Override
-  public Message<T> withSourceNodeId(final String sourceNodeId) {
-    return new DefaultMessage<>(
-        id,
-        traceId,
-        correlationId,
-        replyTo,
-        expiration,
-        formatIndicator,
-        metadata,
-        messageHistory,
-        sequenceId,
-        sequenceNumber,
-        sequenceSize,
-        priority,
-        controlMessage,
-        origDest,
-        failureReason,
-        exceptionDetail,
-        retryCount,
-        payload,
-        timestamp,
-        sourcePort,
-        sourceNodeId,
-        workflowId);
-  }
-
-  @Override
-  public Message<T> withWorkflowId(final String workflowId) {
-    return new DefaultMessage<>(
-        id,
-        traceId,
-        correlationId,
-        replyTo,
-        expiration,
-        formatIndicator,
-        metadata,
-        messageHistory,
-        sequenceId,
-        sequenceNumber,
-        sequenceSize,
-        priority,
-        controlMessage,
-        origDest,
-        failureReason,
-        exceptionDetail,
-        retryCount,
-        payload,
-        timestamp,
-        sourcePort,
-        sourceNodeId,
-        workflowId);
-  }
-
-  @Override
-  public Message<T> withExpiration(final long expiration) {
-    return new DefaultMessage<>(
-        id,
-        traceId,
-        correlationId,
-        replyTo,
-        expiration,
-        formatIndicator,
-        metadata,
-        messageHistory,
-        sequenceId,
-        sequenceNumber,
-        sequenceSize,
-        priority,
-        controlMessage,
-        origDest,
-        failureReason,
-        exceptionDetail,
-        retryCount,
-        payload,
-        timestamp,
-        sourcePort,
-        sourceNodeId,
-        workflowId);
-  }
-
-  @Override
-  public Message<T> withFormatIndicator(final String format) {
-    return new DefaultMessage<>(
-        id,
-        traceId,
-        correlationId,
-        replyTo,
-        expiration,
-        format,
-        metadata,
-        messageHistory,
-        sequenceId,
-        sequenceNumber,
-        sequenceSize,
-        priority,
-        controlMessage,
-        origDest,
-        failureReason,
-        exceptionDetail,
-        retryCount,
-        payload,
-        timestamp,
-        sourcePort,
-        sourceNodeId,
-        workflowId);
-  }
-
-  @Override
   public Message<T> withAddedHistory(final String nodeId) {
     final List<String> newHistory = new ArrayList<>(messageHistory);
     newHistory.add(nodeId);
@@ -486,33 +244,6 @@ public record DefaultMessage<T>(
         pos,
         total,
         priority,
-        controlMessage,
-        origDest,
-        failureReason,
-        exceptionDetail,
-        retryCount,
-        payload,
-        timestamp,
-        sourcePort,
-        sourceNodeId,
-        workflowId);
-  }
-
-  @Override
-  public Message<T> withPriority(final int newPriority) {
-    return new DefaultMessage<>(
-        id,
-        traceId,
-        correlationId,
-        replyTo,
-        expiration,
-        formatIndicator,
-        metadata,
-        messageHistory,
-        sequenceId,
-        sequenceNumber,
-        sequenceSize,
-        newPriority,
         controlMessage,
         origDest,
         failureReason,
@@ -632,33 +363,6 @@ public record DefaultMessage<T>(
         exceptionDetail,
         retryCount,
         newPayload,
-        timestamp,
-        sourcePort,
-        sourceNodeId,
-        workflowId);
-  }
-
-  @Override
-  public Message<T> withMetadata(final Map<String, Object> newMetadata) {
-    return new DefaultMessage<>(
-        id,
-        traceId,
-        correlationId,
-        replyTo,
-        expiration,
-        formatIndicator,
-        newMetadata,
-        messageHistory,
-        sequenceId,
-        sequenceNumber,
-        sequenceSize,
-        priority,
-        controlMessage,
-        origDest,
-        failureReason,
-        exceptionDetail,
-        retryCount,
-        payload,
         timestamp,
         sourcePort,
         sourceNodeId,
