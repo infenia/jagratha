@@ -21,8 +21,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.core.model.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
+import com.infenia.yukta.plugin.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
 import com.infenia.yukta.service.control.ControlBusService;
 import com.infenia.yukta.service.control.ExecutionControl;

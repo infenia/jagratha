@@ -19,10 +19,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.infenia.yukta.message.DefaultMessage;
-import com.infenia.yukta.message.Message;
 import com.infenia.yukta.core.model.control.ControlHeartbeat;
 import com.infenia.yukta.core.model.control.ControlStatistics;
+import com.infenia.yukta.message.DefaultMessage;
+import com.infenia.yukta.message.Message;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

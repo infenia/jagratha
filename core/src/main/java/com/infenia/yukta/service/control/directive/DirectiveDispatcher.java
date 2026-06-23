@@ -16,9 +16,9 @@
 package com.infenia.yukta.service.control.directive;
 
 import com.infenia.yukta.message.Message;
-import com.infenia.yukta.core.model.control.ExecutionControlCommand;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
+import com.infenia.yukta.plugin.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.control.ControlBusService;
