@@ -15,18 +15,25 @@
  */
 package com.infenia.yukta.service.channel;
 
-import com.infenia.yukta.plugin.channel.NodeMessageChannel;
 import com.infenia.yukta.plugin.channel.NodeMessageChannelProvider;
-import java.util.Map;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-/** Default provider — returns a singleton DirectNodeMessageChannel for every node. */
+/** Registers the default NodeMessageChannelProvider when no other is present. */
+@Configuration
 @SuppressWarnings("PMD.AtLeastOneConstructor")
-public class DirectNodeMessageChannelProvider implements NodeMessageChannelProvider {
+public class DirectNodeMessageChannelConfiguration {
 
-  private static final DirectNodeMessageChannel INSTANCE = new DirectNodeMessageChannel();
-
-  @Override
-  public NodeMessageChannel channelFor(final String nodeId, final Map<String, Object> config) {
-    return INSTANCE;
+  /**
+   * Creates the default DirectNodeMessageChannelProvider bean when no other
+   * NodeMessageChannelProvider is available.
+   *
+   * @return the direct node message channel provider instance
+   */
+  @Bean
+  @ConditionalOnMissingBean(NodeMessageChannelProvider.class)
+  public NodeMessageChannelProvider directNodeMessageChannelProvider() {
+    return new DirectNodeMessageChannelProvider();
   }
 }
