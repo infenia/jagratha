@@ -203,7 +203,7 @@ grep -r "com.infenia.yukta.message.control" /media/arun/Infenia/Infenia/Developm
 
 For each file found, replace:
 - `import com.infenia.yukta.message.control.*;` → `import com.infenia.yukta.core.model.control.*;`
-- `import com.infenia.yukta.message.control.ControlCommand;` → `import com.infenia.yukta.core.model.control.ControlCommand;`
+- `import com.infenia.yukta.message.control.ControlCommand;` → `import com.infenia.yukta.model.control.ControlCommand;`
 - (and similar for other control classes)
 
 - [ ] **Step 3: Verify no old imports remain**

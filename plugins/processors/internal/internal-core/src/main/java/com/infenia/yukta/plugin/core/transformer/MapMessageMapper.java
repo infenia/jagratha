@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.message;
+package com.infenia.yukta.plugin.core.transformer;
 
+import com.infenia.yukta.message.Message;
+import com.infenia.yukta.plugin.MessageMapper;
 import java.util.Map;
 
 /** Example MessageMapper that maps between a generic Message and a Map domain object. */
