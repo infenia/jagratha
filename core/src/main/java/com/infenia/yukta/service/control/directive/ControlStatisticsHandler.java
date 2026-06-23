@@ -16,7 +16,7 @@
 package com.infenia.yukta.service.control.directive;
 
 import com.infenia.yukta.message.Message;
-import com.infenia.yukta.message.control.ControlStatistics;
+import com.infenia.yukta.core.model.control.ControlStatistics;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.NoArgsConstructor;

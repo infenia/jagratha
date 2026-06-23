@@ -21,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
-import com.infenia.yukta.message.control.ControlHeartbeat;
-import com.infenia.yukta.message.control.ControlStatistics;
+import com.infenia.yukta.core.model.control.ControlHeartbeat;
+import com.infenia.yukta.core.model.control.ControlStatistics;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

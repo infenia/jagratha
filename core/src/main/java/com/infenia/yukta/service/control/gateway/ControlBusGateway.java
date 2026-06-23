@@ -102,7 +102,7 @@ public interface ControlBusGateway {
    * @param command the control command message to execute
    * @return a Mono that completes when the command has been routed through the bus
    */
-  <T extends com.infenia.yukta.message.control.ExecutionControlCommand> Mono<Void> executeCommand(
+  <T extends com.infenia.yukta.core.model.control.ExecutionControlCommand> Mono<Void> executeCommand(
       Message<T> command);
 
   /**

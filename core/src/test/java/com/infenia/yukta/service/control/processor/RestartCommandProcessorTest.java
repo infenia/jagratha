@@ -21,9 +21,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.message.control.ExecutionControlCommand;
-import com.infenia.yukta.message.control.ExecutionControlCommand.PauseWorkflowCommand;
-import com.infenia.yukta.message.control.ExecutionControlCommand.RestartCommand;
+import com.infenia.yukta.core.model.control.ExecutionControlCommand;
+import com.infenia.yukta.core.model.control.ExecutionControlCommand.PauseWorkflowCommand;
+import com.infenia.yukta.core.model.control.ExecutionControlCommand.RestartCommand;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
