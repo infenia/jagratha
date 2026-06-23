@@ -69,7 +69,7 @@ public record DefaultMessage<T>(
     String origDest,
     String failureReason,
     String exceptionDetail,
-    @With int retryCount,
+    int retryCount,
     T payload,
     @With Instant timestamp,
     @With String sourcePort,
