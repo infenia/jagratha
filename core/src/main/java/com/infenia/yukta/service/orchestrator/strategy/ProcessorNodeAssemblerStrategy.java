@@ -19,6 +19,8 @@ import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
+import com.infenia.yukta.plugin.channel.NodeMessageChannel;
+import com.infenia.yukta.plugin.channel.NodeMessageChannelProvider;
 import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
@@ -45,6 +47,8 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
   private final Scheduler virtualThreadScheduler;
 
   private final StreamTopologyDecorator streamTopologyDecorator;
+
+  private final NodeMessageChannelProvider channelProvider;
 
   private static final String LOG_KEY_NODE_ID = "nodeId";
   private static final String LOG_KEY_PARENT_EDGE_COUNT = "parentEdgeCount";
@@ -92,6 +96,8 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
       Flux<Message<?>> safeInput = control.applyPreProcessingControls(node.nodeId(), mergedInput);
 
+      final NodeMessageChannel channel = channelProvider.channelFor(node.nodeId(), node.config());
+
       Flux<Message<?>> stream;
       final AtomicBoolean skipFlag = control.nodeSkipFlags().get(node.nodeId());
 
@@ -105,13 +111,16 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
         log.atDebug()
             .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
             .log("Processing stream with processor plugin");
-        stream = processor.process(safeInput, node.config());
+        final Flux<Message<?>> channelInput =
+            channel.inbound(node.nodeId(), context.executionId(), safeInput);
+        Flux<Message<?>> pluginOutput = processor.process(channelInput, node.config());
         if (processor.isBlocking()) {
           log.atDebug()
               .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
               .log("Subscribing blocking processor to virtual thread scheduler");
-          stream = stream.subscribeOn(virtualThreadScheduler);
+          pluginOutput = pluginOutput.subscribeOn(virtualThreadScheduler);
         }
+        stream = channel.outbound(node.nodeId(), context.executionId(), pluginOutput);
       }
 
       Flux<Message<?>> built =

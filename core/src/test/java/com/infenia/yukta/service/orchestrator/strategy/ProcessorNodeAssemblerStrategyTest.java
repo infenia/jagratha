@@ -18,6 +18,7 @@ package com.infenia.yukta.service.orchestrator.strategy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,10 +29,13 @@ import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
+import com.infenia.yukta.plugin.channel.NodeMessageChannel;
+import com.infenia.yukta.plugin.channel.NodeMessageChannelProvider;
 import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.channel.DirectNodeMessageChannel;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
@@ -59,6 +63,7 @@ class ProcessorNodeAssemblerStrategyTest {
 
   @Mock private TaskTrackerService tracker;
   @Mock private StreamTopologyDecorator streamTopologyDecorator;
+  @Mock private NodeMessageChannelProvider channelProvider;
 
   private ProcessorNodeAssemblerStrategy strategy;
 
@@ -69,9 +74,10 @@ class ProcessorNodeAssemblerStrategyTest {
 
   @BeforeEach
   void setUp() {
+    when(channelProvider.channelFor(any(), any())).thenReturn(new DirectNodeMessageChannel());
     strategy =
         new ProcessorNodeAssemblerStrategy(
-            tracker, Schedulers.boundedElastic(), streamTopologyDecorator);
+            tracker, Schedulers.boundedElastic(), streamTopologyDecorator, channelProvider);
   }
 
   // ── supports() ────────────────────────────────────────────────────────────
@@ -311,6 +317,67 @@ class ProcessorNodeAssemblerStrategyTest {
     assembler.assemble(context);
 
     assertThat(context.streams()[index]).isSameAs(broadcast);
+  }
+
+  @Test
+  void createAssembler_normalPath_callsInboundAndOutboundChannel() {
+    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "input");
+    final Message<?> out = DefaultMessage.create(UUID.randomUUID(), "output");
+    final NodeMessageChannel channel = mock(NodeMessageChannel.class);
+    when(channelProvider.channelFor(eq(NODE_ID), any())).thenReturn(channel);
+    when(channel.inbound(eq(NODE_ID), eq(EXECUTION_ID), any())).thenAnswer(i -> i.getArgument(2));
+    when(channel.outbound(eq(NODE_ID), eq(EXECUTION_ID), any())).thenAnswer(i -> i.getArgument(2));
+
+    final ProcessorPlugin processor = mock(ProcessorPlugin.class);
+    when(processor.process(any(), any())).thenReturn(Flux.just(out));
+    when(processor.isBlocking()).thenReturn(false);
+
+    final WorkflowNode node = new WorkflowNode(NODE_ID, "processor", Map.of());
+    final Flux<Message<?>> parentStream = Flux.just(msg);
+    final AssemblyContext context = buildContextNoSkipFlag(NODE_ID, parentStream);
+
+    when(streamTopologyDecorator.mergeParentStreams(any(), any(ParentEdgeInfo[].class)))
+        .thenReturn(parentStream);
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(), any(int.class), any(), any()))
+        .thenReturn(Flux.just(out));
+
+    final NodeAssembler assembler =
+        strategy.createAssembler(
+            node, processor, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
+    assembler.assemble(context);
+
+    verify(channelProvider).channelFor(eq(NODE_ID), any());
+    verify(channel).inbound(eq(NODE_ID), eq(EXECUTION_ID), any());
+    verify(channel).outbound(eq(NODE_ID), eq(EXECUTION_ID), any());
+  }
+
+  @Test
+  void createAssembler_skipFlagTrue_doesNotCallChannelInboundOrOutbound() {
+    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "input");
+    final NodeMessageChannel channel = mock(NodeMessageChannel.class);
+    when(channelProvider.channelFor(any(), any())).thenReturn(channel);
+
+    final ProcessorPlugin processor = mock(ProcessorPlugin.class);
+    final AtomicBoolean skipFlag = new AtomicBoolean(true);
+
+    final WorkflowNode node = new WorkflowNode(NODE_ID, "processor", Map.of());
+    final Flux<Message<?>> parentStream = Flux.just(msg);
+    final AssemblyContext context = buildContext(NODE_ID, parentStream, skipFlag);
+
+    when(streamTopologyDecorator.mergeParentStreams(any(), any(ParentEdgeInfo[].class)))
+        .thenReturn(parentStream);
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(), any(int.class), any(), any()))
+        .thenReturn(Flux.just(msg));
+
+    final NodeAssembler assembler =
+        strategy.createAssembler(
+            node, processor, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
+    assembler.assemble(context);
+
+    verify(channel, never()).inbound(any(), any(), any());
+    verify(channel, never()).outbound(any(), any(), any());
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
