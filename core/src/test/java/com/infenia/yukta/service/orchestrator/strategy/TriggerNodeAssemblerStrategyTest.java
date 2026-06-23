@@ -18,6 +18,7 @@ package com.infenia.yukta.service.orchestrator.strategy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,11 +28,14 @@ import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
+import com.infenia.yukta.plugin.channel.NodeMessageChannel;
+import com.infenia.yukta.plugin.channel.NodeMessageChannelProvider;
 import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
+import com.infenia.yukta.service.channel.DirectNodeMessageChannel;
 import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
@@ -59,6 +63,7 @@ class TriggerNodeAssemblerStrategyTest {
 
   @Mock private TaskTrackerService tracker;
   @Mock private StreamTopologyDecorator streamTopologyDecorator;
+  @Mock private NodeMessageChannelProvider channelProvider;
 
   private TriggerNodeAssemblerStrategy strategy;
 
@@ -69,9 +74,10 @@ class TriggerNodeAssemblerStrategyTest {
 
   @BeforeEach
   void setUp() {
+    when(channelProvider.channelFor(any(), any())).thenReturn(new DirectNodeMessageChannel());
     strategy =
         new TriggerNodeAssemblerStrategy(
-            tracker, Schedulers.boundedElastic(), streamTopologyDecorator);
+            tracker, Schedulers.boundedElastic(), streamTopologyDecorator, channelProvider);
   }
 
   // ── supports() ────────────────────────────────────────────────────────────
@@ -281,6 +287,33 @@ class TriggerNodeAssemblerStrategyTest {
     safeStopSink.tryEmitEmpty();
 
     StepVerifier.create(context.streams()[0]).verifyComplete();
+  }
+
+  @Test
+  void createAssembler_assembleCallsOutboundChannel() {
+    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "hello");
+    final NodeMessageChannel channel = mock(NodeMessageChannel.class);
+    when(channelProvider.channelFor(eq(NODE_ID), any())).thenReturn(channel);
+    when(channel.outbound(eq(NODE_ID), eq(EXECUTION_ID), any())).thenReturn(Flux.just(msg));
+
+    final TriggerPlugin trigger = mock(TriggerPlugin.class);
+    when(trigger.start(any())).thenReturn(Flux.just(msg));
+    when(trigger.isBlocking()).thenReturn(false);
+
+    final WorkflowNode node = new WorkflowNode(NODE_ID, "trigger", Map.of());
+    final AssemblyContext context = buildContext(NODE_ID, null);
+
+    when(streamTopologyDecorator.applyLoggingAndBroadcasting(
+            anyString(), anyString(), any(), any(int.class), any(), any()))
+        .thenReturn(Flux.just(msg));
+
+    final NodeAssembler assembler =
+        strategy.createAssembler(
+            node, trigger, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
+    assembler.assemble(context);
+
+    verify(channelProvider).channelFor(eq(NODE_ID), any());
+    verify(channel).outbound(eq(NODE_ID), eq(EXECUTION_ID), any());
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────

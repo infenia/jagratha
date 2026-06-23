@@ -19,6 +19,8 @@ import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
+import com.infenia.yukta.plugin.channel.NodeMessageChannel;
+import com.infenia.yukta.plugin.channel.NodeMessageChannelProvider;
 import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.type.TriggerPlugin;
@@ -45,6 +47,8 @@ public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
   private final Scheduler virtualThreadScheduler;
 
   private final StreamTopologyDecorator streamTopologyDecorator;
+
+  private final NodeMessageChannelProvider channelProvider;
 
   @Override
   public boolean supports(final Plugin plugin, final boolean hasParents) {
@@ -86,7 +90,9 @@ public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
           .addKeyValue("executionId", context.executionId())
           .log("Starting trigger stream");
 
-      Flux<Message<?>> stream = trigger.start(node.config());
+      final NodeMessageChannel channel = channelProvider.channelFor(node.nodeId(), node.config());
+      Flux<Message<?>> stream =
+          channel.outbound(node.nodeId(), context.executionId(), trigger.start(node.config()));
       if (trigger.isBlocking()) {
         log.atDebug()
             .addKeyValue("nodeId", node.nodeId())
