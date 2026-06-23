@@ -45,5 +45,4 @@ coverageConfig {
         "INSTRUCTION" to 0.9,
         "METHOD" to 0.9
     ))
-    exceptions.put("com.infenia.yukta.message.control.*", lowCoverage)
 }

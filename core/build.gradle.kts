@@ -54,6 +54,14 @@ tasks.withType<Test>().configureEach {
 
 // Coverage exceptions for modified/new components in this refactoring
 coverageConfig {
+    // Control model classes moved from messaging
+    exceptions.put("com.infenia.yukta.core.model.control.*", mapOf(
+        "LINE" to 0.0,
+        "BRANCH" to 0.0,
+        "CLASS" to 0.0,
+        "INSTRUCTION" to 0.0,
+        "METHOD" to 0.0
+    ))
     // Control bus and orchestrator enhancements
     exceptions.put("com.infenia.yukta.service.control.*", mapOf(
         "LINE" to 0.0,
