@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.With;
@@ -80,9 +81,7 @@ public record DefaultMessage<T>(
   public DefaultMessage {
     metadata = metadata != null ? Map.copyOf(metadata) : Map.of();
     messageHistory = messageHistory != null ? List.copyOf(messageHistory) : List.of();
-    if (timestamp == null) {
-      timestamp = Instant.now();
-    }
+    timestamp = Objects.requireNonNullElseGet(timestamp, Instant::now);
   }
 
   @Override
