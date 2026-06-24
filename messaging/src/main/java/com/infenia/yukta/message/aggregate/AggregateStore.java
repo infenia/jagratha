@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.aggregate;
+package com.infenia.yukta.message.aggregate;
 
 import com.infenia.yukta.message.Message;
 import reactor.core.publisher.Flux;

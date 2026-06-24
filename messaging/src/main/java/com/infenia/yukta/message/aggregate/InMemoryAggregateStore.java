@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.aggregate;
+package com.infenia.yukta.message.aggregate;
 
 import com.infenia.yukta.message.Message;
-import com.infenia.yukta.util.SpelUtils;
+import com.infenia.yukta.message.util.SpelUtils;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;

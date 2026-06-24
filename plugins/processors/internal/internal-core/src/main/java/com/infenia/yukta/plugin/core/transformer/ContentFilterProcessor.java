@@ -20,7 +20,7 @@ import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.util.MapUtils;
-import com.infenia.yukta.util.SpelUtils;
+import com.infenia.yukta.message.util.SpelUtils;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;

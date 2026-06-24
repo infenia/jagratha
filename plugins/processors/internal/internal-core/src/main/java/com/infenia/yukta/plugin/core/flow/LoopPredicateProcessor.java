@@ -21,7 +21,7 @@ import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.plugin.PluginRegistry;
-import com.infenia.yukta.util.SpelUtils;
+import com.infenia.yukta.message.util.SpelUtils;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;

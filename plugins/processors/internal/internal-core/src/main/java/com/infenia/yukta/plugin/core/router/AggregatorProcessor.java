@@ -16,12 +16,12 @@
 package com.infenia.yukta.plugin.core.router;
 
 import com.infenia.yukta.message.Message;
+import com.infenia.yukta.message.aggregate.AggregateStore;
+import com.infenia.yukta.message.aggregate.AggregateStore.AggregateConfig;
+import com.infenia.yukta.message.aggregate.AggregateStore.AggregateResult;
 import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
-import com.infenia.yukta.service.aggregate.AggregateStore;
-import com.infenia.yukta.service.aggregate.AggregateStore.AggregateConfig;
-import com.infenia.yukta.service.aggregate.AggregateStore.AggregateResult;
-import com.infenia.yukta.util.SpelUtils;
+import com.infenia.yukta.message.util.SpelUtils;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;

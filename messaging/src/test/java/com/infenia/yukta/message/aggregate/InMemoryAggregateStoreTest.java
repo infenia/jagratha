@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.aggregate;
+package com.infenia.yukta.message.aggregate;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
-import com.infenia.yukta.service.aggregate.AggregateStore.AggregateConfig;
-import com.infenia.yukta.service.aggregate.AggregateStore.AggregateResult;
+import com.infenia.yukta.message.aggregate.AggregateStore.AggregateConfig;
+import com.infenia.yukta.message.aggregate.AggregateStore.AggregateResult;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -326,7 +326,7 @@ class InMemoryAggregateStoreTest {
 
     // Using reflection to create state and get result without updates
     java.lang.reflect.Constructor<?> constructor =
-        Class.forName("com.infenia.yukta.service.aggregate.InMemoryAggregateStore$AggregateState")
+        Class.forName("com.infenia.yukta.message.aggregate.InMemoryAggregateStore$AggregateState")
             .getDeclaredConstructor(Message.class, AggregateConfig.class);
     constructor.setAccessible(true);
     Object state = constructor.newInstance(msg, config);
@@ -432,7 +432,7 @@ class InMemoryAggregateStoreTest {
     final Message<Double> msg = DefaultMessage.create(UUID.randomUUID(), 0.0);
 
     java.lang.reflect.Constructor<?> constructor =
-        Class.forName("com.infenia.yukta.service.aggregate.InMemoryAggregateStore$AggregateState")
+        Class.forName("com.infenia.yukta.message.aggregate.InMemoryAggregateStore$AggregateState")
             .getDeclaredConstructor(Message.class, AggregateConfig.class);
     constructor.setAccessible(true);
     Object state = constructor.newInstance(msg, config);
@@ -455,7 +455,7 @@ class InMemoryAggregateStoreTest {
     final Message<Double> msg = DefaultMessage.create(UUID.randomUUID(), 0.0);
 
     java.lang.reflect.Constructor<?> constructor =
-        Class.forName("com.infenia.yukta.service.aggregate.InMemoryAggregateStore$AggregateState")
+        Class.forName("com.infenia.yukta.message.aggregate.InMemoryAggregateStore$AggregateState")
             .getDeclaredConstructor(Message.class, AggregateConfig.class);
     constructor.setAccessible(true);
     Object stateList = constructor.newInstance(msg, configList);
@@ -475,7 +475,7 @@ class InMemoryAggregateStoreTest {
   void testIsExpiredBranches() throws Exception {
     final Message<Double> msg = DefaultMessage.create(UUID.randomUUID(), 0.0);
     java.lang.reflect.Constructor<?> constructor =
-        Class.forName("com.infenia.yukta.service.aggregate.InMemoryAggregateStore$AggregateState")
+        Class.forName("com.infenia.yukta.message.aggregate.InMemoryAggregateStore$AggregateState")
             .getDeclaredConstructor(Message.class, AggregateConfig.class);
     constructor.setAccessible(true);
 

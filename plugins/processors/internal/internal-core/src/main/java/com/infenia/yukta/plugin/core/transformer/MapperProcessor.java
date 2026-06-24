@@ -23,7 +23,7 @@ import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.plugin.core.WorkflowContext;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
 import com.infenia.yukta.util.MapUtils;
-import com.infenia.yukta.util.SpelUtils;
+import com.infenia.yukta.message.util.SpelUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
