@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.channel;
+package com.infenia.yukta.message.channel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
-import com.infenia.yukta.message.channel.NodeMessageChannel;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
