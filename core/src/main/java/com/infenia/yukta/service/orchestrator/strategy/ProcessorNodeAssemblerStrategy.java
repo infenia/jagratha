@@ -96,8 +96,6 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
       Flux<Message<?>> safeInput = control.applyPreProcessingControls(node.nodeId(), mergedInput);
 
-      final NodeMessageChannel channel = channelProvider.channelFor(node.nodeId(), node.config());
-
       Flux<Message<?>> stream;
       final AtomicBoolean skipFlag = control.nodeSkipFlags().get(node.nodeId());
 
@@ -111,16 +109,17 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
         log.atDebug()
             .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
             .log("Processing stream with processor plugin");
+        final NodeMessageChannel channel = channelProvider.channelFor(node.nodeId(), node.config());
         final Flux<Message<?>> channelInput =
             channel.inbound(node.nodeId(), context.executionId(), safeInput);
-        Flux<Message<?>> pluginOutput = processor.process(channelInput, node.config());
+        final Flux<Message<?>> pluginOutput = processor.process(channelInput, node.config());
+        stream = channel.outbound(node.nodeId(), context.executionId(), pluginOutput);
         if (processor.isBlocking()) {
           log.atDebug()
               .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
               .log("Subscribing blocking processor to virtual thread scheduler");
-          pluginOutput = pluginOutput.subscribeOn(virtualThreadScheduler);
+          stream = stream.subscribeOn(virtualThreadScheduler);
         }
-        stream = channel.outbound(node.nodeId(), context.executionId(), pluginOutput);
       }
 
       Flux<Message<?>> built =

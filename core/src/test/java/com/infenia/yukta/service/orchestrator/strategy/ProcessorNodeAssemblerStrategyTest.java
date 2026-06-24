@@ -378,6 +378,7 @@ class ProcessorNodeAssemblerStrategyTest {
 
     verify(channel, never()).inbound(any(), any(), any());
     verify(channel, never()).outbound(any(), any(), any());
+    verify(channelProvider, never()).channelFor(any(), any());
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────

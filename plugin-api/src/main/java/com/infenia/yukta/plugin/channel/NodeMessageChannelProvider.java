@@ -26,6 +26,7 @@ public interface NodeMessageChannelProvider {
    *
    * @param nodeId the node identifier
    * @param config the node configuration
+   * @return the channel to use for this node
    */
   NodeMessageChannel channelFor(String nodeId, Map<String, Object> config);
 }
