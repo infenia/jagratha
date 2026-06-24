@@ -13,22 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.channel;
+package com.infenia.yukta.message.channel;
 
-import com.infenia.yukta.message.channel.DirectNodeMessageChannelConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
-/**
- * Delegates to the messaging module's DirectNodeMessageChannelConfiguration.
- *
- * @deprecated Use {@link
- *     com.infenia.yukta.message.channel.DirectNodeMessageChannelConfiguration} directly. This
- *     class is retained for backward compatibility.
- */
+/** Registers the default NodeMessageChannelProvider when no other is present. */
 @Configuration
-@Import(
-    com.infenia.yukta.message.channel.DirectNodeMessageChannelConfiguration.class)
-@Deprecated(since = "1.0.0", forRemoval = true)
 @SuppressWarnings("PMD.AtLeastOneConstructor")
-public class DirectNodeMessageChannelConfiguration {}
+public class DirectNodeMessageChannelConfiguration {
+
+  /**
+   * Creates the default DirectNodeMessageChannelProvider bean when no other
+   * NodeMessageChannelProvider is available.
+   *
+   * @return the direct node message channel provider instance
+   */
+  @Bean
+  @ConditionalOnMissingBean(NodeMessageChannelProvider.class)
+  public NodeMessageChannelProvider directNodeMessageChannelProvider() {
+    return new DirectNodeMessageChannelProvider();
+  }
+}
