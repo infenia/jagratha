@@ -15,8 +15,8 @@
  */
 package com.infenia.yukta.service.channel;
 
-import com.infenia.yukta.plugin.channel.NodeMessageChannel;
-import com.infenia.yukta.plugin.channel.NodeMessageChannelProvider;
+import com.infenia.yukta.message.channel.NodeMessageChannel;
+import com.infenia.yukta.message.channel.NodeMessageChannelProvider;
 import java.util.Map;
 
 /** Default provider — returns a singleton DirectNodeMessageChannel for every node. */

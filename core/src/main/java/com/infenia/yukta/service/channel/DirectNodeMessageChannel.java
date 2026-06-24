@@ -16,7 +16,7 @@
 package com.infenia.yukta.service.channel;
 
 import com.infenia.yukta.message.Message;
-import com.infenia.yukta.plugin.channel.NodeMessageChannel;
+import com.infenia.yukta.message.channel.NodeMessageChannel;
 import reactor.core.publisher.Flux;
 
 /** Zero-overhead passthrough channel. Both sides return the Flux unchanged. */

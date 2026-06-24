@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service.channel;
 
-import com.infenia.yukta.plugin.channel.NodeMessageChannelProvider;
+import com.infenia.yukta.message.channel.NodeMessageChannelProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

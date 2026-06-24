@@ -27,11 +27,11 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
+import com.infenia.yukta.message.channel.NodeMessageChannel;
+import com.infenia.yukta.message.channel.NodeMessageChannelProvider;
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.plugin.channel.NodeMessageChannel;
-import com.infenia.yukta.plugin.channel.NodeMessageChannelProvider;
 import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.type.ProcessorPlugin;
