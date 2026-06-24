@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.channel;
+package com.infenia.yukta.message.channel;
 
 import com.infenia.yukta.message.Message;
-import com.infenia.yukta.message.channel.NodeMessageChannel;
 import reactor.core.publisher.Flux;
 
 /** Zero-overhead passthrough channel. Both sides return the Flux unchanged. */

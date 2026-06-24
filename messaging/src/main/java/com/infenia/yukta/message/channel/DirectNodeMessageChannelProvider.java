@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.channel;
+package com.infenia.yukta.message.channel;
 
-import com.infenia.yukta.message.channel.NodeMessageChannel;
-import com.infenia.yukta.message.channel.NodeMessageChannelProvider;
 import java.util.Map;
 
 /** Default provider — returns a singleton DirectNodeMessageChannel for every node. */
