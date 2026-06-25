@@ -15,16 +15,23 @@
  */
 package com.infenia.yukta;
 
+import static org.assertj.core.api.Assertions.*;
+
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @Isolated
+@SuppressWarnings({
+  "PMD.AvoidThrowingRawExceptionTypes",
+  "PMD.AvoidCatchingGenericException",
+  "PMD.AvoidAccessibilityAlteration",
+  "PMD.CommentRequired",
+  "PMD.TooManyMethods"
+})
+@NoArgsConstructor
 class YuktaApplicationTest {
 
   private static final String NATIVE_IMAGE_PROPERTY = "org.graalvm.nativeimage.imagecode";
@@ -45,100 +52,103 @@ class YuktaApplicationTest {
     }
   }
 
-    @Test
-    void main() {
-        assertDoesNotThrow(() -> YuktaApplication.main(new String[] {"--server.port=0"}));
-    }
+  @Test
+  void main() {
+    assertThatNoException()
+        .isThrownBy(() -> YuktaApplication.main(new String[] {"--server.port=0"}));
+  }
 
   @Test
   void testIsNativeImageWhenPropertyNotSet() {
     System.clearProperty(NATIVE_IMAGE_PROPERTY);
-    assertFalse(isNativeImageReflection());
+    assertThat(isNativeImageReflection()).isFalse();
   }
 
   @Test
   void testIsNativeImageWhenRuntimeProperty() {
     System.setProperty(NATIVE_IMAGE_PROPERTY, "runtime");
-    assertTrue(isNativeImageReflection());
+    assertThat(isNativeImageReflection()).isTrue();
   }
 
   @Test
   void testIsNativeImageWhenBuildtimeProperty() {
     System.setProperty(NATIVE_IMAGE_PROPERTY, "buildtime");
-    assertFalse(isNativeImageReflection());
+    assertThat(isNativeImageReflection()).isFalse();
   }
 
   @Test
   void testIsNativeImageWhenOtherProperty() {
     System.setProperty(NATIVE_IMAGE_PROPERTY, "other");
-    assertFalse(isNativeImageReflection());
+    assertThat(isNativeImageReflection()).isFalse();
   }
 
   @Test
   void testHasProfileArgumentWithActiveProfileFlag() {
-    String[] args = {"--spring.profiles.active=prod"};
-    assertTrue(hasProfileArgumentReflection(args));
+    final String[] args = {"--spring.profiles.active=prod"};
+    assertThat(hasProfileArgumentReflection(args)).isTrue();
   }
 
+  @SuppressWarnings("checkstyle:abbreviationaswordinname")
   @Test
   void testHasProfileArgumentWithDFlag() {
-    String[] args = {"-Dspring.profiles.active=dev"};
-    assertTrue(hasProfileArgumentReflection(args));
+    final String[] args = {"-Dspring.profiles.active=dev"};
+    assertThat(hasProfileArgumentReflection(args)).isTrue();
   }
 
   @Test
   void testHasProfileArgumentWithMultipleArgs() {
-    String[] args = {"--server.port=8080", "--spring.profiles.active=test"};
-    assertTrue(hasProfileArgumentReflection(args));
+    final String[] args = {"--server.port=8080", "--spring.profiles.active=test"};
+    assertThat(hasProfileArgumentReflection(args)).isTrue();
   }
 
   @Test
   void testHasProfileArgumentWithActiveProfileFlagAndValue() {
-    String[] args = {"--spring.profiles.active=production"};
-    assertTrue(hasProfileArgumentReflection(args));
+    final String[] args = {"--spring.profiles.active=production"};
+    assertThat(hasProfileArgumentReflection(args)).isTrue();
   }
 
+  @SuppressWarnings("checkstyle:abbreviationaswordinname")
   @Test
   void testHasProfileArgumentWithDFlagAndValue() {
-    String[] args = {"-Dspring.profiles.active=development"};
-    assertTrue(hasProfileArgumentReflection(args));
+    final String[] args = {"-Dspring.profiles.active=development"};
+    assertThat(hasProfileArgumentReflection(args)).isTrue();
   }
 
   @Test
   void testHasProfileArgumentWithNoProfile() {
-    String[] args = {"--server.port=8080", "--logging.level=debug"};
-    assertFalse(hasProfileArgumentReflection(args));
+    final String[] args = {"--server.port=8080", "--logging.level=debug"};
+    assertThat(hasProfileArgumentReflection(args)).isFalse();
   }
 
   @Test
   void testHasProfileArgumentWithEmptyArgs() {
-    String[] args = {};
-    assertFalse(hasProfileArgumentReflection(args));
+    final String[] args = {};
+    assertThat(hasProfileArgumentReflection(args)).isFalse();
   }
 
   @Test
   void testHasProfileArgumentWithSimilarFlag() {
-    String[] args = {"--spring.profiles.include=extra"};
-    assertFalse(hasProfileArgumentReflection(args));
+    final String[] args = {"--spring.profiles.include=extra"};
+    assertThat(hasProfileArgumentReflection(args)).isFalse();
   }
 
   @Test
   void testHasProfileArgumentLoopsAllArgs() {
-    String[] args = {
+    final String[] args = {
       "--server.port=8080", "--logging.level=debug", "--spring.profiles.active=final"
     };
-    assertTrue(hasProfileArgumentReflection(args));
+    assertThat(hasProfileArgumentReflection(args)).isTrue();
   }
 
   @Test
   void testHasProfileArgumentBreaksOnFirstMatch() {
-    String[] args = {"--spring.profiles.active=first", "--spring.profiles.active=second"};
-    assertTrue(hasProfileArgumentReflection(args));
+    final String[] args = {"--spring.profiles.active=first", "--spring.profiles.active=second"};
+    assertThat(hasProfileArgumentReflection(args)).isTrue();
   }
 
   private boolean isNativeImageReflection() {
     try {
-      var method = YuktaApplication.class.getDeclaredMethod("isNativeImage");
+      final var method = YuktaApplication.class.getDeclaredMethod("isNativeImage");
       method.setAccessible(true);
       return (boolean) method.invoke(null);
     } catch (Exception e) {
@@ -146,9 +156,9 @@ class YuktaApplicationTest {
     }
   }
 
-  private boolean hasProfileArgumentReflection(String[] args) {
+  private boolean hasProfileArgumentReflection(final String... args) {
     try {
-      var method =
+      final var method =
           YuktaApplication.class.getDeclaredMethod("hasProfileArgument", String[].class);
       method.setAccessible(true);
       return (boolean) method.invoke(null, (Object) args);

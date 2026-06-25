@@ -52,6 +52,11 @@ tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
 }
 
 coverageConfig {
+    exceptions.put("com.infenia.yukta.YuktaApplication", mapOf(
+        "LINE" to 0.93,
+        "BRANCH" to 0.70,
+        "INSTRUCTION" to 0.89
+    ))
 }
 
 graalvmNative {

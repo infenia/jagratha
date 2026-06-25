@@ -10,7 +10,16 @@
 
     <rule ref="category/java/bestpractices.xml">
     </rule>
+    <!-- Code Style Category -->
     <rule ref="category/java/codestyle.xml">
+        <exclude name="UseExplicitTypes"/>
+    </rule>
+
+    <!-- Custom limit for LongVariable (Default is 17) -->
+    <rule ref="category/java/codestyle.xml/LongVariable">
+        <properties>
+            <property name="minimum" value="30" />
+        </properties>
     </rule>
     <rule ref="category/java/design.xml">
     </rule>

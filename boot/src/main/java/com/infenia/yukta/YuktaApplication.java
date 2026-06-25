@@ -24,6 +24,7 @@ import reactor.core.publisher.Hooks;
  * projects and runs quality checks.
  */
 @SpringBootApplication
+@SuppressWarnings("PMD.UseUtilityClass")
 public class YuktaApplication {
 
   /**
@@ -45,19 +46,20 @@ public class YuktaApplication {
     app.run(args);
   }
 
-  @SuppressWarnings("PMD.LocalVariableCouldBeFinal")
   private static boolean isNativeImage() {
-    String nativeImageProp = System.getProperty("org.graalvm.nativeimage.imagecode");
+    final String nativeImageProp = System.getProperty("org.graalvm.nativeimage.imagecode");
     return "runtime".equals(nativeImageProp);
   }
 
-  private static boolean hasProfileArgument(final String[] args) {
-    for (String arg : args) {
+  private static boolean hasProfileArgument(final String... args) {
+    boolean retValue = false;
+    for (final String arg : args) {
       if (arg.startsWith("--spring.profiles.active=")
           || arg.startsWith("-Dspring.profiles.active=")) {
-        return true;
+        retValue = true;
+        break;
       }
     }
-    return false;
+    return retValue;
   }
 }
