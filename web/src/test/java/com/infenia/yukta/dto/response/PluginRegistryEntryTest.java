@@ -19,50 +19,53 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-class WorkflowStartResponseTest {
+class PluginRegistryEntryTest {
 
   @Test
-  void constructor_validInput_createsRecord() {
+  void constructor_validInputs_createsRecord() {
     // Given
-    String executionId = "550e8400-e29b-41d4-a716-446655440000";
+    String type = "gradle";
+    String category = "PROCESSOR";
+    String status = "ACTIVE";
 
     // When
-    WorkflowStartResponse response = new WorkflowStartResponse(executionId);
+    PluginRegistryEntry entry = new PluginRegistryEntry(type, category, status);
 
     // Then
-    assertThat(response.executionId()).isEqualTo(executionId);
+    assertThat(entry.type()).isEqualTo(type);
+    assertThat(entry.category()).isEqualTo(category);
+    assertThat(entry.status()).isEqualTo(status);
   }
 
   @Test
   void equals_sameValues_returnsTrue() {
     // Given
-    WorkflowStartResponse response1 = new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440000");
-    WorkflowStartResponse response2 = new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440000");
+    PluginRegistryEntry entry1 = new PluginRegistryEntry("gradle", "PROCESSOR", "ACTIVE");
+    PluginRegistryEntry entry2 = new PluginRegistryEntry("gradle", "PROCESSOR", "ACTIVE");
 
     // When-Then
-    assertThat(response1).isEqualTo(response2);
+    assertThat(entry1).isEqualTo(entry2);
   }
 
   @Test
   void equals_differentValues_returnsFalse() {
     // Given
-    WorkflowStartResponse response1 = new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440000");
-    WorkflowStartResponse response2 = new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440001");
+    PluginRegistryEntry entry1 = new PluginRegistryEntry("gradle", "PROCESSOR", "ACTIVE");
+    PluginRegistryEntry entry2 = new PluginRegistryEntry("maven", "PROCESSOR", "ACTIVE");
 
     // When-Then
-    assertThat(response1).isNotEqualTo(response2);
+    assertThat(entry1).isNotEqualTo(entry2);
   }
 
   @Test
   void toString_contains_relevantFieldValues() {
     // Given
-    String executionId = "550e8400-e29b-41d4-a716-446655440000";
-    WorkflowStartResponse response = new WorkflowStartResponse(executionId);
+    PluginRegistryEntry entry = new PluginRegistryEntry("gradle", "PROCESSOR", "ACTIVE");
 
     // When
-    String actual = response.toString();
+    String actual = entry.toString();
 
     // Then
-    assertThat(actual).contains("WorkflowStartResponse").contains(executionId);
+    assertThat(actual).contains("PluginRegistryEntry").contains("gradle");
   }
 }
