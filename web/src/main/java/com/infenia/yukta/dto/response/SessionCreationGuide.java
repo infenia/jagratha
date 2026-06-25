@@ -30,7 +30,6 @@ import java.util.List;
  * @param commonErrors list of common errors and their resolutions
  */
 @Schema(description = "Comprehensive guide for session creation")
-@SuppressWarnings("PMD.LongVariable")
 public record SessionCreationGuide(
     @Schema(description = "Naming conventions for session identifiers and workflow names")
         String namingConventions,

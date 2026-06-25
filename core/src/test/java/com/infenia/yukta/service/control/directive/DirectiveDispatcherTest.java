@@ -16,7 +16,6 @@
 package com.infenia.yukta.service.control.directive;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -26,8 +25,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import org.mockito.ArgumentCaptor;
 
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
@@ -46,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -94,11 +92,7 @@ class DirectiveDispatcherTest {
 
     dispatcher =
         new DirectiveDispatcher(
-            List.of(processor),
-            registry,
-            orchestrator,
-            checkpointStore,
-            controlBusService);
+            List.of(processor), registry, orchestrator, checkpointStore, controlBusService);
   }
 
   @Test
@@ -205,8 +199,7 @@ class DirectiveDispatcherTest {
 
     when(processor.canProcess(command)).thenReturn(true);
     when(processor.getPriority()).thenReturn(0);
-    when(processor.process(command))
-        .thenReturn(Mono.just(new WorkflowDirective.Stop("Test stop")));
+    when(processor.process(command)).thenReturn(Mono.just(new WorkflowDirective.Stop("Test stop")));
 
     // When
     StepVerifier.create(dispatcher.dispatch(command)).verifyComplete();
@@ -234,12 +227,7 @@ class DirectiveDispatcherTest {
     // Then - execution should be unregistered after restart
     assertThat(registry.findByExecutionId(executionId)).isEmpty();
     verify(orchestrator, times(1))
-        .execute(
-            eq("session-1"),
-            eq("workflow-1"),
-            any(String.class),
-            any(),
-            anyMap());
+        .execute(eq("session-1"), eq("workflow-1"), any(String.class), any(), anyMap());
   }
 
   @Test
@@ -296,8 +284,7 @@ class DirectiveDispatcherTest {
 
     when(processor.canProcess(command)).thenReturn(true);
     when(processor.getPriority()).thenReturn(0);
-    when(processor.process(command))
-        .thenReturn(Mono.just(new WorkflowDirective.Stop("User stop")));
+    when(processor.process(command)).thenReturn(Mono.just(new WorkflowDirective.Stop("User stop")));
 
     // When
     StepVerifier.create(dispatcher.dispatch(command)).verifyComplete();
@@ -331,12 +318,8 @@ class DirectiveDispatcherTest {
 
     // Verify orchestrator.execute was called with new execution ID
     var captor = ArgumentCaptor.forClass(String.class);
-    verify(orchestrator, times(1)).execute(
-        anyString(),
-        anyString(),
-        captor.capture(),
-        any(),
-        anyMap());
+    verify(orchestrator, times(1))
+        .execute(anyString(), anyString(), captor.capture(), any(), anyMap());
 
     String newExecutionId = captor.getValue();
     assertThat(newExecutionId).isNotEqualTo(executionId);
@@ -358,8 +341,7 @@ class DirectiveDispatcherTest {
     when(processor.process(command)).thenReturn(Mono.just(new WorkflowDirective.Restart()));
 
     // Mock orchestrator to throw error on subscribe
-    when(orchestrator.execute(any(), any(), any(), any(), any()))
-        .thenReturn(Mono.error(testError));
+    when(orchestrator.execute(any(), any(), any(), any(), any())).thenReturn(Mono.error(testError));
 
     // When
     StepVerifier.create(dispatcher.dispatch(command)).verifyComplete();
@@ -379,8 +361,7 @@ class DirectiveDispatcherTest {
     WorkflowNode parentNode = mock(WorkflowNode.class);
     when(parentNode.nodeId()).thenReturn(parentNodeId);
 
-    when(preparedWorkflow.parentsList())
-        .thenReturn(Map.of(nodeId, List.of(parentNode)));
+    when(preparedWorkflow.parentsList()).thenReturn(Map.of(nodeId, List.of(parentNode)));
 
     final ExecutionControl control =
         new ExecutionControl(
@@ -447,8 +428,7 @@ class DirectiveDispatcherTest {
     WorkflowNode parentNode = mock(WorkflowNode.class);
     when(parentNode.nodeId()).thenReturn(parentNodeId);
 
-    when(preparedWorkflow.parentsList())
-        .thenReturn(Map.of(nodeId, List.of(parentNode)));
+    when(preparedWorkflow.parentsList()).thenReturn(Map.of(nodeId, List.of(parentNode)));
 
     final ExecutionControl control =
         new ExecutionControl(
@@ -565,8 +545,8 @@ class DirectiveDispatcherTest {
     final Message<ExecutionControlCommand> commandMessage = mock(Message.class);
     final Message<String> nonCommandMessage = mock(Message.class);
 
-    when(commandMessage.getPayload()).thenReturn(
-        new ExecutionControlCommand.RestartCommand("exec-1"));
+    when(commandMessage.getPayload())
+        .thenReturn(new ExecutionControlCommand.RestartCommand("exec-1"));
     when(nonCommandMessage.getPayload()).thenReturn("not a command");
 
     when(controlBusService.getControlStream())
@@ -577,11 +557,7 @@ class DirectiveDispatcherTest {
     // When - initialize dispatcher (triggers @PostConstruct)
     final DirectiveDispatcher newDispatcher =
         new DirectiveDispatcher(
-            List.of(processor),
-            registry,
-            orchestrator,
-            checkpointStore,
-            controlBusService);
+            List.of(processor), registry, orchestrator, checkpointStore, controlBusService);
 
     newDispatcher.init();
 
@@ -604,11 +580,7 @@ class DirectiveDispatcherTest {
     // When - initialize dispatcher with processor that throws
     final DirectiveDispatcher newDispatcher =
         new DirectiveDispatcher(
-            List.of(processor),
-            registry,
-            orchestrator,
-            checkpointStore,
-            controlBusService);
+            List.of(processor), registry, orchestrator, checkpointStore, controlBusService);
 
     // This should not throw; error should be handled with onErrorResume
     newDispatcher.init();

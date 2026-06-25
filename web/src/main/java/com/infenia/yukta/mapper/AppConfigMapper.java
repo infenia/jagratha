@@ -27,7 +27,6 @@ import org.mapstruct.Mapper;
 
 /** Mapper for converting between API DTOs and internal domain models. */
 @Mapper(componentModel = "spring")
-@SuppressWarnings("PMD.ImplicitFunctionalInterface")
 public interface AppConfigMapper {
 
   /**
