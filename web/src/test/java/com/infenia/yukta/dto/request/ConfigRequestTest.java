@@ -37,7 +37,6 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 @SpringJUnitConfig(ConfigRequestTest.TestConfig.class)
 @Tag("ConfigRequestTest")
-@SuppressWarnings({"PMD.CommentDefaultAccessModifier", "PMD.TooManyMethods"})
 class ConfigRequestTest {
 
   @Configuration
