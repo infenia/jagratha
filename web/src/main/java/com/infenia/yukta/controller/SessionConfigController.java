@@ -54,12 +54,22 @@ import reactor.core.publisher.Mono;
     name = "Session API",
     description = "Endpoints for session and workflow discovery, configuration management")
 public class SessionConfigController {
+  /** Content type constant for JSON responses. */
   private static final String APPLICATION_JSON = "application/json";
+
+  /** HTTP 200 response code constant for Swagger documentation. */
   private static final String HTTP_200 = "200";
+
+  /** HTTP 500 response code constant for Swagger documentation. */
   private static final String HTTP_500 = "500";
+
+  /** Internal server error message constant for Swagger documentation. */
   private static final String INTERNAL_SERVER_ERROR = "Internal server error";
 
+  /** The service for managing sessions. */
   private final SessionService sessionService;
+
+  /** The mapper for converting session-related DTOs. */
   private final SessionMapper sessionMapper;
 
   /**
@@ -123,7 +133,9 @@ public class SessionConfigController {
             Mono.fromSupplier(
                 () -> {
                   log.atWarn().log("getSessionDetails session not found: sessionId={}", sessionId);
-                  final String path = exchange.getRequest().getPath().value();
+                  @SuppressWarnings("PMD.LawOfDemeter")
+                  final var request = exchange.getRequest();
+                  final String path = request.getPath().value();
                   final List<ApiResponse.FieldError> errors =
                       List.of(
                           new ApiResponse.FieldError(
@@ -260,7 +272,9 @@ public class SessionConfigController {
                           "getWorkflow workflow not found: sessionId={}, workflowId={}",
                           sessionId,
                           workflowId);
-                  final String path = exchange.getRequest().getPath().value();
+                  @SuppressWarnings("PMD.LawOfDemeter")
+                  final var request = exchange.getRequest();
+                  final String path = request.getPath().value();
                   final List<ApiResponse.FieldError> errors =
                       List.of(
                           new ApiResponse.FieldError(

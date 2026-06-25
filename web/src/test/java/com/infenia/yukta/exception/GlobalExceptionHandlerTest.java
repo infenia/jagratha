@@ -18,10 +18,10 @@ package com.infenia.yukta.exception;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.infenia.yukta.model.api.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -42,7 +42,6 @@ import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.ServerWebInputException;
 import reactor.test.StepVerifier;
-import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 class GlobalExceptionHandlerTest {
 
@@ -571,66 +570,6 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
-  void testFindCause_withMatchingTypeInChain() {
-    RuntimeException root = new RuntimeException("root");
-    IllegalArgumentException middle = new IllegalArgumentException("middle", root);
-    ServerWebInputException top = new ServerWebInputException("top", null, middle);
-
-    IllegalArgumentException found = extractFindCauseResult(top, IllegalArgumentException.class);
-    assertNotNull(found);
-    assertEquals("middle", found.getMessage());
-  }
-
-  @Test
-  void testFindCause_withDirectMatch() {
-    RuntimeException ex = new RuntimeException("direct");
-    RuntimeException found = extractFindCauseResult(ex, RuntimeException.class);
-    assertNotNull(found);
-    assertEquals("direct", found.getMessage());
-  }
-
-  @Test
-  void testFindCause_withNoMatch() {
-    RuntimeException ex = new RuntimeException("no match");
-    IllegalStateException found = extractFindCauseResult(ex, IllegalStateException.class);
-    assertNull(found);
-  }
-
-  @Test
-  void testFindCause_withDeepChain() {
-    Throwable root = new RuntimeException("level4");
-    Throwable level3 = new IllegalStateException("level3", root);
-    Throwable level2 = new IllegalArgumentException("level2", level3);
-    Throwable level1 = new ServerWebInputException("level1", null, level2);
-
-    IllegalStateException found = extractFindCauseResult(level1, IllegalStateException.class);
-    assertNotNull(found);
-    assertEquals("level3", found.getMessage());
-  }
-
-  @Test
-  void testFindCause_withNullCause() {
-    RuntimeException ex = new RuntimeException("no cause");
-    RuntimeException found = extractFindCauseResult(ex, RuntimeException.class);
-    assertNotNull(found);
-    assertEquals("no cause", found.getMessage());
-  }
-
-  // Helper method to test private findCause method via reflection
-  @SuppressWarnings("unchecked")
-  private <T extends Throwable> T extractFindCauseResult(
-      final Throwable throwable, final Class<T> type) {
-    try {
-      var method =
-          GlobalExceptionHandler.class.getDeclaredMethod("findCause", Throwable.class, Class.class);
-      method.setAccessible(true);
-      return (T) method.invoke(handler, throwable, type);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  @Test
   void testHandleResourceNotFound_errorFieldLowercase() {
     ResourceNotFoundException ex = new ResourceNotFoundException("Session", "test-id");
     ServerHttpRequest request = mock(ServerHttpRequest.class);
@@ -647,5 +586,50 @@ class GlobalExceptionHandlerTest {
   void testConstructor() {
     GlobalExceptionHandler handlerInstance = new GlobalExceptionHandler();
     assertNotNull(handlerInstance);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testHandleServerWebInputException_unrecognizedIsNull() {
+    ServerWebInputException ex = new ServerWebInputException("error", null, null);
+
+    ServerWebExchange exchange = mock(ServerWebExchange.class);
+    ServerHttpRequest request = mock(ServerHttpRequest.class);
+    when(exchange.getRequest()).thenReturn(request);
+    when(request.getPath()).thenReturn(RequestPath.parse("/api/input", "/"));
+
+    StepVerifier.create(
+            handler.handleServerWebInputException(
+                ex, new HttpHeaders(), HttpStatus.BAD_REQUEST, exchange))
+        .expectNextMatches(
+            resp -> {
+              ApiResponse<Object> body = (ApiResponse<Object>) resp.getBody();
+              return "unknown".equals(body.errors().get(0).field());
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testHandleServerWebInputException_propertyNameIsNull() {
+    UnrecognizedPropertyException unrecognizedEx = mock(UnrecognizedPropertyException.class);
+    when(unrecognizedEx.getPropertyName()).thenReturn(null);
+
+    ServerWebInputException ex = new ServerWebInputException("error", null, unrecognizedEx);
+
+    ServerWebExchange exchange = mock(ServerWebExchange.class);
+    ServerHttpRequest request = mock(ServerHttpRequest.class);
+    when(exchange.getRequest()).thenReturn(request);
+    when(request.getPath()).thenReturn(RequestPath.parse("/api/input", "/"));
+
+    StepVerifier.create(
+            handler.handleServerWebInputException(
+                ex, new HttpHeaders(), HttpStatus.BAD_REQUEST, exchange))
+        .expectNextMatches(
+            resp -> {
+              ApiResponse<Object> body = (ApiResponse<Object>) resp.getBody();
+              return "unknown".equals(body.errors().get(0).field());
+            })
+        .verifyComplete();
   }
 }

@@ -46,6 +46,7 @@ import reactor.core.publisher.Mono;
     description =
         "Endpoints for control bus operations, node management, and execution observability")
 public class ControlBusController {
+  /** The control bus gateway for managing workflow operations and observability. */
   private final ControlBusGateway controlBus;
 
   /**

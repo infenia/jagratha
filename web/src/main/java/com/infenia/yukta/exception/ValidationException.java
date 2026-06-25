@@ -24,6 +24,7 @@ public class ValidationException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
+  /** The list of validation error messages. */
   private final List<String> errors;
 
   /**

@@ -44,8 +44,10 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Tag(name = "Plugin API", description = "Endpoints for discovering workflow plugins")
 public class PluginController {
+  /** Content type constant for JSON responses. */
   private static final String APPLICATION_JSON = "application/json";
 
+  /** The plugin registry for accessing plugin information. */
   private final PluginRegistry registry;
 
   /**
@@ -139,10 +141,12 @@ public class PluginController {
         .switchIfEmpty(
             Mono.fromSupplier(
                 () -> {
-                  final String path = exchange.getRequest().getPath().value();
                   final List<ApiResponse.FieldError> errors =
                       List.of(
                           new ApiResponse.FieldError("type", "Plugin not found: '" + type + "'"));
+                  @SuppressWarnings("PMD.LawOfDemeter")
+                  final var request = exchange.getRequest();
+                  final String path = request.getPath().value();
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
                       .body(
                           ApiResponse.error(

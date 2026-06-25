@@ -37,8 +37,10 @@ public class RequestLoggingFilter implements WebFilter {
   @Override
   public Mono<Void> filter(final ServerWebExchange exchange, final WebFilterChain chain) {
     final long startTime = System.currentTimeMillis();
-    final String method = exchange.getRequest().getMethod().toString();
-    final String path = exchange.getRequest().getPath().value();
+    @SuppressWarnings("PMD.LawOfDemeter")
+    final var request = exchange.getRequest();
+    final String method = request.getMethod().toString();
+    final String path = request.getPath().value();
 
     log.debug("Incoming request - method: {}, path: {}", method, path);
 
@@ -47,10 +49,10 @@ public class RequestLoggingFilter implements WebFilter {
         .doFinally(
             signalType -> {
               final long duration = System.currentTimeMillis() - startTime;
-              final int statusCode =
-                  exchange.getResponse().getStatusCode() != null
-                      ? exchange.getResponse().getStatusCode().value()
-                      : 0;
+              @SuppressWarnings("PMD.LawOfDemeter")
+              final var response = exchange.getResponse();
+              final var statusCodeObj = response.getStatusCode();
+              final int statusCode = statusCodeObj != null ? statusCodeObj.value() : 0;
 
               log.debug(
                   "Outgoing response - method: {}, path: {}, statusCode: {}, duration: {}ms",

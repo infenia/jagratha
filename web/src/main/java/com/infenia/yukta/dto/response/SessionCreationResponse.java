@@ -16,8 +16,6 @@
 package com.infenia.yukta.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -37,7 +35,7 @@ public record SessionCreationResponse(
 
   /** Compact constructor that wraps mutable lists with immutable views. */
   public SessionCreationResponse {
-    createdWorkflows = Collections.unmodifiableList(new ArrayList<>(createdWorkflows));
-    warnings = Collections.unmodifiableList(new ArrayList<>(warnings));
+    createdWorkflows = List.copyOf(createdWorkflows);
+    warnings = List.copyOf(warnings);
   }
 }

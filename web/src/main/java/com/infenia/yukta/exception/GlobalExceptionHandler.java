@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.exception;
 
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.infenia.yukta.model.api.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -28,7 +29,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.server.RequestPath;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -37,13 +37,13 @@ import org.springframework.web.reactive.result.method.annotation.ResponseEntityE
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
-import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 /** Global exception handler for the application. */
 @Slf4j
 @RestControllerAdvice
 @NullMarked
 @NoArgsConstructor
+@SuppressWarnings("PMD.TooManyMethods")
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
   @Override
@@ -57,7 +57,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             .map(err -> new ApiResponse.FieldError(err.getField(), err.getDefaultMessage()))
             .collect(Collectors.toList());
 
-    final String path = exchange.getRequest().getPath().value();
+    @SuppressWarnings("PMD.LawOfDemeter")
+    final var request = exchange.getRequest();
+    final String path = request.getPath().value();
     final ApiResponse<Object> errorResponse =
         ApiResponse.error(
             status.value(),
@@ -75,14 +77,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
       final HttpHeaders headers,
       final HttpStatusCode status,
       final ServerWebExchange exchange) {
-    final UnrecognizedPropertyException unrecognized =
-        findCause(exception, UnrecognizedPropertyException.class);
+    final UnrecognizedPropertyException unrecognized = findUnrecognizedPropertyException(exception);
     final Mono<ResponseEntity<Object>> result;
     final String fieldName =
         (unrecognized != null && unrecognized.getPropertyName() != null)
             ? unrecognized.getPropertyName()
             : "unknown";
-    final String path = exchange.getRequest().getPath().value();
+    final String path = getRequestPath(exchange.getRequest());
     final List<ApiResponse.FieldError> errors =
         List.of(new ApiResponse.FieldError(fieldName, "Unknown field: '" + fieldName + "'"));
     final ApiResponse<Object> errorResponse =
@@ -105,7 +106,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     Object responseBody = body;
     if (!(body instanceof ApiResponse)) {
-      final String path = exchange.getRequest().getPath().value();
+      final String path = getRequestPath(exchange.getRequest());
       final String message = (body instanceof String stringBody) ? stringBody : status.toString();
 
       responseBody =
@@ -138,7 +139,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                     exception.getMessage()))
             : List.of();
 
-    final String path = request.getPath().value();
+    final String path = getRequestPath(request);
     final ApiResponse<Object> errorResponse =
         ApiResponse.error(
             HttpStatus.NOT_FOUND.value(),
@@ -165,7 +166,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             .map(err -> new ApiResponse.FieldError("validation", err))
             .collect(Collectors.toList());
 
-    final String path = request.getPath().value();
+    final String path = getRequestPath(request);
     final ApiResponse<Object> errorResponse =
         ApiResponse.error(
             HttpStatus.BAD_REQUEST.value(),
@@ -195,8 +196,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                         violation.getPropertyPath().toString(), violation.getMessage()))
             .collect(Collectors.toList());
 
-    final RequestPath requestPath = request.getPath();
-    final String path = requestPath.value();
+    final String path = getRequestPath(request);
     final ApiResponse<Object> errorResponse =
         ApiResponse.error(
             HttpStatus.BAD_REQUEST.value(),
@@ -223,7 +223,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     final List<ApiResponse.FieldError> errors =
         List.of(new ApiResponse.FieldError(fieldName, message));
 
-    final String path = request.getPath().value();
+    final String path = getRequestPath(request);
     final ApiResponse<Object> errorResponse =
         ApiResponse.error(
             HttpStatus.BAD_REQUEST.value(),
@@ -280,19 +280,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
   private ResponseEntity<ApiResponse<Object>> buildErrorResponse(
       final HttpStatus status, final String message, final ServerHttpRequest request) {
-    final String path = request.getPath().value();
+    final String path = getRequestPath(request);
     final ApiResponse<Object> errorResponse =
         ApiResponse.error(status.value(), status.getReasonPhrase(), message, path, List.of());
     return ResponseEntity.status(status).body(errorResponse);
   }
 
-  @SuppressWarnings("unchecked")
-  private <T extends Throwable> @Nullable T findCause(
-      final Throwable throwable, final Class<T> type) {
+  @SuppressWarnings("PMD.LawOfDemeter")
+  private String getRequestPath(final ServerHttpRequest request) {
+    return request.getPath().value();
+  }
+
+  @SuppressWarnings("PMD.OnlyOneReturn")
+  private @Nullable UnrecognizedPropertyException findUnrecognizedPropertyException(
+      final Throwable throwable) {
     Throwable cause = throwable;
     while (cause != null) {
-      if (type.isInstance(cause)) {
-        return (T) cause;
+      if (cause instanceof UnrecognizedPropertyException unrecognized) {
+        return unrecognized;
       }
       cause = cause.getCause();
     }

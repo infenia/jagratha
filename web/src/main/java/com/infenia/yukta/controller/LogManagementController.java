@@ -38,9 +38,13 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Tag(name = "Log Management API", description = "Endpoints for retrieving and managing log files")
 public class LogManagementController {
+  /** The service for retrieving logs. */
   private final LogRetrievalService logs;
 
+  /** HTTP 200 response code constant for Swagger documentation. */
   private static final String HTTP_200 = "200";
+
+  /** Session ID parameter description constant for Swagger documentation. */
   private static final String SESSION_ID_PARAM = "Session ID";
 
   /**

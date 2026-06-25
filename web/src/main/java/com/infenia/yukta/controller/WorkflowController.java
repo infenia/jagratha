@@ -57,13 +57,24 @@ import reactor.core.publisher.Mono;
 @Tag(
     name = "Workflow API",
     description = "Endpoints for starting and monitoring workflow executions")
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public class WorkflowController {
+  /** The service for managing workflow operations. */
   private final WorkflowService workflowService;
+
+  /** The control bus gateway for managing workflow execution and observability. */
   private final ControlBusGateway controlBus;
+
+  /** The service for managing sessions. */
   private final SessionService sessionService;
 
+  /** HTTP 200 response code constant for Swagger documentation. */
   private static final String HTTP_200 = "200";
+
+  /** Session ID parameter description constant for Swagger documentation. */
   private static final String SESSION_ID_PARAM = "Session ID";
+
+  /** Not Found error message constant. */
   private static final String NOT_FOUND = "Not Found";
 
   /**
@@ -119,7 +130,9 @@ public class WorkflowController {
                       request.sessionId(),
                       request.workflowId(),
                       e.getMessage());
-              final String path = exchange.getRequest().getPath().value();
+              @SuppressWarnings("PMD.LawOfDemeter")
+              final var req = exchange.getRequest();
+              final String path = req.getPath().value();
               final List<ApiResponse.FieldError> errors =
                   List.of(new ApiResponse.FieldError("workflow", e.getMessage()));
               return Mono.just(
@@ -184,7 +197,9 @@ public class WorkflowController {
                       sessionId,
                       workflowId,
                       e.getMessage());
-              final String path = exchange.getRequest().getPath().value();
+              @SuppressWarnings("PMD.LawOfDemeter")
+              final var req = exchange.getRequest();
+              final String path = req.getPath().value();
               final List<ApiResponse.FieldError> errors =
                   List.of(new ApiResponse.FieldError("workflow", e.getMessage()));
               return Mono.just(
@@ -243,7 +258,9 @@ public class WorkflowController {
                           "getWorkflowStatus execution not found: sessionId={}, executionId={}",
                           sessionId,
                           executionId);
-                  final String path = exchange.getRequest().getPath().value();
+                  @SuppressWarnings("PMD.LawOfDemeter")
+                  final var req = exchange.getRequest();
+                  final String path = req.getPath().value();
                   final List<ApiResponse.FieldError> errors =
                       List.of(
                           new ApiResponse.FieldError(
@@ -343,7 +360,9 @@ public class WorkflowController {
             Mono.fromSupplier(
                 () -> {
                   log.atWarn().log("getWorkflowHistory session not found: sessionId={}", sessionId);
-                  final String path = exchange.getRequest().getPath().value();
+                  @SuppressWarnings("PMD.LawOfDemeter")
+                  final var req = exchange.getRequest();
+                  final String path = req.getPath().value();
                   final List<ApiResponse.FieldError> errors =
                       List.of(
                           new ApiResponse.FieldError(
