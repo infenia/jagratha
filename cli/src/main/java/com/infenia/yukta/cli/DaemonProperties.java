@@ -27,12 +27,25 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @NoArgsConstructor
 public class DaemonProperties {
 
+  /** Port on which the daemon listens. */
   private int port = 8080;
+
+  /** Path to the daemon PID file. */
   private String pidFile;
+
+  /** Path to the daemon log file. */
   private String logFile;
+
+  /** Timeout in seconds for daemon startup. */
   private int startupTimeoutSeconds = 30;
+
+  /** Interval in milliseconds for health checks. */
   private int healthCheckIntervalMs = 500;
+
+  /** Path to the JAR file for daemon execution. */
   private String jarPath;
+
+  /** Message to display when daemon is not running. */
   private String notRunningMessage = "Daemon is not running. Start it with: yukta daemon start";
 
   /** Initializes default property values if not set. */
@@ -46,10 +59,20 @@ public class DaemonProperties {
     }
   }
 
+  /**
+   * Gets the path to the PID file.
+   *
+   * @return the PID file path
+   */
   public Path getPidFilePath() {
     return Path.of(pidFile);
   }
 
+  /**
+   * Gets the path to the log file.
+   *
+   * @return the log file path
+   */
   public Path getLogFilePath() {
     return Path.of(logFile);
   }

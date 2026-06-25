@@ -46,26 +46,58 @@ import reactor.core.scheduler.Scheduler;
 @RequiredArgsConstructor
 public class WorkflowCompiler {
 
+  /** Buffer size for workflow streams. */
   private static final int BUFFER_SIZE = 1024;
+
+  /** Reference count timeout in seconds for disposing resources. */
   private static final long REF_COUNT_TIMEOUT = 30L;
 
+  /** Context key for session ID. */
   private static final String CTX_SESSION_ID = "sessionId";
+
+  /** Context key for workflow ID. */
   private static final String CTX_WORKFLOW_ID = "workflowId";
+
+  /** Context key for payload. */
   private static final String CTX_PAYLOAD = "payload";
 
+  /** Log key for execution ID. */
   private static final String LOG_KEY_EXECUTION_ID = "executionId";
+
+  /** Log key for node count. */
   private static final String LOG_KEY_NODE_COUNT = "nodeCount";
+
+  /** Log key for node IDs. */
   private static final String LOG_KEY_NODE_IDS = "nodeIds";
+
+  /** Log key for heartbeat interval. */
   private static final String LOG_KEY_HEARTBEAT_INTERVAL = "heartbeatInterval";
+
+  /** Log key for terminal count. */
   private static final String LOG_KEY_TERMINAL_COUNT = "terminalCount";
+
+  /** Log key for node ID. */
   private static final String LOG_KEY_NODE_ID = "nodeId";
+
+  /** Log key for plugin type. */
   private static final String LOG_KEY_PLUGIN_TYPE = "pluginType";
 
+  /** The task tracker service for tracking workflow execution. */
   private final TaskTrackerService tracker;
+
+  /** The virtual thread scheduler for non-blocking execution. */
   private final Scheduler virtualThreadScheduler;
+
+  /** The heartbeat interval duration. */
   private final Duration heartbeatInterval;
+
+  /** The session configuration store for accessing session settings. */
   private final SessionConfigStore configService;
+
+  /** The execution control registry for managing workflow execution control. */
   private final ExecutionControlRegistry executionControlRegistry;
+
+  /** The list of node assembler strategies for compiling different node types. */
   private final List<NodeAssemblerStrategy> assemblerStrategies;
 
   /**

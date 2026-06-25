@@ -23,6 +23,7 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class CliFormatter {
 
+  /** JSON object mapper for serialization. */
   private final ObjectMapper objectMapper;
 
   /**

@@ -34,6 +34,7 @@ import reactor.core.publisher.Mono;
 @Component
 public class InMemoryWorkflowDefinitionStore implements WorkflowDefinitionStore {
 
+  /** Map of session ID to workflow ID to workflow definition. */
   private final Map<String, Map<String, WorkflowDefinition>> store = new ConcurrentHashMap<>();
 
   @PostConstruct

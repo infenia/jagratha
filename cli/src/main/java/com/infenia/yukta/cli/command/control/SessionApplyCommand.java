@@ -34,8 +34,13 @@ import tools.jackson.databind.ObjectMapper;
     description = "Apply session configuration from JSON file or string")
 public class SessionApplyCommand implements Runnable {
 
+  /** Client for daemon communication. */
   private final YuktaDaemonClient daemonClient;
+
+  /** JSON object mapper for configuration parsing. */
   private final ObjectMapper objectMapper;
+
+  /** Formatter for output display. */
   private final CliFormatter formatter;
 
   /**
@@ -52,11 +57,13 @@ public class SessionApplyCommand implements Runnable {
     this.formatter = formatter;
   }
 
+  /** Path to JSON config file or inline JSON string. */
   @Parameters(
       index = "0",
       description = "Path to JSON config file OR inline JSON string representing ConfigRequest")
   private String configInput;
 
+  /** Output format for results (table or json). */
   @Option(
       names = {"-o", "--output"},
       description = "Output format: table (default), json",

@@ -41,15 +41,22 @@ import reactor.core.scheduler.Scheduler;
 @RequiredArgsConstructor
 public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
+  /** The task tracker service for tracking node execution. */
   private final TaskTrackerService tracker;
 
+  /** The virtual thread scheduler for non-blocking execution. */
   private final Scheduler virtualThreadScheduler;
 
+  /** The stream topology decorator for customizing stream behavior. */
   private final StreamTopologyDecorator streamTopologyDecorator;
 
+  /** The node message channel provider for creating message channels. */
   private final NodeMessageChannelProvider channelProvider;
 
+  /** Log key for node ID. */
   private static final String LOG_KEY_NODE_ID = "nodeId";
+
+  /** Log key for parent edge count. */
   private static final String LOG_KEY_PARENT_EDGE_COUNT = "parentEdgeCount";
 
   @Override
@@ -93,7 +100,8 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
       final Flux<Message<?>> mergedInput =
           streamTopologyDecorator.mergeParentStreams(context.streams(), parentEdges);
 
-      Flux<Message<?>> safeInput = control.applyPreProcessingControls(node.nodeId(), mergedInput);
+      final Flux<Message<?>> safeInput =
+          control.applyPreProcessingControls(node.nodeId(), mergedInput);
 
       Flux<Message<?>> stream;
       final AtomicBoolean skipFlag = control.nodeSkipFlags().get(node.nodeId());
@@ -121,7 +129,7 @@ public class ProcessorNodeAssemblerStrategy implements NodeAssemblerStrategy {
         }
       }
 
-      Flux<Message<?>> built =
+      final Flux<Message<?>> built =
           StreamAssemblyHelper.buildStreamWithContext(node, stream, timeout, tracker, context);
       context.streams()[index] =
           streamTopologyDecorator.applyLoggingAndBroadcasting(

@@ -45,6 +45,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class WorkflowValidator {
 
+  /** The plugin registry for resolving plugin types. */
   private final PluginRegistry registry;
 
   /**

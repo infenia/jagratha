@@ -38,8 +38,13 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class SessionService {
 
+  /** The session configuration store for persisting session settings. */
   private final SessionConfigStore configService;
+
+  /** The control bus gateway for managing workflow execution control. */
   private final ControlBusGateway controlBus;
+
+  /** The workflow definition store for accessing workflow definitions. */
   private final WorkflowDefinitionStore workflowDefinitionStore;
 
   /**

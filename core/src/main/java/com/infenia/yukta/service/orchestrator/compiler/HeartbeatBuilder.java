@@ -53,13 +53,19 @@ import reactor.core.scheduler.Scheduler;
 @Slf4j
 public class HeartbeatBuilder {
 
+  /** The default interval for heartbeat emissions. */
   private final Duration defaultInterval;
+
+  /** The scheduler for executing periodic tasks. */
   private final Scheduler scheduler;
 
+  /** The list of nodes for heartbeat emissions. */
   @Nullable private List<String> nodes;
 
+  /** The heartbeat interval duration. */
   @Nullable private Duration hbInterval;
 
+  /** The statistics emission interval duration. */
   @Nullable private Duration statsInterval;
 
   /**

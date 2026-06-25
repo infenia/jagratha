@@ -34,6 +34,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ExecutionControlRegistry {
 
+  /** The execution control store for persisting execution state. */
   private final ExecutionControlStore store;
 
   /**

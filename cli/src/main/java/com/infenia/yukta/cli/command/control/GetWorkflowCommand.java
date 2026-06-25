@@ -31,7 +31,10 @@ import picocli.CommandLine.Parameters;
     description = "Get workflow definition for a specific session and workflow ID")
 public class GetWorkflowCommand implements Runnable {
 
+  /** The daemon client for interacting with Yukta daemon. */
   private final YuktaDaemonClient daemonClient;
+
+  /** The CLI formatter for output formatting. */
   private final CliFormatter formatter;
 
   /**
@@ -45,12 +48,15 @@ public class GetWorkflowCommand implements Runnable {
     this.formatter = formatter;
   }
 
+  /** The session ID. */
   @Parameters(index = "0", description = "Session ID")
   private String sessionId;
 
+  /** The workflow ID to retrieve. */
   @Parameters(index = "1", description = "Workflow ID to retrieve")
   private String workflowId;
 
+  /** The output format: table (default) or json. */
   @Option(
       names = {"-o", "--output"},
       description = "Output format: table (default), json",

@@ -66,17 +66,31 @@ public class StreamBuilder {
   /** Status constant: FAILURE. */
   private static final String STATUS_FAILURE = "FAILURE";
 
+  /** The workflow node being processed. */
   private final WorkflowNode node;
+
+  /** The operation timeout duration. */
   private final Duration timeout;
+
+  /** The task tracker service for status events. */
   private final TaskTrackerService taskTrackerService;
+
+  /** The execution status publisher for error emission. */
   private final ExecutionStatusPublisher statusPublisher;
 
+  /** The source stream for this builder. */
   @Nullable private Flux<Message<?>> sourceStream;
 
+  /** Flag to apply timeout to the stream. */
   private boolean applyTimeout;
+
+  /** Flag to apply task tracking to the stream. */
   private boolean applyTaskTracking;
+
+  /** Flag to apply error handling to the stream. */
   private boolean applyErrors;
 
+  /** The execution ID for status tracking. */
   @Nullable private String executionId;
 
   /**

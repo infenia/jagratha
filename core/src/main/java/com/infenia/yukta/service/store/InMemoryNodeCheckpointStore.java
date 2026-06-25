@@ -37,6 +37,7 @@ import reactor.core.publisher.Mono;
 @NoArgsConstructor
 public class InMemoryNodeCheckpointStore implements NodeCheckpointStore {
 
+  /** Map of execution ID to node ID to checkpoint message. */
   private final Map<String, Map<String, Message<?>>> store = new ConcurrentHashMap<>();
 
   @Override

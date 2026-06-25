@@ -54,12 +54,22 @@ import reactor.core.publisher.Sinks;
 @Component
 public class DirectiveDispatcher {
 
+  /** Emit failure handler for reactive operations. */
   private static final Sinks.EmitFailureHandler FAIL_FAST = Sinks.EmitFailureHandler.FAIL_FAST;
 
+  /** The list of control signal processors ordered by priority. */
   private final List<ControlSignalProcessor> processors;
+
+  /** The execution control registry for managing active executions. */
   private final ExecutionControlRegistry registry;
+
+  /** The workflow orchestrator for restart operations. */
   private final WorkflowOrchestrator orchestrator;
+
+  /** The node checkpoint store for accessing node replay data. */
   private final NodeCheckpointStore checkpointStore;
+
+  /** The control bus service for subscribing to control signals. */
   private final ControlBusService controlBusService;
 
   /**

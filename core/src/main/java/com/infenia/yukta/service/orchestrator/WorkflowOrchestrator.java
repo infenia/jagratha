@@ -50,20 +50,43 @@ import reactor.util.context.Context;
 @RequiredArgsConstructor
 public class WorkflowOrchestrator {
 
+  /** Context key for session ID. */
   private static final String CTX_SESSION_ID = "sessionId";
+
+  /** Context key for workflow ID. */
   private static final String CTX_WORKFLOW_ID = "workflowId";
+
+  /** Context key for execution ID. */
   private static final String CTX_EXECUTION_ID = "executionId";
 
+  /** Log key for session ID. */
   private static final String LOG_KEY_SESSION_ID = "sessionId";
+
+  /** Log key for workflow ID. */
   private static final String LOG_KEY_WORKFLOW_ID = "workflowId";
+
+  /** Log key for execution ID. */
   private static final String LOG_KEY_EXECUTION_ID = "executionId";
+
+  /** Log key for node count. */
   private static final String LOG_KEY_NODE_COUNT = "nodeCount";
 
+  /** The task tracker service for tracking workflow execution. */
   private final TaskTrackerService tracker;
+
+  /** The execution control registry for managing workflow execution control. */
   private final ExecutionControlRegistry executionControlRegistry;
+
+  /** The execution control factory for creating execution control instances. */
   private final ExecutionControlFactory executionControlFactory;
+
+  /** The node checkpoint store for persisting node state. */
   private final NodeCheckpointStore checkpointStore;
+
+  /** The workflow compiler for compiling workflow definitions. */
   private final WorkflowCompiler compiler;
+
+  /** The workflow preparator for preparing workflows for execution. */
   private final WorkflowPreparator preparator;
 
   /**

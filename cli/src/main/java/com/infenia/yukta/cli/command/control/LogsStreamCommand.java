@@ -27,8 +27,10 @@ import picocli.CommandLine.Parameters;
 @Command(name = "logs-stream", description = "Stream execution logs in real-time")
 public class LogsStreamCommand implements Runnable {
 
+  /** Client for daemon communication. */
   private final YuktaDaemonClient daemonClient;
 
+  /** The execution ID to stream logs for. */
   @Parameters(index = "0", description = "Execution ID")
   private String executionId;
 

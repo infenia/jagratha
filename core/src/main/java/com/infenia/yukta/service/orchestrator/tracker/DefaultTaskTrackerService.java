@@ -55,23 +55,43 @@ import reactor.util.concurrent.Queues;
 @Validated
 public class DefaultTaskTrackerService implements TaskTrackerService {
 
+  /** Batch size for event processing. */
   private static final int BATCH_SIZE = 100;
+
+  /** Batch timeout duration for event processing. */
   private static final Duration BATCH_TIMEOUT = Duration.ofMillis(50);
+
+  /** Emit failure handler with retry logic. */
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
       Sinks.EmitFailureHandler.busyLooping(Duration.ofMillis(100));
 
+  /** Time to live for execution data after terminal status. */
   private final Duration cleanupTtl;
+
+  /** Map of session ID to workflow states. */
   private final Map<String, Map<String, WorkflowState>> sessionStates = new ConcurrentHashMap<>();
+
+  /** Map of execution ID to workflow state. */
   private final Map<String, WorkflowState> executionIndex = new ConcurrentHashMap<>();
+
+  /** Map of workflow ID to latest execution ID. */
   private final Map<String, String> latestExecs = new ConcurrentHashMap<>();
+
+  /** Map of workflow ID to log sinks. */
   private final Map<String, Sinks.Many<String>> logSinks = new ConcurrentHashMap<>();
+
+  /** Map of workflow ID to status sinks. */
   private final Map<String, Sinks.Many<WorkflowProgress>> statusSinks = new ConcurrentHashMap<>();
 
-  // Global event sinks for decoupled tracking
+  /** Sink for task status events. */
   private final Sinks.Many<TaskStatusEvent> taskStatusSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
+
+  /** Sink for workflow log events. */
   private final Sinks.Many<WorkflowLogEvent> logSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE * 4, false);
+
+  /** Sink for workflow status events. */
   private final Sinks.Many<WorkflowStatusEvent> wfStatusSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
 
@@ -601,13 +621,27 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
     log.atDebug().addKeyValue("executionId", executionId).log("Completed execution cleanup");
   }
 
+  /** Tracks the state of a workflow execution. */
   private static final class WorkflowState {
+    /** The execution identifier. */
     private final String executionId;
+
+    /** The session identifier. */
     private final String sessionId;
+
+    /** The workflow identifier. */
     private final String workflowId;
+
+    /** The current execution status. */
     private String status;
+
+    /** Map of task progress by node ID. */
     private final Map<String, TaskProgress> taskMap;
+
+    /** The start time of the execution. */
     private final LocalDateTime startTime;
+
+    /** The end time of the execution. */
     private LocalDateTime endTime;
 
     /* default */ WorkflowState(

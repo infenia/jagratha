@@ -19,22 +19,54 @@ import java.util.Map;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Mono;
 
+/** Utility class for evaluating Spring Expression Language (SpEL) expressions. */
 @UtilityClass
 public final class SpelUtils {
+  /**
+   * Evaluates a SpEL expression asynchronously.
+   *
+   * @param <T> the type of the expression result
+   * @param expressionStr the SpEL expression string
+   * @param root the root object for expression evaluation
+   * @param variables a map of variables available in the expression context
+   * @return a Mono containing the evaluated result
+   */
   public static <T> Mono<T> evaluate(
       final String expressionStr, final Object root, final Map<String, Object> variables) {
     return com.infenia.yukta.message.util.SpelUtils.evaluate(expressionStr, root, variables);
   }
 
+  /**
+   * Evaluates a SpEL expression synchronously.
+   *
+   * @param <T> the type of the expression result
+   * @param expressionStr the SpEL expression string
+   * @param root the root object for expression evaluation
+   * @return the evaluated result
+   */
   public static <T> T evaluateSync(final String expressionStr, final Object root) {
     return com.infenia.yukta.message.util.SpelUtils.evaluateSync(expressionStr, root);
   }
 
+  /**
+   * Evaluates a SpEL expression synchronously with variables.
+   *
+   * @param <T> the type of the expression result
+   * @param expressionStr the SpEL expression string
+   * @param root the root object for expression evaluation
+   * @param variables a map of variables available in the expression context
+   * @return the evaluated result
+   */
   public static <T> T evaluateSync(
       final String expressionStr, final Object root, final Map<String, Object> variables) {
     return com.infenia.yukta.message.util.SpelUtils.evaluateSync(expressionStr, root, variables);
   }
 
+  /**
+   * Pre-parses a SpEL expression to validate syntax.
+   *
+   * @param expressionStr the SpEL expression string to pre-parse
+   */
   public static void preParse(final String expressionStr) {
     com.infenia.yukta.message.util.SpelUtils.preParse(expressionStr);
   }

@@ -29,6 +29,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class DefaultHttpClientAdapter implements HttpClientAdapter {
 
+  /** HTTP client with one-second connection timeout. */
   private final HttpClient httpClient =
       HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(1)).build();
 

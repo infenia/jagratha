@@ -40,8 +40,13 @@ import reactor.core.publisher.Sinks;
 @RequiredArgsConstructor
 public class RestartCommandProcessor implements ControlSignalProcessor {
 
+  /** The execution control registry for accessing execution control state. */
   private final ExecutionControlRegistry registry;
+
+  /** The workflow orchestrator for restarting workflows. */
   private final WorkflowOrchestrator orchestrator;
+
+  /** The task tracker service for tracking task execution. */
   private final DefaultTaskTrackerService taskTracker;
 
   @Override

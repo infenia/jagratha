@@ -38,7 +38,10 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class PauseNodeCommandProcessor implements ControlSignalProcessor {
 
+  /** The execution control registry for accessing execution control state. */
   private final ExecutionControlRegistry registry;
+
+  /** The task tracker service for tracking task execution. */
   private final DefaultTaskTrackerService taskTracker;
 
   @Override

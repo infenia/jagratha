@@ -30,12 +30,17 @@ import picocli.CommandLine.Parameters;
 @Command(name = "get", description = "Get active nodes in a workflow")
 public class GetNodesCommand implements Runnable {
 
+  /** Client for daemon communication. */
   private final YuktaDaemonClient daemonClient;
+
+  /** Formatter for output display. */
   private final CliFormatter formatter;
 
+  /** The workflow ID to query. */
   @Parameters(index = "0", description = "Workflow ID")
   private String workflowId;
 
+  /** Output format for results (table or json). */
   @Option(
       names = {"-o", "--output"},
       description = "Output format: table (default), json",

@@ -44,20 +44,37 @@ import reactor.core.scheduler.Scheduler;
 @RequiredArgsConstructor
 public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
+  /** Buffer size for workflow streams. */
   private static final int BUFFER_SIZE = 1024;
+
+  /** Default task identifier. */
   private static final String DEFAULT_TASK_ID = "default";
+
+  /** Status value for running execution. */
   private static final String STATUS_RUNNING = "RUNNING";
+
+  /** Status value for successful execution. */
   private static final String STATUS_SUCCESS = "SUCCESS";
+
+  /** Status value for failed execution. */
   private static final String STATUS_FAILURE = "FAILURE";
+
+  /** Log key for node ID. */
   private static final String LOG_KEY_NODE_ID = "nodeId";
+
+  /** Log key for parent edge count. */
   private static final String LOG_KEY_PARENT_EDGE_COUNT = "parentEdgeCount";
 
+  /** The task tracker service for tracking node execution. */
   private final TaskTrackerService tracker;
 
+  /** The virtual thread scheduler for non-blocking execution. */
   private final Scheduler virtualThreadScheduler;
 
+  /** The stream topology decorator for customizing stream behavior. */
   private final StreamTopologyDecorator streamTopologyDecorator;
 
+  /** The node message channel provider for creating message channels. */
   private final NodeMessageChannelProvider channelProvider;
 
   @Override

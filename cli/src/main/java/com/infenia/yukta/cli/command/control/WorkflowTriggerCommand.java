@@ -29,7 +29,10 @@ import picocli.CommandLine.Parameters;
 @Command(name = "trigger", description = "Trigger a workflow execution")
 public class WorkflowTriggerCommand implements Runnable {
 
+  /** Client for daemon communication. */
   private final YuktaDaemonClient daemonClient;
+
+  /** Formatter for output display. */
   private final CliFormatter formatter;
 
   /**
@@ -43,12 +46,15 @@ public class WorkflowTriggerCommand implements Runnable {
     this.formatter = formatter;
   }
 
+  /** The session ID to trigger the workflow in. */
   @Parameters(index = "0", description = "Session ID")
   private String sessionId;
 
+  /** The workflow ID to trigger. */
   @Parameters(index = "1", description = "Workflow ID")
   private String workflowId;
 
+  /** Output format for results (table or json). */
   @Option(
       names = {"-o", "--output"},
       description = "Output format: table (default), json",

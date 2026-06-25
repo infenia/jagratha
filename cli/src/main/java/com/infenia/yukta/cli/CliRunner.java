@@ -42,24 +42,61 @@ import picocli.CommandLine;
 @RequiredArgsConstructor
 public class CliRunner implements ApplicationRunner {
 
+  /** The control command for system operations. */
   private final ControlCommand controlCommand;
+
+  /** The nodes query command. */
   private final NodesCommand nodesCommand;
+
+  /** The get nodes command. */
   private final GetNodesCommand getNodesCommand;
+
+  /** The get all nodes command. */
   private final GetAllNodesCommand getAllNodesCommand;
+
+  /** The heartbeat query command. */
   private final HeartbeatCommand heartbeatCommand;
+
+  /** The send command command. */
   private final SendCommandCommand sendCommandCommand;
+
+  /** The progress query command. */
   private final ProgressCommand progressCommand;
+
+  /** The progress stream command. */
   private final ProgressStreamCommand progressStreamCommand;
+
+  /** The logs stream command. */
   private final LogsStreamCommand logsStreamCommand;
+
+  /** The history query command. */
   private final HistoryCommand historyCommand;
+
+  /** The session apply command. */
   private final SessionApplyCommand sessionApplyCommand;
+
+  /** The workflow trigger command. */
   private final WorkflowTriggerCommand workflowTriggerCommand;
+
+  /** The daemon command. */
   private final DaemonCommand daemonCommand;
+
+  /** The daemon start command. */
   private final DaemonStartCommand daemonStartCommand;
+
+  /** The daemon stop command. */
   private final DaemonStopCommand daemonStopCommand;
+
+  /** The daemon status command. */
   private final DaemonStatusCommand daemonStatusCommand;
+
+  /** Manager for daemon lifecycle operations. */
   private final DaemonManager daemonManager;
+
+  /** Configuration properties for daemon behavior. */
   private final DaemonProperties daemonProperties;
+
+  /** Handler for system exit operations. */
   private final SystemExitHandler exitHandler;
 
   @Override

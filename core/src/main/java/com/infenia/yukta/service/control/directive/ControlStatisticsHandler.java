@@ -31,6 +31,7 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 public class ControlStatisticsHandler implements ControlSignalHandler {
 
+  /** Map of composite key to last statistics message. */
   private final Map<String, Message<?>> lastStatistics = new ConcurrentHashMap<>();
 
   @Override

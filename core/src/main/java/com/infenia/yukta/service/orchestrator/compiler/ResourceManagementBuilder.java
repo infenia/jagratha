@@ -54,26 +54,39 @@ import reactor.core.scheduler.Scheduler;
 @Slf4j
 public class ResourceManagementBuilder {
 
+  /** Status value indicating successful execution. */
   private static final String STATUS_SUCCESS = "SUCCESS";
+
+  /** Status value indicating error execution. */
   private static final String STATUS_ERROR = "ERROR";
+
+  /** Default timeout in seconds for workflow execution. */
   private static final long DEFAULT_TIMEOUT = 3600L;
 
+  /** The task tracker service for emitting workflow status events. */
   @SuppressFBWarnings("EI_EXPOSE_REP2")
   private final TaskTrackerService tracker;
 
+  /** The session configuration store for retrieving execution settings. */
   @SuppressFBWarnings("EI_EXPOSE_REP2")
   private final SessionConfigStore configStore;
 
+  /** The scheduler for timeout operations. */
   private final Scheduler scheduler;
 
+  /** List of disposables to manage for resource cleanup. */
   private List<Disposable> disposables = new ArrayList<>();
 
+  /** List of terminal monos to execute on workflow completion. */
   @Nullable private List<Mono<Void>> terminals;
 
+  /** List of connector runnables to execute. */
   @Nullable private List<Runnable> connectors;
 
+  /** The session ID for the execution. */
   @Nullable private String sessionId;
 
+  /** The execution ID. */
   @Nullable private String executionId;
 
   /**

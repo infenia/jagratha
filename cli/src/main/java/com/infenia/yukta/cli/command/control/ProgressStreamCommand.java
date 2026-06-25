@@ -27,8 +27,10 @@ import picocli.CommandLine.Parameters;
 @Command(name = "progress-stream", description = "Stream execution progress in real-time")
 public class ProgressStreamCommand implements Runnable {
 
+  /** Client for daemon communication. */
   private final YuktaDaemonClient daemonClient;
 
+  /** The execution ID to stream progress for. */
   @Parameters(index = "0", description = "Execution ID")
   private String executionId;
 

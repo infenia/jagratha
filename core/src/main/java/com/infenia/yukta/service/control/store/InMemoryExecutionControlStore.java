@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class InMemoryExecutionControlStore implements ExecutionControlStore {
 
+  /** Map of execution ID to execution control state. */
   private final Map<String, ExecutionControl> byExecutionId = new ConcurrentHashMap<>();
 
   @Override

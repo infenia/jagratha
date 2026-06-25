@@ -28,6 +28,7 @@ import org.springframework.validation.annotation.Validated;
 @Service
 @Validated
 public class PluginRegistry {
+  /** Map of plugin type to plugin instances. */
   private final Map<String, Plugin> plugins = new ConcurrentHashMap<>();
 
   /**

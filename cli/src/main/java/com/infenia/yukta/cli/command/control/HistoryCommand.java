@@ -31,12 +31,17 @@ import picocli.CommandLine.Parameters;
 @Command(name = "history", description = "Get session execution history")
 public class HistoryCommand implements Runnable {
 
+  /** Client for daemon communication. */
   private final YuktaDaemonClient daemonClient;
+
+  /** Formatter for output display. */
   private final CliFormatter formatter;
 
+  /** The session ID to retrieve history for. */
   @Parameters(index = "0", description = "Session ID")
   private String sessionId;
 
+  /** Output format for results (table or json). */
   @Option(
       names = {"-o", "--output"},
       description = "Output format: table (default), json",

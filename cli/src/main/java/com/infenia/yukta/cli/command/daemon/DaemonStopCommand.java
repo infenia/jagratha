@@ -27,7 +27,10 @@ import picocli.CommandLine.Command;
 @Command(name = "stop", description = "Stop the Yukta daemon")
 public class DaemonStopCommand implements Runnable {
 
+  /** Manager for daemon lifecycle. */
   private final DaemonManager daemonManager;
+
+  /** Formatter for output display. */
   private final CliFormatter formatter;
 
   /** Executes the command to stop the daemon and display the result. */

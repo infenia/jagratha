@@ -30,12 +30,17 @@ import picocli.CommandLine.Parameters;
 @Command(name = "progress", description = "Get execution progress snapshot")
 public class ProgressCommand implements Runnable {
 
+  /** Client for daemon communication. */
   private final YuktaDaemonClient daemonClient;
+
+  /** Formatter for output display. */
   private final CliFormatter formatter;
 
+  /** The execution ID to query progress for. */
   @Parameters(index = "0", description = "Execution ID")
   private String executionId;
 
+  /** Output format for results (table or json). */
   @Option(
       names = {"-o", "--output"},
       description = "Output format: table (default), json",

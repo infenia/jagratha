@@ -28,7 +28,10 @@ import picocli.CommandLine.Command;
 @Command(name = "status", description = "Show daemon status")
 public class DaemonStatusCommand implements Runnable {
 
+  /** Manager for daemon lifecycle. */
   private final DaemonManager daemonManager;
+
+  /** Formatter for output display. */
   private final CliFormatter formatter;
 
   /** Executes the command to retrieve and display daemon status. */

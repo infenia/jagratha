@@ -55,10 +55,16 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class FileSessionConfigStore implements SessionConfigStore {
 
+  /** The session configuration properties. */
   private final SessionConfigProperties props;
+
+  /** The ObjectMapper for JSON serialization/deserialization. */
   private final ObjectMapper objectMapper;
+
+  /** The workflow definition store for persisting workflow definitions. */
   private final WorkflowDefinitionStore workflowDefinitionStore;
 
+  /** Cache of session configurations by session ID. */
   private final Map<String, SessionConfig> sessionCache = new ConcurrentHashMap<>();
 
   @PostConstruct

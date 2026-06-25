@@ -33,10 +33,16 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class WorkflowService {
 
+  /** Log key for session ID. */
   private static final String LOG_KEY_SESSION_ID = "sessionId";
+
+  /** Log key for workflow ID. */
   private static final String LOG_KEY_WORKFLOW_ID = "workflowId";
+
+  /** Log key for execution ID. */
   private static final String LOG_KEY_EXECUTION_ID = "executionId";
 
+  /** The control bus gateway for orchestrating workflow execution. */
   private final ControlBusGateway controlBus;
 
   /**

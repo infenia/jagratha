@@ -32,7 +32,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Slf4j
 public class YuktaDaemonClient {
 
+  /** WebClient for communicating with the daemon. */
   private final WebClient daemonWebClient;
+
+  /** Daemon configuration properties. */
   private final DaemonProperties props;
 
   /**

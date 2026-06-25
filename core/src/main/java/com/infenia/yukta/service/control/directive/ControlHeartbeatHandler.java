@@ -31,6 +31,7 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 public class ControlHeartbeatHandler implements ControlSignalHandler {
 
+  /** Map of composite key to last heartbeat message. */
   private final Map<String, Message<?>> lastHeartbeats = new ConcurrentHashMap<>();
 
   @Override

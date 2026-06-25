@@ -27,7 +27,10 @@ import picocli.CommandLine.Command;
 @Command(name = "start", description = "Start the Yukta daemon if not already running")
 public class DaemonStartCommand implements Runnable {
 
+  /** Manager for daemon lifecycle. */
   private final DaemonManager daemonManager;
+
+  /** Formatter for output display. */
   private final CliFormatter formatter;
 
   /** Executes the command to start the daemon and display its URL. */

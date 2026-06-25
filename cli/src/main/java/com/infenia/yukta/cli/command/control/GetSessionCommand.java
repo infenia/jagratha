@@ -29,7 +29,10 @@ import picocli.CommandLine.Parameters;
 @Command(name = "get-session", description = "Get session details by session ID")
 public class GetSessionCommand implements Runnable {
 
+  /** The daemon client for interacting with Yukta daemon. */
   private final YuktaDaemonClient daemonClient;
+
+  /** The CLI formatter for output formatting. */
   private final CliFormatter formatter;
 
   /**
@@ -43,9 +46,11 @@ public class GetSessionCommand implements Runnable {
     this.formatter = formatter;
   }
 
+  /** The session ID to retrieve details for. */
   @Parameters(index = "0", description = "Session ID to retrieve details for")
   private String sessionId;
 
+  /** The output format: table (default) or json. */
   @Option(
       names = {"-o", "--output"},
       description = "Output format: table (default), json",

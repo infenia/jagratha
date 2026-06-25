@@ -46,9 +46,16 @@ import reactor.core.publisher.Sinks;
 @RequiredArgsConstructor
 public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
 
+  /** The execution control registry for accessing execution control state. */
   private final ExecutionControlRegistry registry;
+
+  /** The workflow orchestrator for restarting workflows. */
   private final WorkflowOrchestrator orchestrator;
+
+  /** The node checkpoint store for accessing node state checkpoints. */
   private final NodeCheckpointStore checkpointStore;
+
+  /** The task tracker service for tracking task execution. */
   private final DefaultTaskTrackerService taskTracker;
 
   @Override

@@ -39,6 +39,7 @@ import reactor.core.scheduler.Schedulers;
 @RequiredArgsConstructor
 public class LogRetrievalService {
 
+  /** The session configuration store for retrieving session directory paths. */
   private final SessionConfigStore configService;
 
   /**

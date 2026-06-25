@@ -46,12 +46,19 @@ import reactor.core.publisher.Sinks;
 @RequiredArgsConstructor
 public class StreamTopologyDecorator {
 
+  /** Constant for single parent node. */
   private static final int SINGLE_PARENT = 1;
 
+  /** The message store for persisting messages. */
   @Nullable private final MessageStore messageStore;
+
+  /** The task tracker service for tracking task execution. */
   private final TaskTrackerService tracker;
+
+  /** The node checkpoint store for persisting node state. */
   private final NodeCheckpointStore checkpointStore;
 
+  /** Emit failure handler with retry logic. */
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
       (_, emitResult) -> handleEmitFailure(emitResult);
 

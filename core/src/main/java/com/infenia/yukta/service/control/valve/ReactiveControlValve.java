@@ -33,10 +33,19 @@ import reactor.core.publisher.Sinks.Many;
  */
 public final class ReactiveControlValve {
 
+  /** Flag indicating whether the valve is paused. */
   private final AtomicBoolean paused = new AtomicBoolean(false);
+
+  /** Flag indicating whether step mode is enabled. */
   private final AtomicBoolean stepMode = new AtomicBoolean(false);
+
+  /** Sink for resume signals. */
   private final Many<Boolean> resumeSink = Sinks.many().replay().latestOrDefault(true);
+
+  /** Sink for step signals. */
   private final Many<Long> stepSignal = Sinks.many().replay().latestOrDefault(0L);
+
+  /** Counter for tracking steps in step mode. */
   private final AtomicLong stepCounter = new AtomicLong(0);
 
   /**

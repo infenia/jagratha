@@ -45,9 +45,13 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class InMemorySessionConfigStore implements SessionConfigStore {
 
+  /** The session configuration properties. */
   private final SessionConfigProperties props;
+
+  /** The workflow definition store for persisting workflow definitions. */
   private final WorkflowDefinitionStore workflowDefinitionStore;
 
+  /** Map of session ID to session configuration. */
   private final Map<String, SessionConfig> sessions = new ConcurrentHashMap<>();
 
   @PostConstruct

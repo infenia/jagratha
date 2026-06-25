@@ -49,19 +49,43 @@ import reactor.util.concurrent.Queues;
  */
 @Slf4j
 @Service
+@SuppressWarnings({
+  "PMD.TooManyMethods",
+  "PMD.AvoidCatchingGenericException",
+  "PMD.LawOfDemeter",
+  "PMD.OnlyOneReturn"
+})
 public class ControlBusService {
 
+  /** Separator used to create composite keys from workflow and node IDs. */
   private static final String COMPOSITE_KEY_SEPARATOR = "\0";
 
+  /** Number of messages to batch before processing. */
   private final int batchSize;
+
+  /** Duration to wait before processing a batch. */
   private final Duration batchTimeout;
+
+  /** Buffer size for the control sink. */
   private final int bufferSize;
+
+  /** List of signal handlers for dispatching messages. */
   private final List<ControlSignalHandler> handlers;
+
+  /** Cache for compiled workflow instances. */
   private final PreparedWorkflowCache preparedWorkflowCache;
+
+  /** Workflow orchestrator for compiling workflows. */
   private final WorkflowOrchestrator orchestrator;
+
+  /** Map of active plugins by composite key. */
   private final Map<String, Plugin> activePlugins = new ConcurrentHashMap<>();
+
+  /** Sink for emitting control messages. */
   private Sinks.Many<Message<?>> controlSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
+
+  /** Handler for retry logic when emitting fails. */
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
       Sinks.EmitFailureHandler.busyLooping(Duration.ofMillis(100));
 
@@ -105,13 +129,13 @@ public class ControlBusService {
   /** Initialize the control sink and background event consumer. */
   @PostConstruct
   public void init() {
-    if (bufferSize != Queues.SMALL_BUFFER_SIZE) {
+    if (bufferSize == Queues.SMALL_BUFFER_SIZE) {
+      log.atDebug().log("Initialized control sink with default buffer size");
+    } else {
       controlSink = Sinks.many().multicast().onBackpressureBuffer(bufferSize, false);
       log.atDebug()
           .addArgument(bufferSize)
           .log("Initialized control sink with custom buffer size: {}");
-    } else {
-      log.atDebug().log("Initialized control sink with default buffer size");
     }
 
     controlSink
@@ -119,25 +143,38 @@ public class ControlBusService {
         .publishOn(Schedulers.parallel())
         .bufferTimeout(batchSize, batchTimeout)
         .doOnSubscribe(
-            _ -> log.atDebug().log("Control bus consumer subscribed, starting batch processing"))
+            _ -> {
+              if (log.isDebugEnabled()) {
+                log.atDebug().log("Control bus consumer subscribed, starting batch processing");
+              }
+            })
         .concatMap(
             batch ->
                 Mono.fromRunnable(() -> handleControlBatch(batch))
                     .doOnSuccess(
-                        _ ->
+                        _ -> {
+                          if (log.isTraceEnabled()) {
                             log.atTrace()
                                 .addArgument(batch.size())
-                                .log("Processed control signal batch with {} messages"))
+                                .log("Processed control signal batch with {} messages");
+                          }
+                        })
                     .onErrorResume(
                         e -> {
-                          log.atError()
-                              .addArgument(batch.size())
-                              .setCause(e)
-                              .log("Error processing control signal batch with {} messages");
+                          if (log.isErrorEnabled()) {
+                            log.atError()
+                                .addArgument(batch.size())
+                                .setCause(e)
+                                .log("Error processing control signal batch with {} messages");
+                          }
                           return Mono.empty();
                         }))
         .doOnError(
-            e -> log.atError().setCause(e).log("Control bus consumer encountered fatal error"))
+            e -> {
+              if (log.isErrorEnabled()) {
+                log.atError().setCause(e).log("Control bus consumer encountered fatal error");
+              }
+            })
         .subscribe();
   }
 
@@ -147,24 +184,28 @@ public class ControlBusService {
    * @param signal the control signal message
    * @return a Mono that completes when the signal is emitted
    */
+  @SuppressWarnings("PMD.GuardLogStatement")
   public Mono<Void> emit(final Message<?> signal) {
+    final Object payload = signal.getPayload();
+    final String payloadType = payload != null ? payload.getClass().getSimpleName() : "null";
+    if (log.isTraceEnabled()) {
+      log.atTrace().addArgument(payloadType).log("Emitting control signal of type: {}");
+    }
     return Mono.create(
         sink -> {
           try {
-            log.atTrace()
-                .addArgument(
-                    signal.getPayload() != null
-                        ? signal.getPayload().getClass().getSimpleName()
-                        : "null")
-                .log("Emitting control signal of type: {}");
             controlSink.emitNext(signal, RETRY_HANDLER);
-            log.atDebug()
-                .addArgument(signal.getSourceNodeId())
-                .addArgument(signal.getWorkflowId())
-                .log("Control signal emitted from node: {} in workflow: {}");
+            if (log.isDebugEnabled()) {
+              log.atDebug()
+                  .addArgument(signal.getSourceNodeId())
+                  .addArgument(signal.getWorkflowId())
+                  .log("Control signal emitted from node: {} in workflow: {}");
+            }
             sink.success();
-          } catch (final RuntimeException e) {
-            log.atError().setCause(e).log("Failed to emit control signal to bus");
+          } catch (final Exception e) {
+            if (log.isErrorEnabled()) {
+              log.atError().setCause(e).log("Failed to emit control signal to bus");
+            }
             sink.error(new IllegalStateException("Control bus emit failed", e));
           }
         });
@@ -362,11 +403,12 @@ public class ControlBusService {
       return Mono.error(
           new IllegalArgumentException("Node not found: " + workflowId + "/" + nodeId));
     }
+    final Object payload = command.getPayload();
+    final String commandType = payload != null ? payload.getClass().getSimpleName() : "null";
     log.atDebug()
+        .addArgument(commandType)
         .addArgument(nodeId)
         .addArgument(workflowId)
-        .addArgument(
-            command.getPayload() != null ? command.getPayload().getClass().getSimpleName() : "null")
         .log("Sending control command of type {} to node: {} in workflow: {}");
     return plugin
         .onControlSignal(command)
@@ -396,7 +438,9 @@ public class ControlBusService {
   }
 
   private void handleControlBatch(final List<Message<?>> batch) {
-    log.atTrace().addArgument(batch.size()).log("Processing control signal batch of size: {}");
+    if (log.isTraceEnabled()) {
+      log.atTrace().addArgument(batch.size()).log("Processing control signal batch of size: {}");
+    }
     final List<Message<?>> prioritized =
         batch.stream()
             .sorted(Comparator.comparingInt((final Message<?> m) -> m.getPriority()).reversed())
@@ -406,43 +450,9 @@ public class ControlBusService {
     int skippedCount = 0;
 
     for (final Message<?> msg : prioritized) {
-      final Object payload = msg.getPayload();
-      final String nodeId = msg.getSourceNodeId();
-      final String workflowId = msg.getWorkflowId();
-
-      if (nodeId != null && payload != null && workflowId != null) {
-        final String key = compositeKey(workflowId, nodeId);
-        boolean handled = false;
-        for (final ControlSignalHandler handler : handlers) {
-          if (handler.canHandle(payload)) {
-            log.atTrace()
-                .addArgument(payload.getClass().getSimpleName())
-                .addArgument(nodeId)
-                .addArgument(workflowId)
-                .addArgument(handler.getClass().getSimpleName())
-                .log("Dispatching {} signal from node: {} in workflow: {} to handler: {}");
-            handler.handle(key, msg, payload);
-            handledCount++;
-            handled = true;
-            break;
-          }
-        }
-        if (!handled) {
-          log.atWarn()
-              .addArgument(payload.getClass().getSimpleName())
-              .addArgument(nodeId)
-              .addArgument(workflowId)
-              .log("No handler found for signal type {} from node: {} in workflow: {}");
-          skippedCount++;
-        }
+      if (processMessage(msg)) {
+        handledCount++;
       } else {
-        log.atWarn()
-            .log(
-                "Skipped signal due to missing required fields: nodeId={}, workflowId={},"
-                    + " payload={}",
-                nodeId,
-                workflowId,
-                payload != null ? "present" : "null");
         skippedCount++;
       }
     }
@@ -451,5 +461,46 @@ public class ControlBusService {
         .addArgument(handledCount)
         .addArgument(skippedCount)
         .log("Batch processing complete: {} messages, {} handled, {} skipped");
+  }
+
+  private boolean processMessage(final Message<?> msg) {
+    final Object payload = msg.getPayload();
+    final String nodeId = msg.getSourceNodeId();
+    final String workflowId = msg.getWorkflowId();
+
+    if (nodeId == null || payload == null || workflowId == null) {
+      final String payloadStatus = payload != null ? "present" : "null";
+      log.atWarn()
+          .log(
+              "Skipped signal due to missing required fields: nodeId={}, workflowId={},"
+                  + " payload={}",
+              nodeId,
+              workflowId,
+              payloadStatus);
+      return false;
+    }
+
+    final String key = compositeKey(workflowId, nodeId);
+    final String payloadType = payload.getClass().getSimpleName();
+
+    for (final ControlSignalHandler handler : handlers) {
+      if (handler.canHandle(payload)) {
+        log.atTrace()
+            .addArgument(payloadType)
+            .addArgument(nodeId)
+            .addArgument(workflowId)
+            .addArgument(handler.getClass().getSimpleName())
+            .log("Dispatching {} signal from node: {} in workflow: {} to handler: {}");
+        handler.handle(key, msg, payload);
+        return true;
+      }
+    }
+
+    log.atWarn()
+        .addArgument(payloadType)
+        .addArgument(nodeId)
+        .addArgument(workflowId)
+        .log("No handler found for signal type {} from node: {} in workflow: {}");
+    return false;
   }
 }

@@ -30,15 +30,21 @@ import picocli.CommandLine.Parameters;
 @Command(name = "heartbeat", description = "Get last heartbeat for a node in a workflow")
 public class HeartbeatCommand implements Runnable {
 
+  /** Client for daemon communication. */
   private final YuktaDaemonClient daemonClient;
+
+  /** Formatter for output display. */
   private final CliFormatter formatter;
 
+  /** The workflow ID to query. */
   @Parameters(index = "0", description = "Workflow ID")
   private String workflowId;
 
+  /** The node ID to query. */
   @Parameters(index = "1", description = "Node ID")
   private String nodeId;
 
+  /** Output format for results (table or json). */
   @Option(
       names = {"-o", "--output"},
       description = "Output format: table (default), json",

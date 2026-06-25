@@ -72,17 +72,35 @@ import reactor.util.concurrent.Queues;
 @RequiredArgsConstructor
 public class DefaultControlBusGateway implements ControlBusGateway, ExecutionStatusPublisher {
 
+  /** Source identifier for control bus operations. */
   private static final String CONTROL_BUS_SOURCE = "CONTROL_BUS";
+
+  /** Priority level for control commands. */
   private static final int CONTROL_COMMAND_PRIORITY = 100;
+
+  /** Emit failure handler with retry logic. */
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
       Sinks.EmitFailureHandler.busyLooping(Duration.ofMillis(100));
 
+  /** The control bus service for low-level plugin and message operations. */
   private final ControlBusService controlBusService;
+
+  /** The task tracker service for tracking execution tasks. */
   private final DefaultTaskTrackerService taskTracker;
+
+  /** The execution control registry for managing active executions. */
   private final ExecutionControlRegistry executionControlRegistry;
+
+  /** The workflow orchestrator for executing workflows. */
   private final WorkflowOrchestrator orchestrator;
+
+  /** The workflow definition store for accessing workflow definitions. */
   private final WorkflowDefinitionStore workflowDefinitionStore;
+
+  /** The prepared workflow cache for caching compiled workflows. */
   private final PreparedWorkflowCache preparedWorkflowCache;
+
+  /** Sink for publishing execution status events. */
   private final Sinks.Many<ExecutionStatusEvent> statusSink =
       Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
 

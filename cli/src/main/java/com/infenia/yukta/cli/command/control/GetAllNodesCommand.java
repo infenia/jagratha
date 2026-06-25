@@ -29,9 +29,13 @@ import picocli.CommandLine.Option;
 @Command(name = "get-all", description = "Get all active nodes across workflows")
 public class GetAllNodesCommand implements Runnable {
 
+  /** Client for daemon communication. */
   private final YuktaDaemonClient daemonClient;
+
+  /** Formatter for output display. */
   private final CliFormatter formatter;
 
+  /** Output format for results (table or json). */
   @Option(
       names = {"-o", "--output"},
       description = "Output format: table (default), json",

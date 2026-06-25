@@ -60,14 +60,19 @@ public class ExecutionContextBuilder {
   /** Context key for payload data. */
   public static final String CTX_PAYLOAD = "payload";
 
+  /** The session ID value. */
   @Nullable private String sessionIdValue;
 
+  /** The workflow ID value. */
   @Nullable private String workflowIdValue;
 
+  /** The execution ID value. */
   @Nullable private String executionIdValue;
 
+  /** The node ID value. */
   @Nullable private String nodeIdValue;
 
+  /** The payload data. */
   @Nullable private Map<String, Object> payloadValue;
 
   /**

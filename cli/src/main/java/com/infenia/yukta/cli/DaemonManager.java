@@ -38,10 +38,19 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class DaemonManager {
 
+  /** Daemon configuration properties. */
   private final DaemonProperties props;
+
+  /** HTTP client adapter for health checks. */
   private final HttpClientAdapter httpClientAdapter;
+
+  /** Provider for system environment variables. */
   private final SystemEnvironmentProvider envProvider;
+
+  /** Provider for process operations. */
   private final ProcessProvider processProvider;
+
+  /** Adapter for file system operations. */
   private final FileSystemAdapter fileSystemAdapter;
 
   /**

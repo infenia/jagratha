@@ -41,12 +41,16 @@ import reactor.core.scheduler.Scheduler;
 @RequiredArgsConstructor
 public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
+  /** The task tracker service for tracking node execution. */
   private final TaskTrackerService tracker;
 
+  /** The virtual thread scheduler for non-blocking execution. */
   private final Scheduler virtualThreadScheduler;
 
+  /** The stream topology decorator for customizing stream behavior. */
   private final StreamTopologyDecorator streamTopologyDecorator;
 
+  /** The node message channel provider for creating message channels. */
   private final NodeMessageChannelProvider channelProvider;
 
   @Override

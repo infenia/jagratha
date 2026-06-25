@@ -30,8 +30,13 @@ import tools.jackson.databind.ObjectMapper;
 @Command(name = "send-command", description = "Send a command to a node")
 public class SendCommandCommand implements Runnable {
 
+  /** Client for daemon communication. */
   private final YuktaDaemonClient daemonClient;
+
+  /** JSON object mapper for payload parsing. */
   private final ObjectMapper objectMapper;
+
+  /** Formatter for output display. */
   private final CliFormatter formatter;
 
   /**
@@ -48,15 +53,19 @@ public class SendCommandCommand implements Runnable {
     this.formatter = formatter;
   }
 
+  /** The workflow ID containing the target node. */
   @Parameters(index = "0", description = "Workflow ID")
   private String workflowId;
 
+  /** The node ID to send the command to. */
   @Parameters(index = "1", description = "Node ID")
   private String nodeId;
 
+  /** The command payload as JSON string. */
   @Parameters(index = "2", description = "JSON payload")
   private String jsonPayload;
 
+  /** Output format for results (table or json). */
   @Option(
       names = {"-o", "--output"},
       description = "Output format: table (default), json",

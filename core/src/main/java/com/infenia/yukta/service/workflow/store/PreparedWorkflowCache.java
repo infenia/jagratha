@@ -37,10 +37,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class PreparedWorkflowCache {
 
+  /** Separator for composite key construction. */
   private static final String COMPOSITE_KEY_SEPARATOR = "\0";
+
+  /** Property key for session ID. */
   private static final String SESSION_ID_KEY = "sessionId";
+
+  /** Property key for workflow ID. */
   private static final String WORKFLOW_ID_KEY = "workflowId";
 
+  /** The Caffeine cache for prepared workflows. */
   private final Cache<String, PreparedWorkflow> cache;
 
   /**

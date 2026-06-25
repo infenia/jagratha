@@ -27,5 +27,6 @@ import org.springframework.validation.annotation.Validated;
 @NoArgsConstructor
 public class YuktaProperties {
 
+  /** Heartbeat interval for nodes in seconds. */
   private Long heartbeatIntervalSeconds = 10L;
 }
