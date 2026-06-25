@@ -31,7 +31,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.SimplifyBooleanReturns"})
 public class VariableResolver {
 
   private static final Pattern EXPR_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}");

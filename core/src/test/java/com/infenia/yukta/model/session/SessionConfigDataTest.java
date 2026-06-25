@@ -38,7 +38,6 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 @SpringJUnitConfig(SessionConfigDataTest.TestConfig.class)
 @Tag("SessionConfigDataTest")
-@SuppressWarnings({"PMD.CommentDefaultAccessModifier", "PMD.TooManyMethods"})
 class SessionConfigDataTest {
 
   @Configuration

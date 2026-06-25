@@ -36,8 +36,7 @@ class TaskProgressTest {
     Map<String, Object> metadata = Map.of("key1", "value1");
 
     // When
-    TaskProgress progress =
-        new TaskProgress(nodeId, module, status, startTime, endTime, metadata);
+    TaskProgress progress = new TaskProgress(nodeId, module, status, startTime, endTime, metadata);
 
     // Then
     assertThat(progress.nodeId()).isEqualTo(nodeId);
@@ -57,8 +56,7 @@ class TaskProgressTest {
     LocalDateTime endTime = LocalDateTime.parse("2026-06-25T11:00:00");
 
     // When
-    TaskProgress progress =
-        new TaskProgress(nodeId, module, status, startTime, endTime, null);
+    TaskProgress progress = new TaskProgress(nodeId, module, status, startTime, endTime, null);
 
     // Then
     assertThat(progress.metadata()).isEmpty();
@@ -72,8 +70,7 @@ class TaskProgressTest {
     LocalDateTime now = LocalDateTime.now();
 
     // When
-    TaskProgress progress =
-        new TaskProgress(nodeId, "processor", "RUNNING", now, now, metadata);
+    TaskProgress progress = new TaskProgress(nodeId, "processor", "RUNNING", now, now, metadata);
 
     // Then
     assertThat(progress.metadata()).containsEntry("key1", "value1").containsEntry("key2", 42);
@@ -120,8 +117,7 @@ class TaskProgressTest {
     LocalDateTime startTime = LocalDateTime.parse("2026-06-25T09:00:00");
     LocalDateTime endTime = LocalDateTime.parse("2026-06-25T10:00:00");
     Map<String, Object> metadata = Map.of("result", "success");
-    TaskProgress progress =
-        new TaskProgress(nodeId, module, status, startTime, endTime, metadata);
+    TaskProgress progress = new TaskProgress(nodeId, module, status, startTime, endTime, metadata);
 
     // When & Then
     assertThat(progress.nodeId()).isEqualTo(nodeId);
@@ -196,7 +192,8 @@ class TaskProgressTest {
   void metadata_whenStored_isImmutable() {
     // Given
     LocalDateTime now = LocalDateTime.now();
-    TaskProgress progress = new TaskProgress("node-1", "processor", "RUNNING", now, now, Map.of("key", "value"));
+    TaskProgress progress =
+        new TaskProgress("node-1", "processor", "RUNNING", now, now, Map.of("key", "value"));
 
     // When & Then
     assertThatThrownBy(() -> progress.metadata().put("newKey", "newValue"))

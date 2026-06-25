@@ -37,7 +37,6 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 @SpringJUnitConfig(WorkflowDefinitionTest.TestConfig.class)
 @Tag("WorkflowDefinitionTest")
-@SuppressWarnings({"PMD.CommentDefaultAccessModifier", "PMD.TooManyMethods"})
 class WorkflowDefinitionTest {
 
   @Configuration

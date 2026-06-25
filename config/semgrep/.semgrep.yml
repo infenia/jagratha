@@ -1,0 +1,34 @@
+# Semgrep configuration for Yukta quality gates
+# Combines Semgrep registry rules for Java security and quality
+
+rules:
+  - id: semgrep-registry
+    # Use Semgrep's recommended registry for Java
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: |
+                  $VAR = ...
+
+extend_configs:
+  # Use Semgrep's standard security ruleset for Java
+  - p/security-audit
+  - p/java
+
+# Output configuration
+output:
+  format: sarif
+
+# Paths to scan
+paths:
+  include:
+    - src/main/java
+  exclude:
+    - "*/test/*"
+    - "*/build/*"
+    - "*/.gradle/*"
+
+# Severity filter
+severity:
+  - ERROR
+  - WARNING

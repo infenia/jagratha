@@ -53,7 +53,7 @@ public class StreamTopologyDecorator {
   private final NodeCheckpointStore checkpointStore;
 
   private static final Sinks.EmitFailureHandler RETRY_HANDLER =
-      (unusedSignalType, emitResult) -> handleEmitFailure(emitResult);
+      (_, emitResult) -> handleEmitFailure(emitResult);
 
   // ~ Package-private visibility
   /* default */ static boolean handleEmitFailure(final Sinks.EmitResult emitResult) {

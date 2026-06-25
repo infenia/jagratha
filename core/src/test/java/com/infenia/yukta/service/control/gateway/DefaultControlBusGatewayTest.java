@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +29,7 @@ import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.model.execution.WorkflowProgress;
+import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand.DisableStepModeCommand;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand.EnableStepModeCommand;
@@ -1711,5 +1713,305 @@ class DefaultControlBusGatewayTest {
 
     // Verify gateway is still valid after completion
     assertThat(gateway).isNotNull();
+  }
+
+  // --- startWorkflow Tests ---
+
+  @Test
+  void startWorkflow_workflowFound_returnsNewExecutionId() {
+    // Given
+    String sessionId = "sess-start";
+    String workflowId = "wf-start";
+    WorkflowDefinition definition =
+        new WorkflowDefinition(workflowId, "test workflow", List.of(), List.of());
+    PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
+
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(definition));
+    when(preparedWorkflowCache.get(sessionId, workflowId)).thenReturn(Optional.empty());
+    when(orchestrator.prepareWorkflow(definition)).thenReturn(Mono.just(preparedWorkflow));
+    when(orchestrator.execute(
+            eq(sessionId), eq(workflowId), anyString(), eq(preparedWorkflow), anyMap()))
+        .thenReturn(Mono.empty());
+
+    // When
+    Mono<String> result = gateway.startWorkflow(sessionId, workflowId);
+
+    // Then
+    StepVerifier.create(result)
+        .assertNext(
+            executionId -> {
+              assertThat(executionId).isNotNull();
+              // Verify it's a valid UUID format
+              try {
+                UUID.fromString(executionId);
+              } catch (IllegalArgumentException e) {
+                throw new AssertionError("Not a valid UUID: " + executionId, e);
+              }
+            })
+        .verifyComplete();
+
+    verify(workflowDefinitionStore).find(sessionId, workflowId);
+    verify(preparedWorkflowCache).put(eq(sessionId), eq(workflowId), any());
+    verify(orchestrator).prepareWorkflow(definition);
+    verify(orchestrator)
+        .execute(eq(sessionId), eq(workflowId), anyString(), eq(preparedWorkflow), anyMap());
+  }
+
+  @Test
+  void startWorkflow_workflowNotFound_throwsIllegalArgumentException() {
+    // Given
+    String sessionId = "sess-not-found";
+    String workflowId = "wf-not-found";
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.empty());
+
+    // When
+    Mono<String> result = gateway.startWorkflow(sessionId, workflowId);
+
+    // Then
+    StepVerifier.create(result)
+        .expectErrorMatches(
+            err ->
+                err instanceof IllegalArgumentException
+                    && err.getMessage().contains("Workflow not found for session")
+                    && err.getMessage().contains(sessionId)
+                    && err.getMessage().contains(workflowId))
+        .verify();
+
+    verify(workflowDefinitionStore).find(sessionId, workflowId);
+  }
+
+  @Test
+  void startWorkflow_preparedWorkflowCached_usesCachedVersion() {
+    // Given
+    String sessionId = "sess-cached";
+    String workflowId = "wf-cached";
+    WorkflowDefinition definition =
+        new WorkflowDefinition(workflowId, "cached workflow", List.of(), List.of());
+    PreparedWorkflow cachedPreparedWorkflow = mock(PreparedWorkflow.class);
+
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(definition));
+    when(preparedWorkflowCache.get(sessionId, workflowId))
+        .thenReturn(Optional.of(cachedPreparedWorkflow));
+    when(orchestrator.execute(
+            eq(sessionId), eq(workflowId), anyString(), eq(cachedPreparedWorkflow), anyMap()))
+        .thenReturn(Mono.empty());
+
+    // When
+    Mono<String> result = gateway.startWorkflow(sessionId, workflowId);
+
+    // Then
+    StepVerifier.create(result)
+        .assertNext(executionId -> assertThat(executionId).isNotNull())
+        .verifyComplete();
+
+    // Verify prepareWorkflow was NOT called since we used cache
+    verify(orchestrator, times(0)).prepareWorkflow(any());
+    // Verify execute was still called with cached workflow
+    verify(orchestrator)
+        .execute(eq(sessionId), eq(workflowId), anyString(), eq(cachedPreparedWorkflow), anyMap());
+  }
+
+  @Test
+  void startWorkflow_preparedWorkflowNotCached_preparesAndCaches() {
+    // Given
+    String sessionId = "sess-prepare";
+    String workflowId = "wf-prepare";
+    WorkflowDefinition definition =
+        new WorkflowDefinition(workflowId, "workflow to prepare", List.of(), List.of());
+    PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
+
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(definition));
+    when(preparedWorkflowCache.get(sessionId, workflowId)).thenReturn(Optional.empty());
+    when(orchestrator.prepareWorkflow(definition)).thenReturn(Mono.just(preparedWorkflow));
+    when(orchestrator.execute(
+            eq(sessionId), eq(workflowId), anyString(), eq(preparedWorkflow), anyMap()))
+        .thenReturn(Mono.empty());
+
+    // When
+    Mono<String> result = gateway.startWorkflow(sessionId, workflowId);
+
+    // Then
+    StepVerifier.create(result)
+        .assertNext(executionId -> assertThat(executionId).isNotNull())
+        .verifyComplete();
+
+    // Verify prepareWorkflow was called
+    verify(orchestrator).prepareWorkflow(definition);
+    // Verify cache.put was called with the prepared workflow
+    ArgumentCaptor<PreparedWorkflow> cacheCaptor = ArgumentCaptor.forClass(PreparedWorkflow.class);
+    verify(preparedWorkflowCache).put(eq(sessionId), eq(workflowId), cacheCaptor.capture());
+    assertThat(cacheCaptor.getValue()).isEqualTo(preparedWorkflow);
+  }
+
+  @Test
+  void startWorkflow_orchestratorPrepareFailure_propagatesError() {
+    // Given
+    String sessionId = "sess-prepare-fail";
+    String workflowId = "wf-prepare-fail";
+    WorkflowDefinition definition =
+        new WorkflowDefinition(workflowId, "workflow", List.of(), List.of());
+    RuntimeException testError = new RuntimeException("Prepare failed");
+
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(definition));
+    when(preparedWorkflowCache.get(sessionId, workflowId)).thenReturn(Optional.empty());
+    when(orchestrator.prepareWorkflow(definition)).thenReturn(Mono.error(testError));
+
+    // When
+    Mono<String> result = gateway.startWorkflow(sessionId, workflowId);
+
+    // Then
+    StepVerifier.create(result).expectError(RuntimeException.class).verify();
+  }
+
+  @Test
+  void startWorkflow_orchestratorExecuteFailure_propagatesError() {
+    // Given
+    String sessionId = "sess-exec-fail";
+    String workflowId = "wf-exec-fail";
+    WorkflowDefinition definition =
+        new WorkflowDefinition(workflowId, "workflow", List.of(), List.of());
+    PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
+    RuntimeException testError = new RuntimeException("Execute failed");
+
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(definition));
+    when(preparedWorkflowCache.get(sessionId, workflowId)).thenReturn(Optional.empty());
+    when(orchestrator.prepareWorkflow(definition)).thenReturn(Mono.just(preparedWorkflow));
+    when(orchestrator.execute(
+            eq(sessionId), eq(workflowId), anyString(), eq(preparedWorkflow), anyMap()))
+        .thenReturn(Mono.error(testError));
+
+    // When
+    Mono<String> result = gateway.startWorkflow(sessionId, workflowId);
+
+    // Then
+    StepVerifier.create(result).expectError(RuntimeException.class).verify();
+  }
+
+  @Test
+  void startWorkflow_workflowDefinitionStoreError_propagatesError() {
+    // Given
+    String sessionId = "sess-store-error";
+    String workflowId = "wf-store-error";
+    RuntimeException testError = new RuntimeException("Store error");
+
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.error(testError));
+
+    // When
+    Mono<String> result = gateway.startWorkflow(sessionId, workflowId);
+
+    // Then
+    StepVerifier.create(result).expectError(RuntimeException.class).verify();
+  }
+
+  @Test
+  void startWorkflow_executionIdUnique_generatesNewIdEachTime() {
+    // Given
+    String sessionId = "sess-unique";
+    String workflowId = "wf-unique";
+    WorkflowDefinition definition =
+        new WorkflowDefinition(workflowId, "workflow", List.of(), List.of());
+    PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
+
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(definition));
+    when(preparedWorkflowCache.get(sessionId, workflowId)).thenReturn(Optional.empty());
+    when(orchestrator.prepareWorkflow(definition)).thenReturn(Mono.just(preparedWorkflow));
+    when(orchestrator.execute(
+            eq(sessionId), eq(workflowId), anyString(), eq(preparedWorkflow), anyMap()))
+        .thenReturn(Mono.empty());
+
+    // When - call twice
+    Mono<String> result1 = gateway.startWorkflow(sessionId, workflowId);
+    Mono<String> result2 = gateway.startWorkflow(sessionId, workflowId);
+
+    // Then - execution IDs should be different
+    String execId1 = result1.block();
+    String execId2 = result2.block();
+
+    assertThat(execId1).isNotEqualTo(execId2);
+    assertThat(execId1).isNotNull();
+    assertThat(execId2).isNotNull();
+  }
+
+  @Test
+  void startWorkflow_executePassesCorrectParameters() {
+    // Given
+    String sessionId = "sess-params";
+    String workflowId = "wf-params";
+    WorkflowDefinition definition =
+        new WorkflowDefinition(workflowId, "workflow", List.of(), List.of());
+    PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
+
+    when(workflowDefinitionStore.find(sessionId, workflowId)).thenReturn(Mono.just(definition));
+    when(preparedWorkflowCache.get(sessionId, workflowId))
+        .thenReturn(Optional.of(preparedWorkflow));
+    when(orchestrator.execute(
+            eq(sessionId), eq(workflowId), anyString(), eq(preparedWorkflow), anyMap()))
+        .thenReturn(Mono.empty());
+
+    // When
+    Mono<String> result = gateway.startWorkflow(sessionId, workflowId);
+
+    // Then
+    StepVerifier.create(result)
+        .assertNext(executionId -> assertThat(executionId).isNotNull())
+        .verifyComplete();
+
+    ArgumentCaptor<String> sessionCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> workflowCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> executionIdCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<PreparedWorkflow> preparedCaptor =
+        ArgumentCaptor.forClass(PreparedWorkflow.class);
+    ArgumentCaptor<Map> contextMapCaptor = ArgumentCaptor.forClass(Map.class);
+
+    verify(orchestrator)
+        .execute(
+            sessionCaptor.capture(),
+            workflowCaptor.capture(),
+            executionIdCaptor.capture(),
+            preparedCaptor.capture(),
+            contextMapCaptor.capture());
+
+    assertThat(sessionCaptor.getValue()).isEqualTo(sessionId);
+    assertThat(workflowCaptor.getValue()).isEqualTo(workflowId);
+    assertThat(contextMapCaptor.getValue()).isEmpty();
+  }
+
+  @Test
+  void startWorkflow_multipleWorkflows_cachesEachSeparately() {
+    // Given
+    String sessionId = "sess-multi";
+    String workflowId1 = "wf-1";
+    String workflowId2 = "wf-2";
+    WorkflowDefinition definition1 =
+        new WorkflowDefinition(workflowId1, "workflow 1", List.of(), List.of());
+    WorkflowDefinition definition2 =
+        new WorkflowDefinition(workflowId2, "workflow 2", List.of(), List.of());
+    PreparedWorkflow preparedWorkflow1 = mock(PreparedWorkflow.class);
+    PreparedWorkflow preparedWorkflow2 = mock(PreparedWorkflow.class);
+
+    when(workflowDefinitionStore.find(sessionId, workflowId1)).thenReturn(Mono.just(definition1));
+    when(workflowDefinitionStore.find(sessionId, workflowId2)).thenReturn(Mono.just(definition2));
+    when(preparedWorkflowCache.get(sessionId, workflowId1)).thenReturn(Optional.empty());
+    when(preparedWorkflowCache.get(sessionId, workflowId2)).thenReturn(Optional.empty());
+    when(orchestrator.prepareWorkflow(definition1)).thenReturn(Mono.just(preparedWorkflow1));
+    when(orchestrator.prepareWorkflow(definition2)).thenReturn(Mono.just(preparedWorkflow2));
+    when(orchestrator.execute(eq(sessionId), anyString(), anyString(), any(), anyMap()))
+        .thenReturn(Mono.empty());
+
+    // When
+    Mono<String> result1 = gateway.startWorkflow(sessionId, workflowId1);
+    Mono<String> result2 = gateway.startWorkflow(sessionId, workflowId2);
+
+    // Then
+    String execId1 = result1.block();
+    String execId2 = result2.block();
+
+    assertThat(execId1).isNotNull();
+    assertThat(execId2).isNotNull();
+    assertThat(execId1).isNotEqualTo(execId2);
+
+    // Verify both workflows were cached separately
+    verify(preparedWorkflowCache).put(sessionId, workflowId1, preparedWorkflow1);
+    verify(preparedWorkflowCache).put(sessionId, workflowId2, preparedWorkflow2);
   }
 }

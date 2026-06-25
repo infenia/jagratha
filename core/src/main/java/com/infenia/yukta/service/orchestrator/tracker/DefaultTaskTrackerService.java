@@ -53,7 +53,6 @@ import reactor.util.concurrent.Queues;
 @Slf4j
 @Service
 @Validated
-@SuppressWarnings({"PMD.OnlyOneReturn"})
 public class DefaultTaskTrackerService implements TaskTrackerService {
 
   private static final int BATCH_SIZE = 100;

@@ -19,6 +19,7 @@ import com.infenia.yukta.service.control.store.ExecutionControlStore;
 import com.infenia.yukta.service.control.store.InMemoryExecutionControlStore;
 import java.time.Duration;
 import java.util.concurrent.Executors;
+import lombok.NoArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -30,12 +31,8 @@ import tools.jackson.databind.ObjectMapper;
 /** Configuration for the application. */
 @Configuration
 @EnableConfigurationProperties({SessionConfigProperties.class, YuktaProperties.class})
+@NoArgsConstructor
 public class AppConfiguration {
-
-  /** Public constructor for PMD. */
-  public AppConfiguration() {
-    super();
-  }
 
   /**
    * Provide an ObjectMapper bean if not already present.
@@ -54,7 +51,6 @@ public class AppConfiguration {
    * @return the virtual thread scheduler
    */
   @Bean
-  @SuppressWarnings("PMD.DoNotUseThreads")
   public Scheduler virtualThreadScheduler() {
     return Schedulers.fromExecutorService(
         Executors.newScheduledThreadPool(

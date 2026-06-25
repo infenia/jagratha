@@ -70,7 +70,6 @@ import reactor.util.concurrent.Queues;
 @Service
 @Primary
 @RequiredArgsConstructor
-@SuppressWarnings("PMD.GuardLogStatement")
 public class DefaultControlBusGateway implements ControlBusGateway, ExecutionStatusPublisher {
 
   private static final String CONTROL_BUS_SOURCE = "CONTROL_BUS";

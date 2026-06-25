@@ -217,7 +217,6 @@ public class ResourceManagementBuilder {
   }
 
   /** Runs connector runnables in reverse order on subscription. */
-  @SuppressWarnings("PMD.AvoidCatchingGenericException")
   private void runConnectors() {
     if (connectors != null && !connectors.isEmpty()) {
       log.atDebug()
@@ -257,7 +256,6 @@ public class ResourceManagementBuilder {
    *
    * @param resource the disposables resource to clean up
    */
-  @SuppressWarnings("PMD.AvoidCatchingGenericException")
   private void cleanup(final List<Disposable> resource) {
     if (resource.isEmpty()) {
       log.atDebug().log("No disposables to clean up");

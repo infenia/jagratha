@@ -24,7 +24,6 @@ import reactor.core.publisher.Hooks;
  * projects and runs quality checks.
  */
 @SpringBootApplication
-@SuppressWarnings("PMD.UseUtilityClass")
 public class YuktaApplication {
 
   /**
@@ -52,7 +51,6 @@ public class YuktaApplication {
     return "runtime".equals(nativeImageProp);
   }
 
-  @SuppressWarnings({"PMD.UseVarargs", "PMD.OnlyOneReturn", "PMD.LocalVariableCouldBeFinal"})
   private static boolean hasProfileArgument(final String[] args) {
     for (String arg : args) {
       if (arg.startsWith("--spring.profiles.active=")

@@ -179,7 +179,6 @@ public class WorkflowOrchestrator {
    * @param parentCheckpoints map of parentNodeId to the checkpoint message to replay
    * @return a Mono that completes when the restarted execution finishes
    */
-  @SuppressWarnings({"PMD.UseConcurrentHashMap", "PMD.UseObjectForClearerAPI"})
   public Mono<Void> restartFromNode(
       final String sessionId,
       final String workflowId,

@@ -42,7 +42,6 @@ import reactor.core.scheduler.Scheduler;
 @Component
 @Order(3)
 @RequiredArgsConstructor
-@SuppressWarnings("PMD.UseExplicitTypes")
 public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   private static final int BUFFER_SIZE = 1024;

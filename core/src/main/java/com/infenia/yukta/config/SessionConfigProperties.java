@@ -25,7 +25,6 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @Data
 @NoArgsConstructor
-@SuppressWarnings("PMD.LongVariable")
 public class SessionConfigProperties {
 
   private String baseDir = System.getProperty("user.home") + "/.yukta";

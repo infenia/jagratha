@@ -147,7 +147,6 @@ public class ControlBusService {
    * @param signal the control signal message
    * @return a Mono that completes when the signal is emitted
    */
-  @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.GuardLogStatement"})
   public Mono<Void> emit(final Message<?> signal) {
     return Mono.create(
         sink -> {

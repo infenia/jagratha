@@ -51,6 +51,43 @@ spotbugs {
     excludeFilter.set(rootProject.file("config/spotbugs/exclude.xml"))
 }
 
+tasks.register<Exec>("semgrep") {
+    description = "Run Semgrep static analysis"
+    group = "verification"
+
+    val sourceDir = project.file("src/main/java")
+    val configFile = rootProject.file("config/semgrep/.semgrep.yml")
+    val reportDir = project.layout.buildDirectory.dir("reports/semgrep").get()
+    val reportFile = reportDir.file("semgrep-report.sarif").asFile
+
+    doFirst {
+        if (!sourceDir.exists()) {
+            logger.warn("Source directory does not exist: $sourceDir, skipping Semgrep scan")
+            enabled = false
+            return@doFirst
+        }
+        reportDir.asFile.mkdirs()
+    }
+
+    commandLine("semgrep", "scan",
+        "--config=${configFile.absolutePath}",
+        "--output=${reportFile.absolutePath}",
+        "--json",
+        "--quiet",
+        sourceDir.absolutePath
+    )
+
+    isIgnoreExitValue = true
+
+    doLast {
+        // Exit code 1 means findings were reported, which is not a failure
+        // Exit code 0 means no findings
+        if (executionResult.get().exitValue > 1) {
+            throw GradleException("Semgrep scan failed with exit code ${executionResult.get().exitValue}")
+        }
+    }
+}
+
 tasks.withType<Checkstyle>().configureEach {
     reports {
         xml.required.set(true)
@@ -69,6 +106,9 @@ tasks.configureEach {
     }
     if ((task.name.contains("Aot") || task.name.contains("Test")) &&
         (task is Checkstyle || task is Pmd || task::class.java.name.contains("SpotBugs"))) {
+        task.enabled = false
+    }
+    if ((task.name.contains("Aot") || task.name.contains("Test")) && task.name == "semgrep") {
         task.enabled = false
     }
 }

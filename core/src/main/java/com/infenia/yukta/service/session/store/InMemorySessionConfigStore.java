@@ -43,7 +43,6 @@ import reactor.core.publisher.Mono;
 @Component
 @Validated
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.TooManyMethods"})
 public class InMemorySessionConfigStore implements SessionConfigStore {
 
   private final SessionConfigProperties props;

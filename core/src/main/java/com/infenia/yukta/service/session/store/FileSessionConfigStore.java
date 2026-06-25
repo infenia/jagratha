@@ -53,7 +53,6 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.VariableCanBeInlined", "PMD.UseExplicitTypes"})
 public class FileSessionConfigStore implements SessionConfigStore {
 
   private final SessionConfigProperties props;

@@ -31,7 +31,6 @@ import reactor.core.publisher.Mono;
 @Service
 @Validated
 @RequiredArgsConstructor
-@SuppressWarnings("PMD.LongVariable")
 public class WorkflowService {
 
   private static final String LOG_KEY_SESSION_ID = "sessionId";

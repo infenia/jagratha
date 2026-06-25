@@ -136,7 +136,6 @@ public class ExecutionContextBuilder {
    *
    * @return a Context containing all set values
    */
-  @SuppressWarnings("PMD.UseConcurrentHashMap")
   public Context build() {
     final Map<String, Object> contextMap = new HashMap<>();
 

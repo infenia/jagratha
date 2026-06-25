@@ -39,7 +39,6 @@ import reactor.core.scheduler.Scheduler;
 @Component
 @Order(1)
 @RequiredArgsConstructor
-@SuppressWarnings("PMD.UseExplicitTypes")
 public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   private final TaskTrackerService tracker;

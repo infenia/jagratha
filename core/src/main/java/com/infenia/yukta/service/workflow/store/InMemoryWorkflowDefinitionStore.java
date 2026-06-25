@@ -32,7 +32,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @ConditionalOnProperty(name = "yukta.session.store-type", havingValue = "in-memory")
 @Component
-@SuppressWarnings("PMD.AtLeastOneConstructor")
 public class InMemoryWorkflowDefinitionStore implements WorkflowDefinitionStore {
 
   private final Map<String, Map<String, WorkflowDefinition>> store = new ConcurrentHashMap<>();

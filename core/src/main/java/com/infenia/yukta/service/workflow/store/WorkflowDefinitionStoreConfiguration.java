@@ -21,7 +21,6 @@ import org.springframework.context.annotation.Configuration;
 
 /** Registers the default WorkflowDefinitionStore when no other is present. */
 @Configuration
-@SuppressWarnings("PMD.AtLeastOneConstructor")
 public class WorkflowDefinitionStoreConfiguration {
 
   /**

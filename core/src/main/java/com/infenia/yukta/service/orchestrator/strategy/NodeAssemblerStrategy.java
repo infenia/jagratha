@@ -22,7 +22,6 @@ import com.infenia.yukta.plugin.core.Plugin;
 import java.time.Duration;
 
 /** Strategy for assembling workflow nodes with appropriate operators. */
-@SuppressWarnings("PMD.UseVarargs")
 public interface NodeAssemblerStrategy {
 
   /**

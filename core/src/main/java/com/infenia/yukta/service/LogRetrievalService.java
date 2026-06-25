@@ -37,7 +37,6 @@ import reactor.core.scheduler.Schedulers;
 @Service
 @Validated
 @RequiredArgsConstructor
-@SuppressWarnings("PMD.OnlyOneReturn")
 public class LogRetrievalService {
 
   private final SessionConfigStore configService;

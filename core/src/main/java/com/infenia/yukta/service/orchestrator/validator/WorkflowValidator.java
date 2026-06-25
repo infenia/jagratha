@@ -43,13 +43,6 @@ import reactor.core.publisher.Mono;
 @Service
 @Validated
 @RequiredArgsConstructor
-@SuppressWarnings({
-  "PMD.TooManyMethods",
-  "PMD.OnlyOneReturn",
-  "PMD.UnusedFormalParameter",
-  "PMD.UseExplicitTypes",
-  "PMD.AvoidInstantiatingObjectsInLoops"
-})
 public class WorkflowValidator {
 
   private final PluginRegistry registry;

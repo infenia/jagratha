@@ -52,7 +52,6 @@ import reactor.core.publisher.Sinks;
  */
 @Slf4j
 @Component
-@SuppressWarnings("PMD.LawOfDemeter")
 public class DirectiveDispatcher {
 
   private static final Sinks.EmitFailureHandler FAIL_FAST = Sinks.EmitFailureHandler.FAIL_FAST;
