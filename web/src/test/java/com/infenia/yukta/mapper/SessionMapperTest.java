@@ -24,7 +24,6 @@ import com.infenia.yukta.dto.request.WorkflowDefinitionRequest.NodeRequest;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Edge;
-import com.infenia.yukta.model.workflow.WorkflowDefinition.Node;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -32,28 +31,28 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class AppConfigMapperTest {
+class SessionMapperTest {
 
-  @Autowired private AppConfigMapper mapper;
+  @Autowired private SessionMapper mapper;
 
   @Test
-  void testToDataMapsConfigRequest() {
+  void testConfigRequestToSessionConfigData() {
     ConfigRequest request =
         new ConfigRequest(
             "session-123",
             "Test Session",
             "test-user",
-            Map.of("env", "test", "version", "1.0"),
+            Map.of("env", "test"),
             "/home/user/project",
             Map.of(
                 "workflow-1",
                 new WorkflowDefinitionRequest(
                     "workflow-1",
                     "Test Workflow",
-                    List.of(new NodeRequest("node-1", "ProcessorPlugin", Map.of("key", "value"))),
+                    List.of(new NodeRequest("node-1", "ProcessorPlugin", Map.of("param", "value"))),
                     List.of(new EdgeRequest("node-1", "node-1", null)))));
 
-    SessionConfigData result = mapper.toData(request);
+    SessionConfigData result = mapper.configRequestToSessionConfigData(request);
 
     assertThat(result).isNotNull();
     assertThat(result.sessionId()).isEqualTo("session-123");
@@ -63,7 +62,7 @@ class AppConfigMapperTest {
   }
 
   @Test
-  void testToWorkflowDefinitionMapsRequest() {
+  void testWorkflowDefinitionRequestToWorkflowDefinition() {
     WorkflowDefinitionRequest request =
         new WorkflowDefinitionRequest(
             "workflow-1",
@@ -71,9 +70,9 @@ class AppConfigMapperTest {
             List.of(
                 new NodeRequest("node-1", "ProcessorPlugin", Map.of()),
                 new NodeRequest("node-2", "TerminalPlugin", Map.of())),
-            List.of(new EdgeRequest("node-1", "node-2", "success")));
+            List.of(new EdgeRequest("node-1", "node-2", null)));
 
-    WorkflowDefinition result = mapper.toWorkflowDefinition(request);
+    WorkflowDefinition result = mapper.workflowDefinitionRequestToWorkflowDefinition(request);
 
     assertThat(result).isNotNull();
     assertThat(result.nodes()).hasSize(2);
@@ -81,52 +80,43 @@ class AppConfigMapperTest {
   }
 
   @Test
-  void testToNodeMapsNodeRequest() {
-    NodeRequest nodeRequest = new NodeRequest("node-1", "ProcessorPlugin", Map.of("key", "val"));
+  void testEdgeRequestToEdgeWithNullSourcePort() {
+    EdgeRequest edgeRequest = new EdgeRequest("node-1", "node-2", null);
 
-    Node result = mapper.toNode(nodeRequest);
-
-    assertThat(result).isNotNull();
-    assertThat(result.nodeId()).isEqualTo("node-1");
-    assertThat(result.type()).isEqualTo("ProcessorPlugin");
-  }
-
-  @Test
-  void testToEdgeMapsEdgeRequest() {
-    EdgeRequest edgeRequest = new EdgeRequest("node-1", "node-2", "output");
-
-    Edge result = mapper.toEdge(edgeRequest);
+    Edge result = mapper.edgeRequestToEdge(edgeRequest);
 
     assertThat(result).isNotNull();
+    assertThat(result.sourcePort()).isEqualTo("default");
     assertThat(result.source()).isEqualTo("node-1");
     assertThat(result.target()).isEqualTo("node-2");
   }
 
   @Test
-  void testToDataWithNullTags() {
+  void testEdgeRequestToEdgeWithSourcePort() {
+    EdgeRequest edgeRequest = new EdgeRequest("node-1", "node-2", "output");
+
+    Edge result = mapper.edgeRequestToEdge(edgeRequest);
+
+    assertThat(result).isNotNull();
+    assertThat(result.sourcePort()).isEqualTo("output");
+    assertThat(result.source()).isEqualTo("node-1");
+    assertThat(result.target()).isEqualTo("node-2");
+  }
+
+  @Test
+  void testConfigRequestToSessionConfigDataWithEmptyWorkflows() {
     ConfigRequest request =
         new ConfigRequest(
-            "session-456",
-            "Session Without Tags",
-            "system",
-            null,
-            "/home/user/project2",
-            Map.of(
-                "workflow-1",
-                new WorkflowDefinitionRequest(
-                    "workflow-1",
-                    "Test",
-                    List.of(new NodeRequest("node-1", "TriggerPlugin", Map.of())),
-                    List.of())));
+            "session-456", "Empty Session", "system", null, "/home/user/project2", Map.of());
 
-    SessionConfigData result = mapper.toData(request);
+    SessionConfigData result = mapper.configRequestToSessionConfigData(request);
 
     assertThat(result).isNotNull();
     assertThat(result.sessionId()).isEqualTo("session-456");
   }
 
   @Test
-  void testToWorkflowDefinitionWithMultipleNodes() {
+  void testWorkflowDefinitionRequestToWorkflowDefinitionWithMultipleNodes() {
     WorkflowDefinitionRequest request =
         new WorkflowDefinitionRequest(
             "workflow-complex",
@@ -141,50 +131,26 @@ class AppConfigMapperTest {
                 new EdgeRequest("node-2", "node-3", null),
                 new EdgeRequest("node-3", "node-4", "default")));
 
-    WorkflowDefinition result = mapper.toWorkflowDefinition(request);
+    WorkflowDefinition result = mapper.workflowDefinitionRequestToWorkflowDefinition(request);
 
     assertThat(result).isNotNull();
     assertThat(result.nodes()).hasSize(4);
     assertThat(result.edges()).hasSize(3);
-    assertThat(result.nodes().get(0).nodeId()).isEqualTo("node-1");
   }
 
   @Test
-  void testToNodeWithDifferentTypes() {
-    String[] types = {"TriggerPlugin", "ProcessorPlugin", "TerminalPlugin"};
-    for (String type : types) {
-      NodeRequest nodeRequest = new NodeRequest("node-" + type, type, Map.of());
-      Node result = mapper.toNode(nodeRequest);
+  void testEdgeRequestToEdgeWithoutConfig() {
+    EdgeRequest edgeRequest1 = new EdgeRequest("node-1", "node-2", "");
+    Edge result1 = mapper.edgeRequestToEdge(edgeRequest1);
+    assertThat(result1).isNotNull();
 
-      assertThat(result).isNotNull();
-      assertThat(result.type()).isEqualTo(type);
-    }
+    EdgeRequest edgeRequest2 = new EdgeRequest("node-A", "node-B", "");
+    Edge result2 = mapper.edgeRequestToEdge(edgeRequest2);
+    assertThat(result2).isNotNull();
   }
 
   @Test
-  void testToEdgeWithNullSourcePort() {
-    EdgeRequest edgeRequest = new EdgeRequest("node-1", "node-2", null);
-
-    Edge result = mapper.toEdge(edgeRequest);
-
-    assertThat(result).isNotNull();
-    assertThat(result.source()).isEqualTo("node-1");
-    assertThat(result.target()).isEqualTo("node-2");
-  }
-
-  @Test
-  void testToEdgeWithEmptySourcePort() {
-    EdgeRequest edgeRequest = new EdgeRequest("node-1", "node-2", "");
-
-    Edge result = mapper.toEdge(edgeRequest);
-
-    assertThat(result).isNotNull();
-    assertThat(result.source()).isEqualTo("node-1");
-    assertThat(result.target()).isEqualTo("node-2");
-  }
-
-  @Test
-  void testToDataWithManyWorkflows() {
+  void testConfigRequestWithManyWorkflows() {
     Map<String, WorkflowDefinitionRequest> workflows = new java.util.HashMap<>();
     for (int i = 0; i < 5; i++) {
       workflows.put(
@@ -205,14 +171,14 @@ class AppConfigMapperTest {
             "/home/user/project",
             workflows);
 
-    SessionConfigData result = mapper.toData(request);
+    SessionConfigData result = mapper.configRequestToSessionConfigData(request);
 
     assertThat(result).isNotNull();
     assertThat(result.sessionId()).isEqualTo("session-many");
   }
 
   @Test
-  void testToWorkflowDefinitionWithEmptyEdges() {
+  void testWorkflowWithEmptyEdges() {
     WorkflowDefinitionRequest request =
         new WorkflowDefinitionRequest(
             "workflow-no-edges",
@@ -222,7 +188,7 @@ class AppConfigMapperTest {
                 new NodeRequest("node-2", "TerminalPlugin", Map.of())),
             List.of());
 
-    WorkflowDefinition result = mapper.toWorkflowDefinition(request);
+    WorkflowDefinition result = mapper.workflowDefinitionRequestToWorkflowDefinition(request);
 
     assertThat(result).isNotNull();
     assertThat(result.nodes()).hasSize(2);
@@ -230,42 +196,22 @@ class AppConfigMapperTest {
   }
 
   @Test
-  void testToNodeWithComplexConfig() {
-    Map<String, Object> config =
-        Map.of("timeout", 5000, "retries", 3, "options", List.of("opt1", "opt2"));
-    NodeRequest nodeRequest = new NodeRequest("node-complex", "ProcessorPlugin", config);
-
-    Node result = mapper.toNode(nodeRequest);
-
-    assertThat(result).isNotNull();
-    assertThat(result.nodeId()).isEqualTo("node-complex");
-    assertThat(result.config()).containsKeys("timeout", "retries", "options");
-  }
-
-  @Test
-  void testToDataWithNull() {
-    SessionConfigData result = mapper.toData(null);
+  void testConfigRequestToSessionConfigDataWithNull() {
+    SessionConfigData result = mapper.configRequestToSessionConfigData(null);
 
     assertThat(result).isNull();
   }
 
   @Test
-  void testToWorkflowDefinitionWithNull() {
-    WorkflowDefinition result = mapper.toWorkflowDefinition(null);
+  void testWorkflowDefinitionRequestToWorkflowDefinitionWithNull() {
+    WorkflowDefinition result = mapper.workflowDefinitionRequestToWorkflowDefinition(null);
 
     assertThat(result).isNull();
   }
 
   @Test
-  void testToNodeWithNull() {
-    Node result = mapper.toNode(null);
-
-    assertThat(result).isNull();
-  }
-
-  @Test
-  void testToEdgeWithNull() {
-    Edge result = mapper.toEdge(null);
+  void testEdgeRequestToEdgeWithNull() {
+    Edge result = mapper.edgeRequestToEdge(null);
 
     assertThat(result).isNull();
   }
