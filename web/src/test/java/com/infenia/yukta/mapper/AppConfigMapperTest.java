@@ -269,4 +269,343 @@ class AppConfigMapperTest {
 
     assertThat(result).isNull();
   }
+
+  @Test
+  void testStringWorkflowDefinitionRequestMapToStringWorkflowDefinitionMapWithNull()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod(
+            "stringWorkflowDefinitionRequestMapToStringWorkflowDefinitionMap", Map.class);
+    method.setAccessible(true);
+
+    Object result = method.invoke(mapper, (Object) null);
+
+    assertThat(result).isNull();
+  }
+
+  @Test
+  void testNodeRequestListToNodeListWithNull()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod("nodeRequestListToNodeList", List.class);
+    method.setAccessible(true);
+
+    Object result = method.invoke(mapper, (Object) null);
+
+    assertThat(result).isNull();
+  }
+
+  @Test
+  void testEdgeRequestListToEdgeListWithNull()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod("edgeRequestListToEdgeList", List.class);
+    method.setAccessible(true);
+
+    Object result = method.invoke(mapper, (Object) null);
+
+    assertThat(result).isNull();
+  }
+
+  @Test
+  void testStringWorkflowDefinitionRequestMapToStringWorkflowDefinitionMapWithNonNullValue()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod(
+            "stringWorkflowDefinitionRequestMapToStringWorkflowDefinitionMap", Map.class);
+    method.setAccessible(true);
+
+    Map<String, WorkflowDefinitionRequest> input =
+        Map.of(
+            "workflow-1",
+            new WorkflowDefinitionRequest(
+                "workflow-1",
+                "Test Workflow",
+                List.of(new NodeRequest("node-1", "ProcessorPlugin", Map.of())),
+                List.of()));
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(Map.class);
+    @SuppressWarnings("unchecked")
+    Map<String, WorkflowDefinition> mapResult = (Map<String, WorkflowDefinition>) result;
+    assertThat(mapResult).hasSize(1).containsKey("workflow-1");
+  }
+
+  @Test
+  void testNodeRequestListToNodeListWithNonNullValue()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod("nodeRequestListToNodeList", List.class);
+    method.setAccessible(true);
+
+    List<NodeRequest> input =
+        List.of(
+            new NodeRequest("node-1", "ProcessorPlugin", Map.of()),
+            new NodeRequest("node-2", "TerminalPlugin", Map.of()));
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(List.class);
+    List<?> listResult = (List<?>) result;
+    assertThat(listResult).hasSize(2);
+  }
+
+  @Test
+  void testEdgeRequestListToEdgeListWithNonNullValue()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod("edgeRequestListToEdgeList", List.class);
+    method.setAccessible(true);
+
+    List<EdgeRequest> input =
+        List.of(
+            new EdgeRequest("node-1", "node-2", null),
+            new EdgeRequest("node-2", "node-3", "output"));
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(List.class);
+    List<?> listResult = (List<?>) result;
+    assertThat(listResult).hasSize(2);
+  }
+
+  @Test
+  void testStringWorkflowDefinitionRequestMapToStringWorkflowDefinitionMapWithMultipleEntries()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod(
+            "stringWorkflowDefinitionRequestMapToStringWorkflowDefinitionMap", Map.class);
+    method.setAccessible(true);
+
+    Map<String, WorkflowDefinitionRequest> input = new java.util.LinkedHashMap<>();
+    input.put(
+        "w1",
+        new WorkflowDefinitionRequest(
+            "w1",
+            "Workflow 1",
+            List.of(new NodeRequest("n1", "ProcessorPlugin", Map.of())),
+            List.of()));
+    input.put(
+        "w2",
+        new WorkflowDefinitionRequest(
+            "w2",
+            "Workflow 2",
+            List.of(new NodeRequest("n2", "ProcessorPlugin", Map.of())),
+            List.of()));
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(Map.class);
+    @SuppressWarnings("unchecked")
+    Map<String, WorkflowDefinition> mapResult = (Map<String, WorkflowDefinition>) result;
+    assertThat(mapResult).hasSize(2).containsKeys("w1", "w2");
+  }
+
+  @Test
+  void testNodeRequestListToNodeListWithMultipleNodes()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod("nodeRequestListToNodeList", List.class);
+    method.setAccessible(true);
+
+    List<NodeRequest> input =
+        List.of(
+            new NodeRequest("node-1", "TriggerPlugin", Map.of()),
+            new NodeRequest("node-2", "ProcessorPlugin", Map.of()),
+            new NodeRequest("node-3", "TerminalPlugin", Map.of()));
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(List.class);
+    List<?> listResult = (List<?>) result;
+    assertThat(listResult).hasSize(3);
+  }
+
+  @Test
+  void testEdgeRequestListToEdgeListWithMultipleEdges()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod("edgeRequestListToEdgeList", List.class);
+    method.setAccessible(true);
+
+    List<EdgeRequest> input =
+        List.of(
+            new EdgeRequest("n1", "n2", "port1"),
+            new EdgeRequest("n2", "n3", null),
+            new EdgeRequest("n3", "n4", "port2"));
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(List.class);
+    List<?> listResult = (List<?>) result;
+    assertThat(listResult).hasSize(3);
+  }
+
+  @Test
+  void testStringWorkflowDefinitionRequestMapToStringWorkflowDefinitionMapWithEmptyMap()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod(
+            "stringWorkflowDefinitionRequestMapToStringWorkflowDefinitionMap", Map.class);
+    method.setAccessible(true);
+
+    Map<String, WorkflowDefinitionRequest> input = new java.util.LinkedHashMap<>();
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(Map.class);
+    @SuppressWarnings("unchecked")
+    Map<String, WorkflowDefinition> mapResult = (Map<String, WorkflowDefinition>) result;
+    assertThat(mapResult).isEmpty();
+  }
+
+  @Test
+  void testNodeRequestListToNodeListWithEmptyList()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod("nodeRequestListToNodeList", List.class);
+    method.setAccessible(true);
+
+    List<NodeRequest> input = new java.util.ArrayList<>();
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(List.class);
+    List<?> listResult = (List<?>) result;
+    assertThat(listResult).isEmpty();
+  }
+
+  @Test
+  void testEdgeRequestListToEdgeListWithEmptyList()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod("edgeRequestListToEdgeList", List.class);
+    method.setAccessible(true);
+
+    List<EdgeRequest> input = new java.util.ArrayList<>();
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(List.class);
+    List<?> listResult = (List<?>) result;
+    assertThat(listResult).isEmpty();
+  }
+
+  @Test
+  void testStringWorkflowDefinitionRequestMapToStringWorkflowDefinitionMapWithSingleEntry()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod(
+            "stringWorkflowDefinitionRequestMapToStringWorkflowDefinitionMap", Map.class);
+    method.setAccessible(true);
+
+    Map<String, WorkflowDefinitionRequest> input = new java.util.HashMap<>();
+    input.put(
+        "only-one",
+        new WorkflowDefinitionRequest(
+            "only-one",
+            "Only Workflow",
+            List.of(new NodeRequest("only-node", "ProcessorPlugin", Map.of())),
+            List.of()));
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(Map.class);
+    @SuppressWarnings("unchecked")
+    Map<String, WorkflowDefinition> mapResult = (Map<String, WorkflowDefinition>) result;
+    assertThat(mapResult).hasSize(1).containsKey("only-one");
+  }
+
+  @Test
+  void testNodeRequestWithNonNullConfigMapValue()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod(
+            "toNode", WorkflowDefinitionRequest.NodeRequest.class);
+    method.setAccessible(true);
+
+    Map<String, Object> configMap = new java.util.LinkedHashMap<>();
+    configMap.put("key1", "value1");
+    configMap.put("key2", 123);
+    NodeRequest input = new NodeRequest("complex-node", "ProcessorPlugin", configMap);
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(WorkflowDefinition.Node.class);
+    WorkflowDefinition.Node nodeResult = (WorkflowDefinition.Node) result;
+    assertThat(nodeResult.nodeId()).isEqualTo("complex-node");
+    assertThat(nodeResult.type()).isEqualTo("ProcessorPlugin");
+    assertThat(nodeResult.config()).isNotNull().containsKeys("key1", "key2");
+  }
+
+  @Test
+  void testEdgeWithNonNullSourcePort()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod(
+            "toEdge", WorkflowDefinitionRequest.EdgeRequest.class);
+    method.setAccessible(true);
+
+    EdgeRequest input = new EdgeRequest("source-node", "target-node", "custom-port");
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(WorkflowDefinition.Edge.class);
+    WorkflowDefinition.Edge edgeResult = (WorkflowDefinition.Edge) result;
+    assertThat(edgeResult.source()).isEqualTo("source-node");
+    assertThat(edgeResult.target()).isEqualTo("target-node");
+    assertThat(edgeResult.sourcePort()).isEqualTo("custom-port");
+  }
+
+  @Test
+  void testEdgeWithEmptyStringSourcePort()
+      throws NoSuchMethodException,
+          IllegalAccessException,
+          java.lang.reflect.InvocationTargetException {
+    java.lang.reflect.Method method =
+        AppConfigMapperImpl.class.getDeclaredMethod(
+            "toEdge", WorkflowDefinitionRequest.EdgeRequest.class);
+    method.setAccessible(true);
+
+    EdgeRequest input = new EdgeRequest("source-node", "target-node", "");
+
+    Object result = method.invoke(mapper, input);
+
+    assertThat(result).isNotNull().isInstanceOf(WorkflowDefinition.Edge.class);
+    WorkflowDefinition.Edge edgeResult = (WorkflowDefinition.Edge) result;
+    assertThat(edgeResult.source()).isEqualTo("source-node");
+    assertThat(edgeResult.target()).isEqualTo("target-node");
+    assertThat(edgeResult.sourcePort()).isEqualTo("");
+  }
 }
