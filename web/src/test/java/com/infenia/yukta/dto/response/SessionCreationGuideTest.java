@@ -31,19 +31,19 @@ class SessionCreationGuideTest {
     String configurationStructure = "YAML structure";
     String exampleSessionConfig = "example: value";
     String workflowDefinitionFormat = "Workflow format description";
-    List<PluginReference> availablePlugins = List.of(
-        new PluginReference("plugin1", "TRIGGER", "Plugin description"));
-    List<ErrorExample> commonErrors =
-        List.of(new ErrorExample("error1", "cause", "resolution"));
+    List<PluginReference> availablePlugins =
+        List.of(new PluginReference("plugin1", "TRIGGER", "Plugin description"));
+    List<ErrorExample> commonErrors = List.of(new ErrorExample("error1", "cause", "resolution"));
 
     // When
-    SessionCreationGuide guide = new SessionCreationGuide(
-        namingConventions,
-        configurationStructure,
-        exampleSessionConfig,
-        workflowDefinitionFormat,
-        availablePlugins,
-        commonErrors);
+    SessionCreationGuide guide =
+        new SessionCreationGuide(
+            namingConventions,
+            configurationStructure,
+            exampleSessionConfig,
+            workflowDefinitionFormat,
+            availablePlugins,
+            commonErrors);
 
     // Then
     assertThat(guide.namingConventions()).isEqualTo(namingConventions);
@@ -58,20 +58,14 @@ class SessionCreationGuideTest {
   void constructor_withMutableLists_copiesListsImmutably() {
     // Given
     List<PluginReference> mutablePlugins =
-        new ArrayList<>(
-            List.of(new PluginReference("plugin1", "PROCESSOR", "Description")));
+        new ArrayList<>(List.of(new PluginReference("plugin1", "PROCESSOR", "Description")));
     List<ErrorExample> mutableErrors =
         new ArrayList<>(List.of(new ErrorExample("error1", "cause", "resolution")));
 
     // When
     SessionCreationGuide guide =
         new SessionCreationGuide(
-            "naming",
-            "config",
-            "example",
-            "workflow format",
-            mutablePlugins,
-            mutableErrors);
+            "naming", "config", "example", "workflow format", mutablePlugins, mutableErrors);
 
     // Then - verify lists are copied
     assertThat(guide.availablePlugins()).hasSize(1);
@@ -87,31 +81,32 @@ class SessionCreationGuideTest {
   @Test
   void availablePlugins_modificationAttempt_throwsUnsupportedOperationException() {
     // Given
-    SessionCreationGuide guide = new SessionCreationGuide(
-        "naming",
-        "config",
-        "example",
-        "format",
-        List.of(new PluginReference("plugin1", "TRIGGER", "Desc")),
-        List.of());
+    SessionCreationGuide guide =
+        new SessionCreationGuide(
+            "naming",
+            "config",
+            "example",
+            "format",
+            List.of(new PluginReference("plugin1", "TRIGGER", "Desc")),
+            List.of());
 
     // When-Then
     assertThatThrownBy(
-            () -> guide.availablePlugins()
-                .add(new PluginReference("plugin2", "PROCESSOR", "Desc")))
+            () -> guide.availablePlugins().add(new PluginReference("plugin2", "PROCESSOR", "Desc")))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
   @Test
   void commonErrors_modificationAttempt_throwsUnsupportedOperationException() {
     // Given
-    SessionCreationGuide guide = new SessionCreationGuide(
-        "naming",
-        "config",
-        "example",
-        "format",
-        List.of(),
-        List.of(new ErrorExample("error1", "cause", "resolution")));
+    SessionCreationGuide guide =
+        new SessionCreationGuide(
+            "naming",
+            "config",
+            "example",
+            "format",
+            List.of(),
+            List.of(new ErrorExample("error1", "cause", "resolution")));
 
     // When-Then
     assertThatThrownBy(
@@ -124,10 +119,10 @@ class SessionCreationGuideTest {
     // Given
     List<PluginReference> plugins = List.of(new PluginReference("p1", "TRIGGER", "Desc"));
     List<ErrorExample> errors = List.of(new ErrorExample("e1", "c1", "r1"));
-    SessionCreationGuide guide1 = new SessionCreationGuide(
-        "naming", "config", "example", "format", plugins, errors);
-    SessionCreationGuide guide2 = new SessionCreationGuide(
-        "naming", "config", "example", "format", plugins, errors);
+    SessionCreationGuide guide1 =
+        new SessionCreationGuide("naming", "config", "example", "format", plugins, errors);
+    SessionCreationGuide guide2 =
+        new SessionCreationGuide("naming", "config", "example", "format", plugins, errors);
 
     // When-Then
     assertThat(guide1).isEqualTo(guide2);
@@ -136,20 +131,10 @@ class SessionCreationGuideTest {
   @Test
   void equals_differentValues_returnsFalse() {
     // Given
-    SessionCreationGuide guide1 = new SessionCreationGuide(
-        "naming1",
-        "config",
-        "example",
-        "format",
-        List.of(),
-        List.of());
-    SessionCreationGuide guide2 = new SessionCreationGuide(
-        "naming2",
-        "config",
-        "example",
-        "format",
-        List.of(),
-        List.of());
+    SessionCreationGuide guide1 =
+        new SessionCreationGuide("naming1", "config", "example", "format", List.of(), List.of());
+    SessionCreationGuide guide2 =
+        new SessionCreationGuide("naming2", "config", "example", "format", List.of(), List.of());
 
     // When-Then
     assertThat(guide1).isNotEqualTo(guide2);
@@ -158,8 +143,8 @@ class SessionCreationGuideTest {
   @Test
   void toString_contains_relevantFieldValues() {
     // Given
-    SessionCreationGuide guide = new SessionCreationGuide(
-        "naming", "config", "example", "format", List.of(), List.of());
+    SessionCreationGuide guide =
+        new SessionCreationGuide("naming", "config", "example", "format", List.of(), List.of());
 
     // When
     String actual = guide.toString();

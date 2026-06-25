@@ -51,13 +51,14 @@ class PluginDetailsTest {
   @Test
   void constructor_withNullOutputPorts_convertsToEmptyList() {
     // Given-When
-    PluginDetails details = new PluginDetails(
-        "gradle",
-        PluginCategory.PROCESSOR,
-        "Description",
-        "Usage",
-        new UiDesign("<div/>", 100, 200),
-        null);
+    PluginDetails details =
+        new PluginDetails(
+            "gradle",
+            PluginCategory.PROCESSOR,
+            "Description",
+            "Usage",
+            new UiDesign("<div/>", 100, 200),
+            null);
 
     // Then
     assertThat(details.outputPorts()).isEmpty();
@@ -67,13 +68,14 @@ class PluginDetailsTest {
   @Test
   void outputPorts_modificationAttempt_throwsUnsupportedOperationException() {
     // Given
-    PluginDetails details = new PluginDetails(
-        "gradle",
-        PluginCategory.PROCESSOR,
-        "Description",
-        "Usage",
-        new UiDesign("<div/>", 100, 200),
-        List.of("success"));
+    PluginDetails details =
+        new PluginDetails(
+            "gradle",
+            PluginCategory.PROCESSOR,
+            "Description",
+            "Usage",
+            new UiDesign("<div/>", 100, 200),
+            List.of("success"));
 
     // When-Then
     assertThatThrownBy(() -> details.outputPorts().add("failure"))
@@ -84,13 +86,14 @@ class PluginDetailsTest {
   void uiDesign_record_returnsCorrectUiDesignData() {
     // Given
     UiDesign expectedUiDesign = new UiDesign("<div>Gradle</div>", 150, 250);
-    PluginDetails details = new PluginDetails(
-        "gradle",
-        PluginCategory.PROCESSOR,
-        "Description",
-        "Usage",
-        expectedUiDesign,
-        List.of());
+    PluginDetails details =
+        new PluginDetails(
+            "gradle",
+            PluginCategory.PROCESSOR,
+            "Description",
+            "Usage",
+            expectedUiDesign,
+            List.of());
 
     // When
     UiDesign actual = details.uiDesign();
@@ -120,11 +123,9 @@ class PluginDetailsTest {
     // Given
     UiDesign uiDesign = new UiDesign("<div/>", 100, 200);
     PluginDetails details1 =
-        new PluginDetails("gradle", PluginCategory.PROCESSOR, "Desc", "Usage", uiDesign,
-            List.of());
+        new PluginDetails("gradle", PluginCategory.PROCESSOR, "Desc", "Usage", uiDesign, List.of());
     PluginDetails details2 =
-        new PluginDetails("maven", PluginCategory.PROCESSOR, "Desc", "Usage", uiDesign,
-            List.of());
+        new PluginDetails("maven", PluginCategory.PROCESSOR, "Desc", "Usage", uiDesign, List.of());
 
     // When-Then
     assertThat(details1).isNotEqualTo(details2);
@@ -133,13 +134,14 @@ class PluginDetailsTest {
   @Test
   void toString_contains_relevantFieldValues() {
     // Given
-    PluginDetails details = new PluginDetails(
-        "gradle",
-        PluginCategory.PROCESSOR,
-        "Description",
-        "Usage",
-        new UiDesign("<div/>", 100, 200),
-        List.of());
+    PluginDetails details =
+        new PluginDetails(
+            "gradle",
+            PluginCategory.PROCESSOR,
+            "Description",
+            "Usage",
+            new UiDesign("<div/>", 100, 200),
+            List.of());
 
     // When
     String actual = details.toString();

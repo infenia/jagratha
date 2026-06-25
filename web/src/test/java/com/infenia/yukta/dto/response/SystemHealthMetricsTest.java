@@ -88,10 +88,8 @@ class SystemHealthMetricsTest {
   @Test
   void equals_sameValues_returnsTrue() {
     // Given
-    SystemHealthMetrics metrics1 =
-        new SystemHealthMetrics(75.5, 42, "1024", "2048", "2h 30m");
-    SystemHealthMetrics metrics2 =
-        new SystemHealthMetrics(75.5, 42, "1024", "2048", "2h 30m");
+    SystemHealthMetrics metrics1 = new SystemHealthMetrics(75.5, 42, "1024", "2048", "2h 30m");
+    SystemHealthMetrics metrics2 = new SystemHealthMetrics(75.5, 42, "1024", "2048", "2h 30m");
 
     // When-Then
     assertThat(metrics1).isEqualTo(metrics2);
@@ -100,10 +98,8 @@ class SystemHealthMetricsTest {
   @Test
   void equals_differentValues_returnsFalse() {
     // Given
-    SystemHealthMetrics metrics1 =
-        new SystemHealthMetrics(75.5, 42, "1024", "2048", "2h 30m");
-    SystemHealthMetrics metrics2 =
-        new SystemHealthMetrics(80.0, 42, "1024", "2048", "2h 30m");
+    SystemHealthMetrics metrics1 = new SystemHealthMetrics(75.5, 42, "1024", "2048", "2h 30m");
+    SystemHealthMetrics metrics2 = new SystemHealthMetrics(80.0, 42, "1024", "2048", "2h 30m");
 
     // When-Then
     assertThat(metrics1).isNotEqualTo(metrics2);
@@ -112,8 +108,7 @@ class SystemHealthMetricsTest {
   @Test
   void toString_contains_relevantFieldValues() {
     // Given
-    SystemHealthMetrics metrics =
-        new SystemHealthMetrics(75.5, 42, "1024", "2048", "2h 30m");
+    SystemHealthMetrics metrics = new SystemHealthMetrics(75.5, 42, "1024", "2048", "2h 30m");
 
     // When
     String actual = metrics.toString();

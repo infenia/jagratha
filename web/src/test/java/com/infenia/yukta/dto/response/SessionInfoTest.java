@@ -32,8 +32,7 @@ class SessionInfoTest {
     String status = "ACTIVE";
 
     // When
-    SessionInfo info =
-        new SessionInfo(sessionId, workflowCount, createdAt, lastModified, status);
+    SessionInfo info = new SessionInfo(sessionId, workflowCount, createdAt, lastModified, status);
 
     // Then
     assertThat(info.sessionId()).isEqualTo(sessionId);
@@ -47,12 +46,9 @@ class SessionInfoTest {
   void createdAt_localDateTime_returnsCorrectValue() {
     // Given
     LocalDateTime expectedCreatedAt = LocalDateTime.of(2026, 1, 1, 10, 0);
-    SessionInfo info = new SessionInfo(
-        "session-123",
-        5,
-        expectedCreatedAt,
-        LocalDateTime.of(2026, 1, 2, 11, 30),
-        "ACTIVE");
+    SessionInfo info =
+        new SessionInfo(
+            "session-123", 5, expectedCreatedAt, LocalDateTime.of(2026, 1, 2, 11, 30), "ACTIVE");
 
     // When
     LocalDateTime actual = info.createdAt();
@@ -65,12 +61,9 @@ class SessionInfoTest {
   void lastModified_localDateTime_returnsCorrectValue() {
     // Given
     LocalDateTime expectedLastModified = LocalDateTime.of(2026, 1, 2, 11, 30);
-    SessionInfo info = new SessionInfo(
-        "session-123",
-        5,
-        LocalDateTime.of(2026, 1, 1, 10, 0),
-        expectedLastModified,
-        "ACTIVE");
+    SessionInfo info =
+        new SessionInfo(
+            "session-123", 5, LocalDateTime.of(2026, 1, 1, 10, 0), expectedLastModified, "ACTIVE");
 
     // When
     LocalDateTime actual = info.lastModified();
@@ -106,12 +99,13 @@ class SessionInfoTest {
   @Test
   void toString_contains_relevantFieldValues() {
     // Given
-    SessionInfo info = new SessionInfo(
-        "session-123",
-        5,
-        LocalDateTime.of(2026, 1, 1, 10, 0),
-        LocalDateTime.of(2026, 1, 2, 11, 30),
-        "ACTIVE");
+    SessionInfo info =
+        new SessionInfo(
+            "session-123",
+            5,
+            LocalDateTime.of(2026, 1, 1, 10, 0),
+            LocalDateTime.of(2026, 1, 2, 11, 30),
+            "ACTIVE");
 
     // When
     String actual = info.toString();

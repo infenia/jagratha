@@ -36,8 +36,10 @@ class WorkflowStartResponseTest {
   @Test
   void equals_sameValues_returnsTrue() {
     // Given
-    WorkflowStartResponse response1 = new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440000");
-    WorkflowStartResponse response2 = new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440000");
+    WorkflowStartResponse response1 =
+        new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440000");
+    WorkflowStartResponse response2 =
+        new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440000");
 
     // When-Then
     assertThat(response1).isEqualTo(response2);
@@ -46,8 +48,10 @@ class WorkflowStartResponseTest {
   @Test
   void equals_differentValues_returnsFalse() {
     // Given
-    WorkflowStartResponse response1 = new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440000");
-    WorkflowStartResponse response2 = new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440001");
+    WorkflowStartResponse response1 =
+        new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440000");
+    WorkflowStartResponse response2 =
+        new WorkflowStartResponse("550e8400-e29b-41d4-a716-446655440001");
 
     // When-Then
     assertThat(response1).isNotEqualTo(response2);

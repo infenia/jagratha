@@ -29,7 +29,8 @@ class SessionExecutionInfoTest {
     int totalWorkflows = 10;
 
     // When
-    SessionExecutionInfo info = new SessionExecutionInfo(sessionId, activeExecutions, totalWorkflows);
+    SessionExecutionInfo info =
+        new SessionExecutionInfo(sessionId, activeExecutions, totalWorkflows);
 
     // Then
     assertThat(info.sessionId()).isEqualTo(sessionId);

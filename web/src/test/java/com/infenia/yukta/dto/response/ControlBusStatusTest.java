@@ -30,8 +30,7 @@ class ControlBusStatusTest {
         List.of(new SessionExecutionInfo("session-123", 5, 10));
     List<PluginRegistryEntry> pluginRegistry =
         List.of(new PluginRegistryEntry("gradle", "PROCESSOR", "ACTIVE"));
-    SystemHealthMetrics systemHealth =
-        new SystemHealthMetrics(75.5, 42, "1024", "2048", "2h");
+    SystemHealthMetrics systemHealth = new SystemHealthMetrics(75.5, 42, "1024", "2048", "2h");
     List<ExecutionRecord> recentExecutions =
         List.of(new ExecutionRecord("session-123", "exec-456", "COMPLETED", "5000ms"));
 
@@ -49,11 +48,9 @@ class ControlBusStatusTest {
   @Test
   void constructor_withNullActiveSessions_convertsToEmptyList() {
     // Given-When
-    ControlBusStatus status = new ControlBusStatus(
-        null,
-        List.of(),
-        new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"),
-        List.of());
+    ControlBusStatus status =
+        new ControlBusStatus(
+            null, List.of(), new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"), List.of());
 
     // Then
     assertThat(status.activeSessions()).isEmpty();
@@ -63,11 +60,9 @@ class ControlBusStatusTest {
   @Test
   void constructor_withNullPluginRegistry_convertsToEmptyList() {
     // Given-When
-    ControlBusStatus status = new ControlBusStatus(
-        List.of(),
-        null,
-        new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"),
-        List.of());
+    ControlBusStatus status =
+        new ControlBusStatus(
+            List.of(), null, new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"), List.of());
 
     // Then
     assertThat(status.pluginRegistry()).isEmpty();
@@ -77,11 +72,9 @@ class ControlBusStatusTest {
   @Test
   void constructor_withNullRecentExecutions_convertsToEmptyList() {
     // Given-When
-    ControlBusStatus status = new ControlBusStatus(
-        List.of(),
-        List.of(),
-        new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"),
-        null);
+    ControlBusStatus status =
+        new ControlBusStatus(
+            List.of(), List.of(), new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"), null);
 
     // Then
     assertThat(status.recentExecutions()).isEmpty();
@@ -91,48 +84,54 @@ class ControlBusStatusTest {
   @Test
   void activeSessions_modificationAttempt_throwsUnsupportedOperationException() {
     // Given
-    ControlBusStatus status = new ControlBusStatus(
-        List.of(new SessionExecutionInfo("session-123", 5, 10)),
-        List.of(),
-        new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"),
-        List.of());
+    ControlBusStatus status =
+        new ControlBusStatus(
+            List.of(new SessionExecutionInfo("session-123", 5, 10)),
+            List.of(),
+            new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"),
+            List.of());
 
     // When-Then
     assertThatThrownBy(
-            () -> status.activeSessions()
-                .add(new SessionExecutionInfo("session-456", 3, 8)))
+            () -> status.activeSessions().add(new SessionExecutionInfo("session-456", 3, 8)))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
   @Test
   void pluginRegistry_modificationAttempt_throwsUnsupportedOperationException() {
     // Given
-    ControlBusStatus status = new ControlBusStatus(
-        List.of(),
-        List.of(new PluginRegistryEntry("gradle", "PROCESSOR", "ACTIVE")),
-        new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"),
-        List.of());
+    ControlBusStatus status =
+        new ControlBusStatus(
+            List.of(),
+            List.of(new PluginRegistryEntry("gradle", "PROCESSOR", "ACTIVE")),
+            new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"),
+            List.of());
 
     // When-Then
     assertThatThrownBy(
-            () -> status.pluginRegistry()
-                .add(new PluginRegistryEntry("maven", "TRIGGER", "INACTIVE")))
+            () ->
+                status
+                    .pluginRegistry()
+                    .add(new PluginRegistryEntry("maven", "TRIGGER", "INACTIVE")))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
   @Test
   void recentExecutions_modificationAttempt_throwsUnsupportedOperationException() {
     // Given
-    ControlBusStatus status = new ControlBusStatus(
-        List.of(),
-        List.of(),
-        new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"),
-        List.of(new ExecutionRecord("session-123", "exec-456", "COMPLETED", "5000ms")));
+    ControlBusStatus status =
+        new ControlBusStatus(
+            List.of(),
+            List.of(),
+            new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"),
+            List.of(new ExecutionRecord("session-123", "exec-456", "COMPLETED", "5000ms")));
 
     // When-Then
     assertThatThrownBy(
-            () -> status.recentExecutions()
-                .add(new ExecutionRecord("session-456", "exec-789", "FAILED", "3000ms")))
+            () ->
+                status
+                    .recentExecutions()
+                    .add(new ExecutionRecord("session-456", "exec-789", "FAILED", "3000ms")))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
@@ -143,10 +142,10 @@ class ControlBusStatusTest {
     List<PluginRegistryEntry> pluginRegistry = List.of();
     SystemHealthMetrics health = new SystemHealthMetrics(50.0, 10, "512", "1024", "1h");
     List<ExecutionRecord> recentExecutions = List.of();
-    ControlBusStatus status1 = new ControlBusStatus(activeSessions, pluginRegistry, health,
-        recentExecutions);
-    ControlBusStatus status2 = new ControlBusStatus(activeSessions, pluginRegistry, health,
-        recentExecutions);
+    ControlBusStatus status1 =
+        new ControlBusStatus(activeSessions, pluginRegistry, health, recentExecutions);
+    ControlBusStatus status2 =
+        new ControlBusStatus(activeSessions, pluginRegistry, health, recentExecutions);
 
     // When-Then
     assertThat(status1).isEqualTo(status2);
@@ -167,11 +166,12 @@ class ControlBusStatusTest {
   @Test
   void toString_contains_relevantFieldValues() {
     // Given
-    ControlBusStatus status = new ControlBusStatus(
-        List.of(),
-        List.of(),
-        new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"),
-        List.of());
+    ControlBusStatus status =
+        new ControlBusStatus(
+            List.of(),
+            List.of(),
+            new SystemHealthMetrics(50.0, 10, "512", "1024", "1h"),
+            List.of());
 
     // When
     String actual = status.toString();

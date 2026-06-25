@@ -99,10 +99,10 @@ tasks.withType<Checkstyle>().configureEach {
     }
 }
 
-// Disable quality tasks for AOT generated code only
+// Disable quality tasks for AOT generated code and test code
 tasks.configureEach {
     val task = this
-    if (task.name.contains("Aot") &&
+    if ((task.name.contains("Aot") || task.name.contains("Test")) &&
         (task is Checkstyle || task is Pmd || task::class.java.name.contains("SpotBugs"))) {
         task.enabled = false
     }

@@ -64,8 +64,7 @@ class ErrorExampleTest {
   @Test
   void toString_contains_relevantFieldValues() {
     // Given
-    ErrorExample example =
-        new ErrorExample("InvalidConfigError", "Missing field", "Provide field");
+    ErrorExample example = new ErrorExample("InvalidConfigError", "Missing field", "Provide field");
 
     // When
     String actual = example.toString();
