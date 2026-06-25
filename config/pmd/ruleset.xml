@@ -18,7 +18,7 @@
     <!-- Custom limit for LongVariable (Default is 17) -->
     <rule ref="category/java/codestyle.xml/LongVariable">
         <properties>
-            <property name="minimum" value="30" />
+            <property name="minimum" value="30"/>
         </properties>
     </rule>
     <rule ref="category/java/design.xml">
@@ -28,8 +28,8 @@
     </rule>
     <rule ref="category/java/documentation.xml/CommentSize">
         <properties>
-            <property name="maxLines" value="50" />
-            <property name="maxLineLength" value="120" />
+            <property name="maxLines" value="50"/>
+            <property name="maxLineLength" value="120"/>
         </properties>
     </rule>
     <rule ref="category/java/errorprone.xml">
