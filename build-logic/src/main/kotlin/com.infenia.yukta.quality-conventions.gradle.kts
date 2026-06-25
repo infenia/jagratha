@@ -69,6 +69,10 @@ tasks.register<Exec>("semgrep") {
         reportDir.asFile.mkdirs()
     }
 
+    // Use temp directory for semgrep settings to avoid read-only filesystem issues
+    val tempDir = System.getProperty("java.io.tmpdir")
+    environment("HOME", tempDir)
+
     commandLine("semgrep", "scan",
         "--config=${configFile.absolutePath}",
         "--output=${reportFile.absolutePath}",
@@ -95,20 +99,15 @@ tasks.withType<Checkstyle>().configureEach {
     }
 }
 
-// Disable quality tasks for everything except main
+// Disable quality tasks for AOT generated code only
 tasks.configureEach {
     val task = this
-    if (project.name == "ui" && task::class.java.name.contains("SpotBugs")) {
-        task.enabled = false
-    }
-    if (project.name == "cli" && (task is Pmd || task::class.java.name.contains("SpotBugs"))) {
-        task.enabled = false
-    }
-    if ((task.name.contains("Aot") || task.name.contains("Test")) &&
+    if (task.name.contains("Aot") &&
         (task is Checkstyle || task is Pmd || task::class.java.name.contains("SpotBugs"))) {
         task.enabled = false
     }
-    if ((task.name.contains("Aot") || task.name.contains("Test")) && task.name == "semgrep") {
-        task.enabled = false
-    }
+}
+
+tasks.named("check") {
+    dependsOn(tasks.withType<Task>().matching { it.name == "semgrep" })
 }
