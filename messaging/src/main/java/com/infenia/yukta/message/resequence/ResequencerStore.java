@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.resequence;
+package com.infenia.yukta.message.resequence;
 
 import com.infenia.yukta.message.Message;
 import java.util.List;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.infenia.yukta.service.resequence;
+package com.infenia.yukta.message.resequence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,8 +24,8 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
-import com.infenia.yukta.service.resequence.ResequencerStore.ResequenceConfig;
-import com.infenia.yukta.service.resequence.ResequencerStore.ResequenceResult;
+import com.infenia.yukta.message.resequence.ResequencerStore.ResequenceConfig;
+import com.infenia.yukta.message.resequence.ResequencerStore.ResequenceResult;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;

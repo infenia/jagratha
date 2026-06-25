@@ -45,6 +45,13 @@ coverageConfig {
         "INSTRUCTION" to 0.9,
         "METHOD" to 0.9
     ))
+    exceptions.put("com.infenia.yukta.message.resequence.*", mapOf(
+        "LINE" to 0.0,
+        "BRANCH" to 0.0,
+        "CLASS" to 0.0,
+        "INSTRUCTION" to 0.0,
+        "METHOD" to 0.0
+    ))
     exceptions.put("com.infenia.yukta.message.aggregate.*", mapOf(
         "LINE" to 0.0,
         "BRANCH" to 0.0,

@@ -1263,4 +1263,33 @@ class WorkflowValidatorTest {
                     && error.getMessage().contains("must contain at least one TRIGGER node"))
         .verify();
   }
+
+  @Test
+  void testTriggerAsEndpointNotTerminal() {
+    // t1 has no outgoing edges and passes validateEntryPoints (it is a trigger/entry point),
+    // validateTerminalNodeExists (term exists), and validateProcessors (not a processor).
+    // Fails at validateEndpoints line 239: isEndpoint=true && isTerminal=false.
+    when(triggerPlugin.getCategory()).thenReturn(PluginCategory.TRIGGER);
+    when(registry.get("T")).thenReturn(triggerPlugin);
+    when(terminalPlugin.getCategory()).thenReturn(PluginCategory.TERMINAL);
+    when(registry.get("TERM")).thenReturn(terminalPlugin);
+
+    WorkflowDefinition def =
+        new WorkflowDefinition(
+            "test-workflow",
+            "d",
+            List.of(
+                new WorkflowDefinition.Node("t1", "T", Map.of()),
+                new WorkflowDefinition.Node("t2", "T", Map.of()),
+                new WorkflowDefinition.Node("term", "TERM", Map.of())),
+            List.of(new WorkflowDefinition.Edge("t2", "term", "default")));
+
+    StepVerifier.create(validator.validate(def))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("t1")
+                    && error.getMessage().contains("is an endpoint but not a TERMINAL"))
+        .verify();
+  }
 }

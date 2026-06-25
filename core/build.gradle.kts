@@ -70,21 +70,6 @@ coverageConfig {
         "INSTRUCTION" to 0.0,
         "METHOD" to 0.0
     ))
-    // New store implementations
-    exceptions.put("com.infenia.yukta.service.join.InMemoryJoinStore", mapOf(
-        "LINE" to 0.0,
-        "BRANCH" to 0.0,
-        "CLASS" to 0.0,
-        "INSTRUCTION" to 0.0,
-        "METHOD" to 0.0
-    ))
-    exceptions.put("com.infenia.yukta.service.resequence.InMemoryResequencerStore", mapOf(
-        "LINE" to 0.0,
-        "BRANCH" to 0.0,
-        "CLASS" to 0.0,
-        "INSTRUCTION" to 0.0,
-        "METHOD" to 0.0
-    ))
     // Orchestrator refactored components
     exceptions.put("com.infenia.yukta.service.orchestrator.*", mapOf(
         "LINE" to 0.0,

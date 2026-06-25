@@ -193,6 +193,19 @@ class StreamAssemblyHelperTest {
   }
 
   @Test
+  void buildStreamWithContext_upstreamError_propagatesErrorAndLogsIt() {
+    final RuntimeException cause = new RuntimeException("upstream failure");
+    final WorkflowNode node = new WorkflowNode(NODE_ID, "trigger", Map.of());
+    final AssemblyContext context = buildContext();
+
+    final Flux<Message<?>> result =
+        StreamAssemblyHelper.buildStreamWithContext(
+            node, Flux.error(cause), Duration.ofSeconds(5), tracker, context);
+
+    StepVerifier.create(result).expectErrorMatches(e -> e == cause).verify();
+  }
+
+  @Test
   void buildStreamWithContext_payloadContextApplied() {
     final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "data");
     final WorkflowNode node = new WorkflowNode(NODE_ID, "trigger", Map.of());
