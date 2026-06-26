@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  dependency-submission:
+  submit-gradle:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
