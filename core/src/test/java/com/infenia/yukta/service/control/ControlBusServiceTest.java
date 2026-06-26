@@ -18,6 +18,7 @@ package com.infenia.yukta.service.control;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import ch.qos.logback.classic.Logger;
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
@@ -40,13 +41,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 import reactor.util.concurrent.Queues;
-import ch.qos.logback.classic.Logger;
-import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ControlBusService")
@@ -54,7 +54,8 @@ class ControlBusServiceTest {
 
   @BeforeEach
   void setUpLogging() {
-    Logger logger = (Logger) LoggerFactory.getLogger("com.infenia.yukta.service.control.ControlBusService");
+    Logger logger =
+        (Logger) LoggerFactory.getLogger("com.infenia.yukta.service.control.ControlBusService");
     logger.setLevel(ch.qos.logback.classic.Level.TRACE);
   }
 
@@ -926,7 +927,8 @@ class ControlBusServiceTest {
           .handle(any(), any(), any());
 
       ControlBusService svc =
-          new ControlBusService(5, 100, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
+          new ControlBusService(
+              5, 100, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
       svc.init();
 
       for (int i = 0; i < 5; i++) {
@@ -956,7 +958,8 @@ class ControlBusServiceTest {
           .handle(any(), any(), any());
 
       ControlBusService svc =
-          new ControlBusService(3, 100, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
+          new ControlBusService(
+              3, 100, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
       svc.init();
 
       Message<?> msg1 = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
@@ -976,7 +979,8 @@ class ControlBusServiceTest {
     @DisplayName("should handle fatal error in control stream")
     void handleControlBatch_fatalStreamError_handled() throws Exception {
       ControlBusService svc =
-          new ControlBusService(100, 50, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
+          new ControlBusService(
+              100, 50, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
       svc.init();
 
       Field sinkField = ControlBusService.class.getDeclaredField("controlSink");
@@ -990,7 +994,6 @@ class ControlBusServiceTest {
       Thread.sleep(200);
     }
   }
-
 
   @Nested
   @DisplayName("Logging branch coverage")

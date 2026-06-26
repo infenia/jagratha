@@ -18,6 +18,7 @@ package com.infenia.yukta.service.control;
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +64,7 @@ import reactor.core.publisher.Sinks;
  * @param nodeStepSinks per-node step signal sinks (keyed by nodeId)
  */
 @Slf4j
+@SuppressWarnings("PMD.DataClass")
 public record ExecutionControl(
     String sessionId,
     String workflowId,
@@ -79,9 +81,45 @@ public record ExecutionControl(
     Map<String, AtomicBoolean> nodeStepModes,
     Map<String, Sinks.Many<Void>> nodeStepSinks) {
 
-  /** Compact constructor: makes payload immutable and enforces field consistency. */
+  /** Compact constructor: makes all maps immutable and enforces field consistency. */
   public ExecutionControl {
     payload = Map.copyOf(payload);
+    nodeImmediateStopSinks = Map.copyOf(nodeImmediateStopSinks);
+    nodeSafeStopSinks = Map.copyOf(nodeSafeStopSinks);
+    nodePauseValves = Map.copyOf(nodePauseValves);
+    nodeSkipFlags = Map.copyOf(nodeSkipFlags);
+    nodeStepModes = Map.copyOf(nodeStepModes);
+    nodeStepSinks = Map.copyOf(nodeStepSinks);
+  }
+
+  @Override
+  public Map<String, Sinks.One<Void>> nodeImmediateStopSinks() {
+    return Collections.unmodifiableMap(nodeImmediateStopSinks);
+  }
+
+  @Override
+  public Map<String, Sinks.One<Void>> nodeSafeStopSinks() {
+    return Collections.unmodifiableMap(nodeSafeStopSinks);
+  }
+
+  @Override
+  public Map<String, ReactiveControlValve> nodePauseValves() {
+    return Collections.unmodifiableMap(nodePauseValves);
+  }
+
+  @Override
+  public Map<String, AtomicBoolean> nodeSkipFlags() {
+    return Collections.unmodifiableMap(nodeSkipFlags);
+  }
+
+  @Override
+  public Map<String, AtomicBoolean> nodeStepModes() {
+    return Collections.unmodifiableMap(nodeStepModes);
+  }
+
+  @Override
+  public Map<String, Sinks.Many<Void>> nodeStepSinks() {
+    return Collections.unmodifiableMap(nodeStepSinks);
   }
 
   /**

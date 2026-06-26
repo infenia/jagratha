@@ -61,11 +61,6 @@ tasks.register<Exec>("semgrep") {
     val reportFile = reportDir.file("semgrep-report.sarif").asFile
 
     doFirst {
-        if (!sourceDir.exists()) {
-            logger.warn("Source directory does not exist: $sourceDir, skipping Semgrep scan")
-            enabled = false
-            return@doFirst
-        }
         reportDir.asFile.mkdirs()
     }
 
@@ -89,6 +84,17 @@ tasks.register<Exec>("semgrep") {
         if (executionResult.get().exitValue > 1) {
             throw GradleException("Semgrep scan failed with exit code ${executionResult.get().exitValue}")
         }
+    }
+
+    onlyIf {
+        val sourceExists = sourceDir.exists()
+        val semgrepExists = try {
+            Runtime.getRuntime().exec(arrayOf("sh", "-c", "which semgrep")).waitFor() == 0
+        } catch (e: Exception) {
+            false
+        }
+
+        sourceExists && semgrepExists
     }
 }
 

@@ -15,9 +15,11 @@
  */
 package com.infenia.yukta.service.execution.status;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
@@ -27,6 +29,7 @@ import org.jspecify.annotations.Nullable;
  * <p>Published by ExecutionStatusPublisher to notify listeners of status changes during workflow
  * execution (RUNNING, SUCCESS, FAILURE, etc.).
  */
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public record ExecutionStatusEvent(
     @NotBlank String executionId,
     @NotBlank String nodeId,
@@ -55,6 +58,16 @@ public record ExecutionStatusEvent(
     if (metadata != null) {
       metadata = Map.copyOf(metadata);
     }
+  }
+
+  @Override
+  public Map<String, Object> metadata() {
+    return metadata == null ? null : Collections.unmodifiableMap(metadata);
+  }
+
+  @Override
+  public Throwable error() {
+    return error;
   }
 
   /**

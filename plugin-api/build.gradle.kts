@@ -24,13 +24,6 @@ dependencies {
 }
 
 coverageConfig {
-    val baselineCoverage = mapOf(
-        "LINE" to 0.8,
-        "BRANCH" to 0.5,
-        "CLASS" to 0.8,
-        "INSTRUCTION" to 0.8,
-        "METHOD" to 0.8
-    )
 
     val lowCoverage = mapOf(
         "LINE" to 0.0,

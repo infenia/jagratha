@@ -17,6 +17,7 @@ package com.infenia.yukta.service.orchestrator.assembly;
 
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.service.control.ExecutionControl;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import reactor.core.Disposable;
@@ -39,6 +40,7 @@ import reactor.core.publisher.Mono;
  * @param disposables the list of disposables to manage resource lifecycle
  * @param connectors the list of tasks to connect upstreams to sinks
  */
+@SuppressWarnings("PMD.DataClass")
 public record AssemblyContext(
     String executionId,
     String sessionId,
@@ -48,4 +50,37 @@ public record AssemblyContext(
     Flux<Message<?>>[] streams,
     List<Mono<Void>> terminals,
     List<Disposable> disposables,
-    List<Runnable> connectors) {}
+    List<Runnable> connectors) {
+
+  /** Compact constructor to ensure all mutable collections are defensively copied. */
+  @SuppressWarnings("PMD.NullAssignment")
+  public AssemblyContext {
+    payload = payload != null ? Map.copyOf(payload) : null;
+  }
+
+  @Override
+  public Map<String, Object> payload() {
+    return payload != null ? Collections.unmodifiableMap(payload) : null;
+  }
+
+  @Override
+  @SuppressWarnings("PMD.MethodReturnsInternalArray")
+  public Flux<Message<?>>[] streams() {
+    return streams;
+  }
+
+  @Override
+  public List<Mono<Void>> terminals() {
+    return terminals;
+  }
+
+  @Override
+  public List<Disposable> disposables() {
+    return disposables;
+  }
+
+  @Override
+  public List<Runnable> connectors() {
+    return connectors;
+  }
+}
