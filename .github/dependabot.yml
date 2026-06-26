@@ -1,0 +1,14 @@
+version: 2
+
+# Disable automatic dependency submission to prevent GitHub's built-in
+# dependency-submission action from running with Java 21, which conflicts
+# with our Java 25 requirement.
+#
+# GitHub's automatic submission would fail because:
+# 1. It runs independently of our CI workflow
+# 2. It defaults to Java 21
+# 3. The project requires Java 25
+# 4. build-logic requires Java 25, causing validation failure
+#
+# To manually submit dependencies in the future, use our explicit CI workflow
+# or create a dedicated dependency-submission workflow with Java 25.
