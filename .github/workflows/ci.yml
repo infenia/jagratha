@@ -5,10 +5,20 @@ on:
     branches: [ "main" ]
     paths:
       - 'boot/**'
+      - 'build-logic/**'
+      - 'gradle/**'
+      - 'gradle.properties'
+      - 'settings.gradle.kts'
+      - 'build.gradle.kts'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'boot/**'
+      - 'build-logic/**'
+      - 'gradle/**'
+      - 'gradle.properties'
+      - 'settings.gradle.kts'
+      - 'build.gradle.kts'
   schedule:
     - cron: '0 0 * * *' # 5:30 AM IST (00:00 UTC)
 
