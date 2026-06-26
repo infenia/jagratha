@@ -171,6 +171,7 @@ public class ControlBusService {
    * @param signal the control signal message
    * @return a Mono that completes when the signal is emitted
    */
+  @SuppressWarnings("PMD.GuardLogStatement")
   public Mono<Void> emit(final Message<?> signal) {
     final Object payload = signal.getPayload();
     final String payloadType = payload != null ? payload.getClass().getSimpleName() : "null";
