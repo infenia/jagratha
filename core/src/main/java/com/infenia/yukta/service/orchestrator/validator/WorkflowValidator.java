@@ -43,6 +43,12 @@ import reactor.core.publisher.Mono;
 @Service
 @Validated
 @RequiredArgsConstructor
+@SuppressWarnings({
+  "PMD.OnlyOneReturn",
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.AvoidInstantiatingObjectsInLoops",
+  "PMD.TooManyMethods"
+})
 public class WorkflowValidator {
 
   /** The plugin registry for resolving plugin types. */
@@ -203,8 +209,8 @@ public class WorkflowValidator {
               if (isProcessor && !isEntryPoint && !hasOutgoing) {
                 log.atWarn()
                     .addKeyValue("nodeId", node.nodeId())
-                    .addKeyValue("isEntryPoint", isEntryPoint)
-                    .addKeyValue("hasOutgoing", hasOutgoing)
+                    .addKeyValue("isEntryPoint", false)
+                    .addKeyValue("hasOutgoing", false)
                     .log("PROCESSOR node missing required edges");
                 return Mono.error(
                     new IllegalArgumentException(

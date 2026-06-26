@@ -16,8 +16,9 @@
 package com.infenia.yukta.service.orchestrator.assembly;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
@@ -128,7 +129,7 @@ public class ExecutionContextBuilder {
   public ExecutionContextBuilder payload(final Map<String, Object> payload) {
     // Make a defensive copy to prevent external modifications
     if (payload != null) {
-      this.payloadValue = new HashMap<>(payload);
+      this.payloadValue = new ConcurrentHashMap<>(payload);
     }
     return this;
   }
@@ -142,7 +143,7 @@ public class ExecutionContextBuilder {
    * @return a Context containing all set values
    */
   public Context build() {
-    final Map<String, Object> contextMap = new HashMap<>();
+    final Map<String, Object> contextMap = new ConcurrentHashMap<>();
 
     if (sessionIdValue != null) {
       contextMap.put(CTX_SESSION_ID, sessionIdValue);

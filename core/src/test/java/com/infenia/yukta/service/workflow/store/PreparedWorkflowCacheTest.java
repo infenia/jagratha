@@ -93,22 +93,6 @@ class PreparedWorkflowCacheTest {
     assertThat(cache.get("s1", "wf1")).contains(prepared);
   }
 
-  @Test
-  void initStartsEvictionScheduler() throws InterruptedException {
-    final PreparedWorkflowCache liveCache = new PreparedWorkflowCache(100L);
-    liveCache.init();
-    // Scheduler is running; just verify the cache is still usable after init
-    liveCache.put("s1", "wf1", mockPrepared());
-    assertThat(liveCache.get("s1", "wf1")).isPresent();
-    liveCache.shutdown();
-  }
-
-  @Test
-  void shutdownTerminatesScheduler() throws InterruptedException {
-    final PreparedWorkflowCache liveCache = new PreparedWorkflowCache(600_000L);
-    liveCache.init();
-    liveCache.shutdown(); // must complete without hanging
-  }
 
   @Test
   void invalidate_nonExistentKey_isNoOp() {

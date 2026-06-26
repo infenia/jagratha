@@ -50,5 +50,5 @@ public interface NodeAssemblerStrategy {
       Duration timeout,
       int index,
       int bufferSize,
-      ParentEdgeInfo[] parentEdges);
+      ParentEdgeInfo ...parentEdges);
 }

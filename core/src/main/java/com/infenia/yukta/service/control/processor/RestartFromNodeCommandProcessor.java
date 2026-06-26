@@ -101,7 +101,7 @@ public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
                                     log.atWarn()
                                         .addKeyValue("parentNodeId", parentNodeId)
                                         .log("No checkpoint for parent node");
-                                    return Mono.<Message<?>>empty();
+                                    return Mono.empty();
                                   }))
                   .collectMap(Message::getSourceNodeId, m -> m)
                   .flatMap(
@@ -142,7 +142,7 @@ public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
                             .addKeyValue("fromNodeId", restart.fromNodeId())
                             .setCause(e)
                             .log("Restart from node failed");
-                        return Mono.<WorkflowDirective>empty();
+                        return Mono.empty();
                       });
             })
         .onErrorResume(
@@ -151,7 +151,7 @@ public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
                   .addKeyValue("executionId", restart.executionId())
                   .setCause(e)
                   .log("Failed to find execution for restart");
-              return Mono.<WorkflowDirective>empty();
+              return Mono.empty();
             });
   }
 

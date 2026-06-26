@@ -16,6 +16,7 @@
 package com.infenia.yukta.service.control.directive;
 
 import com.infenia.yukta.message.Message;
+import com.infenia.yukta.model.control.ControlCommand;
 import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.control.ControlSignalProcessor;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand;
@@ -100,6 +101,7 @@ public class DirectiveDispatcher {
    * pipeline.
    */
   @PostConstruct
+  @SuppressWarnings("PMD.LawOfDemeter")
   public void init() {
     controlBusService
         .getControlStream()
@@ -198,7 +200,7 @@ public class DirectiveDispatcher {
                               log.atError()
                                   .setCause(e)
                                   .log("Restart failed for {}", control.workflowId()));
-                  return Mono.<Void>empty();
+                  return Mono.empty();
                 }));
   }
 
@@ -252,7 +254,7 @@ public class DirectiveDispatcher {
                                       "RestartFromNode {} failed for {}",
                                       directive.nodeId(),
                                       control.workflowId()));
-                  return Mono.<Void>empty();
+                  return Mono.empty();
                 }));
   }
 }

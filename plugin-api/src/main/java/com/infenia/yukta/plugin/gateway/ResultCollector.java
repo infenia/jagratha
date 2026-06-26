@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * final messages.
  */
 public class ResultCollector {
+  /** Thread-safe queue for storing collected result messages. */
   private final Queue<Message<?>> results = new ConcurrentLinkedQueue<>();
 
   /** Default constructor. */

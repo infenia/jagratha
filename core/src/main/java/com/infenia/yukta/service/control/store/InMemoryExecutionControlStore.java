@@ -16,6 +16,8 @@
 package com.infenia.yukta.service.control.store;
 
 import com.infenia.yukta.service.control.ExecutionControl;
+import lombok.NoArgsConstructor;
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Thread-safe storage using ConcurrentHashMap. Suitable for single-node deployments or
  * co-located execution contexts.
  */
+@NoArgsConstructor
 public final class InMemoryExecutionControlStore implements ExecutionControlStore {
 
   /** Map of execution ID to execution control state. */

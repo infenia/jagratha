@@ -42,18 +42,40 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class WorkflowPreparator {
 
+  /** Log key for number of nodes. */
   private static final String LOG_KEY_NUM_NODES = "numNodes";
+
+  /** Log key for node IDs list. */
   private static final String LOG_KEY_NODE_IDS = "nodeIds";
+
+  /** Log key for individual node ID. */
   private static final String LOG_KEY_NODE_ID = "nodeId";
+
+  /** Log key for plugin type. */
   private static final String LOG_KEY_PLUGIN_TYPE = "pluginType";
+
+  /** Log key for edge source node. */
   private static final String LOG_KEY_SOURCE = "source";
+
+  /** Log key for edge target node. */
   private static final String LOG_KEY_TARGET = "target";
+
+  /** Log key for edge port. */
   private static final String LOG_KEY_PORT = "port";
+
+  /** Log key for plugin count. */
   private static final String LOG_KEY_PLUGIN_COUNT = "pluginCount";
 
+  /** Registry for looking up plugins by type. */
   private final PluginRegistry registry;
+
+  /** Validator for workflow definitions. */
   private final WorkflowValidator validator;
+
+  /** Service for computing topological order of workflow nodes. */
   private final TopologicalSortService topologicalSortService;
+
+  /** Compiler for workflow templates. */
   private final WorkflowCompiler compiler;
 
   /**

@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.infenia.yukta.model.workflow.ParentEdgeInfo;
 
 import com.infenia.yukta.model.workflow.NodeAssembler;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
@@ -92,7 +93,7 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultBufferSize()).thenReturn(1024);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
     when(assemblerStrategy.createAssembler(
-            eq(node), eq(plugin), any(Duration.class), eq(0), eq(1024), any()))
+            eq(node), eq(plugin), any(Duration.class), eq(0), eq(1024)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
@@ -115,7 +116,7 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
     when(plugin.getDefaultBufferSize()).thenReturn(512);
     when(assemblerStrategy.supports(eq(plugin), any(Boolean.class))).thenReturn(true);
-    when(assemblerStrategy.createAssembler(eq(n1), eq(plugin), any(), eq(0), eq(512), any()))
+    when(assemblerStrategy.createAssembler(eq(n1), eq(plugin), any(), eq(0), eq(512)))
         .thenReturn(a1);
     when(assemblerStrategy.createAssembler(eq(n2), eq(plugin), any(), eq(1), eq(512), any()))
         .thenReturn(a2);
@@ -159,7 +160,7 @@ class WorkflowCompilerTest {
     // null plugin → supports(null, false)
     when(assemblerStrategy.supports(null, false)).thenReturn(true);
     when(assemblerStrategy.createAssembler(
-            eq(node), eq(null), eq(Duration.ofSeconds(30)), eq(0), eq(1024), any()))
+            eq(node), eq(null), eq(Duration.ofSeconds(30)), eq(0), eq(1024)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
@@ -178,7 +179,7 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultTimeout()).thenReturn(Duration.ofSeconds(30));
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
-    when(assemblerStrategy.createAssembler(eq(node), eq(plugin), any(), eq(0), eq(256), any()))
+    when(assemblerStrategy.createAssembler(eq(node), eq(plugin), any(), eq(0), eq(256)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
@@ -198,7 +199,7 @@ class WorkflowCompilerTest {
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
     when(assemblerStrategy.createAssembler(
-            eq(node), eq(plugin), eq(Duration.ofSeconds(120)), eq(0), eq(1024), any()))
+            eq(node), eq(plugin), eq(Duration.ofSeconds(120)), eq(0), eq(1024)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
@@ -220,7 +221,7 @@ class WorkflowCompilerTest {
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
     // Falls back to REF_COUNT_TIMEOUT = 30s
     when(assemblerStrategy.createAssembler(
-            eq(node), eq(plugin), eq(Duration.ofSeconds(30)), eq(0), eq(1024), any()))
+            eq(node), eq(plugin), eq(Duration.ofSeconds(30)), eq(0), eq(1024)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
@@ -240,7 +241,7 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultBufferSize()).thenReturn(512);
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
-    when(assemblerStrategy.createAssembler(eq(node), eq(plugin), any(), eq(0), eq(512), any()))
+    when(assemblerStrategy.createAssembler(eq(node), eq(plugin), any(), eq(0), eq(512)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
@@ -261,7 +262,7 @@ class WorkflowCompilerTest {
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
     when(assemblerStrategy.createAssembler(
-            eq(node), eq(plugin), eq(Duration.ofSeconds(45)), eq(0), eq(1024), any()))
+            eq(node), eq(plugin), eq(Duration.ofSeconds(45)), eq(0), eq(1024)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
@@ -283,7 +284,7 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultBufferSize()).thenReturn(1024);
     when(assemblerStrategy.supports(eq(plugin), any(Boolean.class))).thenReturn(true);
     when(assemblerStrategy.createAssembler(
-            any(), any(), any(), any(Integer.class), any(Integer.class), any()))
+            any(), any(), any(), any(Integer.class), any(Integer.class)))
         .thenReturn(ctx -> {});
 
     compiler.compileAssemblers(edges, parents, plugins, order);
@@ -313,7 +314,7 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultBufferSize()).thenReturn(1024);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
     when(assemblerStrategy.createAssembler(
-            any(), any(), any(), any(Integer.class), any(Integer.class), any()))
+            any(), any(), any(), any(Integer.class), any(Integer.class)))
         .thenReturn(ctx -> {});
 
     final WorkflowTemplate template = compiler.compileTemplate(edges, parents, plugins, order);
@@ -333,7 +334,7 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultBufferSize()).thenReturn(1024);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
     when(assemblerStrategy.createAssembler(
-            any(), any(), any(), any(Integer.class), any(Integer.class), any()))
+            any(), any(), any(), any(Integer.class), any(Integer.class)))
         .thenReturn(ctx -> {});
 
     when(executionControlRegistry.findByExecutionId(EXECUTION_ID))
@@ -452,7 +453,7 @@ class WorkflowCompilerTest {
     when(plugin.getDefaultBufferSize()).thenReturn(2048);
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
-    when(assemblerStrategy.createAssembler(eq(node), eq(plugin), any(), eq(0), eq(2048), any()))
+    when(assemblerStrategy.createAssembler(eq(node), eq(plugin), any(), eq(0), eq(2048)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
@@ -471,7 +472,7 @@ class WorkflowCompilerTest {
 
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(null, false)).thenReturn(true);
-    when(assemblerStrategy.createAssembler(eq(node), eq(null), any(), eq(0), eq(1024), any()))
+    when(assemblerStrategy.createAssembler(eq(node), eq(null), any(), eq(0), eq(1024)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
@@ -495,7 +496,7 @@ class WorkflowCompilerTest {
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
     when(assemblerStrategy.createAssembler(
-            eq(node), eq(plugin), eq(Duration.ofSeconds(60)), eq(0), eq(1024), any()))
+            eq(node), eq(plugin), eq(Duration.ofSeconds(60)), eq(0), eq(1024)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
@@ -515,7 +516,7 @@ class WorkflowCompilerTest {
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(null, false)).thenReturn(true);
     when(assemblerStrategy.createAssembler(
-            eq(node), eq(null), eq(Duration.ofSeconds(30)), eq(0), eq(1024), any()))
+            eq(node), eq(null), eq(Duration.ofSeconds(30)), eq(0), eq(1024)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);

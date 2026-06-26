@@ -27,11 +27,12 @@ import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
+/** Helper class for assembling reactive streams with execution context and control. */
 @Slf4j
 @UtilityClass
 class StreamAssemblyHelper {
 
-  static Flux<Message<?>> buildStreamWithContext(
+  /* default */ static Flux<Message<?>> buildStreamWithContext(
       final WorkflowNode node,
       final Flux<Message<?>> stream,
       final Duration timeout,

@@ -22,7 +22,7 @@ import java.util.Map;
  * An inbound control command directed at an active workflow execution.
  *
  * <p>Unlike observational signals (heartbeat, stats), a {@code ControlCommand} requests a
- * behavioural change: stop the workflow, restart it, or replay from a specific node. Commands are
+ * behavioral change: stop the workflow, restart it, or replay from a specific node. Commands are
  * emitted onto the Control Bus and routed through registered {@code ControlSignalProcessor}
  * implementations before producing a {@code WorkflowDirective}.
  *

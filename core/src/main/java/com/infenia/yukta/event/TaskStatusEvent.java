@@ -51,6 +51,7 @@ public record TaskStatusEvent(
    * @param metadata the task metadata
    * @return a new TaskStatusEvent
    */
+  @SuppressWarnings("PMD.UseObjectForClearerAPI")
   public static TaskStatusEvent create(
       final String executionId,
       final String nodeId,

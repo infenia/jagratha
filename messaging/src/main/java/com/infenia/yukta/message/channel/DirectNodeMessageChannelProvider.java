@@ -21,6 +21,7 @@ import java.util.Map;
 @SuppressWarnings("PMD.AtLeastOneConstructor")
 public class DirectNodeMessageChannelProvider implements NodeMessageChannelProvider {
 
+  /** Singleton instance of DirectNodeMessageChannel. */
   private static final DirectNodeMessageChannel INSTANCE = new DirectNodeMessageChannel();
 
   @Override

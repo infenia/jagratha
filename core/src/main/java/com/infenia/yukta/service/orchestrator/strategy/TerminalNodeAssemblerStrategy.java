@@ -42,6 +42,7 @@ import reactor.core.scheduler.Scheduler;
 @Component
 @Order(3)
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   /** Buffer size for workflow streams. */

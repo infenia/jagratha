@@ -17,6 +17,8 @@ package com.infenia.yukta.service.control.valve;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+
+import lombok.NoArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -31,6 +33,7 @@ import reactor.core.publisher.Sinks.Many;
  * <p>Supports step-through mode: when enabled, each element must be explicitly stepped via the
  * stepSink signal, allowing one element through at a time.
  */
+@NoArgsConstructor
 public final class ReactiveControlValve {
 
   /** Flag indicating whether the valve is paused. */
@@ -55,13 +58,14 @@ public final class ReactiveControlValve {
    *
    * @return Mono that emits true when passage is allowed
    */
+  @SuppressWarnings("PMD.OnlyOneReturn")
   public Mono<Boolean> allowPassage() {
     if (!paused.get()) {
       return Mono.just(true);
     }
 
     if (stepMode.get()) {
-      long currentStep = stepCounter.get();
+      final long currentStep = stepCounter.get();
       return stepSignal.asFlux().filter(s -> s > currentStep).next().thenReturn(true);
     }
 
@@ -110,11 +114,12 @@ public final class ReactiveControlValve {
    *
    * @return true if step signal was emitted, false if step mode not active
    */
+  @SuppressWarnings("PMD.OnlyOneReturn")
   public boolean step() {
     if (!stepMode.get()) {
       return false;
     }
-    long nextStep = stepCounter.incrementAndGet();
+    final long nextStep = stepCounter.incrementAndGet();
     stepSignal.tryEmitNext(nextStep);
     return true;
   }

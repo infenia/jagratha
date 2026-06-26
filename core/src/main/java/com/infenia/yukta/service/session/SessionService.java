@@ -58,7 +58,7 @@ public class SessionService {
    * @return Mono that completes when the configuration is successfully applied and persisted
    */
   public Mono<Void> applyConfig(@Valid final SessionConfigData data) {
-    Mono<Void> workflowCompilation =
+    final Mono<Void> workflowCompilation =
         data.workflows().isEmpty()
             ? Mono.<Void>empty()
                 .doOnSuccess(

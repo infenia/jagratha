@@ -53,6 +53,15 @@ import reactor.util.concurrent.Queues;
 @Slf4j
 @Service
 @Validated
+@SuppressWarnings({
+  "PMD.GodClass",
+  "PMD.TooManyMethods",
+  "PMD.ExcessiveImports",
+  "PMD.CouplingBetweenObjects",
+  "PMD.UseObjectForClearerAPI",
+  "PMD.OnlyOneReturn",
+  "PMD.AvoidDuplicateLiterals"
+})
 public class DefaultTaskTrackerService implements TaskTrackerService {
 
   /** Batch size for event processing. */

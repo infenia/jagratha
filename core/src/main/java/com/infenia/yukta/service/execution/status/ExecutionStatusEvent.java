@@ -39,6 +39,25 @@ public record ExecutionStatusEvent(
     @NotNull Instant timestamp) {
 
   /**
+   * Compact constructor to ensure metadata is immutable.
+   *
+   * @param executionId the execution identifier
+   * @param nodeId the node identifier
+   * @param workflowId the workflow identifier
+   * @param sessionId the session identifier
+   * @param status the status value
+   * @param module the module name
+   * @param metadata optional metadata map
+   * @param error optional error/exception
+   * @param timestamp the event timestamp
+   */
+  public ExecutionStatusEvent {
+    if (metadata != null) {
+      metadata = Map.copyOf(metadata);
+    }
+  }
+
+  /**
    * Create a new ExecutionStatusEvent with current timestamp.
    *
    * @param executionId the execution identifier
@@ -51,6 +70,7 @@ public record ExecutionStatusEvent(
    * @param error optional error/exception
    * @return a new ExecutionStatusEvent with current timestamp
    */
+  @SuppressWarnings({"PMD.UseObjectForClearerAPI", "PMD.ShortMethodName"})
   public static ExecutionStatusEvent of(
       @NotBlank final String executionId,
       @NotBlank final String nodeId,

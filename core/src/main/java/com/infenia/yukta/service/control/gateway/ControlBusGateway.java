@@ -39,6 +39,7 @@ import reactor.core.publisher.Mono;
  * <p>All control commands flow through a single channel ensuring consistent ordering, audit trails,
  * and no race conditions from multiple access paths.
  */
+@SuppressWarnings("PMD.TooManyMethods")
 public interface ControlBusGateway {
 
   // --- Plugin & Message Management (Internal) ---

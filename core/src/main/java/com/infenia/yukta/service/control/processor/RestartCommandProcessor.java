@@ -97,7 +97,7 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
                   .addKeyValue("executionId", restart.executionId())
                   .setCause(e)
                   .log("Restart failed");
-              return Mono.<WorkflowDirective>empty();
+              return Mono.empty();
             });
   }
 

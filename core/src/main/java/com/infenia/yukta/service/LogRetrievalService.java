@@ -123,13 +123,12 @@ public class LogRetrievalService {
                     }));
   }
 
+  @SuppressWarnings("PMD.OnlyOneReturn")
   private Path findLogFile(final String baseDir, final String sessionId, final String fileName) {
-    if (!baseDir.isEmpty()) {
-      final Path path = Path.of(baseDir).resolve(sessionId).resolve(fileName);
-      if (Files.exists(path)) {
-        return path;
-      }
+    if (baseDir.isEmpty()) {
+      return null;
     }
-    return null;
+    final Path path = Path.of(baseDir).resolve(sessionId).resolve(fileName);
+    return Files.exists(path) ? path : null;
   }
 }

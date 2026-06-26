@@ -32,6 +32,7 @@ import reactor.core.publisher.Mono;
 @SuppressWarnings("PMD.UseObjectForClearerAPI")
 public class DefaultLogProvider implements LogProvider {
 
+  /** Service for tracking and retrieving task logs. */
   private final TaskTrackerService trackerService;
 
   @Override

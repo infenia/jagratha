@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @NoArgsConstructor
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public class TopologicalSortService {
 
   /**

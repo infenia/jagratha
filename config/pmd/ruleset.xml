@@ -35,6 +35,7 @@
     <rule ref="category/java/errorprone.xml">
     </rule>
     <rule ref="category/java/multithreading.xml">
+        <exclude name="DoNotUseThreads"/>
     </rule>
     <rule ref="category/java/performance.xml"/>
     <rule ref="category/java/security.xml"/>

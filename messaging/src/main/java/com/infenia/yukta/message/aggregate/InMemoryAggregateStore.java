@@ -38,37 +38,69 @@ import reactor.core.publisher.Sinks;
 /** In-memory implementation of AggregateStore using LinkedHashMap for LRU. */
 @Slf4j
 @Component
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.DoNotUseThreads"})
+@SuppressWarnings("PMD.OnlyOneReturn")
 public class InMemoryAggregateStore implements AggregateStore {
 
+  /** Delay in milliseconds between cleanup operations. */
   private static final int CLEANUP_DELAY_MS = 100;
+
+  /** Initial capacity for the aggregate store map. */
   private static final int INITIAL_CAPACITY = 16;
+
+  /** Load factor for the LinkedHashMap backing the store. */
   private static final float LOAD_FACTOR = 0.75f;
 
+  /** Window type constant for time-based aggregation. */
   private static final String TYPE_TIME = "TIME";
+
+  /** Window type constant for session-based aggregation. */
   private static final String TYPE_SESSION = "SESSION";
+
+  /** Window type constant for count-based aggregation. */
   private static final String TYPE_COUNT = "COUNT";
 
+  /** Aggregation type constant for sum aggregation. */
   private static final String AGG_SUM = "SUM";
+
+  /** Aggregation type constant for average aggregation. */
   private static final String AGG_AVERAGE = "AVERAGE";
+
+  /** Aggregation type constant for minimum value aggregation. */
   private static final String AGG_MIN = "MIN";
+
+  /** Aggregation type constant for maximum value aggregation. */
   private static final String AGG_MAX = "MAX";
+
+  /** Aggregation type constant for list collection. */
   private static final String AGG_LIST = "COLLECT_LIST";
+
+  /** Aggregation type constant for first value aggregation. */
   private static final String AGG_FIRST = "FIRST";
+
+  /** Aggregation type constant for last value aggregation. */
   private static final String AGG_LAST = "LAST";
+
+  /** Aggregation type constant for custom aggregation. */
   private static final String AGG_CUSTOM = "CUSTOM";
 
+  /** Null policy constant to replace nulls with zero. */
   private static final String POLICY_ZERO = "ZERO";
+
+  /** Null policy constant to fail on null values. */
   private static final String POLICY_FAIL = "FAIL";
 
+  /** Thread-safe map storing aggregate states indexed by key. */
   private final Map<String, AggregateState> store =
       Collections.synchronizedMap(new LinkedHashMap<>(INITIAL_CAPACITY, LOAD_FACTOR, true));
 
+  /** Lock for synchronizing access to store during critical operations. */
   private final ReentrantLock lock = new ReentrantLock();
 
+  /** Reactive sink for broadcasting aggregate results asynchronously. */
   private final Sinks.Many<AggregateResult> asyncResults =
       Sinks.many().multicast().onBackpressureBuffer();
 
+  /** Scheduled executor for periodic cleanup of expired aggregates. */
   private final ScheduledExecutorService scheduler =
       Executors.newSingleThreadScheduledExecutor(
           r -> {
@@ -259,13 +291,25 @@ public class InMemoryAggregateStore implements AggregateStore {
     }
   }
 
+  /** Holds the state of an individual aggregate window. */
   @SuppressWarnings({"PMD.TooManyMethods", "PMD.CyclomaticComplexity"})
   private static class AggregateState {
+    /** The accumulated value from aggregation operations. */
     private Object accumulator;
+
+    /** Count of values processed in this aggregate. */
     private int count;
+
+    /** The last message that triggered an update. */
     private Message<?> lastMessage;
+
+    /** Timestamp when this aggregate state was created. */
     private final long startTime;
+
+    /** Timestamp of the last access or update. */
     private long lastAccessTime;
+
+    /** Configuration settings for this aggregate. */
     private final AggregateConfig config;
 
     /* default */ AggregateState(final Message<?> message, final AggregateConfig config) {

@@ -24,6 +24,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Interface for managing session configuration with runtime overrides. */
+@SuppressWarnings("PMD.LinguisticNaming")
 public interface SessionConfigStore {
 
   /**

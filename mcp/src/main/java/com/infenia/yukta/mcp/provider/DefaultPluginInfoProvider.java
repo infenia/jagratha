@@ -31,9 +31,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
-@SuppressWarnings("PMD.LongVariable")
 public class DefaultPluginInfoProvider implements PluginInfoProvider {
 
+  /** Registry for accessing all available plugins. */
   private final PluginRegistry registry;
 
   @Override

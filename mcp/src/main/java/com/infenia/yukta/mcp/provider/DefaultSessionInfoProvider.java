@@ -42,11 +42,15 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@SuppressWarnings("PMD.LongVariable")
 public class DefaultSessionInfoProvider implements SessionInfoProvider {
 
+  /** Service for managing session state and configuration. */
   private final SessionService sessionService;
+
+  /** Registry for accessing all available plugins. */
   private final PluginRegistry registry;
+
+  /** Mapper for converting between JSON and Java objects. */
   private final ObjectMapper objectMapper;
 
   @Override

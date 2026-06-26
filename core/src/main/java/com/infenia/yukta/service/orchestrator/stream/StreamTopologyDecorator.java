@@ -81,6 +81,7 @@ public class StreamTopologyDecorator {
    * @param parentEdges edge metadata describing parent connections
    * @return merged Flux with routed and filtered messages
    */
+  @SuppressWarnings("PMD.OnlyOneReturn")
   public Flux<Message<?>> mergeParentStreams(
       final Flux<Message<?>>[] streams, final ParentEdgeInfo... parentEdges) {
     log.atDebug().setMessage("Merging {} parent streams").addArgument(parentEdges.length).log();
@@ -93,11 +94,9 @@ public class StreamTopologyDecorator {
     if (parentFluxes.isEmpty()) {
       log.atDebug().setMessage("No parent streams to merge, returning empty flux").log();
       return Flux.empty();
-    }
-
-    if (parentFluxes.size() == SINGLE_PARENT) {
+    } else if (parentFluxes.size() == SINGLE_PARENT) {
       log.atDebug().setMessage("Single parent stream, returning without merge").log();
-      return parentFluxes.get(0);
+      return parentFluxes.getFirst();
     }
 
     log.atDebug()

@@ -44,6 +44,10 @@ import reactor.core.scheduler.Scheduler;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings({
+  "PMD.CouplingBetweenObjects",
+  "PMD.AvoidDuplicateLiterals"
+})
 public class WorkflowCompiler {
 
   /** Buffer size for workflow streams. */
@@ -385,6 +389,7 @@ public class WorkflowCompiler {
           .addKeyValue("source", "nodeConfig")
           .log("Using node-specific timeout");
     } else {
+      @SuppressWarnings("PMD.LawOfDemeter")
       final Duration defaultTimeout = plugin != null ? plugin.getDefaultTimeout() : null;
       if (defaultTimeout != null) {
         result = defaultTimeout;

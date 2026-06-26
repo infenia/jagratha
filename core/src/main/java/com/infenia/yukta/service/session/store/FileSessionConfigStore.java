@@ -53,6 +53,12 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
+@SuppressWarnings({
+  "PMD.OnlyOneReturn",
+  "PMD.TooManyMethods",
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.UseConcurrentHashMap"
+})
 public class FileSessionConfigStore implements SessionConfigStore {
 
   /** The session configuration properties. */
@@ -68,7 +74,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
   private final Map<String, SessionConfig> sessionCache = new ConcurrentHashMap<>();
 
   @PostConstruct
-  void logInitialization() {
+  /* default */ void logInitialization() {
     log.info("Using SessionConfigStore with type: file");
   }
 
@@ -318,7 +324,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
                     workflowDefinitionStore.findAll(sessionId)));
   }
 
-  record SessionConfigFile(
+  /* default */ record SessionConfigFile(
       String projectPath,
       String initiator,
       String initiatedTime,
@@ -353,11 +359,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
                   fileConfig.description());
             })
         .doOnNext(
-            config -> {
-              if (config != null) {
-                sessionCache.put(sessionId, config);
-              }
-            })
+            config -> sessionCache.put(sessionId, config))
         .flatMap(Mono::just)
         .subscribeOn(Schedulers.boundedElastic());
   }

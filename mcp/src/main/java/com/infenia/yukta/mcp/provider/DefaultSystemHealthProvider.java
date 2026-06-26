@@ -33,9 +33,10 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.DoNotUseThreads", "PMD.UselessParentheses"})
+@SuppressWarnings("PMD.DoNotUseThreads")
 public class DefaultSystemHealthProvider implements SystemHealthProvider {
 
+  /** Registry for accessing all available plugins. */
   private final PluginRegistry registry;
 
   @Override

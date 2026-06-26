@@ -80,7 +80,7 @@ public class ResourceManagementBuilder {
   /** List of terminal monos to execute on workflow completion. */
   @Nullable private List<Mono<Void>> terminals;
 
-  /** List of connector runnables to execute. */
+  /** List of connector runnable to execute. */
   @Nullable private List<Runnable> connectors;
 
   /** The session ID for the execution. */
@@ -239,7 +239,7 @@ public class ResourceManagementBuilder {
         try {
           connectors.get(i).run();
           log.atDebug().addKeyValue("connectorIndex", i).log("Connector executed successfully");
-        } catch (final Exception e) {
+        } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") final Exception e) {
           log.atError()
               .addKeyValue("connectorIndex", i)
               .addKeyValue("exception", e.getClass().getSimpleName())
@@ -282,7 +282,7 @@ public class ResourceManagementBuilder {
       try {
         disposable.dispose();
         disposed++;
-      } catch (final Exception e) {
+      } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") final Exception e) {
         log.atError()
             .addKeyValue("exception", e.getClass().getSimpleName())
             .addKeyValue("disposedCount", disposed)

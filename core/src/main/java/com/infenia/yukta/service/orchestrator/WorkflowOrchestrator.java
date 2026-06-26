@@ -202,6 +202,7 @@ public class WorkflowOrchestrator {
    * @param parentCheckpoints map of parentNodeId to the checkpoint message to replay
    * @return a Mono that completes when the restarted execution finishes
    */
+  @SuppressWarnings("PMD.UseObjectForClearerAPI")
   public Mono<Void> restartFromNode(
       final String sessionId,
       final String workflowId,
@@ -222,6 +223,7 @@ public class WorkflowOrchestrator {
 
     final List<WorkflowNode> topologicalOrder = prepared.topologicalOrder();
     final int nodeCount = topologicalOrder.size();
+    @SuppressWarnings("PMD.UseConcurrentHashMap")
     final Map<String, Integer> nodeToIndex = new HashMap<>(nodeCount);
     for (int i = 0; i < nodeCount; i++) {
       nodeToIndex.put(topologicalOrder.get(i).nodeId(), i);

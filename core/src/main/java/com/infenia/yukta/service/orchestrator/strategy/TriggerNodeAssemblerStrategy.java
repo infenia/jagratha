@@ -39,6 +39,7 @@ import reactor.core.scheduler.Scheduler;
 @Component
 @Order(1)
 @RequiredArgsConstructor
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.LawOfDemeter"})
 public class TriggerNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   /** The task tracker service for tracking node execution. */

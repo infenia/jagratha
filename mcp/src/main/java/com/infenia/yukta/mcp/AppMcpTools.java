@@ -43,16 +43,25 @@ import reactor.core.publisher.Mono;
  */
 @Component
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.LongVariable", "PMD.UseObjectForClearerAPI"})
+@SuppressWarnings("PMD.UseObjectForClearerAPI")
 public class AppMcpTools {
 
   /** Description for session ID parameter. */
   private static final String SESSION_ID_DESC = "The unique identifier of the session";
 
+  /** Provides session information for MCP tools. */
   private final DefaultSessionInfoProvider sessionInfoProvider;
+
+  /** Provides log data for MCP tools. */
   private final DefaultLogProvider logProvider;
+
+  /** Provides workflow execution information for MCP tools. */
   private final DefaultWorkflowExecutionProvider workflowExecutionProvider;
+
+  /** Provides plugin information for MCP tools. */
   private final DefaultPluginInfoProvider pluginInfoProvider;
+
+  /** Provides system health information for MCP tools. */
   private final DefaultSystemHealthProvider systemHealthProvider;
 
   /**

@@ -29,8 +29,13 @@ import reactor.core.scheduler.Schedulers;
 /** Utility for SpEL expression evaluation and caching. */
 @UtilityClass
 public final class SpelUtils {
+  /** SpEL expression parser instance. */
   private static final ExpressionParser PARSER = new SpelExpressionParser();
+
+  /** Cache for parsed SpEL expressions. */
   private static final Map<String, Expression> CACHE = new ConcurrentHashMap<>();
+
+  /** Thread-local storage for SpEL evaluation contexts. */
   private static final ThreadLocal<StandardEvaluationContext> CONTEXT_HOLDER =
       ThreadLocal.withInitial(
           () -> {

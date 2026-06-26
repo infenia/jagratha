@@ -24,9 +24,17 @@ import tools.jackson.databind.ObjectMapper;
 
 /** Utility methods for working with Maps and nested structures. */
 @UtilityClass
+@SuppressWarnings({
+  "PMD.OnlyOneReturn",
+  "PMD.UseConcurrentHashMap",
+  "PMD.AvoidInstantiatingObjectsInLoops"
+})
 public class MapUtils {
 
+  /** ObjectMapper for converting objects to/from Maps. */
   private static final ObjectMapper MAPPER = new ObjectMapper();
+
+  /** Conversion service for type casting. */
   private static final DefaultConversionService CONV_SERVICE = new DefaultConversionService();
 
   /**

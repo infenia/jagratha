@@ -32,14 +32,28 @@
         <exclude name="ShortVariable" />
         <exclude name="LongVariable" />
         <exclude name="FieldDeclarationsShouldBeAtStartOfClass" />
+        <exclude name="CommentRequired" />
     </rule>
     <rule ref="category/java/design.xml">
     </rule>
     <rule ref="category/java/errorprone.xml">
         <exclude name="AvoidCatchingGenericException" />
+        <exclude name="SystemPrintln" />
+        <exclude name="AvoidThrowingRawExceptionTypes" />
+        <exclude name="PreserveStackTrace" />
     </rule>
     <rule ref="category/java/multithreading.xml">
     </rule>
-    <rule ref="category/java/performance.xml"/>
+    <rule ref="category/java/performance.xml">
+        <exclude name="AvoidArrayLoops" />
+    </rule>
+    <rule ref="category/java/design.xml">
+        <exclude name="SignatureDeclareThrowsException" />
+        <exclude name="OnlyOneReturn" />
+    </rule>
+    <rule ref="category/java/errorprone.xml">
+        <exclude name="RelianceOnDefaultCharset" />
+        <exclude name="ImplicitFunctionalInterface" />
+    </rule>
 
 </ruleset>

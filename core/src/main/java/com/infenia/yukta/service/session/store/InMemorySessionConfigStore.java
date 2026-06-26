@@ -43,6 +43,12 @@ import reactor.core.publisher.Mono;
 @Component
 @Validated
 @RequiredArgsConstructor
+@SuppressWarnings({
+  "PMD.TooManyMethods",
+  "PMD.LinguisticNaming",
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.UseConcurrentHashMap"
+})
 public class InMemorySessionConfigStore implements SessionConfigStore {
 
   /** The session configuration properties. */
@@ -55,7 +61,7 @@ public class InMemorySessionConfigStore implements SessionConfigStore {
   private final Map<String, SessionConfig> sessions = new ConcurrentHashMap<>();
 
   @PostConstruct
-  void logInitialization() {
+  /* default */ void logInitialization() {
     log.info("Using SessionConfigStore with type: in-memory");
   }
 

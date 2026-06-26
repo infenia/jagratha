@@ -19,6 +19,8 @@ import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import jakarta.annotation.PostConstruct;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -32,19 +34,20 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @ConditionalOnProperty(name = "yukta.session.store-type", havingValue = "in-memory")
 @Component
+@NoArgsConstructor
 public class InMemoryWorkflowDefinitionStore implements WorkflowDefinitionStore {
 
   /** Map of session ID to workflow ID to workflow definition. */
   private final Map<String, Map<String, WorkflowDefinition>> store = new ConcurrentHashMap<>();
 
   @PostConstruct
-  void logInitialization() {
+  /* default */ void logInitialization() {
     log.info("Using WorkflowDefinitionStore with type: in-memory");
   }
 
   @Override
   public Mono<Void> save(final String sessionId, final WorkflowDefinition definition) {
-    return Mono.<Void>fromRunnable(
+    return Mono.fromRunnable(
         () -> {
           store
               .computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>())
@@ -80,7 +83,7 @@ public class InMemoryWorkflowDefinitionStore implements WorkflowDefinitionStore 
 
   @Override
   public Mono<Void> remove(final String sessionId, final String workflowId) {
-    return Mono.<Void>fromRunnable(
+    return Mono.fromRunnable(
         () -> {
           final Map<String, WorkflowDefinition> session = store.get(sessionId);
           if (session != null) {
@@ -91,6 +94,6 @@ public class InMemoryWorkflowDefinitionStore implements WorkflowDefinitionStore 
 
   @Override
   public Mono<Void> removeAll(final String sessionId) {
-    return Mono.<Void>fromRunnable(() -> store.remove(sessionId));
+    return Mono.fromRunnable(() -> store.remove(sessionId));
   }
 }

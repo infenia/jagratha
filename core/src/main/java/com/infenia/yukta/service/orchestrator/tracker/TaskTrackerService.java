@@ -30,6 +30,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Service interface for tracking the progress of workflows and tasks. */
+@SuppressWarnings("PMD.UseObjectForClearerAPI")
 public interface TaskTrackerService {
 
   /**

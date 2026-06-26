@@ -39,21 +39,30 @@ import reactor.core.publisher.Sinks;
 /** In-memory implementation of ResequencerStore. */
 @Slf4j
 @Component
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.DoNotUseThreads", "PMD.LawOfDemeter"})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.LawOfDemeter"})
 public class InMemoryResequencerStore implements ResequencerStore {
 
+  /** Delay in milliseconds between cleanup operations. */
   private static final int CLEANUP_DELAY_MS = 100;
+
+  /** Initial capacity for the resequencer store map. */
   private static final int INITIAL_CAPACITY = 16;
+
+  /** Load factor for the LinkedHashMap backing the store. */
   private static final float LOAD_FACTOR = 0.75f;
 
+  /** Thread-safe map storing sequence states indexed by key. */
   private final Map<String, SequenceState> store =
       Collections.synchronizedMap(new LinkedHashMap<>(INITIAL_CAPACITY, LOAD_FACTOR, true));
 
+  /** Lock for synchronizing access to store during critical operations. */
   private final ReentrantLock lock = new ReentrantLock();
 
+  /** Reactive sink for broadcasting resequence results asynchronously. */
   private final Sinks.Many<ResequenceResult> asyncResults =
       Sinks.many().multicast().onBackpressureBuffer();
 
+  /** Scheduled executor for periodic cleanup of expired sequences. */
   private final ScheduledExecutorService scheduler =
       Executors.newSingleThreadScheduledExecutor(
           r -> {
@@ -216,10 +225,18 @@ public class InMemoryResequencerStore implements ResequencerStore {
     }
   }
 
+  /** Holds the state of an individual resequencing window. */
   private static class SequenceState {
+    /** The next expected sequence number to release. */
     private long nextExpected;
+
+    /** Timestamp of the last access or update. */
     private long lastAccessTime;
+
+    /** Configuration settings for this sequence. */
     private final ResequenceConfig config;
+
+    /** Ordered buffer of messages indexed by sequence number. */
     private final NavigableMap<Long, Message<?>> buffer = new TreeMap<>();
 
     /* default */ SequenceState(final ResequenceConfig config) {

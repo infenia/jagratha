@@ -35,8 +35,13 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class DefaultWorkflowExecutionProvider implements WorkflowExecutionProvider {
 
+  /** Service for executing workflows and managing their lifecycle. */
   private final WorkflowService workflowService;
+
+  /** Service for managing session state and configuration. */
   private final SessionService sessionService;
+
+  /** Service for tracking task progress and execution details. */
   private final TaskTrackerService trackerService;
 
   @Override

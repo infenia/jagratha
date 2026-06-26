@@ -45,13 +45,6 @@ dependencies {
     testImplementation(libs.awaitility)
 }
 
-tasks.withType<Test>().configureEach {
-    jvmArgs = listOf(
-        "-XX:+EnableDynamicAgentLoading",
-        "--add-opens=java.base/java.lang=ALL-UNNAMED"
-    )
-}
-
 // Coverage exceptions for modified/new components in this refactoring
 coverageConfig {
 }

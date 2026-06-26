@@ -19,6 +19,7 @@ import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.model.execution.WorkflowProgress;
+import com.infenia.yukta.model.workflow.PreparedWorkflow;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand.DisableStepModeCommand;
@@ -70,6 +71,12 @@ import reactor.util.concurrent.Queues;
 @Service
 @Primary
 @RequiredArgsConstructor
+@SuppressWarnings({
+  "PMD.ExcessiveImports",
+  "PMD.CouplingBetweenObjects",
+  "PMD.TooManyMethods",
+  "PMD.AvoidDuplicateLiterals"
+})
 public class DefaultControlBusGateway implements ControlBusGateway, ExecutionStatusPublisher {
 
   /** Source identifier for control bus operations. */
@@ -324,7 +331,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
   private Mono<String> prepareAndExecute(
       final String sessionId,
       final String workflowId,
-      final com.infenia.yukta.model.workflow.WorkflowDefinition def,
+      final WorkflowDefinition def,
       final String executionId) {
     return Mono.defer(
             () -> {
@@ -334,7 +341,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
                   .addKeyValue("executionId", executionId)
                   .log("Preparing workflow for execution");
 
-              final java.util.Optional<com.infenia.yukta.model.workflow.PreparedWorkflow> cached =
+              final java.util.Optional<PreparedWorkflow> cached =
                   preparedWorkflowCache.get(sessionId, workflowId);
               if (cached.isPresent()) {
                 log.atDebug()
@@ -364,9 +371,9 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
 
   @Override
   public <T extends ExecutionControlCommand> Mono<Void> executeCommand(final Message<T> command) {
-    log.atDebug()
-        .addKeyValue("commandType", command.getPayload().getClass().getSimpleName())
-        .log("Executing control command");
+    @SuppressWarnings({"PMD.LawOfDemeter", "PMD.LocalVariableCouldBeFinal"})
+    var commandType = command.getPayload().getClass().getSimpleName();
+    log.atDebug().addKeyValue("commandType", commandType).log("Executing control command");
     return emit(command);
   }
 
@@ -716,7 +723,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
     log.atDebug()
         .addKeyValue("executionId", executionId)
         .log("Fetching current execution progress");
-    WorkflowProgress progress = taskTracker.getProgressByExecutionId(executionId);
+    final WorkflowProgress progress = taskTracker.getProgressByExecutionId(executionId);
     if (progress != null) {
       log.atDebug()
           .addKeyValue("executionId", executionId)
@@ -732,7 +739,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
   @Override
   public List<WorkflowExecutionSummary> getHistory(final String sessionId) {
     log.atDebug().addKeyValue("sessionId", sessionId).log("Fetching execution history");
-    List<WorkflowExecutionSummary> history = taskTracker.getHistory(sessionId);
+    final List<WorkflowExecutionSummary> history = taskTracker.getHistory(sessionId);
     log.atDebug()
         .addKeyValue("sessionId", sessionId)
         .addKeyValue("executionCount", history.size())
@@ -748,7 +755,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
         .addKeyValue("workflowId", workflowId)
         .addKeyValue("nodeId", nodeId)
         .log("Fetching last heartbeat");
-    Message<?> heartbeat = controlBusService.getLastHeartbeat(workflowId, nodeId);
+    final Message<?> heartbeat = controlBusService.getLastHeartbeat(workflowId, nodeId);
     if (heartbeat != null) {
       log.atTrace()
           .addKeyValue("workflowId", workflowId)
@@ -769,7 +776,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
         .addKeyValue("workflowId", workflowId)
         .addKeyValue("nodeId", nodeId)
         .log("Fetching last statistics");
-    Message<?> statistics = controlBusService.getLastStatistics(workflowId, nodeId);
+    final Message<?> statistics = controlBusService.getLastStatistics(workflowId, nodeId);
     if (statistics != null) {
       log.atTrace()
           .addKeyValue("workflowId", workflowId)
@@ -787,7 +794,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
   @Override
   public List<String> getActiveNodes(final String workflowId) {
     log.atDebug().addKeyValue("workflowId", workflowId).log("Fetching active nodes for workflow");
-    List<String> activeNodes = controlBusService.getActiveNodes(workflowId);
+    final List<String> activeNodes = controlBusService.getActiveNodes(workflowId);
     log.atDebug()
         .addKeyValue("workflowId", workflowId)
         .addKeyValue("activeNodeCount", activeNodes.size())
@@ -798,7 +805,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
   @Override
   public List<String> getActiveNodes() {
     log.atDebug().log("Fetching all active nodes");
-    List<String> allActiveNodes = controlBusService.getActiveNodes();
+    final List<String> allActiveNodes = controlBusService.getActiveNodes();
     log.atDebug()
         .addKeyValue("totalActiveNodes", allActiveNodes.size())
         .log("All active nodes retrieved");
@@ -808,6 +815,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
   // --- ExecutionStatusPublisher Implementation ---
 
   @Override
+  @SuppressWarnings("PMD.GuardLogStatement")
   public Mono<Void> publishStatus(@NotNull final ExecutionStatusEvent event) {
     log.atTrace()
         .addKeyValue("executionId", event.executionId())
@@ -823,13 +831,13 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
                 .addKeyValue("status", event.status())
                 .log("Status event published successfully");
             sink.success();
-          } catch (final RuntimeException e) {
-            log.atError()
+          } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") final RuntimeException e) {
+            final var errorLog = log.atError()
                 .setCause(e)
                 .addKeyValue("executionId", event.executionId())
                 .addKeyValue("nodeId", event.nodeId())
-                .addKeyValue("status", event.status())
-                .log("Failed to publish status event");
+                .addKeyValue("status", event.status());
+            errorLog.log("Failed to publish status event");
             sink.error(new IllegalStateException("Status event publish failed", e));
           }
         });

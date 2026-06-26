@@ -51,7 +51,6 @@ import lombok.With;
  * @param workflowId the ID of the workflow context
  * @param <T> the type of the payload
  */
-@SuppressWarnings("PMD.ExcessivePublicCount")
 public record DefaultMessage<T>(
     @SuppressWarnings("PMD.ShortVariable") String id,
     @With String traceId,
