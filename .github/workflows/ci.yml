@@ -3,12 +3,8 @@ name: Java CI with Gradle
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - 'boot/**'
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'boot/**'
   schedule:
     - cron: '0 0 * * *' # 5:30 AM IST (00:00 UTC)
 
@@ -37,6 +33,10 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
+        with:
+          dependency-graph: disabled
+          validate-wrappers: false
+          cache-provider: enhanced
 
       - name: Build & Check (Boot)
         run: ./gradlew :boot:check
