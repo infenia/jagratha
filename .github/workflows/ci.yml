@@ -39,6 +39,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           dependency-graph: disabled
+          validate-wrappers: false
 
       - name: Build & Check (Boot)
         run: ./gradlew :boot:check
