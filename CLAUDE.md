@@ -19,10 +19,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Tech Stack
 
 - **Java 25**
-- **Spring Boot 4.0.3** - WebFlux for reactive non-blocking operations
-- **Gradle 9.6.0**
-- **GraalVM 25.0.2**
-- **JTE 3.2.3** + **Tailwind CSS 4**
+- **Spring Boot 4.0.2** - WebFlux for reactive non-blocking operations
+- **Gradle 9.0**
+- **GraalVM**
+- **JTE** + **Tailwind CSS 4**
 - **Project Reactor**
 
 ## Build & Development Commands
