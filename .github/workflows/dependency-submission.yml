@@ -27,6 +27,6 @@ jobs:
           distribution: 'temurin'
 
       - name: Generate dependency graph
-        uses: gradle/actions/dependency-submission@v3
+        uses: gradle/actions/dependency-submission@v4
         with:
           build-root-directory: '.'
