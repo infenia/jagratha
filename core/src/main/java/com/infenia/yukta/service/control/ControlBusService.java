@@ -143,38 +143,25 @@ public class ControlBusService {
         .publishOn(Schedulers.parallel())
         .bufferTimeout(batchSize, batchTimeout)
         .doOnSubscribe(
-            _ -> {
-              if (log.isDebugEnabled()) {
-                log.atDebug().log("Control bus consumer subscribed, starting batch processing");
-              }
-            })
+            _ -> log.atDebug().log("Control bus consumer subscribed, starting batch processing"))
         .concatMap(
             batch ->
                 Mono.fromRunnable(() -> handleControlBatch(batch))
                     .doOnSuccess(
-                        _ -> {
-                          if (log.isTraceEnabled()) {
+                        _ ->
                             log.atTrace()
                                 .addArgument(batch.size())
-                                .log("Processed control signal batch with {} messages");
-                          }
-                        })
+                                .log("Processed control signal batch with {} messages"))
                     .onErrorResume(
                         e -> {
-                          if (log.isErrorEnabled()) {
-                            log.atError()
-                                .addArgument(batch.size())
-                                .setCause(e)
-                                .log("Error processing control signal batch with {} messages");
-                          }
+                          log.atError()
+                              .addArgument(batch.size())
+                              .setCause(e)
+                              .log("Error processing control signal batch with {} messages");
                           return Mono.empty();
                         }))
         .doOnError(
-            e -> {
-              if (log.isErrorEnabled()) {
-                log.atError().setCause(e).log("Control bus consumer encountered fatal error");
-              }
-            })
+            e -> log.atError().setCause(e).log("Control bus consumer encountered fatal error"))
         .subscribe();
   }
 
@@ -184,28 +171,21 @@ public class ControlBusService {
    * @param signal the control signal message
    * @return a Mono that completes when the signal is emitted
    */
-  @SuppressWarnings("PMD.GuardLogStatement")
   public Mono<Void> emit(final Message<?> signal) {
     final Object payload = signal.getPayload();
     final String payloadType = payload != null ? payload.getClass().getSimpleName() : "null";
-    if (log.isTraceEnabled()) {
-      log.atTrace().addArgument(payloadType).log("Emitting control signal of type: {}");
-    }
+    log.atTrace().addArgument(payloadType).log("Emitting control signal of type: {}");
     return Mono.create(
         sink -> {
           try {
             controlSink.emitNext(signal, RETRY_HANDLER);
-            if (log.isDebugEnabled()) {
-              log.atDebug()
-                  .addArgument(signal.getSourceNodeId())
-                  .addArgument(signal.getWorkflowId())
-                  .log("Control signal emitted from node: {} in workflow: {}");
-            }
+            log.atDebug()
+                .addArgument(signal.getSourceNodeId())
+                .addArgument(signal.getWorkflowId())
+                .log("Control signal emitted from node: {} in workflow: {}");
             sink.success();
           } catch (final Exception e) {
-            if (log.isErrorEnabled()) {
-              log.atError().setCause(e).log("Failed to emit control signal to bus");
-            }
+            log.atError().setCause(e).log("Failed to emit control signal to bus");
             sink.error(new IllegalStateException("Control bus emit failed", e));
           }
         });
@@ -438,9 +418,7 @@ public class ControlBusService {
   }
 
   private void handleControlBatch(final List<Message<?>> batch) {
-    if (log.isTraceEnabled()) {
-      log.atTrace().addArgument(batch.size()).log("Processing control signal batch of size: {}");
-    }
+    log.atTrace().addArgument(batch.size()).log("Processing control signal batch of size: {}");
     final List<Message<?>> prioritized =
         batch.stream()
             .sorted(Comparator.comparingInt((final Message<?> m) -> m.getPriority()).reversed())
