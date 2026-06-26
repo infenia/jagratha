@@ -358,8 +358,7 @@ public class FileSessionConfigStore implements SessionConfigStore {
                   fileConfig.tags(),
                   fileConfig.description());
             })
-        .doOnNext(
-            config -> sessionCache.put(sessionId, config))
+        .doOnNext(config -> sessionCache.put(sessionId, config))
         .flatMap(Mono::just)
         .subscribeOn(Schedulers.boundedElastic());
   }

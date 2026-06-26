@@ -61,14 +61,14 @@ public class PreparedWorkflowCache {
             .expireAfterAccess(ttlMs, TimeUnit.MILLISECONDS)
             .recordStats()
             .removalListener(
-                (key, _, cause) -> log.atDebug()
-                    .addKeyValue("key", key)
-                    .addKeyValue("cause", cause)
-                    .log("Evicted compiled workflow"))
+                (key, _, cause) ->
+                    log.atDebug()
+                        .addKeyValue("key", key)
+                        .addKeyValue("cause", cause)
+                        .log("Evicted compiled workflow"))
             .build();
     log.atInfo().addKeyValue("ttlMs", ttlMs).log("Initialized PreparedWorkflowCache with Caffeine");
   }
-
 
   /** Shut down the cache and log statistics. */
   @PreDestroy

@@ -93,7 +93,6 @@ class PreparedWorkflowCacheTest {
     assertThat(cache.get("s1", "wf1")).contains(prepared);
   }
 
-
   @Test
   void invalidate_nonExistentKey_isNoOp() {
     assertThat(cache.get("s1", "wf1")).isEmpty();

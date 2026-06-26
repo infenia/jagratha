@@ -831,12 +831,15 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
                 .addKeyValue("status", event.status())
                 .log("Status event published successfully");
             sink.success();
-          } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") final RuntimeException e) {
-            final var errorLog = log.atError()
-                .setCause(e)
-                .addKeyValue("executionId", event.executionId())
-                .addKeyValue("nodeId", event.nodeId())
-                .addKeyValue("status", event.status());
+          } catch (
+              @SuppressWarnings("PMD.AvoidCatchingGenericException")
+              final RuntimeException e) {
+            final var errorLog =
+                log.atError()
+                    .setCause(e)
+                    .addKeyValue("executionId", event.executionId())
+                    .addKeyValue("nodeId", event.nodeId())
+                    .addKeyValue("status", event.status());
             errorLog.log("Failed to publish status event");
             sink.error(new IllegalStateException("Status event publish failed", e));
           }

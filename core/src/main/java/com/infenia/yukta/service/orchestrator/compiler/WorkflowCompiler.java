@@ -44,10 +44,7 @@ import reactor.core.scheduler.Scheduler;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({
-  "PMD.CouplingBetweenObjects",
-  "PMD.AvoidDuplicateLiterals"
-})
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.AvoidDuplicateLiterals"})
 public class WorkflowCompiler {
 
   /** Buffer size for workflow streams. */

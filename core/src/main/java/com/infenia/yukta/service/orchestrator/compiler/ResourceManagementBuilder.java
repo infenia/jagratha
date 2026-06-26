@@ -239,7 +239,9 @@ public class ResourceManagementBuilder {
         try {
           connectors.get(i).run();
           log.atDebug().addKeyValue("connectorIndex", i).log("Connector executed successfully");
-        } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") final Exception e) {
+        } catch (
+            @SuppressWarnings("PMD.AvoidCatchingGenericException")
+            final Exception e) {
           log.atError()
               .addKeyValue("connectorIndex", i)
               .addKeyValue("exception", e.getClass().getSimpleName())
@@ -282,7 +284,9 @@ public class ResourceManagementBuilder {
       try {
         disposable.dispose();
         disposed++;
-      } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") final Exception e) {
+      } catch (
+          @SuppressWarnings("PMD.AvoidCatchingGenericException")
+          final Exception e) {
         log.atError()
             .addKeyValue("exception", e.getClass().getSimpleName())
             .addKeyValue("disposedCount", disposed)
