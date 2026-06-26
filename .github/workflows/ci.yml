@@ -45,12 +45,5 @@ jobs:
           java -version
           javac -version
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          dependency-graph: disabled
-          validate-wrappers: false
-          cache-provider: enhanced
-
       - name: Build & Check (Boot)
         run: ./gradlew :boot:check
