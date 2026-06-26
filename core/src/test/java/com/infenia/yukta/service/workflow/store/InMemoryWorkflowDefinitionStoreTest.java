@@ -114,18 +114,11 @@ class InMemoryWorkflowDefinitionStoreTest {
 
   @Test
   void logInitializationExecutedOnBeanCreation()
-      throws InvocationTargetException, IllegalAccessException {
+      throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
     InMemoryWorkflowDefinitionStore newStore = new InMemoryWorkflowDefinitionStore();
 
-    Method logInitMethod = null;
-    for (Method method : InMemoryWorkflowDefinitionStore.class.getDeclaredMethods()) {
-      if ("logInitialization".equals(method.getName())) {
-        logInitMethod = method;
-        break;
-      }
-    }
-
-    assertThat(logInitMethod).isNotNull();
+    Method logInitMethod =
+        InMemoryWorkflowDefinitionStore.class.getDeclaredMethod("logInitialization");
     logInitMethod.setAccessible(true);
     logInitMethod.invoke(newStore);
 
