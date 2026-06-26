@@ -76,7 +76,6 @@ class WorkflowProgressTest {
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "COMPLETED", originalTasks, startTime, endTime);
 
-    assertTrue(progress.tasks() instanceof List);
     assertEquals(1, progress.tasks().size());
 
     org.junit.jupiter.api.Assertions.assertThrows(
