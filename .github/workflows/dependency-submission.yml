@@ -12,6 +12,9 @@ permissions:
 jobs:
   submit-gradle:
     runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: 25
+      JAVA_DISTRIB: temurin
     steps:
       - name: Checkout
         uses: actions/checkout@v4
