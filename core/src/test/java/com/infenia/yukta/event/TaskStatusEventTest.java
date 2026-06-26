@@ -224,7 +224,8 @@ class TaskStatusEventTest {
     assertTrue(event.nodeId() instanceof String);
     assertTrue(event.module() instanceof String);
     assertTrue(event.status() instanceof String);
-    assertTrue(event.metadata() instanceof Map);
+    assertNotNull(event.metadata());
+    assertEquals(metadata, event.metadata());
     assertTrue(event.timestamp() instanceof LocalDateTime);
   }
 }
