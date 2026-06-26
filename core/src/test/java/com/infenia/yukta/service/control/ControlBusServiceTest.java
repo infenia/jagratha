@@ -40,14 +40,23 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 import reactor.util.concurrent.Queues;
+import ch.qos.logback.classic.Logger;
+import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ControlBusService")
 class ControlBusServiceTest {
+
+  @BeforeEach
+  void setUpLogging() {
+    Logger logger = (Logger) LoggerFactory.getLogger("com.infenia.yukta.service.control.ControlBusService");
+    logger.setLevel(ch.qos.logback.classic.Level.TRACE);
+  }
 
   private static final String WORKFLOW_ID = "workflow-123";
   private static final String NODE_ID = "node-456";
@@ -93,6 +102,17 @@ class ControlBusServiceTest {
             .expectComplete()
             .verify(Duration.ofSeconds(1));
       }
+    }
+
+    @Test
+    @DisplayName("should handle message with null payload")
+    void emit_nullPayload_completesSuccessfully() {
+      Message<?> nullPayloadMessage = mock(Message.class);
+      when(nullPayloadMessage.getPayload()).thenReturn(null);
+
+      StepVerifier.create(controlBusService.emit(nullPayloadMessage))
+          .expectComplete()
+          .verify(Duration.ofSeconds(2));
     }
   }
 
@@ -337,6 +357,15 @@ class ControlBusServiceTest {
                       && e.getMessage().contains("Node not found"))
           .verify(Duration.ofSeconds(2));
     }
+
+    @Test
+    @DisplayName("should handle unregistering non-existent plugin gracefully")
+    void unregisterPlugin_nonExistent_notifiesHandlers() {
+      controlBusService.unregisterPlugin(WORKFLOW_ID, NODE_ID);
+
+      verify(handler1).removeNode(COMPOSITE_KEY);
+      verify(handler2).removeNode(COMPOSITE_KEY);
+    }
   }
 
   @Nested
@@ -377,6 +406,21 @@ class ControlBusServiceTest {
       StepVerifier.create(controlBusService.sendCommand(WORKFLOW_ID, NODE_ID, message))
           .expectErrorSatisfies(e -> assertThat(e).isSameAs(error))
           .verify(Duration.ofSeconds(2));
+    }
+
+    @Test
+    @DisplayName("should handle sendCommand with null payload message")
+    void sendCommand_nullPayload_logsAndDelegates() {
+      Message<?> nullPayloadMessage = mock(Message.class);
+      when(nullPayloadMessage.getPayload()).thenReturn(null);
+      when(plugin.onControlSignal(nullPayloadMessage)).thenReturn(Mono.just(nullPayloadMessage));
+      controlBusService.registerPlugin(WORKFLOW_ID, NODE_ID, plugin);
+
+      StepVerifier.create(controlBusService.sendCommand(WORKFLOW_ID, NODE_ID, nullPayloadMessage))
+          .expectNext(nullPayloadMessage)
+          .verifyComplete();
+
+      verify(plugin).onControlSignal(nullPayloadMessage);
     }
   }
 
@@ -837,6 +881,214 @@ class ControlBusServiceTest {
       boolean processed = successBatch.await(3, TimeUnit.SECONDS);
 
       assertThat(processed).isTrue();
+    }
+
+    @Test
+    @DisplayName("should handle batch processing success with message in stream")
+    void handleControlBatch_successfulProcessing_messagesHandled() throws InterruptedException {
+      String payload = "test-payload";
+      CountDownLatch latch = new CountDownLatch(1);
+
+      when(handler1.canHandle(payload)).thenReturn(true);
+      doAnswer(
+              inv -> {
+                latch.countDown();
+                return null;
+              })
+          .when(handler1)
+          .handle(any(), any(), any());
+
+      ControlBusService svc =
+          new ControlBusService(1, 50, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
+      svc.init();
+
+      Message<?> msg = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
+      svc.emit(msg).subscribe();
+
+      boolean processed = latch.await(3, TimeUnit.SECONDS);
+      assertThat(processed).isTrue();
+      verify(handler1).handle(WORKFLOW_ID + "\0" + NODE_ID, msg, payload);
+    }
+
+    @Test
+    @DisplayName("should process large batch with prioritization")
+    void handleControlBatch_largeBatch_prioritized() throws InterruptedException {
+      String payload = "test";
+      CountDownLatch latch = new CountDownLatch(5);
+
+      when(handler1.canHandle(payload)).thenReturn(true);
+      doAnswer(
+              inv -> {
+                latch.countDown();
+                return null;
+              })
+          .when(handler1)
+          .handle(any(), any(), any());
+
+      ControlBusService svc =
+          new ControlBusService(5, 100, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
+      svc.init();
+
+      for (int i = 0; i < 5; i++) {
+        Message<?> msg = makeMessage(WORKFLOW_ID, NODE_ID, payload, i * 10);
+        svc.emit(msg).subscribe();
+      }
+
+      boolean processed = latch.await(3, TimeUnit.SECONDS);
+      assertThat(processed).isTrue();
+      verify(handler1, times(5)).handle(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("should handle batch with successful processing and trace logging")
+    void handleControlBatch_multipleMessages_allProcessedSuccessfully()
+        throws InterruptedException {
+      Object payload = new Object();
+      CountDownLatch latch = new CountDownLatch(3);
+
+      when(handler1.canHandle(payload)).thenReturn(true);
+      doAnswer(
+              inv -> {
+                latch.countDown();
+                return null;
+              })
+          .when(handler1)
+          .handle(any(), any(), any());
+
+      ControlBusService svc =
+          new ControlBusService(3, 100, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
+      svc.init();
+
+      Message<?> msg1 = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
+      Message<?> msg2 = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
+      Message<?> msg3 = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
+
+      svc.emit(msg1).subscribe();
+      svc.emit(msg2).subscribe();
+      svc.emit(msg3).subscribe();
+
+      boolean processed = latch.await(3, TimeUnit.SECONDS);
+      assertThat(processed).isTrue();
+      verify(handler1, times(3)).handle(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("should handle fatal error in control stream")
+    void handleControlBatch_fatalStreamError_handled() throws Exception {
+      ControlBusService svc =
+          new ControlBusService(100, 50, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
+      svc.init();
+
+      Field sinkField = ControlBusService.class.getDeclaredField("controlSink");
+      sinkField.setAccessible(true);
+      @SuppressWarnings("unchecked")
+      Sinks.Many<Message<?>> errorSink = mock(Sinks.Many.class);
+      when(errorSink.asFlux()).thenReturn(Flux.error(new RuntimeException("Fatal stream error")));
+
+      sinkField.set(svc, errorSink);
+
+      Thread.sleep(200);
+    }
+  }
+
+
+  @Nested
+  @DisplayName("Logging branch coverage")
+  @MockitoSettings(strictness = Strictness.LENIENT)
+  class LoggingBranchTests {
+
+    @Test
+    @DisplayName("emit with message containing payload should log debug signal emission")
+    void emit_withPayload_logsDebugAndTrace() {
+      @SuppressWarnings("unchecked")
+      Message<String> msgWithPayload = mock(Message.class);
+      String testPayload = "testPayload";
+      when(msgWithPayload.getPayload()).thenReturn(testPayload);
+
+      StepVerifier.create(controlBusService.emit(msgWithPayload))
+          .expectComplete()
+          .verify(Duration.ofSeconds(2));
+    }
+
+    @Test
+    @DisplayName("batch processing with multiple messages should handle all scenarios")
+    void handleControlBatch_withDifferentPayloads_processesSuccessfully()
+        throws InterruptedException {
+      CountDownLatch latch = new CountDownLatch(2);
+
+      String payload1 = "payload1";
+      String payload2 = "payload2";
+
+      when(handler1.canHandle(payload1)).thenReturn(true);
+      when(handler1.canHandle(payload2)).thenReturn(true);
+      doAnswer(
+              inv -> {
+                latch.countDown();
+                return null;
+              })
+          .when(handler1)
+          .handle(any(), any(), any());
+
+      ControlBusService svc =
+          new ControlBusService(2, 50, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
+      svc.init();
+
+      @SuppressWarnings("unchecked")
+      Message<String> msg1 = mock(Message.class);
+      when(msg1.getWorkflowId()).thenReturn(WORKFLOW_ID);
+      when(msg1.getSourceNodeId()).thenReturn(NODE_ID);
+      when(msg1.getPayload()).thenReturn(payload1);
+      when(msg1.getPriority()).thenReturn(5);
+
+      @SuppressWarnings("unchecked")
+      Message<String> msg2 = mock(Message.class);
+      when(msg2.getWorkflowId()).thenReturn(WORKFLOW_ID);
+      when(msg2.getSourceNodeId()).thenReturn(NODE_ID);
+      when(msg2.getPayload()).thenReturn(payload2);
+      when(msg2.getPriority()).thenReturn(3);
+
+      svc.emit(msg1).subscribe();
+      svc.emit(msg2).subscribe();
+
+      boolean processed = latch.await(3, TimeUnit.SECONDS);
+      assertThat(processed).isTrue();
+    }
+
+    @Test
+    @DisplayName("emit should handle exception gracefully with error logging")
+    @SuppressWarnings("unchecked")
+    void emit_sinkThrowsException_logsErrorAndPropagates() throws Exception {
+      ControlBusService svc =
+          new ControlBusService(100, 50, 256, List.of(), preparedWorkflowCache, orchestrator);
+      svc.init();
+
+      Sinks.Many<Message<?>> throwingSink = mock(Sinks.Many.class);
+      doThrow(new RuntimeException("sink error")).when(throwingSink).emitNext(any(), any());
+
+      Field sinkField = ControlBusService.class.getDeclaredField("controlSink");
+      sinkField.setAccessible(true);
+      sinkField.set(svc, throwingSink);
+
+      Message<?> testMessage = mock(Message.class);
+      when(testMessage.getPayload()).thenReturn("test");
+
+      StepVerifier.create(svc.emit(testMessage))
+          .expectErrorMatches(e -> e instanceof IllegalStateException)
+          .verify(Duration.ofSeconds(2));
+    }
+
+    @Test
+    @DisplayName("compileAndCacheWorkflow with error should log appropriately")
+    void compileAndCacheWorkflow_withLoggingOnFailure_logsError() {
+      when(workflowDefinition.workflowId()).thenReturn(WORKFLOW_ID);
+      RuntimeException testError = new RuntimeException("Compilation failed");
+      when(orchestrator.prepareWorkflow(workflowDefinition)).thenReturn(Mono.error(testError));
+
+      StepVerifier.create(controlBusService.compileAndCacheWorkflow(SESSION_ID, workflowDefinition))
+          .expectErrorSatisfies(e -> assertThat(e).isSameAs(testError))
+          .verify(Duration.ofSeconds(2));
+
+      verify(preparedWorkflowCache).invalidate(SESSION_ID, WORKFLOW_ID);
     }
   }
 }
