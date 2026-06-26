@@ -27,6 +27,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -418,8 +419,10 @@ class InMemorySessionConfigStoreTest {
     }
 
     assertThat(logInitMethod).isNotNull();
-    logInitMethod.setAccessible(true);
-    logInitMethod.invoke(store);
+    Method safeLogInitMethod =
+        Objects.requireNonNull(logInitMethod, "Expected method logInitialization to exist");
+    safeLogInitMethod.setAccessible(true);
+    safeLogInitMethod.invoke(store);
 
     assertThat(store).isNotNull();
   }
