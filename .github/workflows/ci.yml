@@ -128,7 +128,7 @@ jobs:
 
           add_module_tasks() {
             local prefix="$1"
-            TASKS="$TASKS ${prefix}:build ${prefix}:spotlessCheck ${prefix}:check"
+            TASKS="$TASKS ${prefix}:spotlessCheck ${prefix}:build ${prefix}:check"
           }
 
           for module in $(echo "$CHANGED_MODULES" | jq -r '.[]'); do
@@ -138,6 +138,8 @@ jobs:
               "web")
                 add_module_tasks ":web" ;;
               "boot")
+                add_module_tasks ":boot" ;;
+              "root")
                 add_module_tasks ":boot" ;;
             esac
           done
