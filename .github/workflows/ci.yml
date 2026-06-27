@@ -107,9 +107,8 @@ jobs:
 
       - name: Full build (push to main / schedule / root change on PR)
         if: |
-#          github.event_name != 'pull_request' ||
-#          needs.changes.outputs.root == 'true'
-          false == true
+          github.event_name != 'pull_request' ||
+          needs.changes.outputs.root == 'true1'
         run: |
           echo "▶ Running full build"
           ./gradlew build spotlessCheck check
