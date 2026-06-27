@@ -95,7 +95,7 @@ jobs:
           gradle-version: wrapper
           # Enables submission of dependency graph to GitHub
           # Only submit on main branch to reduce noise
-          dependency-graph: generate-and-submit-only-on-success
+          dependency-graph: generate-submit-and-upload
           dependency-graph-continue-on-failure: true   # Don't fail build if submission fails
           cache-provider: enhanced                     # Default, best performance
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
