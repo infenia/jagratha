@@ -57,7 +57,7 @@ tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
     dependsOn(tasks.withType<JacocoReport>())
 
     onlyIf {
-        project.path == ":boot" && executionData.files.any { it.exists() }
+        executionData.files.any { it.exists() }
     }
 
     violationRules {
