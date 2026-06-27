@@ -1,6 +1,7 @@
 plugins {
     base
-    alias(libs.plugins.cyclonedx)
+    // CycloneDX disabled - incompatible with dependency locking in Gradle 9.0
+    // alias(libs.plugins.cyclonedx)
 }
 
 allprojects {
