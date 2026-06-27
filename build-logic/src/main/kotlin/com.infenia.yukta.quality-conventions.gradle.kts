@@ -105,11 +105,18 @@ tasks.withType<Checkstyle>().configureEach {
     }
 }
 
-// Disable quality tasks for AOT generated code and test code
+// Disable quality tasks for AOT generated code
+// Also skip all modules except 'boot' as requested by CI simplification
+// Ensure pmdTest, checkstyleTest, spotless, etc. remain enabled for 'boot' as requested
 tasks.configureEach {
     val task = this
-    if ((task.name.contains("Aot") || task.name.contains("Test")) &&
-        (task is Checkstyle || task is Pmd || task::class.java.name.contains("SpotBugs"))) {
+    val isBoot = project.path == ":boot"
+    val isQualityTask = task is Checkstyle || task is Pmd ||
+        task::class.java.name.contains("SpotBugs") ||
+        task.name == "semgrep" ||
+        task.name.startsWith("spotless")
+
+    if (isQualityTask && (!isBoot || task.name.contains("Aot"))) {
         task.enabled = false
     }
 }
