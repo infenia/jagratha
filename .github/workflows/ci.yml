@@ -34,7 +34,7 @@ jobs:
       modules: ${{ steps.filter.outputs.changes }}
       root: ${{ steps.filter.outputs.root }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Detect changed paths
         uses: dorny/paths-filter@v4
         id: filter
@@ -80,7 +80,7 @@ jobs:
       needs.changes.outputs.root == 'true' ||
       needs.changes.outputs.modules != '[]'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set up JDK 25
         uses: actions/setup-java@v5
@@ -153,7 +153,7 @@ jobs:
       # Upload test reports (helpful for debugging)
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports
           path: |
