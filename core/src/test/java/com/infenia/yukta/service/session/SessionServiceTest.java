@@ -25,6 +25,7 @@ import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.session.store.SessionConfigStore;
+import com.infenia.yukta.service.workflow.store.PreparedWorkflowCache;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ class SessionServiceTest {
   @Mock private SessionConfigStore configService;
   @Mock private ControlBusGateway controlBus;
   @Mock private WorkflowDefinitionStore workflowDefinitionStore;
+  @Mock private PreparedWorkflowCache preparedWorkflowCache;
 
   @Captor private ArgumentCaptor<SessionConfigData> configDataCaptor;
   @Captor private ArgumentCaptor<WorkflowDefinition> workflowCaptor;
@@ -53,7 +55,9 @@ class SessionServiceTest {
 
   @BeforeEach
   void setUp() {
-    sessionService = new SessionService(configService, controlBus, workflowDefinitionStore);
+    sessionService =
+        new SessionService(
+            configService, controlBus, workflowDefinitionStore, preparedWorkflowCache);
   }
 
   @Test

@@ -21,7 +21,6 @@ import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import com.infenia.yukta.model.workflow.WorkflowDefinition.Edge;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
 /** MapStruct mapper for converting between web DTOs and core domain session models. */
 @Mapper(componentModel = "spring")
@@ -45,11 +44,10 @@ public interface SessionMapper {
       WorkflowDefinitionRequest request);
 
   /**
-   * Map edge request to domain edge, applying default sourcePort value if null.
+   * Map edge request to domain edge.
    *
    * @param edgeRequest the edge request
-   * @return the domain edge with default sourcePort if necessary
+   * @return the domain edge
    */
-  @Mapping(target = "sourcePort", source = "sourcePort", defaultValue = "default")
   Edge edgeRequestToEdge(WorkflowDefinitionRequest.EdgeRequest edgeRequest);
 }

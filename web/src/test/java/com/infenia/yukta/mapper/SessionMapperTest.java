@@ -86,7 +86,7 @@ class SessionMapperTest {
     Edge result = mapper.edgeRequestToEdge(edgeRequest);
 
     assertThat(result).isNotNull();
-    assertThat(result.sourcePort()).isEqualTo("default");
+    assertThat(result.sourcePort()).isNull();
     assertThat(result.source()).isEqualTo("node-1");
     assertThat(result.target()).isEqualTo("node-2");
   }

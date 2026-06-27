@@ -94,7 +94,7 @@ class WorkflowPreparatorTest {
   void prepareWorkflow_twoNodes_oneEdge_buildsAdjacencyAndParentsCorrectly() {
     final Node n1 = new Node("n1", "type-a", Map.of());
     final Node n2 = new Node("n2", "type-b", Map.of());
-    final Edge edge = new Edge("n1", "n2", "default");
+    final Edge edge = new Edge("n1", "n2", null);
     final WorkflowDefinition def =
         new WorkflowDefinition("wf2", "two-node flow", List.of(n1, n2), List.of(edge));
 
@@ -116,7 +116,7 @@ class WorkflowPreparatorTest {
               final WorkflowEdge we = pw.edges().get(0);
               assertThat(we.source()).isEqualTo("n1");
               assertThat(we.target()).isEqualTo("n2");
-              assertThat(we.sourcePort()).isEqualTo("default");
+              assertThat(we.sourcePort()).isNull();
               assertThat(pw.adjacencyList().get("n1")).anyMatch(n -> "n2".equals(n.nodeId()));
               assertThat(pw.parentsList().get("n2")).anyMatch(n -> "n1".equals(n.nodeId()));
               assertThat(pw.pluginCache()).hasSize(2);
