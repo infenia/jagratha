@@ -111,7 +111,7 @@ jobs:
           needs.changes.outputs.root == 'true'
         run: |
           echo "▶ Running full build"
-          ./gradlew boot:build boot:spotlessCheck boot:check
+          ./gradlew boot:build
 
       - name: Partial build (PR — only changed modules)
         if: |
@@ -127,7 +127,7 @@ jobs:
 
           add_module_tasks() {
             local prefix="$1"
-            TASKS="$TASKS ${prefix}:spotlessCheck ${prefix}:build ${prefix}:check"
+            TASKS="$TASKS ${prefix}:build"
           }
 
           for module in $(echo "$CHANGED_MODULES" | jq -r '.[]'); do
