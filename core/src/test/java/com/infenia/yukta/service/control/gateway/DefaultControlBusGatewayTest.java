@@ -1864,8 +1864,8 @@ class DefaultControlBusGatewayTest {
   }
 
   @Test
-  void startWorkflow_orchestratorExecuteFailure_propagatesError() {
-    // Given
+  void startWorkflow_orchestratorExecuteFailure_returnsExecutionIdAndRunsAsync() {
+    // Given - orchestrator execute errors are now handled asynchronously
     String sessionId = "sess-exec-fail";
     String workflowId = "wf-exec-fail";
     WorkflowDefinition definition =
@@ -1880,11 +1880,13 @@ class DefaultControlBusGatewayTest {
             eq(sessionId), eq(workflowId), anyString(), eq(preparedWorkflow), anyMap()))
         .thenReturn(Mono.error(testError));
 
-    // When
+    // When - execution starts asynchronously, so we get execution ID immediately
     Mono<String> result = gateway.startWorkflow(sessionId, workflowId);
 
-    // Then
-    StepVerifier.create(result).expectError(RuntimeException.class).verify();
+    // Then - returns execution ID without waiting for execution to complete
+    StepVerifier.create(result)
+        .expectNextMatches(id -> id != null && !id.isEmpty())
+        .verifyComplete();
   }
 
   @Test
