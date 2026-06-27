@@ -3,20 +3,24 @@ name: Java CI with Gradle
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - 'boot/**'
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'boot/**'
   schedule:
     - cron: '0 0 * * *' # 5:30 AM IST (00:00 UTC)
+
+# Optional: concurrency to cancel in-progress runs on the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+# Explicit permissions - required for Dependency Graph
 permissions:
-  contents: write
+  contents: write        # Required to submit dependency graph
+  checks: write          # For test results
+  pull-requests: write   # Optional but useful
 
 jobs:
   # ─────────────────────────────────────────────
@@ -87,7 +91,19 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
-          dependency-graph: generate-and-submit
+          # Use the exact Gradle version from your wrapper
+          gradle-version: wrapper
+          # Enables submission of dependency graph to GitHub
+          # Only submit on main branch to reduce noise
+          dependency-graph: generate-and-submit-only-on-success
+          dependency-graph-continue-on-failure: true   # Don't fail build if submission fails
+          cache-provider: enhanced                     # Default, best performance
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          # Build reporting (very useful)
+          build-scan-publish: true
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Full build (push to main / schedule / root change on PR)
         if: |
@@ -131,3 +147,14 @@ jobs:
           else
             echo "▶ No module tasks matched — nothing to build"
           fi
+
+      # Upload test reports (helpful for debugging)
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/
+          retention-days: 1
