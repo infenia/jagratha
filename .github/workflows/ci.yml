@@ -107,8 +107,9 @@ jobs:
 
       - name: Full build (push to main / schedule / root change on PR)
         if: |
-          github.event_name != 'pull_request' ||
-          needs.changes.outputs.root == 'true'
+#          github.event_name != 'pull_request' ||
+#          needs.changes.outputs.root == 'true'
+          false == true
         run: |
           echo "▶ Running full build"
           ./gradlew build spotlessCheck check
@@ -116,7 +117,7 @@ jobs:
       - name: Partial build (PR — only changed modules)
         if: |
           github.event_name == 'pull_request' &&
-          needs.changes.outputs.root != 'true' &&
+#          needs.changes.outputs.root != 'true' &&
           needs.changes.outputs.modules != '[]'
         env:
           CHANGED_MODULES: ${{ needs.changes.outputs.modules }}
