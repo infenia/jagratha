@@ -111,12 +111,12 @@ jobs:
           needs.changes.outputs.root == 'true'
         run: |
           echo "▶ Running full build"
-          ./gradlew build spotlessCheck check
+          ./gradlew boot:build boot:spotlessCheck boot:check
 
       - name: Partial build (PR — only changed modules)
         if: |
           github.event_name == 'pull_request' &&
-#          needs.changes.outputs.root != 'true' &&
+          needs.changes.outputs.root != 'true' &&
           needs.changes.outputs.modules != '[]'
         env:
           CHANGED_MODULES: ${{ needs.changes.outputs.modules }}
