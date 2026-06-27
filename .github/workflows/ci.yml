@@ -105,6 +105,18 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Verify dependency lock files are up-to-date
+        run: |
+          echo "▶ Checking if lock files need updating..."
+          ./gradlew dependencies --write-locks --no-configuration-cache --dry-run
+          if ! git diff --exit-code gradle.lockfile "**/gradle.lockfile" 2>/dev/null; then
+            echo "❌ Lock files are out of date."
+            echo "Run locally: ./gradlew dependencies --write-locks --no-configuration-cache"
+            echo "Then commit the updated gradle.lockfile files."
+            exit 1
+          fi
+          echo "✓ Lock files are current"
+
       - name: Full build (push to main / schedule / root change on PR)
         if: |
           github.event_name != 'pull_request' ||
