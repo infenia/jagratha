@@ -108,10 +108,12 @@ jobs:
       - name: Verify dependency lock files are up-to-date
         run: |
           echo "▶ Checking if lock files need updating..."
-          ./gradlew dependencies --write-locks --no-configuration-cache --dry-run
+          # Use boot:compileAotJava to force resolution of all Spring Boot AOT dependencies
+          # including error-prone which is dynamically resolved at AOT compile time
+          ./gradlew boot:compileAotJava --write-locks --no-configuration-cache --dry-run 2>/dev/null || true
           if ! git diff --exit-code gradle.lockfile "**/gradle.lockfile" 2>/dev/null; then
             echo "❌ Lock files are out of date."
-            echo "Run locally: ./gradlew dependencies --write-locks --no-configuration-cache"
+            echo "Run locally: ./gradlew boot:compileAotJava --write-locks --no-configuration-cache"
             echo "Then commit the updated gradle.lockfile files."
             exit 1
           fi
