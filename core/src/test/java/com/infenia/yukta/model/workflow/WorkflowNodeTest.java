@@ -21,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 
 /** Unit tests for {@link WorkflowNode}. */

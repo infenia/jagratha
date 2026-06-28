@@ -23,6 +23,8 @@ import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import java.util.List;
 import java.util.Map;
+
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

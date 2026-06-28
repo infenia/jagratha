@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 
 @NoArgsConstructor
