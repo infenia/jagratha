@@ -15,15 +15,13 @@
  */
 package com.infenia.yukta.event;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @NoArgsConstructor
 class WorkflowLogEventTest {
@@ -145,9 +143,9 @@ class WorkflowLogEventTest {
 
   @Test
   void create_timestampIsApproximatelyNow() {
-    LocalDateTime before = LocalDateTime.now();
+    LocalDateTime before = LocalDateTime.now(ZoneId.systemDefault());
     WorkflowLogEvent event = WorkflowLogEvent.create("exec1", "log message");
-    LocalDateTime after = LocalDateTime.now();
+    LocalDateTime after = LocalDateTime.now(ZoneId.systemDefault());
 
     assertTrue(
         !event.timestamp().isBefore(before.minusSeconds(1))
@@ -159,9 +157,9 @@ class WorkflowLogEventTest {
     LocalDateTime timestamp = LocalDateTime.of(2026, 6, 21, 10, 30, 0);
     WorkflowLogEvent event = new WorkflowLogEvent("exec1", "line", timestamp);
 
-    assertTrue(event.executionId() instanceof String);
-    assertTrue(event.line() instanceof String);
-    assertTrue(event.timestamp() instanceof LocalDateTime);
+      assertInstanceOf(String.class, event.executionId());
+      assertInstanceOf(String.class, event.line());
+      assertInstanceOf(LocalDateTime.class, event.timestamp());
   }
 
   @Test

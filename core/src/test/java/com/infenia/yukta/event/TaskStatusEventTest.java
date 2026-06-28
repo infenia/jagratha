@@ -15,18 +15,15 @@
  */
 package com.infenia.yukta.event;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @NoArgsConstructor
 class TaskStatusEventTest {
@@ -59,7 +56,7 @@ class TaskStatusEventTest {
 
   @Test
   void directConstructor_withValidMetadata_createsEvent() {
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     Map<String, Object> metadata = Map.of("key1", "val1");
     TaskStatusEvent event =
         new TaskStatusEvent("exec2", "node2", "module2", "PENDING", metadata, now);
@@ -74,7 +71,7 @@ class TaskStatusEventTest {
 
   @Test
   void directConstructor_withNullMetadata_normalizesToEmptyMap() {
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     TaskStatusEvent event = new TaskStatusEvent("exec3", "node3", "module3", "RUNNING", null, now);
 
     assertEquals("exec3", event.executionId());
@@ -196,10 +193,10 @@ class TaskStatusEventTest {
 
   @Test
   void create_timestampIsApproximatelyNow() {
-    LocalDateTime before = LocalDateTime.now();
+    LocalDateTime before = LocalDateTime.now(ZoneId.systemDefault());
     TaskStatusEvent event =
         TaskStatusEvent.create("exec1", "node1", "module1", "SUCCESS", Map.of("key", "value"));
-    LocalDateTime after = LocalDateTime.now();
+    LocalDateTime after = LocalDateTime.now(ZoneId.systemDefault());
 
     assertTrue(
         !event.timestamp().isBefore(before.minusSeconds(1))
@@ -223,12 +220,12 @@ class TaskStatusEventTest {
     TaskStatusEvent event =
         new TaskStatusEvent("exec1", "node1", "module1", "SUCCESS", metadata, timestamp);
 
-    assertTrue(event.executionId() instanceof String);
-    assertTrue(event.nodeId() instanceof String);
-    assertTrue(event.module() instanceof String);
-    assertTrue(event.status() instanceof String);
+      assertInstanceOf(String.class, event.executionId());
+      assertInstanceOf(String.class, event.nodeId());
+      assertInstanceOf(String.class, event.module());
+      assertInstanceOf(String.class, event.status());
     assertNotNull(event.metadata());
     assertEquals(metadata, event.metadata());
-    assertTrue(event.timestamp() instanceof LocalDateTime);
+      assertInstanceOf(LocalDateTime.class, event.timestamp());
   }
 }

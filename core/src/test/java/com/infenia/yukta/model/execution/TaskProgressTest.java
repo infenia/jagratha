@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -70,7 +71,7 @@ class TaskProgressTest {
     // Given
     String nodeId = "node-1";
     Map<String, Object> metadata = Map.of("key1", "value1", "key2", 42);
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
     // When
     TaskProgress progress = new TaskProgress(nodeId, "processor", "RUNNING", now, now, metadata);
@@ -85,7 +86,7 @@ class TaskProgressTest {
     String nodeId = "node-1";
     Map<String, Object> originalMetadata = new HashMap<>();
     originalMetadata.put("key1", "value1");
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     TaskProgress progress =
         new TaskProgress(nodeId, "processor", "RUNNING", now, now, originalMetadata);
 
@@ -102,7 +103,7 @@ class TaskProgressTest {
     // Given
     String nodeId = "node-1";
     Map<String, Object> metadata = Map.of();
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
     // When
     TaskProgress progress = new TaskProgress(nodeId, "processor", "RUNNING", now, now, metadata);
@@ -194,7 +195,7 @@ class TaskProgressTest {
   @Test
   void metadata_whenStored_isImmutable() {
     // Given
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     TaskProgress progress =
         new TaskProgress("node-1", "processor", "RUNNING", now, now, Map.of("key", "value"));
 

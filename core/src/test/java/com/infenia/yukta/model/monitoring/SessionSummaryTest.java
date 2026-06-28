@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,7 +31,7 @@ class SessionSummaryTest {
 
   @Test
   void shouldCreateSessionSummaryWithAllFields() {
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     Map<String, String> tags = Map.of("env", "prod");
     SessionSummary summary =
         new SessionSummary("s1", "user1", "2026-03-10T10:00:00Z", now, "desc", tags);
@@ -63,7 +64,7 @@ class SessionSummaryTest {
 
   @Test
   void testEqualsAndHashCode() {
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     Map<String, String> tags = Map.of("a", "b");
     SessionSummary s1 = new SessionSummary("id", "init", "time", now, "desc", tags);
     SessionSummary s2 = new SessionSummary("id", "init", "time", now, "desc", tags);
