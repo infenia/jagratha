@@ -212,8 +212,8 @@ class HeartbeatBuilderTest {
   @Test
   @DisplayName("statistics interval defaults to 2x heartbeat when not explicitly set")
   void testBuild_statisticsDefaultsTo2xHeartbeat_whenStatsNotExplicitlySet() {
-    Duration customHB = Duration.ofMillis(300);
-    builder.forNodes("workflow-1", List.of("node-1")).withHeartbeatInterval(customHB);
+    Duration customHeartbeatBuilder = Duration.ofMillis(300);
+    builder.forNodes("workflow-1", List.of("node-1")).withHeartbeatInterval(customHeartbeatBuilder);
     List<Disposable> disposables = builder.build();
 
     assertThat(disposables).hasSize(2);

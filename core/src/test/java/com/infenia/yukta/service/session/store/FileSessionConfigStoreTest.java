@@ -225,7 +225,8 @@ class FileSessionConfigStoreTest {
     // Create file with empty metadata
     Files.writeString(
         sessionsDir.resolve(sessionId + ".json"),
-        "{\"projectPath\":\"\",\"description\":\"\",\"initiator\":\"\",\"initiatedTime\":\"\",\"tags\":{}}");
+        "{\"projectPath\":\"\",\"description\":\"\",\"initiator\":"
+            + "\"\",\"initiatedTime\":\"\",\"tags\":{}}");
 
     String newDesc = "New Description";
     StepVerifier.create(configStore.setDescription(sessionId, newDesc)).verifyComplete();

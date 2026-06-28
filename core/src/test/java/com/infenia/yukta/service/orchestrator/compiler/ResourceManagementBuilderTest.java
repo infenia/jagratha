@@ -407,14 +407,15 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderFluentMethods() {
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
     // Test that fluent methods return the builder itself
-    ResourceManagementBuilder builder2 = builder.withDisposables(new ArrayList<>());
-    ResourceManagementBuilder builder3 = builder2.withTerminals(new ArrayList<>());
-    ResourceManagementBuilder builder4 = builder3.withConnectors(new ArrayList<>());
-    ResourceManagementBuilder builder5 = builder4.withExecutionTimeout("session-001", "exec-001");
+    final ResourceManagementBuilder builder2 = builder.withDisposables(new ArrayList<>());
+    final ResourceManagementBuilder builder3 = builder2.withTerminals(new ArrayList<>());
+    final ResourceManagementBuilder builder4 = builder3.withConnectors(new ArrayList<>());
+    final ResourceManagementBuilder builder5 =
+        builder4.withExecutionTimeout("session-001", "exec-001");
 
     // All should be the same instance
     assertSame(builder, builder2);
@@ -452,11 +453,11 @@ class ResourceManagementBuilderTest {
     ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = List.of(Mono.error(new RuntimeException("Terminal failed")));
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = List.of(Mono.error(new RuntimeException("Terminal failed")));
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)

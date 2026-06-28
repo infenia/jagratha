@@ -405,9 +405,9 @@ class InMemorySessionConfigStoreTest {
     props.setResultLogSubDir("results");
     props.setExecutionTimeoutSeconds(3600L);
 
-    WorkflowDefinitionStore workflowDefinitionStore =
+    final WorkflowDefinitionStore workflowDefinitionStore =
         org.mockito.Mockito.mock(WorkflowDefinitionStore.class);
-    InMemorySessionConfigStore store =
+    final InMemorySessionConfigStore store =
         new InMemorySessionConfigStore(props, workflowDefinitionStore);
 
     Method logInitMethod = null;

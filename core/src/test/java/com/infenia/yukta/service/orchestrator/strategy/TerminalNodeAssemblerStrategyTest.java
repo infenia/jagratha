@@ -139,7 +139,7 @@ class TerminalNodeAssemblerStrategyTest {
 
     final WorkflowNode node = new WorkflowNode(NODE_ID, "terminal", Map.of());
     final Flux<Message<?>> parentStream = Flux.just(msg);
-    final AssemblyContext context = buildContext(NODE_ID, parentStream);
+    final AssemblyContext context = buildContext(parentStream);
 
     when(streamTopologyDecorator.mergeParentStreams(any(), any(ParentEdgeInfo[].class)))
         .thenReturn(parentStream);
@@ -160,7 +160,7 @@ class TerminalNodeAssemblerStrategyTest {
     when(terminal.isBlocking()).thenReturn(false);
 
     final WorkflowNode node = new WorkflowNode(NODE_ID, "terminal", Map.of());
-    final AssemblyContext context = buildContext(NODE_ID, Flux.just(msg));
+    final AssemblyContext context = buildContext(Flux.just(msg));
 
     when(streamTopologyDecorator.mergeParentStreams(any(), any(ParentEdgeInfo[].class)))
         .thenReturn(Flux.just(msg));
@@ -170,7 +170,7 @@ class TerminalNodeAssemblerStrategyTest {
             node, terminal, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
     assembler.assemble(context);
 
-    StepVerifier.create(context.terminals().get(0)).verifyComplete();
+    StepVerifier.create(context.terminals().getFirst()).verifyComplete();
 
     verify(tracker, atLeastOnce())
         .emitTaskStatusEvent(eq(EXECUTION_ID), eq(NODE_ID), anyString(), anyString(), any());
@@ -185,7 +185,7 @@ class TerminalNodeAssemblerStrategyTest {
 
     final WorkflowNode node = new WorkflowNode(NODE_ID, "terminal", Map.of());
     final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "data");
-    final AssemblyContext context = buildContext(NODE_ID, Flux.just(msg));
+    final AssemblyContext context = buildContext(Flux.just(msg));
 
     when(streamTopologyDecorator.mergeParentStreams(any(), any(ParentEdgeInfo[].class)))
         .thenReturn(Flux.just(msg));
@@ -195,7 +195,7 @@ class TerminalNodeAssemblerStrategyTest {
             node, terminal, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
     assembler.assemble(context);
 
-    StepVerifier.create(context.terminals().get(0)).verifyError(RuntimeException.class);
+    StepVerifier.create(context.terminals().getFirst()).verifyError(RuntimeException.class);
 
     verify(tracker, atLeastOnce())
         .emitTaskStatusEvent(eq(EXECUTION_ID), eq(NODE_ID), anyString(), eq("FAILURE"), any());
@@ -209,7 +209,7 @@ class TerminalNodeAssemblerStrategyTest {
     when(terminal.isBlocking()).thenReturn(true);
 
     final WorkflowNode node = new WorkflowNode(NODE_ID, "terminal", Map.of());
-    final AssemblyContext context = buildContext(NODE_ID, Flux.just(msg));
+    final AssemblyContext context = buildContext(Flux.just(msg));
 
     when(streamTopologyDecorator.mergeParentStreams(any(), any(ParentEdgeInfo[].class)))
         .thenReturn(Flux.just(msg));
@@ -220,7 +220,7 @@ class TerminalNodeAssemblerStrategyTest {
     assembler.assemble(context);
 
     assertThat(context.terminals()).hasSize(1);
-    StepVerifier.create(context.terminals().get(0)).verifyComplete();
+    StepVerifier.create(context.terminals().getFirst()).verifyComplete();
   }
 
   @Test
@@ -238,7 +238,7 @@ class TerminalNodeAssemblerStrategyTest {
     when(terminal.isBlocking()).thenReturn(false);
 
     final WorkflowNode node = new WorkflowNode(NODE_ID, "terminal", Map.of());
-    final AssemblyContext context = buildContext(NODE_ID, Flux.just(msg));
+    final AssemblyContext context = buildContext(Flux.just(msg));
 
     when(streamTopologyDecorator.mergeParentStreams(any(), any(ParentEdgeInfo[].class)))
         .thenReturn(Flux.just(msg));
@@ -249,7 +249,7 @@ class TerminalNodeAssemblerStrategyTest {
     assembler.assemble(context);
 
     final Mono<Void> terminalMono =
-        context.terminals().get(0).contextWrite(Context.of("resultCollector", collector));
+        context.terminals().getFirst().contextWrite(Context.of("resultCollector", collector));
 
     StepVerifier.create(terminalMono).verifyComplete();
 
@@ -269,7 +269,7 @@ class TerminalNodeAssemblerStrategyTest {
     when(terminal.isBlocking()).thenReturn(false);
 
     final WorkflowNode node = new WorkflowNode(NODE_ID, "terminal", Map.of());
-    final AssemblyContext context = buildContext(NODE_ID, Flux.just(msg));
+    final AssemblyContext context = buildContext(Flux.just(msg));
 
     when(streamTopologyDecorator.mergeParentStreams(any(), any(ParentEdgeInfo[].class)))
         .thenReturn(Flux.just(msg));
@@ -279,7 +279,7 @@ class TerminalNodeAssemblerStrategyTest {
             node, terminal, Duration.ofSeconds(5), 0, 1024, new ParentEdgeInfo[0]);
     assembler.assemble(context);
 
-    StepVerifier.create(context.terminals().get(0)).verifyComplete();
+    StepVerifier.create(context.terminals().getFirst()).verifyComplete();
   }
 
   @Test
@@ -296,7 +296,7 @@ class TerminalNodeAssemblerStrategyTest {
     };
     @SuppressWarnings("unchecked")
     final Flux<Message<?>>[] streams = new Flux[] {Flux.just(msg1), Flux.just(msg2), null};
-    final AssemblyContext context = buildContextWithStreams(NODE_ID, streams);
+    final AssemblyContext context = buildContextWithStreams(streams);
 
     when(streamTopologyDecorator.mergeParentStreams(any(), any(ParentEdgeInfo[].class)))
         .thenReturn(Flux.just(msg1, msg2));
@@ -324,7 +324,7 @@ class TerminalNodeAssemblerStrategyTest {
 
     @SuppressWarnings("unchecked")
     final Flux<Message<?>>[] streams = new Flux[2];
-    final AssemblyContext context = buildContextWithStreams(NODE_ID, streams);
+    final AssemblyContext context = buildContextWithStreams(streams);
 
     final NodeAssembler a1 =
         strategy.createAssembler(
@@ -351,7 +351,7 @@ class TerminalNodeAssemblerStrategyTest {
     when(terminal.isBlocking()).thenReturn(false);
 
     final WorkflowNode node = new WorkflowNode(NODE_ID, "terminal", Map.of());
-    final AssemblyContext context = buildContext(NODE_ID, Flux.just(msg));
+    final AssemblyContext context = buildContext(Flux.just(msg));
 
     when(streamTopologyDecorator.mergeParentStreams(any(), any(ParentEdgeInfo[].class)))
         .thenReturn(Flux.just(msg));
@@ -369,13 +369,12 @@ class TerminalNodeAssemblerStrategyTest {
   // ── helpers ───────────────────────────────────────────────────────────────
 
   @SuppressWarnings("unchecked")
-  private AssemblyContext buildContext(final String nodeId, final Flux<Message<?>> parentStream) {
+  private AssemblyContext buildContext(final Flux<Message<?>> parentStream) {
     final Flux<Message<?>>[] streams = new Flux[] {parentStream};
-    return buildContextWithStreams(nodeId, streams);
+    return buildContextWithStreams(streams);
   }
 
-  private AssemblyContext buildContextWithStreams(
-      final String nodeId, @SuppressWarnings("unchecked") final Flux<Message<?>>[] streams) {
+  private AssemblyContext buildContextWithStreams(final Flux<Message<?>>[] streams) {
     final ExecutionControl control =
         new ExecutionControl(
             SESSION_ID,

@@ -93,7 +93,7 @@ class LogRetrievalServiceTest {
   }
 
   @Test
-  void testListLogsNotADirectory() throws IOException {
+  void testListLogsNotaDirectory() throws IOException {
     String sessionId = "s1";
     Path resultsDir = tempDir.resolve("results-not-dir");
     Files.createDirectories(resultsDir);
@@ -106,7 +106,7 @@ class LogRetrievalServiceTest {
   }
 
   @Test
-  void testListLogsIOException() throws Exception {
+  void testListLogsIoException() throws Exception {
     String sessionId = "s1";
     Path resultsDir = tempDir.resolve("results-io");
     Files.createDirectories(resultsDir.resolve(sessionId));

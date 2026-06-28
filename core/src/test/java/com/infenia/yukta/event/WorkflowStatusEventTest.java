@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import org.junit.jupiter.api.Test;
 
 class WorkflowStatusEventTest {
@@ -37,9 +38,9 @@ class WorkflowStatusEventTest {
 
   @Test
   void create_validInputs_returnsEventWithCurrentTimestamp() {
-    LocalDateTime before = LocalDateTime.now();
-    WorkflowStatusEvent event = WorkflowStatusEvent.create("exec1", "STARTED");
-    LocalDateTime after = LocalDateTime.now();
+    final LocalDateTime before = LocalDateTime.now(ZoneId.systemDefault());
+    final WorkflowStatusEvent event = WorkflowStatusEvent.create("exec1", "STARTED");
+    final LocalDateTime after = LocalDateTime.now(ZoneId.systemDefault());
 
     assertEquals("exec1", event.executionId());
     assertEquals("STARTED", event.status());
@@ -144,9 +145,9 @@ class WorkflowStatusEventTest {
     LocalDateTime timestamp = LocalDateTime.of(2026, 6, 21, 10, 30, 0);
     WorkflowStatusEvent event = new WorkflowStatusEvent("exec1", "COMPLETED", timestamp);
 
-    assertTrue(event.executionId() instanceof String);
-    assertTrue(event.status() instanceof String);
-    assertTrue(event.timestamp() instanceof LocalDateTime);
+    assertNotNull(event.executionId());
+    assertNotNull(event.status());
+    assertNotNull(event.timestamp());
   }
 
   @Test

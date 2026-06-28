@@ -29,19 +29,19 @@ class WorkflowNodeTest {
   @Test
   void testConstructorAndGetters() {
     // Test with null config
-    WorkflowNode node1 = new WorkflowNode("node1", "type1", null);
+    final WorkflowNode node1 = new WorkflowNode("node1", "type1", null);
     assertEquals("node1", node1.nodeId());
     assertEquals("type1", node1.type());
     assertTrue(node1.config().isEmpty());
 
     // Test with empty config
-    WorkflowNode node2 = new WorkflowNode("node2", "type2", Map.of());
+    final WorkflowNode node2 = new WorkflowNode("node2", "type2", Map.of());
     assertEquals("node2", node2.nodeId());
     assertEquals("type2", node2.type());
     assertTrue(node2.config().isEmpty());
 
     // Test with populated config
-    Map<String, Object> config = new HashMap<>();
+    final Map<String, Object> config = new HashMap<>();
     config.put("key1", "value1");
     config.put("key2", 42);
     WorkflowNode node3 = new WorkflowNode("node3", "type3", config);
@@ -58,15 +58,15 @@ class WorkflowNodeTest {
 
   @Test
   void testEqualsAndHashCode() {
-    Map<String, Object> config1 = Map.of("key1", "value1");
-    Map<String, Object> config2 = Map.of("key1", "value1");
-    Map<String, Object> config3 = Map.of("key1", "value2");
+    final Map<String, Object> config1 = Map.of("key1", "value1");
+    final Map<String, Object> config2 = Map.of("key1", "value1");
+    final Map<String, Object> config3 = Map.of("key1", "value2");
 
-    WorkflowNode node1 = new WorkflowNode("node", "type", config1);
-    WorkflowNode node2 = new WorkflowNode("node", "type", config2);
-    WorkflowNode node3 = new WorkflowNode("node", "type", config3);
-    WorkflowNode node4 = new WorkflowNode("node", "different", config1);
-    WorkflowNode node5 = new WorkflowNode("different", "type", config1);
+    final WorkflowNode node1 = new WorkflowNode("node", "type", config1);
+    final WorkflowNode node2 = new WorkflowNode("node", "type", config2);
+    final WorkflowNode node3 = new WorkflowNode("node", "type", config3);
+    final WorkflowNode node4 = new WorkflowNode("node", "different", config1);
+    final WorkflowNode node5 = new WorkflowNode("different", "type", config1);
 
     // Same values should be equal
     assertEquals(node1, node2);
@@ -91,12 +91,12 @@ class WorkflowNodeTest {
 
   @Test
   void testToString() {
-    Map<String, Object> config = Map.of("key1", "value1", "key2", 42);
-    WorkflowNode nodeWithConfig = new WorkflowNode("node", "type", config);
-    WorkflowNode nodeWithoutConfig = new WorkflowNode("node", "type", null);
+    final Map<String, Object> config = Map.of("key1", "value1", "key2", 42);
+    final WorkflowNode nodeWithConfig = new WorkflowNode("node", "type", config);
+    final WorkflowNode nodeWithoutConfig = new WorkflowNode("node", "type", null);
 
-    String toStringWithConfig = nodeWithConfig.toString();
-    String toStringWithoutConfig = nodeWithoutConfig.toString();
+    final String toStringWithConfig = nodeWithConfig.toString();
+    final String toStringWithoutConfig = nodeWithoutConfig.toString();
 
     // toString should contain all field values
     assertTrue(toStringWithConfig.contains("nodeId=node"));

@@ -117,6 +117,7 @@ class MapUtilsTest {
     assertTrue(MapUtils.asMutableMap(null).isEmpty());
 
     record User(String name) {}
+
     Map<String, Object> fromPojo = MapUtils.asMutableMap(new User("John"));
     assertEquals("John", fromPojo.get("name"));
   }

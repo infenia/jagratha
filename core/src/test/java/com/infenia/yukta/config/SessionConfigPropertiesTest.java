@@ -68,7 +68,7 @@ class SessionConfigPropertiesTest {
   }
 
   @Test
-  void defaultExecutionTimeoutSeconds_hasCorrectValue_3600() {
+  void defaultExecutionTimeoutSecondsHasCorrectValue_3600() {
     // Given
     Long expectedExecutionTimeoutSeconds = 3600L;
 

@@ -97,7 +97,7 @@ class ControlBusServiceTest {
 
     @Test
     @DisplayName("should handle concurrent emissions without error")
-    void emit_concurrent_noErrors() throws InterruptedException {
+    void emit_concurrent_noErrors() {
       for (int i = 0; i < 10; i++) {
         StepVerifier.create(controlBusService.emit(message))
             .expectComplete()
@@ -160,7 +160,7 @@ class ControlBusServiceTest {
     @Test
     @DisplayName("should return heartbeat when found in first handler")
     void getLastHeartbeat_foundInFirstHandler_returnsMessage() {
-      when(handler1.getLastHeartbeat(COMPOSITE_KEY)).thenReturn(message);
+      doReturn(message).when(handler1).getLastHeartbeat(COMPOSITE_KEY);
 
       Message<?> result = controlBusService.getLastHeartbeat(WORKFLOW_ID, NODE_ID);
 
@@ -172,7 +172,7 @@ class ControlBusServiceTest {
     @DisplayName("should check subsequent handlers if first returns null")
     void getLastHeartbeat_firstReturnsNull_checksSecondHandler() {
       when(handler1.getLastHeartbeat(COMPOSITE_KEY)).thenReturn(null);
-      when(handler2.getLastHeartbeat(COMPOSITE_KEY)).thenReturn(message);
+      doReturn(message).when(handler2).getLastHeartbeat(COMPOSITE_KEY);
 
       Message<?> result = controlBusService.getLastHeartbeat(WORKFLOW_ID, NODE_ID);
 
@@ -200,7 +200,7 @@ class ControlBusServiceTest {
     @Test
     @DisplayName("should return statistics when found in first handler")
     void getLastStatistics_foundInFirstHandler_returnsMessage() {
-      when(handler1.getLastStatistics(COMPOSITE_KEY)).thenReturn(message);
+      doReturn(message).when(handler1).getLastStatistics(COMPOSITE_KEY);
 
       Message<?> result = controlBusService.getLastStatistics(WORKFLOW_ID, NODE_ID);
 
@@ -212,7 +212,7 @@ class ControlBusServiceTest {
     @DisplayName("should check subsequent handlers if first returns null")
     void getLastStatistics_firstReturnsNull_checksSecondHandler() {
       when(handler1.getLastStatistics(COMPOSITE_KEY)).thenReturn(null);
-      when(handler2.getLastStatistics(COMPOSITE_KEY)).thenReturn(message);
+      doReturn(message).when(handler2).getLastStatistics(COMPOSITE_KEY);
 
       Message<?> result = controlBusService.getLastStatistics(WORKFLOW_ID, NODE_ID);
 
@@ -303,7 +303,7 @@ class ControlBusServiceTest {
     @Test
     @DisplayName("should store plugin and make it accessible")
     void registerPlugin_storesAndRetrievable() {
-      when(plugin.onControlSignal(message)).thenReturn(Mono.just(message));
+      doReturn(Mono.just(message)).when(plugin).onControlSignal(message);
 
       controlBusService.registerPlugin(WORKFLOW_ID, NODE_ID, plugin);
 
@@ -320,7 +320,7 @@ class ControlBusServiceTest {
       String altNodeId = "other-node";
       Plugin altPlugin = mock(Plugin.class);
 
-      when(plugin.onControlSignal(message)).thenReturn(Mono.just(message));
+      doReturn(Mono.just(message)).when(plugin).onControlSignal(message);
 
       controlBusService.registerPlugin(WORKFLOW_ID, NODE_ID, plugin);
       controlBusService.registerPlugin(WORKFLOW_ID, altNodeId, altPlugin);
@@ -376,7 +376,7 @@ class ControlBusServiceTest {
     @Test
     @DisplayName("should delegate to registered plugin")
     void sendCommand_pluginRegistered_delegatesToPlugin() {
-      when(plugin.onControlSignal(message)).thenReturn(Mono.just(message));
+      doReturn(Mono.just(message)).when(plugin).onControlSignal(message);
       controlBusService.registerPlugin(WORKFLOW_ID, NODE_ID, plugin);
 
       StepVerifier.create(controlBusService.sendCommand(WORKFLOW_ID, NODE_ID, message))
@@ -515,7 +515,7 @@ class ControlBusServiceTest {
     @Test
     @DisplayName("should use null separator in composite keys")
     void compositeKey_formatCorrect() {
-      when(handler1.getLastHeartbeat(COMPOSITE_KEY)).thenReturn(message);
+      doReturn(Mono.just(message)).when(handler1).getLastHeartbeat(COMPOSITE_KEY);
 
       controlBusService.getLastHeartbeat(WORKFLOW_ID, NODE_ID);
 
@@ -528,11 +528,11 @@ class ControlBusServiceTest {
       String altNodeId = "different-node";
       String altKey = WORKFLOW_ID + "\0" + altNodeId;
 
-      when(handler1.getLastHeartbeat(COMPOSITE_KEY)).thenReturn(message);
+      doReturn(Mono.just(message)).when(handler1).getLastHeartbeat(COMPOSITE_KEY);
       when(handler1.getLastHeartbeat(altKey)).thenReturn(null);
 
-      Message result1 = controlBusService.getLastHeartbeat(WORKFLOW_ID, NODE_ID);
-      Message result2 = controlBusService.getLastHeartbeat(WORKFLOW_ID, altNodeId);
+      Message<?> result1 = controlBusService.getLastHeartbeat(WORKFLOW_ID, NODE_ID);
+      Message<?> result2 = controlBusService.getLastHeartbeat(WORKFLOW_ID, altNodeId);
 
       assertThat(result1).isSameAs(message);
       assertThat(result2).isNull();
@@ -546,7 +546,7 @@ class ControlBusServiceTest {
     @Test
     @DisplayName("should complete full plugin lifecycle: register, use, unregister")
     void fullLifecycle_registerUseUnregister() {
-      when(plugin.onControlSignal(message)).thenReturn(Mono.just(message));
+      doReturn(Mono.just(message)).when(plugin).onControlSignal(message);
 
       controlBusService.registerPlugin(WORKFLOW_ID, NODE_ID, plugin);
       StepVerifier.create(controlBusService.sendCommand(WORKFLOW_ID, NODE_ID, message))
@@ -562,15 +562,15 @@ class ControlBusServiceTest {
     @Test
     @DisplayName("should retrieve metrics from appropriate handlers")
     void multipleHandlers_metricsRetrieved() {
-      Message heartbeatMsg = mock(Message.class);
-      Message statsMsg = mock(Message.class);
+      Message<?> heartbeatMsg = mock(Message.class);
+      Message<?> statsMsg = mock(Message.class);
 
-      when(handler1.getLastHeartbeat(COMPOSITE_KEY)).thenReturn(heartbeatMsg);
+      doReturn(heartbeatMsg).when(handler1).getLastHeartbeat(COMPOSITE_KEY);
       when(handler1.getLastStatistics(COMPOSITE_KEY)).thenReturn(null);
-      when(handler2.getLastStatistics(COMPOSITE_KEY)).thenReturn(statsMsg);
+      doReturn(statsMsg).when(handler2).getLastStatistics(COMPOSITE_KEY);
 
-      Message heartbeat = controlBusService.getLastHeartbeat(WORKFLOW_ID, NODE_ID);
-      Message stats = controlBusService.getLastStatistics(WORKFLOW_ID, NODE_ID);
+      Message<?> heartbeat = controlBusService.getLastHeartbeat(WORKFLOW_ID, NODE_ID);
+      Message<?> stats = controlBusService.getLastStatistics(WORKFLOW_ID, NODE_ID);
 
       assertThat(heartbeat).isSameAs(heartbeatMsg);
       assertThat(stats).isSameAs(statsMsg);
@@ -581,13 +581,13 @@ class ControlBusServiceTest {
     void multipleWorkflows_independent() {
       String altWorkflowId = "workflow-alt";
       String altCompositeKey = altWorkflowId + "\0" + NODE_ID;
-      Message altMessage = mock(Message.class);
+      Message<?> altMessage = mock(Message.class);
 
-      when(handler1.getLastHeartbeat(COMPOSITE_KEY)).thenReturn(message);
-      when(handler1.getLastHeartbeat(altCompositeKey)).thenReturn(altMessage);
+      doReturn(message).when(handler1).getLastHeartbeat(COMPOSITE_KEY);
+      doReturn(altMessage).when(handler1).getLastHeartbeat(altCompositeKey);
 
-      Message result1 = controlBusService.getLastHeartbeat(WORKFLOW_ID, NODE_ID);
-      Message result2 = controlBusService.getLastHeartbeat(altWorkflowId, NODE_ID);
+      Message<?> result1 = controlBusService.getLastHeartbeat(WORKFLOW_ID, NODE_ID);
+      Message<?> result2 = controlBusService.getLastHeartbeat(altWorkflowId, NODE_ID);
 
       assertThat(result1).isSameAs(message);
       assertThat(result2).isSameAs(altMessage);
@@ -657,11 +657,10 @@ class ControlBusServiceTest {
   @MockitoSettings(strictness = Strictness.LENIENT)
   class HandleControlBatchTests {
 
-    private Message<?> makeMessage(String workflowId, String nodeId, Object payload, int priority) {
-      @SuppressWarnings("unchecked")
+    private Message<?> makeMessage(Object payload, int priority) {
       Message<?> msg = mock(Message.class);
-      when(msg.getWorkflowId()).thenReturn(workflowId);
-      when(msg.getSourceNodeId()).thenReturn(nodeId);
+      when(msg.getWorkflowId()).thenReturn(ControlBusServiceTest.WORKFLOW_ID);
+      when(msg.getSourceNodeId()).thenReturn(ControlBusServiceTest.NODE_ID);
       doReturn(payload).when(msg).getPayload();
       when(msg.getPriority()).thenReturn(priority);
       return msg;
@@ -693,7 +692,7 @@ class ControlBusServiceTest {
               1, 10, 256, List.of(handler1, handler2), preparedWorkflowCache, orchestrator);
       svc.init();
 
-      Message<?> msg = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
+      Message<?> msg = makeMessage(payload, 0);
       emitAndWait(svc, msg, latch);
 
       verify(handler1).handle(COMPOSITE_KEY, msg, payload);
@@ -704,9 +703,7 @@ class ControlBusServiceTest {
     @DisplayName("should skip dispatch when nodeId is null")
     void handleControlBatch_nullNodeId_skipsDispatch() throws InterruptedException {
       Object payload = new Object();
-      CountDownLatch latch = new CountDownLatch(1);
 
-      @SuppressWarnings("unchecked")
       Message<?> msg = mock(Message.class);
       when(msg.getWorkflowId()).thenReturn(WORKFLOW_ID);
       when(msg.getSourceNodeId()).thenReturn(null);
@@ -726,7 +723,6 @@ class ControlBusServiceTest {
     @Test
     @DisplayName("should skip dispatch when payload is null")
     void handleControlBatch_nullPayload_skipsDispatch() throws InterruptedException {
-      @SuppressWarnings("unchecked")
       Message<?> msg = mock(Message.class);
       when(msg.getWorkflowId()).thenReturn(WORKFLOW_ID);
       when(msg.getSourceNodeId()).thenReturn(NODE_ID);
@@ -748,7 +744,6 @@ class ControlBusServiceTest {
     void handleControlBatch_nullWorkflowId_skipsDispatch() throws InterruptedException {
       Object payload = new Object();
 
-      @SuppressWarnings("unchecked")
       Message<?> msg = mock(Message.class);
       when(msg.getWorkflowId()).thenReturn(null);
       when(msg.getSourceNodeId()).thenReturn(NODE_ID);
@@ -775,7 +770,7 @@ class ControlBusServiceTest {
       when(handler1.canHandle(payload)).thenReturn(false);
       when(handler2.canHandle(payload)).thenReturn(true);
       doAnswer(
-              inv -> {
+              _ -> {
                 latch.countDown();
                 return null;
               })
@@ -787,7 +782,7 @@ class ControlBusServiceTest {
               1, 10, 256, List.of(handler1, handler2), preparedWorkflowCache, orchestrator);
       svc.init();
 
-      Message<?> msg = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
+      Message<?> msg = makeMessage(payload, 0);
       emitAndWait(svc, msg, latch);
 
       verify(handler1, never()).handle(any(), any(), any());
@@ -807,7 +802,7 @@ class ControlBusServiceTest {
               1, 10, 256, List.of(handler1, handler2), preparedWorkflowCache, orchestrator);
       svc.init();
 
-      Message<?> msg = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
+      Message<?> msg = makeMessage(payload, 0);
       svc.emit(msg).subscribe();
       Thread.sleep(200);
 
@@ -822,8 +817,8 @@ class ControlBusServiceTest {
       List<Integer> dispatchOrder = new ArrayList<>();
       CountDownLatch latch = new CountDownLatch(2);
 
-      Message<?> lowMsg = makeMessage(WORKFLOW_ID, NODE_ID, payload, 1);
-      Message<?> highMsg = makeMessage(WORKFLOW_ID, NODE_ID, payload, 10);
+      final Message<?> lowMsg = makeMessage(payload, 1);
+      final Message<?> highMsg = makeMessage(payload, 10);
 
       when(handler1.canHandle(payload)).thenReturn(true);
       doAnswer(
@@ -854,17 +849,17 @@ class ControlBusServiceTest {
       CountDownLatch errorBatch = new CountDownLatch(1);
       CountDownLatch successBatch = new CountDownLatch(1);
 
-      Message<?> msg1 = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
-      Message<?> msg2 = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
+      final Message<?> msg1 = makeMessage(payload, 0);
+      final Message<?> msg2 = makeMessage(payload, 0);
 
       when(handler1.canHandle(payload)).thenReturn(true);
       doAnswer(
-              inv -> {
+              _ -> {
                 errorBatch.countDown();
                 throw new RuntimeException("handler failed");
               })
           .doAnswer(
-              inv -> {
+              _ -> {
                 successBatch.countDown();
                 return null;
               })
@@ -892,7 +887,7 @@ class ControlBusServiceTest {
 
       when(handler1.canHandle(payload)).thenReturn(true);
       doAnswer(
-              inv -> {
+              _ -> {
                 latch.countDown();
                 return null;
               })
@@ -903,7 +898,7 @@ class ControlBusServiceTest {
           new ControlBusService(1, 50, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
       svc.init();
 
-      Message<?> msg = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
+      Message<?> msg = makeMessage(payload, 0);
       svc.emit(msg).subscribe();
 
       boolean processed = latch.await(3, TimeUnit.SECONDS);
@@ -919,7 +914,7 @@ class ControlBusServiceTest {
 
       when(handler1.canHandle(payload)).thenReturn(true);
       doAnswer(
-              inv -> {
+              _ -> {
                 latch.countDown();
                 return null;
               })
@@ -932,7 +927,7 @@ class ControlBusServiceTest {
       svc.init();
 
       for (int i = 0; i < 5; i++) {
-        Message<?> msg = makeMessage(WORKFLOW_ID, NODE_ID, payload, i * 10);
+        Message<?> msg = makeMessage(payload, i * 10);
         svc.emit(msg).subscribe();
       }
 
@@ -950,7 +945,7 @@ class ControlBusServiceTest {
 
       when(handler1.canHandle(payload)).thenReturn(true);
       doAnswer(
-              inv -> {
+              _ -> {
                 latch.countDown();
                 return null;
               })
@@ -962,9 +957,9 @@ class ControlBusServiceTest {
               3, 100, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
       svc.init();
 
-      Message<?> msg1 = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
-      Message<?> msg2 = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
-      Message<?> msg3 = makeMessage(WORKFLOW_ID, NODE_ID, payload, 0);
+      Message<?> msg1 = makeMessage(payload, 0);
+      Message<?> msg2 = makeMessage(payload, 0);
+      Message<?> msg3 = makeMessage(payload, 0);
 
       svc.emit(msg1).subscribe();
       svc.emit(msg2).subscribe();
@@ -1025,7 +1020,7 @@ class ControlBusServiceTest {
       when(handler1.canHandle(payload1)).thenReturn(true);
       when(handler1.canHandle(payload2)).thenReturn(true);
       doAnswer(
-              inv -> {
+              _ -> {
                 latch.countDown();
                 return null;
               })
@@ -1061,19 +1056,19 @@ class ControlBusServiceTest {
     @DisplayName("emit should handle exception gracefully with error logging")
     @SuppressWarnings("unchecked")
     void emit_sinkThrowsException_logsErrorAndPropagates() throws Exception {
-      ControlBusService svc =
+      final ControlBusService svc =
           new ControlBusService(100, 50, 256, List.of(), preparedWorkflowCache, orchestrator);
       svc.init();
 
       Sinks.Many<Message<?>> throwingSink = mock(Sinks.Many.class);
       doThrow(new RuntimeException("sink error")).when(throwingSink).emitNext(any(), any());
 
-      Field sinkField = ControlBusService.class.getDeclaredField("controlSink");
+      final Field sinkField = ControlBusService.class.getDeclaredField("controlSink");
       sinkField.setAccessible(true);
       sinkField.set(svc, throwingSink);
 
       Message<?> testMessage = mock(Message.class);
-      when(testMessage.getPayload()).thenReturn("test");
+      doReturn("test").when(testMessage).getPayload();
 
       StepVerifier.create(svc.emit(testMessage))
           .expectErrorMatches(e -> e instanceof IllegalStateException)

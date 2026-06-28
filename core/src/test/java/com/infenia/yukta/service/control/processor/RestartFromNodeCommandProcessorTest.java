@@ -390,8 +390,8 @@ class RestartFromNodeCommandProcessorTest {
     String workflowId = "workflow-1";
     String fromNodeId = "node-target";
     String parentNodeId = "parent-node";
-    WorkflowNode parentNode = new WorkflowNode(parentNodeId, "processor", Map.of());
-    RestartFromNodeCommand command = new RestartFromNodeCommand(executionId, fromNodeId);
+    final WorkflowNode parentNode = new WorkflowNode(parentNodeId, "processor", Map.of());
+    final RestartFromNodeCommand command = new RestartFromNodeCommand(executionId, fromNodeId);
 
     when(registry.findByExecutionId(executionId)).thenReturn(Optional.of(executionControl));
     when(executionControl.executionId()).thenReturn(executionId);

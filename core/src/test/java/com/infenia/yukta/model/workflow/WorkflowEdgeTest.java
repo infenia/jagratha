@@ -25,13 +25,13 @@ class WorkflowEdgeTest {
   @Test
   void testConstructorAndGetters() {
     // Test with null sourcePort
-    WorkflowEdge edge1 = new WorkflowEdge("source1", "target1", null);
+    final WorkflowEdge edge1 = new WorkflowEdge("source1", "target1", null);
     assertEquals("source1", edge1.source());
     assertEquals("target1", edge1.target());
     assertNull(edge1.sourcePort());
 
     // Test with non-null sourcePort
-    WorkflowEdge edge2 = new WorkflowEdge("source2", "target2", "port1");
+    final WorkflowEdge edge2 = new WorkflowEdge("source2", "target2", "port1");
     assertEquals("source2", edge2.source());
     assertEquals("target2", edge2.target());
     assertEquals("port1", edge2.sourcePort());
@@ -39,10 +39,10 @@ class WorkflowEdgeTest {
 
   @Test
   void testEqualsAndHashCode() {
-    WorkflowEdge edge1 = new WorkflowEdge("source", "target", null);
-    WorkflowEdge edge2 = new WorkflowEdge("source", "target", null);
-    WorkflowEdge edge3 = new WorkflowEdge("source", "target", "port");
-    WorkflowEdge edge4 = new WorkflowEdge("different", "target", null);
+    final WorkflowEdge edge1 = new WorkflowEdge("source", "target", null);
+    final WorkflowEdge edge2 = new WorkflowEdge("source", "target", null);
+    final WorkflowEdge edge3 = new WorkflowEdge("source", "target", "port");
+    final WorkflowEdge edge4 = new WorkflowEdge("different", "target", null);
 
     // Same values should be equal
     assertEquals(edge1, edge2);
@@ -63,8 +63,8 @@ class WorkflowEdgeTest {
 
   @Test
   void testToString() {
-    WorkflowEdge edgeWithNullPort = new WorkflowEdge("source", "target", null);
-    WorkflowEdge edgeWithPort = new WorkflowEdge("source", "target", "port");
+    final WorkflowEdge edgeWithNullPort = new WorkflowEdge("source", "target", null);
+    final WorkflowEdge edgeWithPort = new WorkflowEdge("source", "target", "port");
 
     String toStringWithNull = edgeWithNullPort.toString();
     String toStringWithPort = edgeWithPort.toString();

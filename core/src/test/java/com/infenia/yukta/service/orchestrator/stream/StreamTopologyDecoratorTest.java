@@ -50,12 +50,11 @@ class StreamTopologyDecoratorTest {
 
   @Mock private DefaultTaskTrackerService tracker;
 
-  private NodeCheckpointStore checkpointStore;
   private StreamTopologyDecorator decorator;
 
   @BeforeEach
   void setUp() {
-    checkpointStore = new InMemoryNodeCheckpointStore();
+    final NodeCheckpointStore checkpointStore = new InMemoryNodeCheckpointStore();
     decorator = new StreamTopologyDecorator(messageStore, tracker, checkpointStore);
     when(messageStore.store(any())).thenReturn(Mono.empty());
   }

@@ -109,7 +109,9 @@ class WorkflowValidatorTest {
         return PluginCategory.PROCESSOR;
       }
     }
+
     Hybrid hybrid = org.mockito.Mockito.mock(Hybrid.class);
+
     when(hybrid.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(registry.get("HYBRID")).thenReturn(hybrid);
     StepVerifier.create(

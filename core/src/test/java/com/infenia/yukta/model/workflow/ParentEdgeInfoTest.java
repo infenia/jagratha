@@ -25,13 +25,13 @@ class ParentEdgeInfoTest {
   @Test
   void testConstructorAndGetters() {
     // Test with null sourcePort
-    ParentEdgeInfo info1 = new ParentEdgeInfo(0, "source1", null);
+    final ParentEdgeInfo info1 = new ParentEdgeInfo(0, "source1", null);
     assertEquals(0, info1.parentIndex());
     assertEquals("source1", info1.sourceNodeId());
     assertNull(info1.sourcePort());
 
     // Test with non-null sourcePort
-    ParentEdgeInfo info2 = new ParentEdgeInfo(1, "source2", "port1");
+    final ParentEdgeInfo info2 = new ParentEdgeInfo(1, "source2", "port1");
     assertEquals(1, info2.parentIndex());
     assertEquals("source2", info2.sourceNodeId());
     assertEquals("port1", info2.sourcePort());
@@ -39,11 +39,11 @@ class ParentEdgeInfoTest {
 
   @Test
   void testEqualsAndHashCode() {
-    ParentEdgeInfo info1 = new ParentEdgeInfo(0, "source", null);
-    ParentEdgeInfo info2 = new ParentEdgeInfo(0, "source", null);
-    ParentEdgeInfo info3 = new ParentEdgeInfo(0, "source", "port");
-    ParentEdgeInfo info4 = new ParentEdgeInfo(1, "source", null);
-    ParentEdgeInfo info5 = new ParentEdgeInfo(0, "different", null);
+    final ParentEdgeInfo info1 = new ParentEdgeInfo(0, "source", null);
+    final ParentEdgeInfo info2 = new ParentEdgeInfo(0, "source", null);
+    final ParentEdgeInfo info3 = new ParentEdgeInfo(0, "source", "port");
+    final ParentEdgeInfo info4 = new ParentEdgeInfo(1, "source", null);
+    final ParentEdgeInfo info5 = new ParentEdgeInfo(0, "different", null);
 
     // Same values should be equal
     assertEquals(info1, info2);
@@ -68,11 +68,11 @@ class ParentEdgeInfoTest {
 
   @Test
   void testToString() {
-    ParentEdgeInfo infoWithNullPort = new ParentEdgeInfo(0, "source", null);
-    ParentEdgeInfo infoWithPort = new ParentEdgeInfo(1, "source", "port");
+    final ParentEdgeInfo infoWithNullPort = new ParentEdgeInfo(0, "source", null);
+    final ParentEdgeInfo infoWithPort = new ParentEdgeInfo(1, "source", "port");
 
-    String toStringWithNull = infoWithNullPort.toString();
-    String toStringWithPort = infoWithPort.toString();
+    final String toStringWithNull = infoWithNullPort.toString();
+    final String toStringWithPort = infoWithPort.toString();
 
     // toString should contain all field values
     assertEquals(
