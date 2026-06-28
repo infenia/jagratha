@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.service.control.directive;
 
+import static org.assertj.core.api.Assertions.*;
+
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.control.ControlHeartbeat;
@@ -23,8 +25,6 @@ import java.util.List;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.*;
 
 @SuppressWarnings({
   "PMD.AvoidDuplicateLiterals",

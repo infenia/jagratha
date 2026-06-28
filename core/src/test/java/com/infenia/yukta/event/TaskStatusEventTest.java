@@ -26,32 +26,33 @@ import org.junit.jupiter.api.Test;
 
 /** Tests for {@link TaskStatusEvent}. */
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.TooManyMethods",
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.UseConcurrentHashMap"
-})
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals", "PMD.UseConcurrentHashMap"})
 class TaskStatusEventTest {
   /** Key constant for test metadata. */
   private static final String KEY = "key";
+
   /** Value constant for test metadata. */
   private static final String VALUE = "value";
+
   /** Execution ID constant for tests. */
   private static final String EXEC1 = "exec1";
+
   /** Node ID constant for tests. */
   private static final String NODE1 = "node1";
+
   /** Module ID constant for tests. */
   private static final String MODULE1 = "module1";
+
   /** Success status constant. */
   private static final String SUCCESS = "SUCCESS";
+
   /** Secondary execution ID constant for tests. */
   private static final String EXEC2 = "exec2";
 
   @Test
   void create_withValidMetadata_returnsEventWithAllFields() {
     final Map<String, Object> metadata = Map.of(KEY, VALUE, "count", 42);
-    final TaskStatusEvent event =
-        TaskStatusEvent.create(EXEC1, NODE1, MODULE1, SUCCESS, metadata);
+    final TaskStatusEvent event = TaskStatusEvent.create(EXEC1, NODE1, MODULE1, SUCCESS, metadata);
 
     assertThat(event.executionId()).isEqualTo(EXEC1);
     assertThat(event.nodeId()).isEqualTo(NODE1);
@@ -63,8 +64,7 @@ class TaskStatusEventTest {
 
   @Test
   void create_withNullMetadata_normalizesToEmptyMap() {
-    final TaskStatusEvent event =
-        TaskStatusEvent.create(EXEC1, NODE1, MODULE1, "FAILED", null);
+    final TaskStatusEvent event = TaskStatusEvent.create(EXEC1, NODE1, MODULE1, "FAILED", null);
 
     assertThat(event.executionId()).isEqualTo(EXEC1);
     assertThat(event.nodeId()).isEqualTo(NODE1);

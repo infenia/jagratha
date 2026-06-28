@@ -25,11 +25,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Sinks;
 
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.CommentRequired",
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.TooManyMethods"
-})
+@SuppressWarnings({"PMD.CommentRequired", "PMD.AvoidDuplicateLiterals", "PMD.TooManyMethods"})
 class InMemoryExecutionControlStoreTest {
 
   private ExecutionControlStore store;

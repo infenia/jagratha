@@ -35,11 +35,7 @@ import reactor.test.StepVerifier;
 
 @MockitoSettings
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.CommentRequired",
-  "PMD.TooManyMethods",
-  "PMD.AvoidDuplicateLiterals"
-})
+@SuppressWarnings({"PMD.CommentRequired", "PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals"})
 class ResourceManagementBuilderTest {
 
   @Mock private DefaultTaskTrackerService mockTracker;

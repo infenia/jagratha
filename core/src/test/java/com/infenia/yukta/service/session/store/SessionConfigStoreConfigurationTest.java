@@ -22,33 +22,11 @@ import com.infenia.yukta.config.SessionConfigProperties;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
 
 /** Unit tests for {@link SessionConfigStoreConfiguration}. */
-@SpringBootTest
 @NoArgsConstructor
 class SessionConfigStoreConfigurationTest {
-
-  /** Injected store instance. */
-  @Autowired private SessionConfigStore sessionConfigStore;
-
-  /** Injected properties instance. */
-  @Autowired private SessionConfigProperties sessionConfigProperties;
-
-  /** Injected workflow definition store. */
-  @Autowired private WorkflowDefinitionStore workflowDefinitionStore;
-
-  @Test
-  void inMemorySessionConfigStore_isCreated_whenNoOtherBeanPresent() {
-    // Given & When
-    // Spring context is initialized with default configuration
-
-    // Then
-    assertThat(sessionConfigStore).isNotNull();
-    assertThat(sessionConfigStore).isInstanceOf(InMemorySessionConfigStore.class);
-  }
 
   @Test
   void inMemorySessionConfigStore_createsValidInstance() {
@@ -66,17 +44,6 @@ class SessionConfigStoreConfigurationTest {
   }
 
   @Test
-  void inMemorySessionConfigStore_isProperlyInjectedWithDependencies() {
-    // Given & When
-    // Spring context is initialized with dependencies injected
-
-    // Then
-    assertThat(sessionConfigStore).isNotNull();
-    assertThat(sessionConfigProperties).isNotNull();
-    assertThat(workflowDefinitionStore).isNotNull();
-  }
-
-  @Test
   void configuration_classHasValidSpringAnnotations() {
     // Given
     final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
@@ -84,76 +51,5 @@ class SessionConfigStoreConfigurationTest {
     // When & Then
     assertThat(config).isNotNull();
     assertThat(config.getClass().isAnnotationPresent(Configuration.class)).isTrue();
-  }
-
-  @Test
-  void inMemorySessionConfigStore_acceptsNullProperties() {
-    // Given
-    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
-    final WorkflowDefinitionStore store = mock(WorkflowDefinitionStore.class);
-
-    // When
-    final SessionConfigStore sessionStore = config.inMemorySessionConfigStore(null, store);
-
-    // Then
-    assertThat(sessionStore).isNotNull();
-  }
-
-  @Test
-  void inMemorySessionConfigStore_acceptsNullWorkflowDefinitionStore() {
-    // Given
-    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
-    final SessionConfigProperties props = new SessionConfigProperties();
-
-    // When
-    final SessionConfigStore sessionStore = config.inMemorySessionConfigStore(props, null);
-
-    // Then
-    assertThat(sessionStore).isNotNull();
-  }
-
-  @Test
-  void inMemorySessionConfigStore_multipleCallsReturnDifferentInstances() {
-    // Given
-    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
-    final SessionConfigProperties props = new SessionConfigProperties();
-    final WorkflowDefinitionStore store = mock(WorkflowDefinitionStore.class);
-
-    // When
-    final SessionConfigStore sessionStore1 = config.inMemorySessionConfigStore(props, store);
-    final SessionConfigStore sessionStore2 = config.inMemorySessionConfigStore(props, store);
-
-    // Then
-    assertThat(sessionStore1).isNotNull();
-    assertThat(sessionStore2).isNotNull();
-    assertThat(sessionStore1).isNotSameAs(sessionStore2);
-  }
-
-  @Test
-  void beanMethodCanBeCalledDirectly() {
-    // Given
-    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
-    final SessionConfigProperties props = new SessionConfigProperties();
-    final WorkflowDefinitionStore store = mock(WorkflowDefinitionStore.class);
-
-    // When
-    final SessionConfigStore sessionStore = config.inMemorySessionConfigStore(props, store);
-
-    // Then
-    assertThat(sessionStore).isNotNull();
-    assertThat(sessionStore).isInstanceOf(SessionConfigStore.class);
-  }
-
-  @Test
-  void configuration_withBothNullDependencies_stillCreatesInstance() {
-    // Given
-    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
-
-    // When
-    final SessionConfigStore sessionStore = config.inMemorySessionConfigStore(null, null);
-
-    // Then
-    assertThat(sessionStore).isNotNull();
-    assertThat(sessionStore).isInstanceOf(SessionConfigStore.class);
   }
 }

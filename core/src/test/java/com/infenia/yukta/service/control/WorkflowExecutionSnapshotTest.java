@@ -24,11 +24,7 @@ import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings({
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.CommentRequired",
-  "PMD.TooManyMethods"
-})
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.CommentRequired", "PMD.TooManyMethods"})
 @DisplayName("WorkflowExecutionSnapshot Tests")
 @NoArgsConstructor
 class WorkflowExecutionSnapshotTest {

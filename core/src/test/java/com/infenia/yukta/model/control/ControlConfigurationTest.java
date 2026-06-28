@@ -25,11 +25,7 @@ import org.junit.jupiter.api.Test;
 
 /** Tests for {@link ControlConfiguration}. */
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.TooManyMethods",
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.UseConcurrentHashMap"
-})
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals", "PMD.UseConcurrentHashMap"})
 class ControlConfigurationTest {
 
   @Test

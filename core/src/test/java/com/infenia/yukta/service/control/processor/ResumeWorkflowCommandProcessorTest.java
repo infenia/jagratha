@@ -37,18 +37,18 @@ import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.CommentRequired",
-  "PMD.LinguisticNaming"
-})
+@SuppressWarnings({"PMD.CommentRequired", "PMD.LinguisticNaming"})
 class ResumeWorkflowCommandProcessorTest {
 
   /** Registry for execution control. */
   @Mock private ExecutionControlRegistry registry;
+
   /** Task tracker service. */
   @Mock private DefaultTaskTrackerService taskTracker;
+
   /** Execution control instance. */
   @Mock private ExecutionControl executionControl;
+
   /** Global pause valve. */
   @Mock private ReactiveControlValve globalPauseValve;
 

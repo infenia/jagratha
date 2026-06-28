@@ -58,7 +58,6 @@ class WorkflowEdgeTest {
     // Different source should not be equal
     assertThat(edge1).isNotEqualTo(edge4);
     assertThat(edge1.hashCode()).isNotEqualTo(edge4.hashCode());
-
   }
 
   @Test
@@ -70,7 +69,9 @@ class WorkflowEdgeTest {
     final String toStringWithPort = edgeWithPort.toString();
 
     // toString should contain all field values
-    assertThat(toStringWithNull).isEqualTo("WorkflowEdge[source=source, target=target, sourcePort=null]");
-    assertThat(toStringWithPort).isEqualTo("WorkflowEdge[source=source, target=target, sourcePort=port]");
+    assertThat(toStringWithNull)
+        .isEqualTo("WorkflowEdge[source=source, target=target, sourcePort=null]");
+    assertThat(toStringWithPort)
+        .isEqualTo("WorkflowEdge[source=source, target=target, sourcePort=port]");
   }
 }

@@ -82,7 +82,8 @@ class WorkflowDefinitionTest {
     assertThat(def.nodes()).hasSize(1);
     assertThat(def.edges()).isNotNull().isEmpty();
 
-    final WorkflowDefinition defNullNodes = new WorkflowDefinition("wf-2", "d", null, List.of(edge));
+    final WorkflowDefinition defNullNodes =
+        new WorkflowDefinition("wf-2", "d", null, List.of(edge));
     assertThat(defNullNodes.nodes()).isNotNull().isEmpty();
     assertThat(defNullNodes.edges()).hasSize(1);
   }
@@ -91,7 +92,8 @@ class WorkflowDefinitionTest {
   void testWorkflowDefinitionImmutability() {
     final WorkflowDefinition.Node node = new WorkflowDefinition.Node("n1", "t1", null);
     final WorkflowDefinition.Edge edge = new WorkflowDefinition.Edge("n1", "n2", "default");
-    final WorkflowDefinition def = new WorkflowDefinition("wf-3", "desc", List.of(node), List.of(edge));
+    final WorkflowDefinition def =
+        new WorkflowDefinition("wf-3", "desc", List.of(node), List.of(edge));
 
     assertThat(def.nodes()).isNotNull().hasSize(1);
     assertThat(def.edges()).isNotNull().hasSize(1);

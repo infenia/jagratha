@@ -63,7 +63,6 @@ class ParentEdgeInfoTest {
     // Different sourceNodeId should not be equal
     assertThat(info1).isNotEqualTo(info5);
     assertThat(info1.hashCode()).isNotEqualTo(info5.hashCode());
-
   }
 
   @Test

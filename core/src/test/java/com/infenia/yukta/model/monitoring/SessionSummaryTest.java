@@ -26,11 +26,7 @@ import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 
 /** Tests for {@link SessionSummary}. */
-@SuppressWarnings({
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.ShortVariable",
-  "PMD.UseConcurrentHashMap"
-})
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.ShortVariable", "PMD.UseConcurrentHashMap"})
 @NoArgsConstructor
 class SessionSummaryTest {
 
@@ -60,7 +56,8 @@ class SessionSummaryTest {
     final Map<String, String> mutableTags = new HashMap<>();
     mutableTags.put("key", "value");
 
-    final SessionSummary summary = new SessionSummary("s1", "user1", "time", null, "desc", mutableTags);
+    final SessionSummary summary =
+        new SessionSummary("s1", "user1", "time", null, "desc", mutableTags);
     mutableTags.put("key2", "value2");
 
     assertThat(summary.tags()).hasSize(1).containsEntry("key", "value");

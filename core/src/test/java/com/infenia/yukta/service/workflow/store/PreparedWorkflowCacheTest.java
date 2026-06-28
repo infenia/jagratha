@@ -198,4 +198,20 @@ class PreparedWorkflowCacheTest {
     assertThat(stats.hitCount()).isEqualTo(2L);
     assertThat(stats.missCount()).isEqualTo(3L); // put() also counts as a miss via getIfPresent()
   }
+
+  @Test
+  @DisplayName("shutdown logs cache statistics")
+  void testShutdown() {
+    cache.put(SESSION_1, WORKFLOW_1, mockPrepared());
+    cache.put(SESSION_1, WORKFLOW_2, mockPrepared());
+    cache.get(SESSION_1, WORKFLOW_1);
+    cache.get(SESSION_1, "missing");
+
+    cache.shutdown();
+
+    @SuppressWarnings("PMD.LawOfDemeter")
+    final var stats = cache.getStats();
+    assertThat(stats.hitCount()).isGreaterThan(0);
+    assertThat(stats.missCount()).isGreaterThan(0);
+  }
 }

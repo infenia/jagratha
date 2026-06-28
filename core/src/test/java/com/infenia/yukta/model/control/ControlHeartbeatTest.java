@@ -23,10 +23,7 @@ import org.junit.jupiter.api.Test;
 
 /** Tests for {@link ControlHeartbeat}. */
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.TooManyMethods",
-  "PMD.AvoidDuplicateLiterals"
-})
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals"})
 class ControlHeartbeatTest {
 
   @Test

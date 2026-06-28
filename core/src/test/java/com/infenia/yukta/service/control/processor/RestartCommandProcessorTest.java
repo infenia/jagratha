@@ -44,21 +44,21 @@ import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.TooManyStaticImports",
-  "PMD.CommentRequired",
-  "PMD.LinguisticNaming"
-})
+@SuppressWarnings({"PMD.TooManyStaticImports", "PMD.CommentRequired", "PMD.LinguisticNaming"})
 class RestartCommandProcessorTest {
 
   /** Registry for execution control. */
   @Mock private ExecutionControlRegistry registry;
+
   /** Workflow orchestrator. */
   @Mock private WorkflowOrchestrator orchestrator;
+
   /** Task tracker service. */
   @Mock private DefaultTaskTrackerService taskTracker;
+
   /** Execution control instance. */
   @Mock private ExecutionControl executionControl;
+
   /** Prepared workflow. */
   @Mock private PreparedWorkflow preparedWorkflow;
 

@@ -26,10 +26,13 @@ import org.junit.jupiter.api.Test;
 class SessionConfigPropertiesTest {
   /** Custom directory path constant. */
   private static final String CUSTOM_DIR = "/custom/dir";
+
   /** Files subdirectory constant. */
   private static final String FILES = "files";
+
   /** Results custom subdirectory constant. */
   private static final String RESULTS_CUSTOM = "results-custom";
+
   /** Redis store type constant. */
   private static final String REDIS = "redis";
 
@@ -88,8 +91,7 @@ class SessionConfigPropertiesTest {
     final SessionConfigProperties actualProperties = new SessionConfigProperties();
 
     // Then
-    assertThat(actualProperties.getExecutionTimeoutSeconds())
-        .isEqualTo(expectedTimeout);
+    assertThat(actualProperties.getExecutionTimeoutSeconds()).isEqualTo(expectedTimeout);
   }
 
   @Test
@@ -153,8 +155,7 @@ class SessionConfigPropertiesTest {
     actualProperties.setExecutionTimeoutSeconds(customTimeoutValue);
 
     // Then
-    assertThat(actualProperties.getExecutionTimeoutSeconds())
-        .isEqualTo(customTimeoutValue);
+    assertThat(actualProperties.getExecutionTimeoutSeconds()).isEqualTo(customTimeoutValue);
   }
 
   @Test

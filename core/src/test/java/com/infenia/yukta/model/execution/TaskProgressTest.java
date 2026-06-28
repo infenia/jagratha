@@ -127,7 +127,8 @@ class TaskProgressTest {
     final LocalDateTime startTime = LocalDateTime.parse("2026-06-25T09:00:00");
     final LocalDateTime endTime = LocalDateTime.parse("2026-06-25T10:00:00");
     final Map<String, Object> metadata = Map.of("result", "success");
-    final TaskProgress progress = new TaskProgress(nodeId, module, status, startTime, endTime, metadata);
+    final TaskProgress progress =
+        new TaskProgress(nodeId, module, status, startTime, endTime, metadata);
 
     // When & Then
     assertThat(progress.nodeId()).isEqualTo(nodeId);

@@ -30,11 +30,7 @@ import reactor.util.context.Context;
 /** Unit tests for {@link ExecutionContextBuilder}. */
 @MockitoSettings
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.UseConcurrentHashMap",
-  "PMD.TooManyMethods"
-})
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.UseConcurrentHashMap", "PMD.TooManyMethods"})
 class ExecutionContextBuilderTest {
 
   @Test

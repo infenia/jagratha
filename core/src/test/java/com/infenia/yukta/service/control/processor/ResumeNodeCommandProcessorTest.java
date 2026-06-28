@@ -38,11 +38,7 @@ import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.CommentRequired",
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.LinguisticNaming"
-})
+@SuppressWarnings({"PMD.CommentRequired", "PMD.AvoidDuplicateLiterals", "PMD.LinguisticNaming"})
 class ResumeNodeCommandProcessorTest {
 
   @Mock private ExecutionControlRegistry registry;

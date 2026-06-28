@@ -53,7 +53,8 @@ class WorkflowProgressTest {
     final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
     final TaskProgress task1 =
         new TaskProgress("node-1", "module-1", "COMPLETED", startTime, endTime, null);
-    final TaskProgress task2 = new TaskProgress("node-2", "module-2", "RUNNING", startTime, null, null);
+    final TaskProgress task2 =
+        new TaskProgress("node-2", "module-2", "RUNNING", startTime, null, null);
     final List<TaskProgress> tasks = List.of(task1, task2);
 
     final WorkflowProgress progress =
@@ -163,9 +164,12 @@ class WorkflowProgressTest {
     final LocalDateTime time2 = LocalDateTime.of(2026, 5, 30, 10, 1, 0);
     final LocalDateTime time3 = LocalDateTime.of(2026, 5, 30, 10, 2, 0);
     final LocalDateTime time4 = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    final TaskProgress task1 = new TaskProgress("node-1", "module-1", "COMPLETED", time1, time2, null);
-    final TaskProgress task2 = new TaskProgress("node-2", "module-2", "COMPLETED", time2, time3, null);
-    final TaskProgress task3 = new TaskProgress("node-3", "module-3", "COMPLETED", time3, time4, null);
+    final TaskProgress task1 =
+        new TaskProgress("node-1", "module-1", "COMPLETED", time1, time2, null);
+    final TaskProgress task2 =
+        new TaskProgress("node-2", "module-2", "COMPLETED", time2, time3, null);
+    final TaskProgress task3 =
+        new TaskProgress("node-3", "module-3", "COMPLETED", time3, time4, null);
     final List<TaskProgress> tasks = List.of(task1, task2, task3);
 
     final WorkflowProgress progress =
@@ -222,9 +226,7 @@ class WorkflowProgressTest {
             "exec-1", "session-1", "workflow-1", "COMPLETED", tasks, startTime, endTime);
 
     final String toString = progress.toString();
-    assertThat(toString)
-        .isNotNull()
-        .contains("exec-1", "session-1", "workflow-1");
+    assertThat(toString).isNotNull().contains("exec-1", "session-1", "workflow-1");
   }
 
   @Test

@@ -42,8 +42,7 @@ class LogRetrievalServiceTest {
   private LogRetrievalService service;
 
   /** Temporary directory for test files. */
-  @TempDir
-  /* package */ Path tempDir;
+  @TempDir /* package */ Path tempDir;
 
   @BeforeEach
   void setUp() {

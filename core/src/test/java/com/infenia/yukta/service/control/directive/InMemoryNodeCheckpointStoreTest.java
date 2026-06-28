@@ -26,10 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
-@SuppressWarnings({
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.CommentRequired"
-})
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.CommentRequired"})
 @NoArgsConstructor
 class InMemoryNodeCheckpointStoreTest {
 

@@ -1853,7 +1853,8 @@ class DefaultControlBusGatewayTest {
     // Verify prepareWorkflow was called
     verify(orchestrator).prepareWorkflow(definition);
     // Verify cache.put was called with the prepared workflow
-    final ArgumentCaptor<PreparedWorkflow> cacheCaptor = ArgumentCaptor.forClass(PreparedWorkflow.class);
+    final ArgumentCaptor<PreparedWorkflow> cacheCaptor =
+        ArgumentCaptor.forClass(PreparedWorkflow.class);
     verify(preparedWorkflowCache).put(eq(sessionId), eq(workflowId), cacheCaptor.capture());
     assertThat(cacheCaptor.getValue()).isEqualTo(preparedWorkflow);
   }

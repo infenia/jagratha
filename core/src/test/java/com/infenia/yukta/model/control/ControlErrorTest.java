@@ -23,10 +23,7 @@ import org.junit.jupiter.api.Test;
 
 /** Tests for {@link ControlError}. */
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.TooManyMethods",
-  "PMD.AvoidDuplicateLiterals"
-})
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals"})
 class ControlErrorTest {
 
   @Test

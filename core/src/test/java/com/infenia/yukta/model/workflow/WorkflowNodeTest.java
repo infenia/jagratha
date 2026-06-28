@@ -23,10 +23,7 @@ import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 
 /** Unit tests for {@link WorkflowNode}. */
-@SuppressWarnings({
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.UseConcurrentHashMap"
-})
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.UseConcurrentHashMap"})
 @NoArgsConstructor
 class WorkflowNodeTest {
 
@@ -87,7 +84,6 @@ class WorkflowNodeTest {
     // Different nodeId should not be equal
     assertThat(node1).isNotEqualTo(node5);
     assertThat(node1.hashCode()).isNotEqualTo(node5.hashCode());
-
   }
 
   @Test

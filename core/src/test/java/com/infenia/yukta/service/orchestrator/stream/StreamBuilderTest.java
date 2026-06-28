@@ -50,11 +50,7 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("StreamBuilder Tests")
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.TooManyStaticImports",
-  "PMD.TooManyMethods",
-  "PMD.CommentRequired"
-})
+@SuppressWarnings({"PMD.TooManyStaticImports", "PMD.TooManyMethods", "PMD.CommentRequired"})
 class StreamBuilderTest {
 
   private static final String EXECUTION_ID = "exec-001";

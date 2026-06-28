@@ -25,11 +25,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Sinks;
 
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.CommentRequired",
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.UnusedLocalVariable"
-})
+@SuppressWarnings({"PMD.CommentRequired", "PMD.AvoidDuplicateLiterals"})
 class ExecutionControlRegistryTest {
 
   /** Registry instance under test. */
@@ -84,7 +80,6 @@ class ExecutionControlRegistryTest {
     final String executionId = "exec-1";
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
-    final Sinks.One<Void> stopSink = Sinks.one();
     final ExecutionControl control = createControl(sessionId, workflowId, executionId);
 
     registry.register(control);
@@ -104,7 +99,6 @@ class ExecutionControlRegistryTest {
     final String executionId = "exec-1";
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
-    final Sinks.One<Void> stopSink = Sinks.one();
     final ExecutionControl control = createControl(sessionId, workflowId, executionId);
 
     registry.register(control);
@@ -116,8 +110,6 @@ class ExecutionControlRegistryTest {
 
   @Test
   void testMultipleExecutions() {
-    final Sinks.One<Void> sink1 = Sinks.one();
-    final Sinks.One<Void> sink2 = Sinks.one();
     final ExecutionControl control1 = createControl("session-1", "workflow-1", "exec-1");
     final ExecutionControl control2 = createControl("session-1", "workflow-1", "exec-2");
 
@@ -130,8 +122,6 @@ class ExecutionControlRegistryTest {
 
   @Test
   void testFindActiveByWorkflowMultipleSessions() {
-    final Sinks.One<Void> sink1 = Sinks.one();
-    final Sinks.One<Void> sink2 = Sinks.one();
     final ExecutionControl control1 = createControl("session-1", "workflow-1", "exec-1");
     final ExecutionControl control2 = createControl("session-2", "workflow-1", "exec-2");
 

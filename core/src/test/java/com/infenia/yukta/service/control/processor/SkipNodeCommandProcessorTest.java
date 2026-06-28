@@ -38,17 +38,15 @@ import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.CommentRequired",
-  "PMD.LinguisticNaming",
-  "PMD.AvoidDuplicateLiterals"
-})
+@SuppressWarnings({"PMD.CommentRequired", "PMD.LinguisticNaming", "PMD.AvoidDuplicateLiterals"})
 class SkipNodeCommandProcessorTest {
 
   /** Registry for execution control. */
   @Mock private ExecutionControlRegistry registry;
+
   /** Task tracker service. */
   @Mock private DefaultTaskTrackerService taskTracker;
+
   /** Execution control instance. */
   @Mock private ExecutionControl executionControl;
 

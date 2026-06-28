@@ -541,7 +541,7 @@ class ControlBusServiceTest {
     @Test
     @DisplayName("should use null separator in composite keys")
     void compositeKey_formatCorrect() {
-      doReturn(Mono.just(message)).when(handler1).getLastHeartbeat(COMPOSITE_KEY);
+      doReturn(message).when(handler1).getLastHeartbeat(COMPOSITE_KEY);
 
       controlBusService.getLastHeartbeat(WORKFLOW_ID, NODE_ID);
 
@@ -554,8 +554,8 @@ class ControlBusServiceTest {
       final String altNodeId = "different-node";
       final String altKey = WORKFLOW_ID + "\0" + altNodeId;
 
-      doReturn(Mono.just(message)).when(handler1).getLastHeartbeat(COMPOSITE_KEY);
-      when(handler1.getLastHeartbeat(altKey)).thenReturn(null);
+      doReturn(message).when(handler1).getLastHeartbeat(COMPOSITE_KEY);
+      doReturn(null).when(handler1).getLastHeartbeat(altKey);
 
       final Message<?> result1 = controlBusService.getLastHeartbeat(WORKFLOW_ID, NODE_ID);
       final Message<?> result2 = controlBusService.getLastHeartbeat(WORKFLOW_ID, altNodeId);
@@ -696,10 +696,12 @@ class ControlBusServiceTest {
       return msg;
     }
 
-    private void emitAndWait(final ControlBusService svc, final Message<?> msg, final CountDownLatch latch)
+    private void emitAndWait(
+        final ControlBusService svc, final Message<?> msg, final CountDownLatch latch)
         throws InterruptedException {
       svc.emit(msg).subscribe();
-      latch.await(3, TimeUnit.SECONDS);
+      final boolean completed = latch.await(3, TimeUnit.SECONDS);
+      assertThat(completed).as("Message handling timed out").isTrue();
     }
 
     @Test
@@ -867,7 +869,8 @@ class ControlBusServiceTest {
 
       svc.emit(lowMsg).subscribe();
       svc.emit(highMsg).subscribe();
-      latch.await(3, TimeUnit.SECONDS);
+      final boolean completed = latch.await(3, TimeUnit.SECONDS);
+      assertThat(completed).as("Message handling timed out").isTrue();
 
       assertThat(dispatchOrder).containsExactly(10, 1);
     }
@@ -901,7 +904,8 @@ class ControlBusServiceTest {
       svc.init();
 
       svc.emit(msg1).subscribe();
-      errorBatch.await(3, TimeUnit.SECONDS);
+      final boolean errorHandled = errorBatch.await(3, TimeUnit.SECONDS);
+      assertThat(errorHandled).as("Error batch handling timed out").isTrue();
 
       svc.emit(msg2).subscribe();
       final boolean processed = successBatch.await(3, TimeUnit.SECONDS);
@@ -1010,7 +1014,8 @@ class ControlBusServiceTest {
 
       final Field sinkField = ControlBusService.class.getDeclaredField("controlSink");
       sinkField.setAccessible(true);
-      @SuppressWarnings("unchecked") final Sinks.Many<Message<?>> errorSink = mock(Sinks.Many.class);
+      @SuppressWarnings("unchecked")
+      final Sinks.Many<Message<?>> errorSink = mock(Sinks.Many.class);
       when(errorSink.asFlux()).thenReturn(Flux.error(new RuntimeException("Fatal stream error")));
 
       sinkField.set(svc, errorSink);
@@ -1028,7 +1033,8 @@ class ControlBusServiceTest {
     @Test
     @DisplayName("emit with message containing payload should log debug signal emission")
     void emit_withPayload_logsDebugAndTrace() {
-      @SuppressWarnings("unchecked") final Message<String> msgWithPayload = mock(Message.class);
+      @SuppressWarnings("unchecked")
+      final Message<String> msgWithPayload = mock(Message.class);
       final String testPayload = "testPayload";
       when(msgWithPayload.getPayload()).thenReturn(testPayload);
 
@@ -1060,13 +1066,15 @@ class ControlBusServiceTest {
           new ControlBusService(2, 50, 256, List.of(handler1), preparedWorkflowCache, orchestrator);
       svc.init();
 
-      @SuppressWarnings("unchecked") final Message<String> msg1 = mock(Message.class);
+      @SuppressWarnings("unchecked")
+      final Message<String> msg1 = mock(Message.class);
       when(msg1.getWorkflowId()).thenReturn(WORKFLOW_ID);
       when(msg1.getSourceNodeId()).thenReturn(NODE_ID);
       when(msg1.getPayload()).thenReturn(payload1);
       when(msg1.getPriority()).thenReturn(5);
 
-      @SuppressWarnings("unchecked") final Message<String> msg2 = mock(Message.class);
+      @SuppressWarnings("unchecked")
+      final Message<String> msg2 = mock(Message.class);
       when(msg2.getWorkflowId()).thenReturn(WORKFLOW_ID);
       when(msg2.getSourceNodeId()).thenReturn(NODE_ID);
       when(msg2.getPayload()).thenReturn(payload2);

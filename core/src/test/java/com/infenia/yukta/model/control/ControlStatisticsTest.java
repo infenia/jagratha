@@ -147,7 +147,7 @@ class ControlStatisticsTest {
     final Map<String, Object> metrics = new HashMap<>();
     metrics.put("stringMetric", "value");
     metrics.put("numberMetric", 42);
-    metrics.put("doubleMetric", 3.14);
+    metrics.put("doubleMetric", Math.PI);
     final ControlStatistics stats = new ControlStatistics("node-1", 100.0, 50.0, metrics);
 
     // When
@@ -157,7 +157,7 @@ class ControlStatisticsTest {
     assertThat(result)
         .containsEntry("stringMetric", "value")
         .containsEntry("numberMetric", 42)
-        .containsEntry("doubleMetric", 3.14);
+        .containsEntry("doubleMetric", Math.PI);
   }
 
   @Test

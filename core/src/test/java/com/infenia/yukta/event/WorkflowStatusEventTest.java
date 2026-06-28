@@ -24,11 +24,7 @@ import org.junit.jupiter.api.Test;
 
 /** Tests for {@link WorkflowStatusEvent}. */
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.TooManyMethods",
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.LinguisticNaming"
-})
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals", "PMD.LinguisticNaming"})
 class WorkflowStatusEventTest {
 
   @Test
