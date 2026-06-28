@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.plugin.core.Plugin;
@@ -23,6 +24,7 @@ import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.service.plugin.PluginRegistry;
 import java.util.List;
 import java.util.Optional;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,34 +32,42 @@ import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+/** Tests for PluginController. */
 @WebFluxTest(PluginController.class)
+@NoArgsConstructor
+@SuppressWarnings("PMD.LawOfDemeter")
 class PluginControllerTest {
 
+  /** Web test client for testing controller endpoints. */
   @Autowired private WebTestClient webTestClient;
 
+  /** Mock registry for plugin operations. */
   @MockitoBean private PluginRegistry registry;
 
   @Test
   void testListPlugins() {
-    Plugin plugin = Mockito.mock(Plugin.class);
+    final Plugin plugin = Mockito.mock(Plugin.class);
     when(plugin.getType()).thenReturn("test-plugin");
     when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(registry.listPlugins()).thenReturn(List.of(plugin));
 
-    webTestClient
-        .get()
-        .uri("/api/plugins")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.data[0].type")
-        .isEqualTo("test-plugin");
+    final var result =
+        webTestClient
+            .get()
+            .uri("/api/plugins")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.data[0].type")
+            .isEqualTo("test-plugin")
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testGetPluginDetails() {
-    Plugin plugin = Mockito.mock(Plugin.class);
+    final Plugin plugin = Mockito.mock(Plugin.class);
     when(plugin.getType()).thenReturn("test-plugin");
     when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(plugin.getDescription()).thenReturn("desc");
@@ -66,31 +76,42 @@ class PluginControllerTest {
     when(plugin.getOutputPorts()).thenReturn(List.of("default"));
     when(registry.get("test-plugin")).thenReturn(plugin);
 
-    webTestClient
-        .get()
-        .uri("/api/plugins/test-plugin")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.data.type")
-        .isEqualTo("test-plugin")
-        .jsonPath("$.data.description")
-        .isEqualTo("desc")
-        .jsonPath("$.data.uiDesign.html")
-        .isEqualTo("design");
+    final var result =
+        webTestClient
+            .get()
+            .uri("/api/plugins/test-plugin")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.data.type")
+            .isEqualTo("test-plugin")
+            .jsonPath("$.data.description")
+            .isEqualTo("desc")
+            .jsonPath("$.data.uiDesign.html")
+            .isEqualTo("design")
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testGetPluginDetailsNotFound() {
     when(registry.get("unknown")).thenReturn(null);
 
-    webTestClient.get().uri("/api/plugins/unknown").exchange().expectStatus().isNotFound();
+    final var result =
+        webTestClient
+            .get()
+            .uri("/api/plugins/unknown")
+            .exchange()
+            .expectStatus()
+            .isNotFound()
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(404);
   }
 
   @Test
   void testGetPluginDetailsWithoutUiDesign() {
-    Plugin plugin = Mockito.mock(Plugin.class);
+    final Plugin plugin = Mockito.mock(Plugin.class);
     when(plugin.getType()).thenReturn("test-plugin");
     when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(plugin.getDescription()).thenReturn("desc");
@@ -99,21 +120,32 @@ class PluginControllerTest {
     when(plugin.getOutputPorts()).thenReturn(List.of("default"));
     when(registry.get("test-plugin")).thenReturn(plugin);
 
-    webTestClient
-        .get()
-        .uri("/api/plugins/test-plugin")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.data.uiDesign")
-        .doesNotExist();
+    final var result =
+        webTestClient
+            .get()
+            .uri("/api/plugins/test-plugin")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.data.uiDesign")
+            .doesNotExist()
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testListPluginsError() {
     when(registry.listPlugins()).thenThrow(new RuntimeException("Registry error"));
 
-    webTestClient.get().uri("/api/plugins").exchange().expectStatus().is5xxServerError();
+    final var result =
+        webTestClient
+            .get()
+            .uri("/api/plugins")
+            .exchange()
+            .expectStatus()
+            .is5xxServerError()
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(500);
   }
 }

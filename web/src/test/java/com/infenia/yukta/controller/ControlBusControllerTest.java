@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -27,6 +28,7 @@ import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import java.util.List;
 import java.util.Map;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -34,32 +36,41 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/** Tests for ControlBusController. */
+@NoArgsConstructor
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyStaticImports"})
 class ControlBusControllerTest {
 
+  /** Web test client for testing controller endpoints. */
   private WebTestClient webClient;
+
+  /** Mock gateway for control bus operations. */
   private ControlBusGateway controlBusGateway;
 
   @BeforeEach
   void setUp() {
     controlBusGateway = mock(ControlBusGateway.class);
-    ControlBusController controller = new ControlBusController(controlBusGateway);
+    final ControlBusController controller = new ControlBusController(controlBusGateway);
     webClient = WebTestClient.bindToController(controller).build();
   }
 
   @Test
   void testGetActiveNodes() {
     when(controlBusGateway.getActiveNodes()).thenReturn(List.of("node1", "node2"));
-    webClient
-        .get()
-        .uri("/api/control/nodes")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.data[0]")
-        .isEqualTo("node1")
-        .jsonPath("$.message")
-        .isEqualTo("Active nodes retrieved");
+    final var result =
+        webClient
+            .get()
+            .uri("/api/control/nodes")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.data[0]")
+            .isEqualTo("node1")
+            .jsonPath("$.message")
+            .isEqualTo("Active nodes retrieved")
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
@@ -67,15 +78,18 @@ class ControlBusControllerTest {
     final Message<?> hb = DefaultMessage.create(null, "ok").withControl(true);
     doReturn(hb).when(controlBusGateway).getLastHeartbeat("wf1", "n1");
 
-    webClient
-        .get()
-        .uri("/api/control/workflows/wf1/nodes/n1/heartbeat")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.data.payload")
-        .isEqualTo("ok");
+    final var result =
+        webClient
+            .get()
+            .uri("/api/control/workflows/wf1/nodes/n1/heartbeat")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.data.payload")
+            .isEqualTo("ok")
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
@@ -83,94 +97,112 @@ class ControlBusControllerTest {
     final Message<?> resp = DefaultMessage.create(null, "done");
     when(controlBusGateway.sendCommand(eq("wf1"), eq("n1"), any())).thenReturn(Mono.just(resp));
 
-    webClient
-        .post()
-        .uri("/api/control/workflows/wf1/nodes/n1/command")
-        .contentType(MediaType.APPLICATION_JSON)
-        .bodyValue(Map.of("cmd", "reset"))
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.message")
-        .isEqualTo("Command processed");
+    final var result =
+        webClient
+            .post()
+            .uri("/api/control/workflows/wf1/nodes/n1/command")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(Map.of("cmd", "reset"))
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.message")
+            .isEqualTo("Command processed")
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testStreamProgress() {
-    WorkflowProgress progress = mock(WorkflowProgress.class);
+    final WorkflowProgress progress = mock(WorkflowProgress.class);
     when(controlBusGateway.watchExecution("exec1")).thenReturn(Flux.just(progress));
 
-    webClient
-        .get()
-        .uri("/api/control/executions/exec1/progress/stream")
-        .accept(MediaType.TEXT_EVENT_STREAM)
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectHeader()
-        .contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM);
+    final var result =
+        webClient
+            .get()
+            .uri("/api/control/executions/exec1/progress/stream")
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectHeader()
+            .contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM)
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testGetActiveNodesInWorkflow() {
     when(controlBusGateway.getActiveNodes("wf1")).thenReturn(List.of("node1", "node2"));
-    webClient
-        .get()
-        .uri("/api/control/workflows/wf1/nodes")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.data[0]")
-        .isEqualTo("node1")
-        .jsonPath("$.message")
-        .isEqualTo("Active nodes retrieved");
+    final var result =
+        webClient
+            .get()
+            .uri("/api/control/workflows/wf1/nodes")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.data[0]")
+            .isEqualTo("node1")
+            .jsonPath("$.message")
+            .isEqualTo("Active nodes retrieved")
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testGetProgress() {
-    WorkflowProgress progress = mock(WorkflowProgress.class);
+    final WorkflowProgress progress = mock(WorkflowProgress.class);
     when(controlBusGateway.getCurrentProgress("exec1")).thenReturn(progress);
 
-    webClient
-        .get()
-        .uri("/api/control/executions/exec1/progress")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.message")
-        .isEqualTo("Progress retrieved");
+    final var result =
+        webClient
+            .get()
+            .uri("/api/control/executions/exec1/progress")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.message")
+            .isEqualTo("Progress retrieved")
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testStreamLogs() {
     when(controlBusGateway.watchLogs("exec1")).thenReturn(Flux.just("log1", "log2"));
 
-    webClient
-        .get()
-        .uri("/api/control/executions/exec1/logs/stream")
-        .accept(MediaType.TEXT_EVENT_STREAM)
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectHeader()
-        .contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM);
+    final var result =
+        webClient
+            .get()
+            .uri("/api/control/executions/exec1/logs/stream")
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectHeader()
+            .contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM)
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testGetHistory() {
     when(controlBusGateway.getHistory("session1")).thenReturn(List.of());
 
-    webClient
-        .get()
-        .uri("/api/control/sessions/session1/history")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.message")
-        .isEqualTo("History retrieved");
+    final var result =
+        webClient
+            .get()
+            .uri("/api/control/sessions/session1/history")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.message")
+            .isEqualTo("History retrieved")
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 }

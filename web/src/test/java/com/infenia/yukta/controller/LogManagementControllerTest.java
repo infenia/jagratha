@@ -15,25 +15,33 @@
  */
 package com.infenia.yukta.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.service.LogRetrievalService;
 import java.util.List;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
+/** Tests for LogManagementController. */
+@NoArgsConstructor
+@SuppressWarnings("PMD.LawOfDemeter")
 class LogManagementControllerTest {
 
+  /** Web test client for testing controller endpoints. */
   private WebTestClient webClient;
+
+  /** Mock service for log retrieval operations. */
   private LogRetrievalService logs;
 
   @BeforeEach
   void setUp() {
     logs = mock(LogRetrievalService.class);
-    LogManagementController controller = new LogManagementController(logs);
+    final LogManagementController controller = new LogManagementController(logs);
     webClient = WebTestClient.bindToController(controller).build();
   }
 
@@ -41,30 +49,36 @@ class LogManagementControllerTest {
   void testListLogs() {
     when(logs.listLogs("sess-1")).thenReturn(Mono.just(List.of("test.log")));
 
-    webClient
-        .get()
-        .uri("/api/logs/sess-1")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.data[0]")
-        .isEqualTo("test.log");
+    final var result =
+        webClient
+            .get()
+            .uri("/api/logs/sess-1")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.data[0]")
+            .isEqualTo("test.log")
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testGetLogContent() {
     when(logs.getLogContent("sess-1", "test.log")).thenReturn(Mono.just("content"));
 
-    webClient
-        .get()
-        .uri("/api/logs/sess-1/test.log")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .jsonPath("$.data")
-        .isEqualTo("content");
+    final var result =
+        webClient
+            .get()
+            .uri("/api/logs/sess-1/test.log")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath("$.data")
+            .isEqualTo("content")
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
@@ -72,21 +86,32 @@ class LogManagementControllerTest {
     when(logs.getLogContent("sess-1", "test.log"))
         .thenReturn(Mono.error(new java.io.IOException()));
 
-    webClient.get().uri("/api/logs/sess-1/test.log").exchange().expectStatus().isNotFound();
+    final var result =
+        webClient
+            .get()
+            .uri("/api/logs/sess-1/test.log")
+            .exchange()
+            .expectStatus()
+            .isNotFound()
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(404);
   }
 
   @Test
   void testGetRawLogContent() {
     when(logs.getLogContent("sess-1", "test.log")).thenReturn(Mono.just("content"));
 
-    webClient
-        .get()
-        .uri("/api/logs/sess-1/test.log/raw")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody(String.class)
-        .isEqualTo("content");
+    final var result =
+        webClient
+            .get()
+            .uri("/api/logs/sess-1/test.log/raw")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody(String.class)
+            .isEqualTo("content")
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
@@ -94,6 +119,14 @@ class LogManagementControllerTest {
     when(logs.getLogContent("sess-1", "test.log"))
         .thenReturn(Mono.error(new java.io.IOException()));
 
-    webClient.get().uri("/api/logs/sess-1/test.log/raw").exchange().expectStatus().isNotFound();
+    final var result =
+        webClient
+            .get()
+            .uri("/api/logs/sess-1/test.log/raw")
+            .exchange()
+            .expectStatus()
+            .isNotFound()
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(404);
   }
 }
