@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.service.control.directive;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -49,6 +51,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
+@NoArgsConstructor
 class DirectiveDispatcherTest {
 
   private ExecutionControlRegistry registry;

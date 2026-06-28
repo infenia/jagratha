@@ -35,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
+@NoArgsConstructor
 class PauseWorkflowCommandProcessorTest {
 
   @Mock private ExecutionControlRegistry registry;

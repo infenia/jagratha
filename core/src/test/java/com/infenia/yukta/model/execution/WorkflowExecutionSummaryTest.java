@@ -15,11 +15,14 @@
  */
 package com.infenia.yukta.model.execution;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
+@NoArgsConstructor
 class WorkflowExecutionSummaryTest {
 
   @Test

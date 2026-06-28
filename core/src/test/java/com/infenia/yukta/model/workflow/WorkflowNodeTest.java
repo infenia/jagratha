@@ -24,6 +24,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /** Unit tests for {@link WorkflowNode}. */
+@NoArgsConstructor
 class WorkflowNodeTest {
 
   @Test

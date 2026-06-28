@@ -15,8 +15,11 @@
  */
 package com.infenia.yukta;
 
+import lombok.NoArgsConstructor;
+
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /** Test application bootstrap for the yukta-core module. */
 @SpringBootApplication
+@NoArgsConstructor
 public class TestApplication {}

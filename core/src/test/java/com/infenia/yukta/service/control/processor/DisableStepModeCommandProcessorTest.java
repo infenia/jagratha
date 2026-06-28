@@ -36,6 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
+@NoArgsConstructor
 class DisableStepModeCommandProcessorTest {
 
   @Mock private ExecutionControlRegistry registry;

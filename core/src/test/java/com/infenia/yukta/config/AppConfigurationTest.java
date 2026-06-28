@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.config;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -30,6 +32,7 @@ import org.springframework.context.annotation.Configuration;
 import reactor.core.scheduler.Scheduler;
 import tools.jackson.databind.ObjectMapper;
 
+@NoArgsConstructor
 class AppConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =

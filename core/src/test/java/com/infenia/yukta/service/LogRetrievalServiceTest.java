@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.service;
 
+import lombok.NoArgsConstructor;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@NoArgsConstructor
 class LogRetrievalServiceTest {
 
   private SessionConfigStore configService;

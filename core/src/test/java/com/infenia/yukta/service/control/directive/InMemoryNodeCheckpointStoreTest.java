@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.service.control.directive;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.message.DefaultMessage;
@@ -25,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
+@NoArgsConstructor
 class InMemoryNodeCheckpointStoreTest {
 
   private InMemoryNodeCheckpointStore store;

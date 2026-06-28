@@ -15,11 +15,14 @@
  */
 package com.infenia.yukta.model.control;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
+@NoArgsConstructor
 class ControlErrorTest {
 
   @Test

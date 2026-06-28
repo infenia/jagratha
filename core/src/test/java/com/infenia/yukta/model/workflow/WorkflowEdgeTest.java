@@ -15,11 +15,14 @@
  */
 package com.infenia.yukta.model.workflow;
 
+import lombok.NoArgsConstructor;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
 /** Unit tests for {@link WorkflowEdge}. */
+@NoArgsConstructor
 class WorkflowEdgeTest {
 
   @Test

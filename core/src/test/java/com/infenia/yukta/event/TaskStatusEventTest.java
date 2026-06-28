@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
+@NoArgsConstructor
 class TaskStatusEventTest {
 
   @Test

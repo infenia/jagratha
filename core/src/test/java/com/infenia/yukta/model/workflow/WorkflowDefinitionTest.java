@@ -37,6 +37,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 @SpringJUnitConfig(WorkflowDefinitionTest.TestConfig.class)
 @Tag("WorkflowDefinitionTest")
+@NoArgsConstructor
 class WorkflowDefinitionTest {
 
   @Configuration

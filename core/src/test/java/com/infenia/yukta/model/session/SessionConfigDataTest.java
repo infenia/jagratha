@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.model.session;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -38,6 +40,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 @SpringJUnitConfig(SessionConfigDataTest.TestConfig.class)
 @Tag("SessionConfigDataTest")
+@NoArgsConstructor
 class SessionConfigDataTest {
 
   @Configuration

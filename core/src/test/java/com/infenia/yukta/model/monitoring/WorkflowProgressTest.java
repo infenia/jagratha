@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+@NoArgsConstructor
 class WorkflowProgressTest {
 
   @Test

@@ -17,11 +17,13 @@ package com.infenia.yukta.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @DisplayName("YuktaProperties")
+@NoArgsConstructor
 class YuktaPropertiesTest {
 
   private YuktaProperties properties;

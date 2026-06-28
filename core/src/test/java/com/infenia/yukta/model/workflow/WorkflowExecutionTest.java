@@ -15,12 +15,15 @@
  */
 package com.infenia.yukta.model.workflow;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.model.session.TaskResponse;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
+@NoArgsConstructor
 class WorkflowExecutionTest {
 
   @Test

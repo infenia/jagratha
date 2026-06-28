@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.service.control.processor;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,6 +38,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
+@NoArgsConstructor
 class PauseNodeCommandProcessorTest {
 
   @Mock private ExecutionControlRegistry registry;

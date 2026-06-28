@@ -15,9 +15,12 @@
  */
 package com.infenia.yukta.service;
 
+import lombok.NoArgsConstructor;
+
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
+@NoArgsConstructor
 class NoOpSecretProviderTest {
 
   @Test

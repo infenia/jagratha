@@ -15,10 +15,13 @@
  */
 package com.infenia.yukta.config;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+@NoArgsConstructor
 class SessionConfigPropertiesTest {
 
   @Test

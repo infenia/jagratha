@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.service.control.directive;
 
+import lombok.NoArgsConstructor;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;

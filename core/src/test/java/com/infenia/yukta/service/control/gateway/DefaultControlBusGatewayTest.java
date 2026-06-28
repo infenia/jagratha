@@ -68,6 +68,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
+@NoArgsConstructor
 class DefaultControlBusGatewayTest {
 
   @Mock private ControlBusService controlBusService;

@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Sinks;
 
+@NoArgsConstructor
 class ExecutionControlTest {
 
   static final Message<?> TEST_MESSAGE = mock(Message.class);

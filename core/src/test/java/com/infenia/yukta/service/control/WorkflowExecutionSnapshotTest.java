@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.service.control;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.*;
 
 import java.time.Instant;

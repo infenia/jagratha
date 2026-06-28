@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.model.control;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

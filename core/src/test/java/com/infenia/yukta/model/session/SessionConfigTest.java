@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.model.session;
 
+import lombok.NoArgsConstructor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -22,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
+@NoArgsConstructor
 class SessionConfigTest {
 
   @Test

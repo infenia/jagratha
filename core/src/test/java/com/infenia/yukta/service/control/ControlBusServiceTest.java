@@ -50,6 +50,7 @@ import reactor.util.concurrent.Queues;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ControlBusService")
+@NoArgsConstructor
 class ControlBusServiceTest {
 
   @BeforeEach

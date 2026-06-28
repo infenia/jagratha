@@ -15,6 +15,8 @@
  */
 package com.infenia.yukta.event;
 
+import lombok.NoArgsConstructor;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -24,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import org.junit.jupiter.api.Test;
 
+@NoArgsConstructor
 class WorkflowStatusEventTest {
 
   @Test
