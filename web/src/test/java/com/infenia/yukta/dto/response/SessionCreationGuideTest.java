@@ -29,22 +29,31 @@ class SessionCreationGuideTest {
 
   /** Naming conventions constant. */
   private static final String NAMING = "naming";
+
   /** Configuration structure constant. */
   private static final String CONFIG = "config";
+
   /** Example session config constant. */
   private static final String EXAMPLE = "example";
+
   /** Workflow definition format constant. */
   private static final String FORMAT = "format";
+
   /** Plugin reference constant. */
   private static final String PLUGIN1 = "plugin1";
+
   /** Trigger plugin type constant. */
   private static final String TRIGGER = "TRIGGER";
+
   /** Description constant. */
   private static final String DESC = "Desc";
+
   /** Error example constant. */
   private static final String ERROR1 = "error1";
+
   /** Error cause constant. */
   private static final String CAUSE = "cause";
+
   /** Error resolution constant. */
   private static final String RESOLUTION = "resolution";
 

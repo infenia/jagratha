@@ -36,6 +36,7 @@ class WorkflowStartRequestTest {
 
   /** Session ID constant for testing. */
   private static final String SESSION_ID_CONST = "session-1";
+
   /** Workflow ID constant for testing. */
   private static final String WORKFLOW_ID_CONST = "workflow-1";
 

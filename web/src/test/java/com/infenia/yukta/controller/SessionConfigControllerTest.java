@@ -142,7 +142,8 @@ class SessionConfigControllerTest {
 
   @Test
   void testGetWorkflow() {
-    final WorkflowDefinition def = new WorkflowDefinition(WF_ID_1, WORKFLOW_DESC, List.of(), List.of());
+    final WorkflowDefinition def =
+        new WorkflowDefinition(WF_ID_1, WORKFLOW_DESC, List.of(), List.of());
     when(sessionService.getSessionWorkflow("s1", WF_ID_1)).thenReturn(Mono.just(def));
 
     webTestClient
@@ -178,7 +179,12 @@ class SessionConfigControllerTest {
             "w1", TEST_WORKFLOW, List.of(new NodeRequest("n1", GRADLE, Map.of())), List.of());
     final ConfigRequest request =
         new ConfigRequest(
-            SESSION_ID_1, WORKFLOW_DESC, INITIATOR_1, Map.of(), NEW_PATH, Map.of(WF_ID_1, workflow));
+            SESSION_ID_1,
+            WORKFLOW_DESC,
+            INITIATOR_1,
+            Map.of(),
+            NEW_PATH,
+            Map.of(WF_ID_1, workflow));
 
     lenient()
         .when(sessionMapper.configRequestToSessionConfigData(any()))
@@ -401,7 +407,8 @@ class SessionConfigControllerTest {
         new WorkflowDefinitionRequest(
             "w1", TEST_WORKFLOW, List.of(new NodeRequest("n1", GRADLE, Map.of())), List.of());
     final ConfigRequest request =
-        new ConfigRequest(SESSION_ID_1, WORKFLOW_DESC, "", Map.of(), NEW_PATH, Map.of("w1", workflow));
+        new ConfigRequest(
+            SESSION_ID_1, WORKFLOW_DESC, "", Map.of(), NEW_PATH, Map.of("w1", workflow));
 
     final var result =
         webTestClient
@@ -526,7 +533,12 @@ class SessionConfigControllerTest {
             "w1", TEST_WORKFLOW, List.of(new NodeRequest("n1", GRADLE, Map.of())), List.of());
     final ConfigRequest request =
         new ConfigRequest(
-            "error-session", WORKFLOW_DESC, INITIATOR_1, Map.of(), NEW_PATH, Map.of(WF_ID_1, workflow));
+            "error-session",
+            WORKFLOW_DESC,
+            INITIATOR_1,
+            Map.of(),
+            NEW_PATH,
+            Map.of(WF_ID_1, workflow));
 
     lenient()
         .when(sessionMapper.configRequestToSessionConfigData(any()))

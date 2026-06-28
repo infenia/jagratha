@@ -28,22 +28,31 @@ class ControlBusStatusTest {
 
   /** Session ID test constant. */
   private static final String SESSION_ID_123 = "session-123";
+
   /** Execution ID test constant. */
   private static final String EXEC_ID_456 = "exec-456";
+
   /** Completed status constant. */
   private static final String STATUS_COMPLETED = "COMPLETED";
+
   /** Gradle plugin name constant. */
   private static final String GRADLE = "gradle";
+
   /** Processor plugin type constant. */
   private static final String PROCESSOR = "PROCESSOR";
+
   /** Active status constant. */
   private static final String ACTIVE = "ACTIVE";
+
   /** Second execution ID test constant. */
   private static final String EXEC_ID_789 = "exec-789";
+
   /** Failed status constant. */
   private static final String STATUS_FAILED = "FAILED";
+
   /** Memory value constant 1024. */
   private static final String VALUE_1024 = "1024";
+
   /** Memory value constant 512. */
   private static final String VALUE_512 = "512";
 
@@ -75,7 +84,10 @@ class ControlBusStatusTest {
     // Given-When
     final ControlBusStatus status =
         new ControlBusStatus(
-            null, List.of(), new SystemHealthMetrics(50.0, 10, VALUE_512, VALUE_1024, "1h"), List.of());
+            null,
+            List.of(),
+            new SystemHealthMetrics(50.0, 10, VALUE_512, VALUE_1024, "1h"),
+            List.of());
 
     // Then
     assertThat(status.activeSessions()).isEmpty();
@@ -87,7 +99,10 @@ class ControlBusStatusTest {
     // Given-When
     final ControlBusStatus status =
         new ControlBusStatus(
-            List.of(), null, new SystemHealthMetrics(50.0, 10, VALUE_512, VALUE_1024, "1h"), List.of());
+            List.of(),
+            null,
+            new SystemHealthMetrics(50.0, 10, VALUE_512, VALUE_1024, "1h"),
+            List.of());
 
     // Then
     assertThat(status.pluginRegistry()).isEmpty();
@@ -99,7 +114,10 @@ class ControlBusStatusTest {
     // Given-When
     final ControlBusStatus status =
         new ControlBusStatus(
-            List.of(), List.of(), new SystemHealthMetrics(50.0, 10, VALUE_512, VALUE_1024, "1h"), null);
+            List.of(),
+            List.of(),
+            new SystemHealthMetrics(50.0, 10, VALUE_512, VALUE_1024, "1h"),
+            null);
 
     // Then
     assertThat(status.recentExecutions()).isEmpty();
@@ -165,7 +183,8 @@ class ControlBusStatusTest {
     // Given
     final List<SessionExecutionInfo> activeSessions = List.of();
     final List<PluginRegistryEntry> pluginRegistry = List.of();
-    final SystemHealthMetrics health = new SystemHealthMetrics(50.0, 10, VALUE_512, VALUE_1024, "1h");
+    final SystemHealthMetrics health =
+        new SystemHealthMetrics(50.0, 10, VALUE_512, VALUE_1024, "1h");
     final List<ExecutionRecord> recentExecutions = List.of();
     final ControlBusStatus status1 =
         new ControlBusStatus(activeSessions, pluginRegistry, health, recentExecutions);
@@ -179,7 +198,8 @@ class ControlBusStatusTest {
   @Test
   void equals_differentValues_returnsFalse() {
     // Given
-    final SystemHealthMetrics health1 = new SystemHealthMetrics(50.0, 10, VALUE_512, VALUE_1024, "1h");
+    final SystemHealthMetrics health1 =
+        new SystemHealthMetrics(50.0, 10, VALUE_512, VALUE_1024, "1h");
     final SystemHealthMetrics health2 = new SystemHealthMetrics(60.0, 10, "512", "1024", "1h");
     final ControlBusStatus status1 = new ControlBusStatus(List.of(), List.of(), health1, List.of());
     final ControlBusStatus status2 = new ControlBusStatus(List.of(), List.of(), health2, List.of());

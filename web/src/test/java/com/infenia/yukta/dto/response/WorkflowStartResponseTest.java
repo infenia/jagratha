@@ -25,12 +25,10 @@ import org.junit.jupiter.api.Test;
 class WorkflowStartResponseTest {
 
   /** Execution ID UUID constant for testing. */
-  private static final String EXEC_ID_UUID =
-      "550e8400-e29b-41d4-a716-446655440000";
+  private static final String EXEC_ID_UUID = "550e8400-e29b-41d4-a716-446655440000";
 
   /** Different execution ID UUID constant for testing. */
-  private static final String EXEC_ID_UUID_DIFFERENT =
-      "550e8400-e29b-41d4-a716-446655440001";
+  private static final String EXEC_ID_UUID_DIFFERENT = "550e8400-e29b-41d4-a716-446655440001";
 
   @Test
   void constructor_validInput_createsRecord() {
@@ -47,10 +45,8 @@ class WorkflowStartResponseTest {
   @Test
   void equals_sameValues_returnsTrue() {
     // Given
-    final WorkflowStartResponse response1 =
-        new WorkflowStartResponse(EXEC_ID_UUID);
-    final WorkflowStartResponse response2 =
-        new WorkflowStartResponse(EXEC_ID_UUID);
+    final WorkflowStartResponse response1 = new WorkflowStartResponse(EXEC_ID_UUID);
+    final WorkflowStartResponse response2 = new WorkflowStartResponse(EXEC_ID_UUID);
 
     // When-Then
     assertThat(response1).isEqualTo(response2);
@@ -59,10 +55,8 @@ class WorkflowStartResponseTest {
   @Test
   void equals_differentValues_returnsFalse() {
     // Given
-    final WorkflowStartResponse response1 =
-        new WorkflowStartResponse(EXEC_ID_UUID);
-    final WorkflowStartResponse response2 =
-        new WorkflowStartResponse(EXEC_ID_UUID_DIFFERENT);
+    final WorkflowStartResponse response1 = new WorkflowStartResponse(EXEC_ID_UUID);
+    final WorkflowStartResponse response2 = new WorkflowStartResponse(EXEC_ID_UUID_DIFFERENT);
 
     // When-Then
     assertThat(response1).isNotEqualTo(response2);

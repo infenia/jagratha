@@ -30,14 +30,19 @@ class PluginDetailsTest {
 
   /** Gradle plugin type constant. */
   private static final String GRADLE = "gradle";
+
   /** Description constant. */
   private static final String DESCRIPTION = "Description";
+
   /** Usage pattern constant. */
   private static final String USAGE = "Usage";
+
   /** Success output port constant. */
   private static final String SUCCESS = "success";
+
   /** Default UI design HTML constant. */
   private static final String DEFAULT_UI_HTML = "<div/>";
+
   /** Description constant for testing. */
   private static final String DESC = "Desc";
 

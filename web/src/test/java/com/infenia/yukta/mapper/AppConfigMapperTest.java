@@ -199,7 +199,8 @@ class AppConfigMapperTest {
   void testToNodeWithDifferentTypes() {
     final String[] types = {TRIGGER_PLUGIN, PROCESSOR_PLUGIN, TERMINAL_PLUGIN};
     for (final String type : types) {
-      final NodeRequest nodeRequest = new NodeRequest("node-" + type, type, Map.of());
+      final String nodeId = "node-" + type;
+      final NodeRequest nodeRequest = buildNodeRequest(nodeId, type);
       final Node result = mapper.toNode(nodeRequest);
 
       assertThat(result).isNotNull();
@@ -233,13 +234,10 @@ class AppConfigMapperTest {
   void testToDataWithManyWorkflows() {
     final Map<String, WorkflowDefinitionRequest> workflows = new ConcurrentHashMap<>();
     for (int i = 0; i < 5; i++) {
-      workflows.put(
-          "workflow-" + i,
-          new WorkflowDefinitionRequest(
-              "workflow-" + i,
-              "Workflow " + i,
-              List.of(new NodeRequest("node-" + i, "ProcessorPlugin", Map.of())),
-              List.of()));
+      final String workflowId = "workflow-" + i;
+      final WorkflowDefinitionRequest workflowRequest =
+          buildWorkflowDefinitionRequest(workflowId, "Workflow " + i, "node-" + i);
+      workflows.put(workflowId, workflowRequest);
     }
 
     final ConfigRequest request =
@@ -646,5 +644,18 @@ class AppConfigMapperTest {
     assertThat(edgeResult.source()).isEqualTo(SOURCE_NODE);
     assertThat(edgeResult.target()).isEqualTo(TARGET_NODE);
     assertThat(edgeResult.sourcePort()).isEqualTo("");
+  }
+
+  /* default */ NodeRequest buildNodeRequest(final String nodeId, final String type) {
+    return new NodeRequest(nodeId, type, Map.of());
+  }
+
+  /* default */ WorkflowDefinitionRequest buildWorkflowDefinitionRequest(
+      final String workflowId, final String description, final String nodeId) {
+    return new WorkflowDefinitionRequest(
+        workflowId,
+        description,
+        List.of(new NodeRequest(nodeId, PROCESSOR_PLUGIN, Map.of())),
+        List.of());
   }
 }

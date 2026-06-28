@@ -26,8 +26,10 @@ class PluginReferenceTest {
 
   /** Gradle plugin type constant. */
   private static final String GRADLE = "gradle";
+
   /** Processor category constant. */
   private static final String PROCESSOR = "PROCESSOR";
+
   /** Gradle quality checks plugin description constant. */
   private static final String GRADLE_QUALITY_CHECKS_PLUGIN = "Gradle quality checks plugin";
 

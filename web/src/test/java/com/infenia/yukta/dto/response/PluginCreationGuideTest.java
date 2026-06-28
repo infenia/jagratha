@@ -28,18 +28,25 @@ class PluginCreationGuideTest {
 
   /** Architecture overview key. */
   private static final String OVERVIEW = "overview";
+
   /** Trigger plugin type key. */
   private static final String TRIGGER = "trigger";
+
   /** Template code constant. */
   private static final String CODE = "code";
+
   /** Integration examples constant. */
   private static final String EXAMPLES = "examples";
+
   /** Configuration reference constant. */
   private static final String CONFIG = "config";
+
   /** Validation checklist constant. */
   private static final String CHECKLIST = "checklist";
+
   /** Testing strategy constant. */
   private static final String STRATEGY = "strategy";
+
   /** Deployment guide constant. */
   private static final String GUIDE = "guide";
 

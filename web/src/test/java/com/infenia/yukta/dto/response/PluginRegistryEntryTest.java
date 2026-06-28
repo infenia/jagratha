@@ -26,8 +26,10 @@ class PluginRegistryEntryTest {
 
   /** Gradle plugin type constant. */
   private static final String GRADLE = "gradle";
+
   /** Processor category constant. */
   private static final String PROCESSOR = "PROCESSOR";
+
   /** Active status constant. */
   private static final String ACTIVE = "ACTIVE";
 

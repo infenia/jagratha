@@ -42,26 +42,37 @@ class WorkflowDefinitionRequestTest {
 
   /** Gradle plugin identifier. */
   private static final String GRADLE = "gradle";
+
   /** Gradle workflow ID constant. */
   private static final String GRADLE_WORKFLOW_ID = "quality-check";
+
   /** Gradle workflow description constant. */
   private static final String GRADLE_WORKFLOW_DESC = "Quality check workflow";
+
   /** Gradle plugin description constant. */
   private static final String GRADLE_DESC = "Gradle quality checks plugin";
+
   /** First node identifier constant. */
   private static final String NODE1 = "node1";
+
   /** Second node identifier constant. */
   private static final String NODE2 = "node2";
+
   /** Third node identifier constant. */
   private static final String NODE3 = "node3";
+
   /** First edge identifier constant. */
   private static final String EDGE1 = "edge1";
+
   /** Second edge identifier constant. */
   private static final String EDGE2 = "edge2";
+
   /** Configuration key constant. */
   private static final String KEY = "key";
+
   /** Configuration value constant. */
   private static final String VALUE = "value";
+
   /** Port configuration constant. */
   private static final String PORT = "port";
 

@@ -26,6 +26,7 @@ class SessionExecutionInfoTest {
 
   /** First session ID test constant. */
   private static final String SESSION_ID_123 = "session-123";
+
   /** Second session ID test constant. */
   private static final String SESSION_ID_456 = "session-456";
 

@@ -26,12 +26,16 @@ class ExecutionRecordTest {
 
   /** Session ID test constant. */
   private static final String SESSION_ID_123 = "session-123";
+
   /** Execution ID test constant. */
   private static final String EXEC_ID_456 = "exec-456";
+
   /** Completed status constant. */
   private static final String STATUS_COMPLETED = "COMPLETED";
+
   /** Second execution ID test constant. */
   private static final String EXEC_ID_789 = "exec-789";
+
   /** Duration 5000ms constant. */
   private static final String DURATION_5000MS = "5000ms";
 

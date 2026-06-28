@@ -26,8 +26,10 @@ class ErrorExampleTest {
 
   /** Invalid config error constant. */
   private static final String INVALID_CONFIG_ERROR = "InvalidConfigError";
+
   /** Missing field constant. */
   private static final String MISSING_FIELD = "Missing field";
+
   /** Provide field constant. */
   private static final String PROVIDE_FIELD = "Provide field";
 

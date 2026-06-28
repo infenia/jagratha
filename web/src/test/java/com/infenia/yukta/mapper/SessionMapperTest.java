@@ -200,13 +200,10 @@ class SessionMapperTest {
   void testConfigRequestWithManyWorkflows() {
     final Map<String, WorkflowDefinitionRequest> workflows = new ConcurrentHashMap<>();
     for (int i = 0; i < 5; i++) {
-      workflows.put(
-          "workflow-" + i,
-          new WorkflowDefinitionRequest(
-              "workflow-" + i,
-              "Workflow " + i,
-              List.of(new NodeRequest("node-" + i, PROCESSOR_PLUGIN, Map.of())),
-              List.of()));
+      final String workflowId = "workflow-" + i;
+      final WorkflowDefinitionRequest workflowRequest =
+          buildWorkflowDefinitionRequest(workflowId, "Workflow " + i, "node-" + i);
+      workflows.put(workflowId, workflowRequest);
     }
 
     final ConfigRequest request =
@@ -657,5 +654,14 @@ class SessionMapperTest {
     assertThat(edgeResult.source()).isEqualTo(SOURCE_NODE);
     assertThat(edgeResult.target()).isEqualTo(TARGET_NODE);
     assertThat(edgeResult.sourcePort()).isEqualTo("");
+  }
+
+  /* default */ WorkflowDefinitionRequest buildWorkflowDefinitionRequest(
+      final String workflowId, final String description, final String nodeId) {
+    return new WorkflowDefinitionRequest(
+        workflowId,
+        description,
+        List.of(new NodeRequest(nodeId, PROCESSOR_PLUGIN, Map.of())),
+        List.of());
   }
 }

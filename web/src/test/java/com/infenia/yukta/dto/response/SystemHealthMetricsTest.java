@@ -124,7 +124,8 @@ class SystemHealthMetricsTest {
   @Test
   void verifyToStringContainsRelevantFieldValues() {
     // Given
-    final SystemHealthMetrics metrics = new SystemHealthMetrics(75.5, 42, MEMORY_1024, MEMORY_2048, UPTIME_2H_30M);
+    final SystemHealthMetrics metrics =
+        new SystemHealthMetrics(75.5, 42, MEMORY_1024, MEMORY_2048, UPTIME_2H_30M);
 
     // When
     final String actual = metrics.toString();
