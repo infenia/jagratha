@@ -343,9 +343,7 @@ class DefaultControlBusGatewayTest {
     // Then
     StepVerifier.create(result)
         .assertNext(
-            stoppedId -> {
-              assertThat(stoppedId).isEqualTo(executionId);
-            })
+            stoppedId -> assertThat(stoppedId).isEqualTo(executionId))
         .verifyComplete();
 
     verify(executionControlRegistry).findActiveByWorkflow(sessionId, workflowId);
