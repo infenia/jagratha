@@ -17,13 +17,17 @@ package com.infenia.yukta.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+/** Tests for WorkflowMapper. */
 @SpringBootTest
+@NoArgsConstructor
 class WorkflowMapperTest {
 
+  /** Mapper for workflow data transformation. */
   @Autowired private WorkflowMapper mapper;
 
   @Test

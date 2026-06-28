@@ -48,6 +48,64 @@ import reactor.core.publisher.Mono;
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyMethods"})
 class WorkflowControllerTest {
 
+  /** API endpoint for workflow start. */
+  private static final String API_WORKFLOW_START = "/api/workflow/start";
+
+  /** Success message for workflow start. */
+  private static final String WORKFLOW_START_ACCEPTED = "Workflow start accepted";
+
+  /** Error message when workflow not found. */
+  private static final String WORKFLOW_NOT_FOUND = "Workflow not found";
+
+  /** Test session identifier. */
+  private static final String SESSION_ID_1 = "session-1";
+
+  /** Test execution identifier. */
+  private static final String EXEC_ID_1 = "exec-1";
+
+  /** Test session ID. */
+  private static final String SESS_ID_1 = "sess-1";
+
+  /** Test workflow ID. */
+  private static final String WF_ID_1 = "wf-1";
+
+  /** Running status string. */
+  private static final String RUNNING = "RUNNING";
+
+  /** Status endpoint path. */
+  private static final String STATUS_ENDPOINT = "/api/workflow/sess-1/status/exec-1";
+
+  /** History endpoint path. */
+  private static final String HISTORY_ENDPOINT = "/api/workflow/sess-1/history";
+
+  /** Stop endpoint path. */
+  private static final String STOP_ENDPOINT = "/api/workflow/sess-1/wf-1/stop";
+
+  /** Stopped message. */
+  private static final String STOPPED_VIA_REST_API = "Stopped via REST API";
+
+  /** Success message for retrieving workflow history. */
+  private static final String WORKFLOW_HISTORY_RETRIEVED =
+      "Workflow history retrieved successfully";
+
+  /** Error message when session not found. */
+  private static final String SESSION_NOT_FOUND = "Session not found";
+
+  /** Success message for workflow stop signal. */
+  private static final String WORKFLOW_STOP_SIGNAL_ACCEPTED = "Workflow stop signal accepted";
+
+  /** JSONPath expression for status field. */
+  private static final String DOLLAR_STATUS = "$.status";
+
+  /** JSONPath expression for message field. */
+  private static final String DOLLAR_MESSAGE = "$.message";
+
+  /** Execution ID prefix for log messages. */
+  private static final String COMMA_EXEC_ID = ", executionId=";
+
+  /** Stream endpoint suffix. */
+  private static final String STREAM = "/stream";
+
   /** Web test client for testing controller endpoints. */
   private WebTestClient webClient;
 
@@ -74,7 +132,7 @@ class WorkflowControllerTest {
 
   @Test
   void testTriggerWorkflowSuccess() {
-    final WorkflowStartRequest request = new WorkflowStartRequest("session-1", "w1");
+    final WorkflowStartRequest request = new WorkflowStartRequest(SESSION_ID_1, "w1");
     final TaskResponse response = new TaskResponse("SUCCESS", "Build successful");
     final String executionId = "exec-123";
     final WorkflowExecution execution = new WorkflowExecution(executionId, Mono.just(response));
@@ -85,17 +143,17 @@ class WorkflowControllerTest {
     final var result =
         webClient
             .post()
-            .uri("/api/workflow/start")
+            .uri(API_WORKFLOW_START)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .exchange()
             .expectStatus()
             .isAccepted()
             .expectBody()
-            .jsonPath("$.status")
+            .jsonPath(DOLLAR_STATUS)
             .isEqualTo(202)
-            .jsonPath("$.message")
-            .isEqualTo("Workflow start accepted")
+            .jsonPath(DOLLAR_MESSAGE)
+            .isEqualTo(WORKFLOW_START_ACCEPTED)
             .jsonPath("$.data.executionId")
             .isEqualTo(executionId)
             .returnResult();
@@ -104,7 +162,7 @@ class WorkflowControllerTest {
 
   @Test
   void testTriggerWorkflowSuccessLogging(final CapturedOutput output) {
-    final WorkflowStartRequest request = new WorkflowStartRequest("session-1", "w1");
+    final WorkflowStartRequest request = new WorkflowStartRequest(SESSION_ID_1, "w1");
     final TaskResponse response = new TaskResponse("SUCCESS", "Build successful");
     final String executionId = "exec-123";
     final WorkflowExecution execution = new WorkflowExecution(executionId, Mono.just(response));
@@ -115,7 +173,7 @@ class WorkflowControllerTest {
     final var result =
         webClient
             .post()
-            .uri("/api/workflow/start")
+            .uri(API_WORKFLOW_START)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .exchange()
@@ -125,47 +183,47 @@ class WorkflowControllerTest {
     assertThat(result.getStatus().value()).isEqualTo(202);
 
     assertThat(output.toString())
-        .contains("startWorkflow: sessionId=session-1, workflowId=w1")
+        .contains("startWorkflow: sessionId=" + SESSION_ID_1 + ", workflowId=w1")
         .contains("startWorkflow service call succeeded")
         .contains("startWorkflow response sent successfully");
   }
 
   @Test
   void testTriggerWorkflowError() {
-    final WorkflowStartRequest request = new WorkflowStartRequest("session-1", "w1");
+    final WorkflowStartRequest request = new WorkflowStartRequest(SESSION_ID_1, "w1");
 
     when(workflowService.validateAndStartWorkflow(anyString(), anyString()))
-        .thenReturn(Mono.error(new RuntimeException("Workflow not found")));
+        .thenReturn(Mono.error(new RuntimeException(WORKFLOW_NOT_FOUND)));
 
     final var result =
         webClient
             .post()
-            .uri("/api/workflow/start")
+            .uri(API_WORKFLOW_START)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .exchange()
             .expectStatus()
             .isNotFound()
             .expectBody()
-            .jsonPath("$.status")
+            .jsonPath(DOLLAR_STATUS)
             .isEqualTo(404)
-            .jsonPath("$.message")
-            .isEqualTo("Workflow not found")
+            .jsonPath(DOLLAR_MESSAGE)
+            .isEqualTo(WORKFLOW_NOT_FOUND)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(404);
   }
 
   @Test
   void testTriggerWorkflowErrorLogging(final CapturedOutput output) {
-    final WorkflowStartRequest request = new WorkflowStartRequest("session-1", "w1");
+    final WorkflowStartRequest request = new WorkflowStartRequest(SESSION_ID_1, "w1");
 
     when(workflowService.validateAndStartWorkflow(anyString(), anyString()))
-        .thenReturn(Mono.error(new RuntimeException("Workflow not found")));
+        .thenReturn(Mono.error(new RuntimeException(WORKFLOW_NOT_FOUND)));
 
     final var result =
         webClient
             .post()
-            .uri("/api/workflow/start")
+            .uri(API_WORKFLOW_START)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .exchange()
@@ -175,9 +233,9 @@ class WorkflowControllerTest {
     assertThat(result.getStatus().value()).isEqualTo(404);
 
     assertThat(output.toString())
-        .contains("startWorkflow: sessionId=session-1, workflowId=w1")
+        .contains("startWorkflow: sessionId=" + SESSION_ID_1 + ", workflowId=w1")
         .contains("startWorkflow error occurred")
-        .contains("Workflow not found");
+        .contains(WORKFLOW_NOT_FOUND);
   }
 
   // --- Status Tests ---
@@ -186,25 +244,25 @@ class WorkflowControllerTest {
   void testGetWorkflowStatus() {
     final WorkflowProgress progress =
         new WorkflowProgress(
-            "exec-1",
-            "sess-1",
-            "wf-1",
-            "RUNNING",
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
+            RUNNING,
             List.of(),
             LocalDateTime.now(ZoneId.systemDefault()),
             null);
-    when(controlBusGateway.getCurrentProgress("exec-1")).thenReturn(progress);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(progress);
 
     final var result =
         webClient
             .get()
-            .uri("/api/workflow/sess-1/status/exec-1")
+            .uri(STATUS_ENDPOINT)
             .exchange()
             .expectStatus()
             .isOk()
             .expectBody()
             .jsonPath("$.data.executionId")
-            .isEqualTo("exec-1")
+            .isEqualTo(EXEC_ID_1)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
   }
@@ -213,79 +271,56 @@ class WorkflowControllerTest {
   void testGetWorkflowStatusLogging(final CapturedOutput output) {
     final WorkflowProgress progress =
         new WorkflowProgress(
-            "exec-1",
-            "sess-1",
-            "wf-1",
-            "RUNNING",
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
+            RUNNING,
             List.of(),
             LocalDateTime.now(ZoneId.systemDefault()),
             null);
-    when(controlBusGateway.getCurrentProgress("exec-1")).thenReturn(progress);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(progress);
 
     final var result =
-        webClient
-            .get()
-            .uri("/api/workflow/sess-1/status/exec-1")
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .returnResult();
+        webClient.get().uri(STATUS_ENDPOINT).exchange().expectStatus().isOk().returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
 
     assertThat(output.toString())
-        .contains("getWorkflowStatus: sessionId=sess-1, executionId=exec-1")
+        .contains("getWorkflowStatus: sessionId=" + SESS_ID_1 + COMMA_EXEC_ID + EXEC_ID_1)
         .contains("getWorkflowStatus service call succeeded")
         .contains("getWorkflowStatus response sent successfully");
   }
 
   @Test
   void testGetWorkflowStatusNotFound() {
-    when(controlBusGateway.getCurrentProgress("exec-1")).thenReturn(null);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(null);
 
     final var result =
-        webClient
-            .get()
-            .uri("/api/workflow/sess-1/status/exec-1")
-            .exchange()
-            .expectStatus()
-            .isNotFound()
-            .returnResult();
+        webClient.get().uri(STATUS_ENDPOINT).exchange().expectStatus().isNotFound().returnResult();
     assertThat(result.getStatus().value()).isEqualTo(404);
   }
 
   @Test
   void testGetWorkflowStatusNotFoundLogging(final CapturedOutput output) {
-    when(controlBusGateway.getCurrentProgress("exec-1")).thenReturn(null);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(null);
 
     final var result =
-        webClient
-            .get()
-            .uri("/api/workflow/sess-1/status/exec-1")
-            .exchange()
-            .expectStatus()
-            .isNotFound()
-            .returnResult();
+        webClient.get().uri(STATUS_ENDPOINT).exchange().expectStatus().isNotFound().returnResult();
     assertThat(result.getStatus().value()).isEqualTo(404);
 
     assertThat(output.toString())
-        .contains("getWorkflowStatus: sessionId=sess-1, executionId=exec-1")
+        .contains("getWorkflowStatus: sessionId=" + SESS_ID_1 + COMMA_EXEC_ID + EXEC_ID_1)
         .contains("getWorkflowStatus execution not found");
   }
 
   @Test
   void testGetWorkflowStatusError(final CapturedOutput output) {
-    when(controlBusGateway.getCurrentProgress("exec-1"))
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1))
         .thenThrow(new RuntimeException("Control bus error"));
 
-    webClient
-        .get()
-        .uri("/api/workflow/sess-1/status/exec-1")
-        .exchange()
-        .expectStatus()
-        .is5xxServerError();
+    webClient.get().uri(STATUS_ENDPOINT).exchange().expectStatus().is5xxServerError();
 
     assertThat(output.toString())
-        .contains("getWorkflowStatus: sessionId=sess-1, executionId=exec-1")
+        .contains("getWorkflowStatus: sessionId=" + SESS_ID_1 + COMMA_EXEC_ID + EXEC_ID_1)
         .contains("getWorkflowStatus error occurred");
   }
 
@@ -293,19 +328,19 @@ class WorkflowControllerTest {
   void testStreamWorkflowStatus() {
     final WorkflowProgress progress =
         new WorkflowProgress(
-            "exec-1",
-            "sess-1",
-            "wf-1",
-            "RUNNING",
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
+            RUNNING,
             List.of(),
             LocalDateTime.now(ZoneId.systemDefault()),
             null);
-    when(controlBusGateway.watchExecution("exec-1")).thenReturn(Flux.just(progress));
+    when(controlBusGateway.watchExecution(EXEC_ID_1)).thenReturn(Flux.just(progress));
 
     final var result =
         webClient
             .get()
-            .uri("/api/workflow/sess-1/status/exec-1/stream")
+            .uri(STATUS_ENDPOINT + STREAM)
             .exchange()
             .expectStatus()
             .isOk()
@@ -319,19 +354,19 @@ class WorkflowControllerTest {
   void testStreamWorkflowStatusLogging(final CapturedOutput output) {
     final WorkflowProgress progress =
         new WorkflowProgress(
-            "exec-1",
-            "sess-1",
-            "wf-1",
-            "RUNNING",
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
+            RUNNING,
             List.of(),
             LocalDateTime.now(ZoneId.systemDefault()),
             null);
-    when(controlBusGateway.watchExecution("exec-1")).thenReturn(Flux.just(progress));
+    when(controlBusGateway.watchExecution(EXEC_ID_1)).thenReturn(Flux.just(progress));
 
     final var result =
         webClient
             .get()
-            .uri("/api/workflow/sess-1/status/exec-1/stream")
+            .uri(STATUS_ENDPOINT + STREAM)
             .exchange()
             .expectStatus()
             .isOk()
@@ -339,7 +374,7 @@ class WorkflowControllerTest {
     assertThat(result.getStatus().value()).isEqualTo(200);
 
     assertThat(output.toString())
-        .contains("streamWorkflowStatus: sessionId=sess-1, executionId=exec-1")
+        .contains("streamWorkflowStatus: sessionId=" + SESS_ID_1 + COMMA_EXEC_ID + EXEC_ID_1)
         .contains("streamWorkflowStatus stream completed");
   }
 
@@ -347,28 +382,28 @@ class WorkflowControllerTest {
   void testStreamWorkflowStatusWithMultipleProgressUpdates() {
     final WorkflowProgress progress1 =
         new WorkflowProgress(
-            "exec-1",
-            "sess-1",
-            "wf-1",
-            "RUNNING",
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
+            RUNNING,
             List.of(),
             LocalDateTime.now(ZoneId.systemDefault()),
             null);
     final WorkflowProgress progress2 =
         new WorkflowProgress(
-            "exec-1",
-            "sess-1",
-            "wf-1",
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
             "COMPLETED",
             List.of(),
             LocalDateTime.now(ZoneId.systemDefault()),
             null);
-    when(controlBusGateway.watchExecution("exec-1")).thenReturn(Flux.just(progress1, progress2));
+    when(controlBusGateway.watchExecution(EXEC_ID_1)).thenReturn(Flux.just(progress1, progress2));
 
     final var result =
         webClient
             .get()
-            .uri("/api/workflow/sess-1/status/exec-1/stream")
+            .uri(STATUS_ENDPOINT + STREAM)
             .exchange()
             .expectStatus()
             .isOk()
@@ -380,13 +415,13 @@ class WorkflowControllerTest {
 
   @Test
   void testStreamWorkflowStatusError(final CapturedOutput output) {
-    when(controlBusGateway.watchExecution("exec-1"))
+    when(controlBusGateway.watchExecution(EXEC_ID_1))
         .thenReturn(Flux.error(new RuntimeException("Stream error")));
 
     final var result =
         webClient
             .get()
-            .uri("/api/workflow/sess-1/status/exec-1/stream")
+            .uri(STATUS_ENDPOINT + STREAM)
             .exchange()
             .expectStatus()
             .is5xxServerError()
@@ -394,27 +429,27 @@ class WorkflowControllerTest {
     assertThat(result.getStatus().value()).isEqualTo(500);
 
     assertThat(output.toString())
-        .contains("streamWorkflowStatus: sessionId=sess-1, executionId=exec-1")
+        .contains("streamWorkflowStatus: sessionId=" + SESS_ID_1 + COMMA_EXEC_ID + EXEC_ID_1)
         .contains("streamWorkflowStatus error occurred");
   }
 
   @Test
   void testGetWorkflowHistory() {
-    when(sessionService.getSessionConfig("sess-1")).thenReturn(Mono.just(Map.of()));
-    when(controlBusGateway.getHistory("sess-1")).thenReturn(List.of());
+    when(sessionService.getSessionConfig(SESS_ID_1)).thenReturn(Mono.just(Map.of()));
+    when(controlBusGateway.getHistory(SESS_ID_1)).thenReturn(List.of());
 
     final var result =
         webClient
             .get()
-            .uri("/api/workflow/sess-1/history")
+            .uri(HISTORY_ENDPOINT)
             .exchange()
             .expectStatus()
             .isOk()
             .expectBody()
-            .jsonPath("$.status")
+            .jsonPath(DOLLAR_STATUS)
             .isEqualTo(200)
-            .jsonPath("$.message")
-            .isEqualTo("Workflow history retrieved successfully")
+            .jsonPath(DOLLAR_MESSAGE)
+            .isEqualTo(WORKFLOW_HISTORY_RETRIEVED)
             .jsonPath("$.data")
             .isArray()
             .returnResult();
@@ -423,78 +458,61 @@ class WorkflowControllerTest {
 
   @Test
   void testGetWorkflowHistoryLogging(final CapturedOutput output) {
-    when(sessionService.getSessionConfig("sess-1")).thenReturn(Mono.just(Map.of()));
-    when(controlBusGateway.getHistory("sess-1")).thenReturn(List.of());
+    when(sessionService.getSessionConfig(SESS_ID_1)).thenReturn(Mono.just(Map.of()));
+    when(controlBusGateway.getHistory(SESS_ID_1)).thenReturn(List.of());
 
     final var result =
-        webClient
-            .get()
-            .uri("/api/workflow/sess-1/history")
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .returnResult();
+        webClient.get().uri(HISTORY_ENDPOINT).exchange().expectStatus().isOk().returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
 
     assertThat(output.toString())
-        .contains("getWorkflowHistory: sessionId=sess-1")
+        .contains("getWorkflowHistory: sessionId=" + SESS_ID_1)
         .contains("getWorkflowHistory session config retrieved")
         .contains("getWorkflowHistory response sent successfully");
   }
 
   @Test
   void testGetWorkflowHistorySessionNotFound() {
-    when(sessionService.getSessionConfig("sess-1")).thenReturn(Mono.empty());
+    when(sessionService.getSessionConfig(SESS_ID_1)).thenReturn(Mono.empty());
 
     final var result =
         webClient
             .get()
-            .uri("/api/workflow/sess-1/history")
+            .uri(HISTORY_ENDPOINT)
             .exchange()
             .expectStatus()
             .isNotFound()
             .expectBody()
-            .jsonPath("$.status")
+            .jsonPath(DOLLAR_STATUS)
             .isEqualTo(404)
-            .jsonPath("$.message")
-            .isEqualTo("Session not found")
+            .jsonPath(DOLLAR_MESSAGE)
+            .isEqualTo(SESSION_NOT_FOUND)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(404);
   }
 
   @Test
   void testGetWorkflowHistorySessionNotFoundLogging(final CapturedOutput output) {
-    when(sessionService.getSessionConfig("sess-1")).thenReturn(Mono.empty());
+    when(sessionService.getSessionConfig(SESS_ID_1)).thenReturn(Mono.empty());
 
     final var result =
-        webClient
-            .get()
-            .uri("/api/workflow/sess-1/history")
-            .exchange()
-            .expectStatus()
-            .isNotFound()
-            .returnResult();
+        webClient.get().uri(HISTORY_ENDPOINT).exchange().expectStatus().isNotFound().returnResult();
     assertThat(result.getStatus().value()).isEqualTo(404);
 
     assertThat(output.toString())
-        .contains("getWorkflowHistory: sessionId=sess-1")
+        .contains("getWorkflowHistory: sessionId=" + SESS_ID_1)
         .contains("getWorkflowHistory session not found");
   }
 
   @Test
   void testGetWorkflowHistoryError(final CapturedOutput output) {
-    when(sessionService.getSessionConfig("sess-1"))
+    when(sessionService.getSessionConfig(SESS_ID_1))
         .thenReturn(Mono.error(new RuntimeException("Session service error")));
 
-    webClient
-        .get()
-        .uri("/api/workflow/sess-1/history")
-        .exchange()
-        .expectStatus()
-        .is5xxServerError();
+    webClient.get().uri(HISTORY_ENDPOINT).exchange().expectStatus().is5xxServerError();
 
     assertThat(output.toString())
-        .contains("getWorkflowHistory: sessionId=sess-1")
+        .contains("getWorkflowHistory: sessionId=" + SESS_ID_1)
         .contains("getWorkflowHistory error occurred");
   }
 
@@ -502,21 +520,21 @@ class WorkflowControllerTest {
 
   @Test
   void testStopWorkflowSuccess() {
-    when(controlBusGateway.stopWorkflow("sess-1", "wf-1", "Stopped via REST API"))
+    when(controlBusGateway.stopWorkflow(SESS_ID_1, WF_ID_1, STOPPED_VIA_REST_API))
         .thenReturn(Mono.just("exec-456"));
 
     final var result =
         webClient
             .post()
-            .uri("/api/workflow/sess-1/wf-1/stop")
+            .uri(STOP_ENDPOINT)
             .exchange()
             .expectStatus()
             .isOk()
             .expectBody()
-            .jsonPath("$.status")
+            .jsonPath(DOLLAR_STATUS)
             .isEqualTo(200)
-            .jsonPath("$.message")
-            .isEqualTo("Workflow stop signal accepted")
+            .jsonPath(DOLLAR_MESSAGE)
+            .isEqualTo(WORKFLOW_STOP_SIGNAL_ACCEPTED)
             .jsonPath("$.data.executionId")
             .isEqualTo("exec-456")
             .returnResult();
@@ -525,33 +543,33 @@ class WorkflowControllerTest {
 
   @Test
   void testStopWorkflowSuccessLogging(final CapturedOutput output) {
-    when(controlBusGateway.stopWorkflow("sess-1", "wf-1", "Stopped via REST API"))
+    when(controlBusGateway.stopWorkflow(SESS_ID_1, WF_ID_1, STOPPED_VIA_REST_API))
         .thenReturn(Mono.just("exec-456"));
 
-    webClient.post().uri("/api/workflow/sess-1/wf-1/stop").exchange().expectStatus().isOk();
+    webClient.post().uri(STOP_ENDPOINT).exchange().expectStatus().isOk();
 
     assertThat(output.toString())
-        .contains("stopWorkflow: sessionId=sess-1, workflowId=wf-1")
+        .contains("stopWorkflow: sessionId=" + SESS_ID_1 + ", workflowId=" + WF_ID_1)
         .contains("stopWorkflow command accepted")
         .contains("stopWorkflow response sent successfully");
   }
 
   @Test
   void testStopWorkflowNotFound() {
-    when(controlBusGateway.stopWorkflow("sess-1", "wf-1", "Stopped via REST API"))
+    when(controlBusGateway.stopWorkflow(SESS_ID_1, WF_ID_1, STOPPED_VIA_REST_API))
         .thenReturn(Mono.error(new IllegalArgumentException("No active execution found")));
 
     final var result =
         webClient
             .post()
-            .uri("/api/workflow/sess-1/wf-1/stop")
+            .uri(STOP_ENDPOINT)
             .exchange()
             .expectStatus()
             .isNotFound()
             .expectBody()
-            .jsonPath("$.status")
+            .jsonPath(DOLLAR_STATUS)
             .isEqualTo(404)
-            .jsonPath("$.message")
+            .jsonPath(DOLLAR_MESSAGE)
             .isEqualTo("No active workflow execution")
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(404);
@@ -559,13 +577,13 @@ class WorkflowControllerTest {
 
   @Test
   void testStopWorkflowNotFoundLogging(final CapturedOutput output) {
-    when(controlBusGateway.stopWorkflow("sess-1", "wf-1", "Stopped via REST API"))
+    when(controlBusGateway.stopWorkflow(SESS_ID_1, WF_ID_1, STOPPED_VIA_REST_API))
         .thenReturn(Mono.error(new IllegalArgumentException("No active execution found")));
 
-    webClient.post().uri("/api/workflow/sess-1/wf-1/stop").exchange().expectStatus().isNotFound();
+    webClient.post().uri(STOP_ENDPOINT).exchange().expectStatus().isNotFound();
 
     assertThat(output.toString())
-        .contains("stopWorkflow: sessionId=sess-1, workflowId=wf-1")
+        .contains("stopWorkflow: sessionId=" + SESS_ID_1 + ", workflowId=" + WF_ID_1)
         .contains("stopWorkflow error occurred")
         .contains("No active execution found");
   }

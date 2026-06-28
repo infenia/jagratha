@@ -32,6 +32,18 @@ import reactor.core.publisher.Mono;
 @SuppressWarnings("PMD.LawOfDemeter")
 class LogManagementControllerTest {
 
+  /** Session identifier for testing. */
+  private static final String SESSION_ID = "sess-1";
+
+  /** Test log file name. */
+  private static final String TEST_LOG = "test.log";
+
+  /** Sample log content. */
+  private static final String LOG_CONTENT = "content";
+
+  /** API logs endpoint path. */
+  private static final String API_LOGS_ENDPOINT = "/api/logs/";
+
   /** Web test client for testing controller endpoints. */
   private WebTestClient webClient;
 
@@ -47,49 +59,49 @@ class LogManagementControllerTest {
 
   @Test
   void testListLogs() {
-    when(logs.listLogs("sess-1")).thenReturn(Mono.just(List.of("test.log")));
+    when(logs.listLogs(SESSION_ID)).thenReturn(Mono.just(List.of(TEST_LOG)));
 
     final var result =
         webClient
             .get()
-            .uri("/api/logs/sess-1")
+            .uri(API_LOGS_ENDPOINT + SESSION_ID)
             .exchange()
             .expectStatus()
             .isOk()
             .expectBody()
             .jsonPath("$.data[0]")
-            .isEqualTo("test.log")
+            .isEqualTo(TEST_LOG)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testGetLogContent() {
-    when(logs.getLogContent("sess-1", "test.log")).thenReturn(Mono.just("content"));
+    when(logs.getLogContent(SESSION_ID, TEST_LOG)).thenReturn(Mono.just(LOG_CONTENT));
 
     final var result =
         webClient
             .get()
-            .uri("/api/logs/sess-1/test.log")
+            .uri(API_LOGS_ENDPOINT + SESSION_ID + "/" + TEST_LOG)
             .exchange()
             .expectStatus()
             .isOk()
             .expectBody()
             .jsonPath("$.data")
-            .isEqualTo("content")
+            .isEqualTo(LOG_CONTENT)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testGetLogContentNotFound() {
-    when(logs.getLogContent("sess-1", "test.log"))
+    when(logs.getLogContent(SESSION_ID, TEST_LOG))
         .thenReturn(Mono.error(new java.io.IOException()));
 
     final var result =
         webClient
             .get()
-            .uri("/api/logs/sess-1/test.log")
+            .uri(API_LOGS_ENDPOINT + SESSION_ID + "/" + TEST_LOG)
             .exchange()
             .expectStatus()
             .isNotFound()
@@ -99,30 +111,30 @@ class LogManagementControllerTest {
 
   @Test
   void testGetRawLogContent() {
-    when(logs.getLogContent("sess-1", "test.log")).thenReturn(Mono.just("content"));
+    when(logs.getLogContent(SESSION_ID, TEST_LOG)).thenReturn(Mono.just(LOG_CONTENT));
 
     final var result =
         webClient
             .get()
-            .uri("/api/logs/sess-1/test.log/raw")
+            .uri("/api/logs/" + SESSION_ID + "/" + TEST_LOG + "/raw")
             .exchange()
             .expectStatus()
             .isOk()
             .expectBody(String.class)
-            .isEqualTo("content")
+            .isEqualTo(LOG_CONTENT)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
   void testGetRawLogContentNotFound() {
-    when(logs.getLogContent("sess-1", "test.log"))
+    when(logs.getLogContent(SESSION_ID, TEST_LOG))
         .thenReturn(Mono.error(new java.io.IOException()));
 
     final var result =
         webClient
             .get()
-            .uri("/api/logs/sess-1/test.log/raw")
+            .uri("/api/logs/" + SESSION_ID + "/" + TEST_LOG + "/raw")
             .exchange()
             .expectStatus()
             .isNotFound()

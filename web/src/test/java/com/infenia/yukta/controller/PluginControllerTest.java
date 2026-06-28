@@ -38,6 +38,9 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 @SuppressWarnings("PMD.LawOfDemeter")
 class PluginControllerTest {
 
+  /** Test plugin identifier. */
+  private static final String TEST_PLUGIN = "test-plugin";
+
   /** Web test client for testing controller endpoints. */
   @Autowired private WebTestClient webTestClient;
 
@@ -47,7 +50,7 @@ class PluginControllerTest {
   @Test
   void testListPlugins() {
     final Plugin plugin = Mockito.mock(Plugin.class);
-    when(plugin.getType()).thenReturn("test-plugin");
+    when(plugin.getType()).thenReturn(TEST_PLUGIN);
     when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(registry.listPlugins()).thenReturn(List.of(plugin));
 
@@ -60,7 +63,7 @@ class PluginControllerTest {
             .isOk()
             .expectBody()
             .jsonPath("$.data[0].type")
-            .isEqualTo("test-plugin")
+            .isEqualTo(TEST_PLUGIN)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
   }
@@ -68,13 +71,13 @@ class PluginControllerTest {
   @Test
   void testGetPluginDetails() {
     final Plugin plugin = Mockito.mock(Plugin.class);
-    when(plugin.getType()).thenReturn("test-plugin");
+    when(plugin.getType()).thenReturn(TEST_PLUGIN);
     when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(plugin.getDescription()).thenReturn("desc");
     when(plugin.getUsagePattern()).thenReturn("pattern");
     when(plugin.getUiDesign()).thenReturn(Optional.of(new UiDesign("design", 100, 100)));
     when(plugin.getOutputPorts()).thenReturn(List.of("default"));
-    when(registry.get("test-plugin")).thenReturn(plugin);
+    when(registry.get(TEST_PLUGIN)).thenReturn(plugin);
 
     final var result =
         webTestClient
@@ -85,7 +88,7 @@ class PluginControllerTest {
             .isOk()
             .expectBody()
             .jsonPath("$.data.type")
-            .isEqualTo("test-plugin")
+            .isEqualTo(TEST_PLUGIN)
             .jsonPath("$.data.description")
             .isEqualTo("desc")
             .jsonPath("$.data.uiDesign.html")
@@ -112,13 +115,13 @@ class PluginControllerTest {
   @Test
   void testGetPluginDetailsWithoutUiDesign() {
     final Plugin plugin = Mockito.mock(Plugin.class);
-    when(plugin.getType()).thenReturn("test-plugin");
+    when(plugin.getType()).thenReturn(TEST_PLUGIN);
     when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(plugin.getDescription()).thenReturn("desc");
     when(plugin.getUsagePattern()).thenReturn("pattern");
     when(plugin.getUiDesign()).thenReturn(Optional.empty());
     when(plugin.getOutputPorts()).thenReturn(List.of("default"));
-    when(registry.get("test-plugin")).thenReturn(plugin);
+    when(registry.get(TEST_PLUGIN)).thenReturn(plugin);
 
     final var result =
         webTestClient

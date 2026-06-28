@@ -41,6 +41,15 @@ import reactor.core.publisher.Mono;
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyStaticImports"})
 class ControlBusControllerTest {
 
+  /** First test node identifier. */
+  private static final String NODE1 = "node1";
+
+  /** Second test node identifier. */
+  private static final String NODE2 = "node2";
+
+  /** JSONPath for response message field. */
+  private static final String MESSAGE_PATH = "$.message";
+
   /** Web test client for testing controller endpoints. */
   private WebTestClient webClient;
 
@@ -56,7 +65,7 @@ class ControlBusControllerTest {
 
   @Test
   void testGetActiveNodes() {
-    when(controlBusGateway.getActiveNodes()).thenReturn(List.of("node1", "node2"));
+    when(controlBusGateway.getActiveNodes()).thenReturn(List.of(NODE1, NODE2));
     final var result =
         webClient
             .get()
@@ -66,8 +75,8 @@ class ControlBusControllerTest {
             .isOk()
             .expectBody()
             .jsonPath("$.data[0]")
-            .isEqualTo("node1")
-            .jsonPath("$.message")
+            .isEqualTo(NODE1)
+            .jsonPath(MESSAGE_PATH)
             .isEqualTo("Active nodes retrieved")
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
@@ -75,8 +84,8 @@ class ControlBusControllerTest {
 
   @Test
   void testGetLastHeartbeat() {
-    final Message<?> hb = DefaultMessage.create(null, "ok").withControl(true);
-    doReturn(hb).when(controlBusGateway).getLastHeartbeat("wf1", "n1");
+    final Message<?> healthBytes = DefaultMessage.create(null, "ok").withControl(true);
+    doReturn(healthBytes).when(controlBusGateway).getLastHeartbeat("wf1", "n1");
 
     final var result =
         webClient
@@ -107,7 +116,7 @@ class ControlBusControllerTest {
             .expectStatus()
             .isOk()
             .expectBody()
-            .jsonPath("$.message")
+            .jsonPath(MESSAGE_PATH)
             .isEqualTo("Command processed")
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
@@ -134,7 +143,7 @@ class ControlBusControllerTest {
 
   @Test
   void testGetActiveNodesInWorkflow() {
-    when(controlBusGateway.getActiveNodes("wf1")).thenReturn(List.of("node1", "node2"));
+    when(controlBusGateway.getActiveNodes("wf1")).thenReturn(List.of(NODE1, NODE2));
     final var result =
         webClient
             .get()
@@ -144,8 +153,8 @@ class ControlBusControllerTest {
             .isOk()
             .expectBody()
             .jsonPath("$.data[0]")
-            .isEqualTo("node1")
-            .jsonPath("$.message")
+            .isEqualTo(NODE1)
+            .jsonPath(MESSAGE_PATH)
             .isEqualTo("Active nodes retrieved")
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
@@ -164,7 +173,7 @@ class ControlBusControllerTest {
             .expectStatus()
             .isOk()
             .expectBody()
-            .jsonPath("$.message")
+            .jsonPath(MESSAGE_PATH)
             .isEqualTo("Progress retrieved")
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
@@ -200,7 +209,7 @@ class ControlBusControllerTest {
             .expectStatus()
             .isOk()
             .expectBody()
-            .jsonPath("$.message")
+            .jsonPath(MESSAGE_PATH)
             .isEqualTo("History retrieved")
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
