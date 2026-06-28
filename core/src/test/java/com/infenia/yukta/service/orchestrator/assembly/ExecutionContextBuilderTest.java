@@ -94,8 +94,7 @@ class ExecutionContextBuilderTest {
         new ExecutionContextBuilder().sessionId("session-123").workflowId("workflow-456");
 
     final Flux<String> flux =
-        Flux.deferContextual(
-            ctx -> Flux.just(ctx.get("sessionId"), ctx.get("workflowId")));
+        Flux.deferContextual(ctx -> Flux.just(ctx.get("sessionId"), ctx.get("workflowId")));
 
     StepVerifier.create(builder.applyContextTo(flux))
         .expectNext("session-123")

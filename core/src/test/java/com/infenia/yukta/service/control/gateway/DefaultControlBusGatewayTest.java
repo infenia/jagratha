@@ -342,8 +342,7 @@ class DefaultControlBusGatewayTest {
 
     // Then
     StepVerifier.create(result)
-        .assertNext(
-            stoppedId -> assertThat(stoppedId).isEqualTo(executionId))
+        .assertNext(stoppedId -> assertThat(stoppedId).isEqualTo(executionId))
         .verifyComplete();
 
     verify(executionControlRegistry).findActiveByWorkflow(sessionId, workflowId);
@@ -1898,9 +1897,7 @@ class DefaultControlBusGatewayTest {
     final Mono<String> result = gateway.startWorkflow(sessionId, workflowId);
 
     // Then - returns execution ID without waiting for execution to complete
-    StepVerifier.create(result)
-        .expectNextMatches(id -> !id.isEmpty())
-        .verifyComplete();
+    StepVerifier.create(result).expectNextMatches(id -> !id.isEmpty()).verifyComplete();
   }
 
   @Test

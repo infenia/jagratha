@@ -40,9 +40,9 @@ class ValidationTest {
 
   @BeforeAll
   static void setUp() {
-      try (final ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
-          validator = factory.getValidator();
-      }
+    try (final ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+      validator = factory.getValidator();
+    }
   }
 
   @Test
