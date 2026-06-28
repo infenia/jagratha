@@ -62,7 +62,7 @@ class ExecutionContextBuilderTest {
             .nodeId("node-001")
             .payload(Map.of("data", "test"));
 
-    final Mono<String> mono = Mono.deferContextual(ctx -> Mono.just((String) ctx.get("sessionId")));
+    final Mono<String> mono = Mono.deferContextual(ctx -> Mono.just(ctx.get("sessionId")));
 
     StepVerifier.create(builder.applyContextTo(mono)).expectNext("session-123").verifyComplete();
   }
@@ -95,7 +95,7 @@ class ExecutionContextBuilderTest {
 
     final Flux<String> flux =
         Flux.deferContextual(
-            ctx -> Flux.just((String) ctx.get("sessionId"), (String) ctx.get("workflowId")));
+            ctx -> Flux.just(ctx.get("sessionId"), ctx.get("workflowId")));
 
     StepVerifier.create(builder.applyContextTo(flux))
         .expectNext("session-123")
@@ -120,7 +120,7 @@ class ExecutionContextBuilderTest {
     final Context context = builder.build();
 
     @SuppressWarnings("unchecked")
-    final Map<String, Object> contextPayload = (Map<String, Object>) context.get("payload");
+    final Map<String, Object> contextPayload = context.get("payload");
 
     assertThatThrownBy(() -> contextPayload.put("key2", "value2"))
         .isInstanceOf(UnsupportedOperationException.class);
@@ -208,7 +208,7 @@ class ExecutionContextBuilderTest {
     final Context context = builder.build();
 
     @SuppressWarnings("unchecked")
-    final Map<String, Object> contextPayload = (Map<String, Object>) context.get("payload");
+    final Map<String, Object> contextPayload = context.get("payload");
 
     // Context should only have key1
     assertThat(contextPayload).hasSize(1);

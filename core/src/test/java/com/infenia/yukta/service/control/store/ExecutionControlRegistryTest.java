@@ -38,10 +38,10 @@ class ExecutionControlRegistryTest {
   }
 
   private ExecutionControl createControl(
-      final String sessionId, final String workflowId, final String executionId) {
+          final String sessionId, final String executionId) {
     return new ExecutionControl(
         sessionId,
-        workflowId,
+            "workflow-1",
         executionId,
         null,
         Map.of(),
@@ -61,7 +61,7 @@ class ExecutionControlRegistryTest {
     final String executionId = "exec-1";
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
-    final ExecutionControl control = createControl(sessionId, workflowId, executionId);
+    final ExecutionControl control = createControl(sessionId, executionId);
 
     registry.register(control);
 
@@ -80,7 +80,7 @@ class ExecutionControlRegistryTest {
     final String executionId = "exec-1";
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
-    final ExecutionControl control = createControl(sessionId, workflowId, executionId);
+    final ExecutionControl control = createControl(sessionId, executionId);
 
     registry.register(control);
 
@@ -99,7 +99,7 @@ class ExecutionControlRegistryTest {
     final String executionId = "exec-1";
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
-    final ExecutionControl control = createControl(sessionId, workflowId, executionId);
+    final ExecutionControl control = createControl(sessionId, executionId);
 
     registry.register(control);
     registry.unregister(executionId);
@@ -110,8 +110,8 @@ class ExecutionControlRegistryTest {
 
   @Test
   void testMultipleExecutions() {
-    final ExecutionControl control1 = createControl("session-1", "workflow-1", "exec-1");
-    final ExecutionControl control2 = createControl("session-1", "workflow-1", "exec-2");
+    final ExecutionControl control1 = createControl("session-1", "exec-1");
+    final ExecutionControl control2 = createControl("session-1", "exec-2");
 
     registry.register(control1);
     registry.register(control2);
@@ -122,8 +122,8 @@ class ExecutionControlRegistryTest {
 
   @Test
   void testFindActiveByWorkflowMultipleSessions() {
-    final ExecutionControl control1 = createControl("session-1", "workflow-1", "exec-1");
-    final ExecutionControl control2 = createControl("session-2", "workflow-1", "exec-2");
+    final ExecutionControl control1 = createControl("session-1", "exec-1");
+    final ExecutionControl control2 = createControl("session-2", "exec-2");
 
     registry.register(control1);
     registry.register(control2);

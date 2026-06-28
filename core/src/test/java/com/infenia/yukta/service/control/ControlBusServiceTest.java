@@ -84,7 +84,7 @@ class ControlBusServiceTest {
   @Mock private ControlSignalHandler handler1;
   @Mock private ControlSignalHandler handler2;
   @Mock private Plugin plugin;
-  @Mock private Message message;
+  @Mock private Message<?> message;
   @Mock private WorkflowDefinition workflowDefinition;
   @Mock private PreparedWorkflow preparedWorkflow;
 
@@ -712,7 +712,7 @@ class ControlBusServiceTest {
 
       when(handler1.canHandle(payload)).thenReturn(true);
       doAnswer(
-              inv -> {
+              _ -> {
                 latch.countDown();
                 return null;
               })

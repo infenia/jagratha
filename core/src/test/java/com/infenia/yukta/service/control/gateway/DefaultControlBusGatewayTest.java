@@ -1901,7 +1901,7 @@ class DefaultControlBusGatewayTest {
 
     // Then - returns execution ID without waiting for execution to complete
     StepVerifier.create(result)
-        .expectNextMatches(id -> id != null && !id.isEmpty())
+        .expectNextMatches(id -> !id.isEmpty())
         .verifyComplete();
   }
 

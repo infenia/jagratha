@@ -213,7 +213,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -249,7 +249,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -281,7 +281,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -368,7 +368,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -401,7 +401,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -439,7 +439,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -471,7 +471,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -483,7 +483,7 @@ class DefaultTaskTrackerServiceTest {
     // Wait a bit then emit another status (FAILURE) — should not change endTime
     try {
       Thread.sleep(100);
-    } catch (InterruptedException e) {
+    } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
     tracker.emitTaskStatusEvent(executionId, "node1", "module", "FAILURE", Map.of());
@@ -492,7 +492,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -541,7 +541,7 @@ class DefaultTaskTrackerServiceTest {
     final Map<String, Object> throwingMap =
         new ConcurrentHashMap<>() {
           @Override
-          public Object get(Object key) {
+          public Object get(final Object key) {
             throw new IllegalStateException("Simulated error in executionIndex");
           }
         };
@@ -572,7 +572,7 @@ class DefaultTaskTrackerServiceTest {
     final Map<String, Object> throwingMap =
         new ConcurrentHashMap<>() {
           @Override
-          public Object get(Object key) {
+          public Object get(final Object key) {
             throw new IllegalStateException("Simulated error in executionIndex");
           }
         };
@@ -601,7 +601,7 @@ class DefaultTaskTrackerServiceTest {
     final Map<String, Object> throwingMap =
         new ConcurrentHashMap<>() {
           @Override
-          public Object get(Object key) {
+          public Object get(final Object key) {
             throw new IllegalStateException("Simulated error in logSinks");
           }
         };
@@ -661,7 +661,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -677,7 +677,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -753,7 +753,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -772,7 +772,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -807,7 +807,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -844,7 +844,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -879,7 +879,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -897,7 +897,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -964,7 +964,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1018,7 +1018,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1048,7 +1048,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1067,7 +1067,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1100,7 +1100,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1118,7 +1118,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1144,7 +1144,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1177,7 +1177,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1189,7 +1189,7 @@ class DefaultTaskTrackerServiceTest {
     // Wait a bit
     try {
       Thread.sleep(100);
-    } catch (InterruptedException e) {
+    } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
 
@@ -1200,7 +1200,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1232,7 +1232,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1244,7 +1244,7 @@ class DefaultTaskTrackerServiceTest {
     // Wait a bit
     try {
       Thread.sleep(100);
-    } catch (InterruptedException e) {
+    } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
 
@@ -1255,7 +1255,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1287,7 +1287,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1320,7 +1320,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1332,7 +1332,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1350,7 +1350,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1386,7 +1386,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1458,7 +1458,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1477,7 +1477,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1508,7 +1508,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1525,7 +1525,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1551,7 +1551,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 50; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1581,7 +1581,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 50; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1613,7 +1613,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1632,7 +1632,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1659,7 +1659,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1689,7 +1689,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1703,7 +1703,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1717,7 +1717,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1748,7 +1748,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1765,7 +1765,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1798,7 +1798,7 @@ class DefaultTaskTrackerServiceTest {
     // Wait for cleanup to happen
     try {
       Thread.sleep(250);
-    } catch (InterruptedException e) {
+    } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
 
@@ -1809,7 +1809,7 @@ class DefaultTaskTrackerServiceTest {
     // Wait for processing
     try {
       Thread.sleep(100);
-    } catch (InterruptedException e) {
+    } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
 
@@ -1839,7 +1839,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1856,7 +1856,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1900,7 +1900,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1916,7 +1916,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1934,7 +1934,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -1989,7 +1989,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -2006,7 +2006,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -2024,7 +2024,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -2116,7 +2116,7 @@ class DefaultTaskTrackerServiceTest {
       }
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -2191,7 +2191,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -2213,7 +2213,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
@@ -2250,7 +2250,7 @@ class DefaultTaskTrackerServiceTest {
     for (int i = 0; i < 20; i++) {
       try {
         Thread.sleep(50);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
       }
     }
