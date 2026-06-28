@@ -250,4 +250,120 @@ class StreamTopologyDecoratorTest {
     assertThat(StreamTopologyDecorator.handleEmitFailure(Sinks.EmitResult.FAIL_OVERFLOW)).isFalse();
     assertThat(StreamTopologyDecorator.handleEmitFailure(Sinks.EmitResult.OK)).isFalse();
   }
+
+  @Test
+  void testApplyEdgeRoutingPortFilterNoMatch() {
+    final Message<?> msg1 =
+        DefaultMessage.create(UUID.randomUUID(), "data").withSourcePort("port-a");
+    final Message<?> msg2 =
+        DefaultMessage.create(UUID.randomUUID(), "data").withSourcePort("port-b");
+    final Flux<Message<?>>[] streams = new Flux[] {Flux.just(msg1, msg2)};
+    final ParentEdgeInfo edge = new ParentEdgeInfo(0, "parent-1", "port-c");
+
+    StepVerifier.create(decorator.applyEdgeRouting(streams, edge)).verifyComplete();
+  }
+
+  @Test
+  void testApplyLoggingAndBroadcastingMessageHistory() {
+    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "data");
+    final Flux<Message<?>> input = Flux.just(msg);
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Runnable> connectors = new ArrayList<>();
+
+    final Flux<Message<?>> output =
+        decorator.applyLoggingAndBroadcasting(
+            "exec-1", "node-1", input, 1024, disposables, connectors);
+
+    // Execute deferred connector subscriptions
+    for (final Runnable connector : connectors) {
+      connector.run();
+    }
+
+    StepVerifier.create(output)
+        .assertNext(
+            m -> {
+              assertThat(m.getMessageHistory()).contains("node-1");
+            })
+        .verifyComplete();
+
+    // Cleanup
+    disposables.forEach(Disposable::dispose);
+  }
+
+  @Test
+  void testApplyLoggingAndBroadcastingDisposablesPopulated() {
+    final Message<?> msg1 = DefaultMessage.create(UUID.randomUUID(), "data1");
+    final Message<?> msg2 = DefaultMessage.create(UUID.randomUUID(), "data2");
+    final Flux<Message<?>> input = Flux.just(msg1, msg2);
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Runnable> connectors = new ArrayList<>();
+
+    decorator.applyLoggingAndBroadcasting("exec-1", "node-1", input, 1024, disposables, connectors);
+
+    // Before running connectors, disposables should be empty
+    assertThat(disposables).isEmpty();
+
+    // Execute deferred connector subscriptions
+    for (final Runnable connector : connectors) {
+      connector.run();
+    }
+
+    // After running connectors, disposables should be populated
+    assertThat(disposables).isNotEmpty();
+
+    // Cleanup
+    disposables.forEach(Disposable::dispose);
+  }
+
+  @Test
+  void testApplyLoggingAndBroadcastingLargePayloadTruncation() {
+    final StringBuilder largePayload = new StringBuilder();
+    for (int i = 0; i < 2000; i++) {
+      largePayload.append("0123456789");
+    }
+    // largePayload is now 20,000 chars (exceeds MAX_LOG_LINE_SIZE of 16,384)
+    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), largePayload.toString());
+    final Flux<Message<?>> input = Flux.just(msg);
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Runnable> connectors = new ArrayList<>();
+
+    final Flux<Message<?>> output =
+        decorator.applyLoggingAndBroadcasting(
+            "exec-1", "node-1", input, 1024, disposables, connectors);
+
+    // Execute deferred connector subscriptions
+    for (final Runnable connector : connectors) {
+      connector.run();
+    }
+
+    StepVerifier.create(output).expectNextCount(1).verifyComplete();
+
+    // Cleanup
+    disposables.forEach(Disposable::dispose);
+  }
+
+  @Test
+  void testApplyLoggingAndBroadcastingMessageStoreError() {
+    final RuntimeException storeError = new RuntimeException("Store failed");
+    when(messageStore.store(any())).thenReturn(Mono.error(storeError));
+
+    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "data");
+    final Flux<Message<?>> input = Flux.just(msg);
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Runnable> connectors = new ArrayList<>();
+
+    final Flux<Message<?>> output =
+        decorator.applyLoggingAndBroadcasting(
+            "exec-1", "node-1", input, 1024, disposables, connectors);
+
+    // Execute deferred connector subscriptions
+    for (final Runnable connector : connectors) {
+      connector.run();
+    }
+
+    StepVerifier.create(output).expectError(RuntimeException.class).verify();
+
+    // Cleanup
+    disposables.forEach(Disposable::dispose);
+  }
 }
