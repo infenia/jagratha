@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 /** Default implementation of process provider using Java ProcessBuilder. */
 @Component
 public class DefaultProcessProvider implements ProcessProvider {
+  /** Constructs a new DefaultProcessProvider. */
   public DefaultProcessProvider() {}
 
   /**

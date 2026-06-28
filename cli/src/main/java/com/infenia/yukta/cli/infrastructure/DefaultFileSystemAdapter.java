@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 /** Default implementation of file system adapter using Java NIO. */
 @Component
 public class DefaultFileSystemAdapter implements FileSystemAdapter {
+  /** Constructs a new DefaultFileSystemAdapter. */
   public DefaultFileSystemAdapter() {}
 
   /**
