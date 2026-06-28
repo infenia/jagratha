@@ -119,7 +119,6 @@ class ExecutionContextBuilderTest {
     final ExecutionContextBuilder builder = new ExecutionContextBuilder().payload(originalPayload);
     final Context context = builder.build();
 
-    @SuppressWarnings("unchecked")
     final Map<String, Object> contextPayload = context.get("payload");
 
     assertThatThrownBy(() -> contextPayload.put("key2", "value2"))
@@ -207,7 +206,6 @@ class ExecutionContextBuilderTest {
 
     final Context context = builder.build();
 
-    @SuppressWarnings("unchecked")
     final Map<String, Object> contextPayload = context.get("payload");
 
     // Context should only have key1

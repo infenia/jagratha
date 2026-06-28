@@ -60,8 +60,7 @@ class ExecutionControlRegistryTest {
   void testRegisterAndFindByExecutionId() {
     final String executionId = "exec-1";
     final String sessionId = "session-1";
-    final String workflowId = "workflow-1";
-    final ExecutionControl control = createControl(sessionId, executionId);
+      final ExecutionControl control = createControl(sessionId, executionId);
 
     registry.register(control);
 
@@ -98,8 +97,7 @@ class ExecutionControlRegistryTest {
   void testUnregister() {
     final String executionId = "exec-1";
     final String sessionId = "session-1";
-    final String workflowId = "workflow-1";
-    final ExecutionControl control = createControl(sessionId, executionId);
+      final ExecutionControl control = createControl(sessionId, executionId);
 
     registry.register(control);
     registry.unregister(executionId);

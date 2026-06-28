@@ -180,7 +180,7 @@ class DefaultTaskTrackerServiceTest {
     StepVerifier.create(
             tracker
                 .getStatusStream(executionId)
-                .doOnSubscribe(s -> tracker.emitWorkflowStatusEvent(executionId, "SUCCESS")))
+                .doOnSubscribe(_ -> tracker.emitWorkflowStatusEvent(executionId, "SUCCESS")))
         .thenCancel()
         .verify();
 
@@ -1592,7 +1592,7 @@ class DefaultTaskTrackerServiceTest {
   }
 
   @Test
-  void testMergeMetadataWithNullAdditional() throws Exception {
+  void testMergeMetadataWithNullAdditional() {
     final String sessionId = "sess-merge-null-additional";
     final String workflowId = "wf-merge-null-additional";
     final String executionId = "exec-merge-null-additional";
@@ -1643,7 +1643,7 @@ class DefaultTaskTrackerServiceTest {
   }
 
   @Test
-  void testWorkflowStateNullUpdate() throws Exception {
+  void testWorkflowStateNullUpdate() {
     final String sessionId = "sess-null-update";
     final String workflowId = "wf-null-update";
     final String executionId = "exec-null-update";
@@ -1942,7 +1942,7 @@ class DefaultTaskTrackerServiceTest {
     // getHistory
     final List<com.infenia.yukta.model.execution.WorkflowExecutionSummary> history =
         tracker.getHistory(sessionId);
-    assertThat(history.size() >= 1).isTrue();
+    assertThat(!history.isEmpty()).isTrue();
 
     // getLogStream
     StepVerifier.create(tracker.getLogStream(executionId)).expectSubscription().verifyComplete();
@@ -2174,7 +2174,7 @@ class DefaultTaskTrackerServiceTest {
   }
 
   @Test
-  void testNotifyStatusChangeWhenSinkIsNull() throws Exception {
+  void testNotifyStatusChangeWhenSinkIsNull() {
     final String sessionId = "sess-notify-null-sink";
     final String workflowId = "wf-notify-null-sink";
     final String executionId = "exec-notify-null-sink";
@@ -2203,7 +2203,7 @@ class DefaultTaskTrackerServiceTest {
   }
 
   @Test
-  void testNotifyStatusChangeWhenStateIsNull() throws Exception {
+  void testNotifyStatusChangeWhenStateIsNull() {
     final String executionId = "exec-notify-null-state";
 
     // Try to emit event for execution that doesn't exist (state will be null)
@@ -2225,7 +2225,7 @@ class DefaultTaskTrackerServiceTest {
   }
 
   @Test
-  void testNotifyStatusChangeWithBothNullConditions() throws Exception {
+  void testNotifyStatusChangeWithBothNullConditions() {
     final String executionId = "exec-both-null";
 
     // Create workflow and get status stream to initialize sink
