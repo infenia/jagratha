@@ -27,7 +27,6 @@ import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.control.valve.ReactiveControlValve;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import java.util.Optional;
-
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,11 +37,19 @@ import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 @NoArgsConstructor
+@SuppressWarnings({
+  "PMD.CommentRequired",
+  "PMD.LinguisticNaming"
+})
 class PauseWorkflowCommandProcessorTest {
 
+  /** Registry for execution control. */
   @Mock private ExecutionControlRegistry registry;
+  /** Task tracker service. */
   @Mock private DefaultTaskTrackerService taskTracker;
+  /** Execution control instance. */
   @Mock private ExecutionControl executionControl;
+  /** Global pause valve. */
   @Mock private ReactiveControlValve globalPauseValve;
 
   @InjectMocks private PauseWorkflowCommandProcessor processor;
@@ -50,10 +57,10 @@ class PauseWorkflowCommandProcessorTest {
   @Test
   void canProcess_pauseWorkflowCommand_returnsTrue() {
     // Given
-    ExecutionControlCommand command = new PauseWorkflowCommand("exec-1");
+    final ExecutionControlCommand command = new PauseWorkflowCommand("exec-1");
 
     // When
-    boolean actualResult = processor.canProcess(command);
+    final boolean actualResult = processor.canProcess(command);
 
     // Then
     assertThat(actualResult).isTrue();
@@ -62,10 +69,10 @@ class PauseWorkflowCommandProcessorTest {
   @Test
   void canProcess_otherCommand_returnsFalse() {
     // Given
-    ExecutionControlCommand command = new ResumeWorkflowCommand("exec-1");
+    final ExecutionControlCommand command = new ResumeWorkflowCommand("exec-1");
 
     // When
-    boolean actualResult = processor.canProcess(command);
+    final boolean actualResult = processor.canProcess(command);
 
     // Then
     assertThat(actualResult).isFalse();
@@ -74,13 +81,13 @@ class PauseWorkflowCommandProcessorTest {
   @Test
   void process_executionFound_pausesValveAndEmitsEvent() {
     // Given
-    String executionId = "exec-pause-wf";
-    PauseWorkflowCommand command = new PauseWorkflowCommand(executionId);
+    final String executionId = "exec-pause-wf";
+    final PauseWorkflowCommand command = new PauseWorkflowCommand(executionId);
     when(registry.findByExecutionId(executionId)).thenReturn(Optional.of(executionControl));
     when(executionControl.globalPauseValve()).thenReturn(globalPauseValve);
 
     // When
-    var result = processor.process(command);
+    final var result = processor.process(command);
 
     // Then
     StepVerifier.create(result).verifyComplete();
@@ -91,12 +98,12 @@ class PauseWorkflowCommandProcessorTest {
   @Test
   void process_executionNotFound_errorWithIllegalArgumentException() {
     // Given
-    String executionId = "exec-not-found";
-    PauseWorkflowCommand command = new PauseWorkflowCommand(executionId);
+    final String executionId = "exec-not-found";
+    final PauseWorkflowCommand command = new PauseWorkflowCommand(executionId);
     when(registry.findByExecutionId(executionId)).thenReturn(Optional.empty());
 
     // When
-    var result = processor.process(command);
+    final var result = processor.process(command);
 
     // Then
     StepVerifier.create(result)
@@ -110,13 +117,13 @@ class PauseWorkflowCommandProcessorTest {
   @Test
   void process_globalPauseValveIsNull_errorWithIllegalStateException() {
     // Given
-    String executionId = "exec-null-valve";
-    PauseWorkflowCommand command = new PauseWorkflowCommand(executionId);
+    final String executionId = "exec-null-valve";
+    final PauseWorkflowCommand command = new PauseWorkflowCommand(executionId);
     when(registry.findByExecutionId(executionId)).thenReturn(Optional.of(executionControl));
     when(executionControl.globalPauseValve()).thenReturn(null);
 
     // When
-    var result = processor.process(command);
+    final var result = processor.process(command);
 
     // Then
     StepVerifier.create(result)
@@ -130,7 +137,7 @@ class PauseWorkflowCommandProcessorTest {
   @Test
   void getPriority_returnsCorrectValue() {
     // When
-    int actualPriority = processor.getPriority();
+    final int actualPriority = processor.getPriority();
 
     // Then
     assertThat(actualPriority).isEqualTo(10);

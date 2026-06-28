@@ -15,7 +15,7 @@
  */
 package com.infenia.yukta.service.orchestrator.compiler;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -23,6 +23,7 @@ import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.session.store.SessionConfigStore;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -33,6 +34,12 @@ import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 @MockitoSettings
+@NoArgsConstructor
+@SuppressWarnings({
+  "PMD.CommentRequired",
+  "PMD.TooManyMethods",
+  "PMD.AvoidDuplicateLiterals"
+})
 class ResourceManagementBuilderTest {
 
   @Mock private DefaultTaskTrackerService mockTracker;
@@ -46,14 +53,14 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderBasic() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -67,14 +74,14 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderEmitsSuccessStatus() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -90,15 +97,15 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderDisposesResources() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    Disposable mockDisposable = mock(Disposable.class);
-    List<Disposable> disposables = List.of(mockDisposable);
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = new ArrayList<>();
+    final Disposable mockDisposable = mock(Disposable.class);
+    final List<Disposable> disposables = List.of(mockDisposable);
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -114,15 +121,15 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderRunsConnectors() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    Runnable mockConnector = mock(Runnable.class);
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = List.of(mockConnector);
+    final Runnable mockConnector = mock(Runnable.class);
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = List.of(mockConnector);
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -138,10 +145,10 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderWithNullParameters() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(null)
             .withTerminals(null)
@@ -156,14 +163,14 @@ class ResourceManagementBuilderTest {
 
   @Test
   void testResourceManagementBuilderWithoutSessionId() {
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -180,18 +187,18 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderRunsConnectorsInReverseOrder() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    Runnable connector1 = mock(Runnable.class);
-    Runnable connector2 = mock(Runnable.class);
-    Runnable connector3 = mock(Runnable.class);
+    final Runnable connector1 = mock(Runnable.class);
+    final Runnable connector2 = mock(Runnable.class);
+    final Runnable connector3 = mock(Runnable.class);
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = List.of(connector1, connector2, connector3);
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = List.of(connector1, connector2, connector3);
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -210,14 +217,14 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderWithoutExecutionId() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -233,14 +240,14 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderWithMultipleTerminals() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = List.of(Mono.empty(), Mono.empty(), Mono.empty());
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = List.of(Mono.empty(), Mono.empty(), Mono.empty());
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -256,13 +263,13 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderWithoutTerminals() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(null)
@@ -278,18 +285,18 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderMultipleDisposables() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    Disposable disposable1 = mock(Disposable.class);
-    Disposable disposable2 = mock(Disposable.class);
-    Disposable disposable3 = mock(Disposable.class);
+    final Disposable disposable1 = mock(Disposable.class);
+    final Disposable disposable2 = mock(Disposable.class);
+    final Disposable disposable3 = mock(Disposable.class);
 
-    List<Disposable> disposables = List.of(disposable1, disposable2, disposable3);
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = List.of(disposable1, disposable2, disposable3);
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -307,14 +314,14 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderEmptyConnectors() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -330,14 +337,14 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderEmptyDisposables() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -353,17 +360,17 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderConnectorThrowingException() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    Runnable throwingConnector = mock(Runnable.class);
+    final Runnable throwingConnector = mock(Runnable.class);
     doThrow(new RuntimeException("Connector error")).when(throwingConnector).run();
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = List.of(throwingConnector);
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = List.of(throwingConnector);
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -380,17 +387,17 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderDisposableThrowingException() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    Disposable throwingDisposable = mock(Disposable.class);
+    final Disposable throwingDisposable = mock(Disposable.class);
     doThrow(new RuntimeException("Dispose error")).when(throwingDisposable).dispose();
 
-    List<Disposable> disposables = List.of(throwingDisposable);
-    List<Mono<Void>> terminals = List.of(Mono.empty());
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = List.of(throwingDisposable);
+    final List<Mono<Void>> terminals = List.of(Mono.empty());
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -418,23 +425,23 @@ class ResourceManagementBuilderTest {
         builder4.withExecutionTimeout("session-001", "exec-001");
 
     // All should be the same instance
-    assertSame(builder, builder2);
-    assertSame(builder, builder3);
-    assertSame(builder, builder4);
-    assertSame(builder, builder5);
+    assertThat(builder).isSameAs(builder2);
+    assertThat(builder).isSameAs(builder3);
+    assertThat(builder).isSameAs(builder4);
+    assertThat(builder).isSameAs(builder5);
   }
 
   @Test
   void testResourceManagementBuilderWithEmptyTerminals() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
-    List<Disposable> disposables = new ArrayList<>();
-    List<Mono<Void>> terminals = new ArrayList<>();
-    List<Runnable> connectors = new ArrayList<>();
+    final List<Disposable> disposables = new ArrayList<>();
+    final List<Mono<Void>> terminals = new ArrayList<>();
+    final List<Runnable> connectors = new ArrayList<>();
 
-    Mono<Void> execution =
+    final Mono<Void> execution =
         builder
             .withDisposables(disposables)
             .withTerminals(terminals)
@@ -450,7 +457,7 @@ class ResourceManagementBuilderTest {
   @Test
   void testResourceManagementBuilderWithFailingTerminal() {
     when(mockConfigService.getExecutionTimeout("session-001")).thenReturn(Mono.just(60L));
-    ResourceManagementBuilder builder =
+    final ResourceManagementBuilder builder =
         new ResourceManagementBuilder(mockTracker, mockConfigService, Schedulers.boundedElastic());
 
     final List<Disposable> disposables = new ArrayList<>();

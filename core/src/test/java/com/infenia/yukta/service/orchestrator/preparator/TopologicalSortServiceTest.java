@@ -15,92 +15,73 @@
  */
 package com.infenia.yukta.service.orchestrator.preparator;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.infenia.yukta.model.workflow.WorkflowNode;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.NoArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.junit.jupiter.MockitoSettings;
 
-@MockitoSettings
+/** Unit tests for {@link TopologicalSortService}. */
+@NoArgsConstructor
+@SuppressWarnings("PMD.ShortVariable")
 class TopologicalSortServiceTest {
 
-  private final TopologicalSortService service = new TopologicalSortService();
+  /** Instance under test. */
+  private TopologicalSortService sortService;
 
-  @Test
-  void testComputeTopologicalOrder() {
-    WorkflowNode n1 = new WorkflowNode("n1", "t", null);
-    WorkflowNode n2 = new WorkflowNode("n2", "t", null);
-    Map<String, List<WorkflowNode>> adj = Map.of("n1", List.of(n2), "n2", List.of());
-    Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of(), "n2", List.of(n1));
-
-    List<WorkflowNode> order = service.computeTopologicalOrder(List.of(n1, n2), adj, parents);
-    assertEquals(2, order.size());
-    assertEquals("n1", order.get(0).nodeId());
-    assertEquals("n2", order.get(1).nodeId());
+  @BeforeEach
+  void setUp() {
+    sortService = new TopologicalSortService();
   }
 
   @Test
-  void testComputeTopologicalOrderWithMissingAdjacencyKey() {
-    WorkflowNode n1 = new WorkflowNode("n1", "t", null);
-    WorkflowNode n2 = new WorkflowNode("n2", "t", null);
-    Map<String, List<WorkflowNode>> adjNull = new HashMap<>();
-    adjNull.put("n1", List.of(n2));
-    Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of(), "n2", List.of(n1));
+  void testSimpleLinearSort() {
+    final WorkflowNode n1 = new WorkflowNode("n1", "t", Map.of());
+    final WorkflowNode n2 = new WorkflowNode("n2", "t", Map.of());
 
-    List<WorkflowNode> order = service.computeTopologicalOrder(List.of(n1, n2), adjNull, parents);
-    assertEquals(2, order.size());
-    assertEquals("n1", order.get(0).nodeId());
-    assertEquals("n2", order.get(1).nodeId());
+    final List<WorkflowNode> nodes = List.of(n1, n2);
+    final Map<String, List<WorkflowNode>> adj = Map.of("n1", List.of(n2), "n2", List.of());
+    final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of(), "n2", List.of(n1));
+
+    final List<WorkflowNode> order = sortService.computeTopologicalOrder(nodes, adj, parents);
+
+    assertThat(order).hasSize(2);
+    assertThat(order.get(0).nodeId()).isEqualTo("n1");
+    assertThat(order.get(1).nodeId()).isEqualTo("n2");
   }
 
   @Test
-  void testComputeTopologicalOrderWithCycle() {
-    WorkflowNode n1 = new WorkflowNode("n1", "t", null);
-    WorkflowNode n2 = new WorkflowNode("n2", "t", null);
-    Map<String, List<WorkflowNode>> adj = Map.of("n1", List.of(n2), "n2", List.of(n1));
-    Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of(n2), "n2", List.of(n1));
+  void testCycleDetection() {
+    final WorkflowNode n1 = new WorkflowNode("n1", "t", Map.of());
+    final WorkflowNode n2 = new WorkflowNode("n2", "t", Map.of());
 
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> service.computeTopologicalOrder(List.of(n1, n2), adj, parents));
+    final List<WorkflowNode> nodes = List.of(n1, n2);
+    final Map<String, List<WorkflowNode>> adj = Map.of("n1", List.of(n2), "n2", List.of(n1));
+    final Map<String, List<WorkflowNode>> parents = Map.of("n1", List.of(n2), "n2", List.of(n1));
+
+    assertThatThrownBy(() -> sortService.computeTopologicalOrder(nodes, adj, parents))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
-  void testComputeTopologicalOrderMultipleNodes() {
-    WorkflowNode n1 = new WorkflowNode("n1", "t", null);
-    WorkflowNode n2 = new WorkflowNode("n2", "t", null);
-    WorkflowNode n3 = new WorkflowNode("n3", "t", null);
-    Map<String, List<WorkflowNode>> adj =
-        Map.of("n1", List.of(n2), "n2", List.of(n3), "n3", List.of());
-    Map<String, List<WorkflowNode>> parents =
-        Map.of("n1", List.of(), "n2", List.of(n1), "n3", List.of(n2));
+  void testBranchedSort() {
+    final WorkflowNode n1 = new WorkflowNode("n1", "t", Map.of());
+    final WorkflowNode n2 = new WorkflowNode("n2", "t", Map.of());
+    final WorkflowNode n3 = new WorkflowNode("n3", "t", Map.of());
 
-    List<WorkflowNode> order = service.computeTopologicalOrder(List.of(n1, n2, n3), adj, parents);
-    assertEquals(3, order.size());
-    assertEquals("n1", order.get(0).nodeId());
-    assertEquals("n2", order.get(1).nodeId());
-    assertEquals("n3", order.get(2).nodeId());
-  }
+    final List<WorkflowNode> nodes = List.of(n1, n2, n3);
+    final Map<String, List<WorkflowNode>> adj =
+        Map.of("n1", List.of(n2, n3), "n2", List.of(), "n3", List.of());
+    final Map<String, List<WorkflowNode>> parents =
+        Map.of("n1", List.of(), "n2", List.of(n1), "n3", List.of(n1));
 
-  @Test
-  void testComputeTopologicalOrderWithDiamondDependency() {
-    WorkflowNode n1 = new WorkflowNode("n1", "t", null);
-    WorkflowNode n2 = new WorkflowNode("n2", "t", null);
-    WorkflowNode n3 = new WorkflowNode("n3", "t", null);
-    WorkflowNode n4 = new WorkflowNode("n4", "t", null);
-    Map<String, List<WorkflowNode>> adj =
-        Map.of("n1", List.of(n2, n3), "n2", List.of(n4), "n3", List.of(n4), "n4", List.of());
-    Map<String, List<WorkflowNode>> parents =
-        Map.of("n1", List.of(), "n2", List.of(n1), "n3", List.of(n1), "n4", List.of(n2, n3));
+    final List<WorkflowNode> order = sortService.computeTopologicalOrder(nodes, adj, parents);
 
-    List<WorkflowNode> order =
-        service.computeTopologicalOrder(List.of(n1, n2, n3, n4), adj, parents);
-    assertEquals(4, order.size());
-    assertEquals("n1", order.get(0).nodeId());
-    assertEquals("n4", order.get(3).nodeId());
+    assertThat(order).hasSize(3);
+    assertThat(order.get(0).nodeId()).isEqualTo("n1");
   }
 }

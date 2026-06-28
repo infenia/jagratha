@@ -19,12 +19,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.service.control.ExecutionControl;
 import java.util.Map;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Sinks;
 
+@NoArgsConstructor
+@SuppressWarnings({
+  "PMD.CommentRequired",
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.UnusedLocalVariable"
+})
 class ExecutionControlRegistryTest {
 
+  /** Registry instance under test. */
   private ExecutionControlRegistry registry;
 
   @BeforeEach

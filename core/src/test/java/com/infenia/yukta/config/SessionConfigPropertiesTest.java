@@ -15,19 +15,28 @@
  */
 package com.infenia.yukta.config;
 
-import lombok.NoArgsConstructor;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 
+/** Tests for {@link SessionConfigProperties}. */
 @NoArgsConstructor
+@SuppressWarnings("PMD.TooManyMethods")
 class SessionConfigPropertiesTest {
+  /** Custom directory path constant. */
+  private static final String CUSTOM_DIR = "/custom/dir";
+  /** Files subdirectory constant. */
+  private static final String FILES = "files";
+  /** Results custom subdirectory constant. */
+  private static final String RESULTS_CUSTOM = "results-custom";
+  /** Redis store type constant. */
+  private static final String REDIS = "redis";
 
   @Test
   void noArgsConstructor_createsInstance_succeeds() {
     // Given-When
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
 
     // Then
     assertThat(actualProperties).isNotNull();
@@ -36,11 +45,11 @@ class SessionConfigPropertiesTest {
   @Test
   void defaultBaseDir_usesUserHomeProperty_correctPath() {
     // Given
-    String expectedUserHome = System.getProperty("user.home");
-    String expectedBaseDirValue = expectedUserHome + "/.yukta";
+    final String expectedUserHome = System.getProperty("user.home");
+    final String expectedBaseDirValue = expectedUserHome + "/.yukta";
 
     // When
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
 
     // Then
     assertThat(actualProperties.getBaseDir()).isEqualTo(expectedBaseDirValue);
@@ -49,10 +58,10 @@ class SessionConfigPropertiesTest {
   @Test
   void defaultFileLogSubDir_hasCorrectValue_modifiedFiles() {
     // Given
-    String expectedFileLogSubDir = "modified-files";
+    final String expectedFileLogSubDir = "modified-files";
 
     // When
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
 
     // Then
     assertThat(actualProperties.getFileLogSubDir()).isEqualTo(expectedFileLogSubDir);
@@ -61,10 +70,10 @@ class SessionConfigPropertiesTest {
   @Test
   void defaultResultLogSubDir_hasCorrectValue_results() {
     // Given
-    String expectedResultLogSubDir = "results";
+    final String expectedResultLogSubDir = "results";
 
     // When
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
 
     // Then
     assertThat(actualProperties.getResultLogSubDir()).isEqualTo(expectedResultLogSubDir);
@@ -73,23 +82,23 @@ class SessionConfigPropertiesTest {
   @Test
   void defaultExecutionTimeoutSecondsHasCorrectValue_3600() {
     // Given
-    Long expectedExecutionTimeoutSeconds = 3600L;
+    final Long expectedTimeout = 3600L;
 
     // When
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
 
     // Then
     assertThat(actualProperties.getExecutionTimeoutSeconds())
-        .isEqualTo(expectedExecutionTimeoutSeconds);
+        .isEqualTo(expectedTimeout);
   }
 
   @Test
   void defaultStoreType_hasCorrectValue_inMemory() {
     // Given
-    String expectedStoreType = "in-memory";
+    final String expectedStoreType = "in-memory";
 
     // When
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
 
     // Then
     assertThat(actualProperties.getStoreType()).isEqualTo(expectedStoreType);
@@ -98,8 +107,8 @@ class SessionConfigPropertiesTest {
   @Test
   void setBaseDir_setsAndRetrieves_correctValue() {
     // Given
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
-    String customBaseDirValue = "/custom/base/dir";
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final String customBaseDirValue = "/custom/base/dir";
 
     // When
     actualProperties.setBaseDir(customBaseDirValue);
@@ -111,8 +120,8 @@ class SessionConfigPropertiesTest {
   @Test
   void setFileLogSubDir_setsAndRetrieves_correctValue() {
     // Given
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
-    String customFileLogSubDirValue = "custom-logs";
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final String customFileLogSubDirValue = "custom-logs";
 
     // When
     actualProperties.setFileLogSubDir(customFileLogSubDirValue);
@@ -124,8 +133,8 @@ class SessionConfigPropertiesTest {
   @Test
   void setResultLogSubDir_setsAndRetrieves_correctValue() {
     // Given
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
-    String customResultLogSubDirValue = "custom-results";
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final String customResultLogSubDirValue = "custom-results";
 
     // When
     actualProperties.setResultLogSubDir(customResultLogSubDirValue);
@@ -137,22 +146,22 @@ class SessionConfigPropertiesTest {
   @Test
   void setExecutionTimeoutSeconds_setsAndRetrieves_correctValue() {
     // Given
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
-    Long customExecutionTimeoutSecondsValue = 7200L;
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final Long customTimeoutValue = 7200L;
 
     // When
-    actualProperties.setExecutionTimeoutSeconds(customExecutionTimeoutSecondsValue);
+    actualProperties.setExecutionTimeoutSeconds(customTimeoutValue);
 
     // Then
     assertThat(actualProperties.getExecutionTimeoutSeconds())
-        .isEqualTo(customExecutionTimeoutSecondsValue);
+        .isEqualTo(customTimeoutValue);
   }
 
   @Test
   void setStoreType_setsAndRetrieves_correctValue() {
     // Given
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
-    String customStoreTypeValue = "database";
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final String customStoreTypeValue = "database";
 
     // When
     actualProperties.setStoreType(customStoreTypeValue);
@@ -164,19 +173,19 @@ class SessionConfigPropertiesTest {
   @Test
   void equals_sameValues_returnsTrue() {
     // Given
-    SessionConfigProperties properties1 = new SessionConfigProperties();
-    properties1.setBaseDir("/custom/dir");
-    properties1.setFileLogSubDir("files");
-    properties1.setResultLogSubDir("results-custom");
+    final SessionConfigProperties properties1 = new SessionConfigProperties();
+    properties1.setBaseDir(CUSTOM_DIR);
+    properties1.setFileLogSubDir(FILES);
+    properties1.setResultLogSubDir(RESULTS_CUSTOM);
     properties1.setExecutionTimeoutSeconds(5000L);
-    properties1.setStoreType("redis");
+    properties1.setStoreType(REDIS);
 
-    SessionConfigProperties properties2 = new SessionConfigProperties();
-    properties2.setBaseDir("/custom/dir");
-    properties2.setFileLogSubDir("files");
-    properties2.setResultLogSubDir("results-custom");
+    final SessionConfigProperties properties2 = new SessionConfigProperties();
+    properties2.setBaseDir(CUSTOM_DIR);
+    properties2.setFileLogSubDir(FILES);
+    properties2.setResultLogSubDir(RESULTS_CUSTOM);
     properties2.setExecutionTimeoutSeconds(5000L);
-    properties2.setStoreType("redis");
+    properties2.setStoreType(REDIS);
 
     // When-Then
     assertThat(properties1).isEqualTo(properties2);
@@ -185,10 +194,10 @@ class SessionConfigPropertiesTest {
   @Test
   void equals_differentBaseDirValues_returnsFalse() {
     // Given
-    SessionConfigProperties properties1 = new SessionConfigProperties();
+    final SessionConfigProperties properties1 = new SessionConfigProperties();
     properties1.setBaseDir("/dir1");
 
-    SessionConfigProperties properties2 = new SessionConfigProperties();
+    final SessionConfigProperties properties2 = new SessionConfigProperties();
     properties2.setBaseDir("/dir2");
 
     // When-Then
@@ -198,10 +207,10 @@ class SessionConfigPropertiesTest {
   @Test
   void equals_differentFileLogSubDirValues_returnsFalse() {
     // Given
-    SessionConfigProperties properties1 = new SessionConfigProperties();
+    final SessionConfigProperties properties1 = new SessionConfigProperties();
     properties1.setFileLogSubDir("logs1");
 
-    SessionConfigProperties properties2 = new SessionConfigProperties();
+    final SessionConfigProperties properties2 = new SessionConfigProperties();
     properties2.setFileLogSubDir("logs2");
 
     // When-Then
@@ -211,10 +220,10 @@ class SessionConfigPropertiesTest {
   @Test
   void equals_differentResultLogSubDirValues_returnsFalse() {
     // Given
-    SessionConfigProperties properties1 = new SessionConfigProperties();
+    final SessionConfigProperties properties1 = new SessionConfigProperties();
     properties1.setResultLogSubDir("results1");
 
-    SessionConfigProperties properties2 = new SessionConfigProperties();
+    final SessionConfigProperties properties2 = new SessionConfigProperties();
     properties2.setResultLogSubDir("results2");
 
     // When-Then
@@ -224,10 +233,10 @@ class SessionConfigPropertiesTest {
   @Test
   void equals_differentExecutionTimeoutSecondsValues_returnsFalse() {
     // Given
-    SessionConfigProperties properties1 = new SessionConfigProperties();
+    final SessionConfigProperties properties1 = new SessionConfigProperties();
     properties1.setExecutionTimeoutSeconds(1000L);
 
-    SessionConfigProperties properties2 = new SessionConfigProperties();
+    final SessionConfigProperties properties2 = new SessionConfigProperties();
     properties2.setExecutionTimeoutSeconds(2000L);
 
     // When-Then
@@ -237,10 +246,10 @@ class SessionConfigPropertiesTest {
   @Test
   void equals_differentStoreTypeValues_returnsFalse() {
     // Given
-    SessionConfigProperties properties1 = new SessionConfigProperties();
+    final SessionConfigProperties properties1 = new SessionConfigProperties();
     properties1.setStoreType("memory");
 
-    SessionConfigProperties properties2 = new SessionConfigProperties();
+    final SessionConfigProperties properties2 = new SessionConfigProperties();
     properties2.setStoreType("disk");
 
     // When-Then
@@ -250,14 +259,14 @@ class SessionConfigPropertiesTest {
   @Test
   void hashCode_sameValues_sameHash() {
     // Given
-    SessionConfigProperties properties1 = new SessionConfigProperties();
+    final SessionConfigProperties properties1 = new SessionConfigProperties();
     properties1.setBaseDir("/custom/dir");
     properties1.setFileLogSubDir("files");
     properties1.setResultLogSubDir("results-custom");
     properties1.setExecutionTimeoutSeconds(5000L);
     properties1.setStoreType("redis");
 
-    SessionConfigProperties properties2 = new SessionConfigProperties();
+    final SessionConfigProperties properties2 = new SessionConfigProperties();
     properties2.setBaseDir("/custom/dir");
     properties2.setFileLogSubDir("files");
     properties2.setResultLogSubDir("results-custom");
@@ -265,8 +274,8 @@ class SessionConfigPropertiesTest {
     properties2.setStoreType("redis");
 
     // When
-    int actualHash1 = properties1.hashCode();
-    int actualHash2 = properties2.hashCode();
+    final int actualHash1 = properties1.hashCode();
+    final int actualHash2 = properties2.hashCode();
 
     // Then
     assertThat(actualHash1).isEqualTo(actualHash2);
@@ -275,24 +284,24 @@ class SessionConfigPropertiesTest {
   @Test
   void hashCode_differentValues_differentHash() {
     // Given
-    SessionConfigProperties properties1 = new SessionConfigProperties();
+    final SessionConfigProperties properties1 = new SessionConfigProperties();
     properties1.setBaseDir("/dir1");
 
-    SessionConfigProperties properties2 = new SessionConfigProperties();
+    final SessionConfigProperties properties2 = new SessionConfigProperties();
     properties2.setBaseDir("/dir2");
 
     // When
-    int actualHash1 = properties1.hashCode();
-    int actualHash2 = properties2.hashCode();
+    final int actualHash1 = properties1.hashCode();
+    final int actualHash2 = properties2.hashCode();
 
     // Then
     assertThat(actualHash1).isNotEqualTo(actualHash2);
   }
 
   @Test
-  void toString_generatedMethod_containsAllFields() {
+  void testToString_generatedMethod_containsAllFields() {
     // Given
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
     actualProperties.setBaseDir("/test/dir");
     actualProperties.setFileLogSubDir("test-files");
     actualProperties.setResultLogSubDir("test-results");
@@ -300,7 +309,7 @@ class SessionConfigPropertiesTest {
     actualProperties.setStoreType("test-store");
 
     // When
-    String actualToString = actualProperties.toString();
+    final String actualToString = actualProperties.toString();
 
     // Then
     assertThat(actualToString)
@@ -320,7 +329,7 @@ class SessionConfigPropertiesTest {
   @Test
   void multiplePropertyChanges_setsIndependently_returnsCorrectValues() {
     // Given
-    SessionConfigProperties actualProperties = new SessionConfigProperties();
+    final SessionConfigProperties actualProperties = new SessionConfigProperties();
 
     // When
     actualProperties.setBaseDir("/path1");

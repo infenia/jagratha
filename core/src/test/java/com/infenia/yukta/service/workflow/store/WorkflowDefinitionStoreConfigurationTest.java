@@ -17,14 +17,18 @@ package com.infenia.yukta.service.workflow.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
 
+/** Unit tests for {@link WorkflowDefinitionStoreConfiguration}. */
 @SpringBootTest
+@NoArgsConstructor
 class WorkflowDefinitionStoreConfigurationTest {
 
+  /** Injected store instance. */
   @Autowired private WorkflowDefinitionStore workflowDefinitionStore;
 
   @Test
@@ -40,8 +44,8 @@ class WorkflowDefinitionStoreConfigurationTest {
   @Test
   void inMemoryWorkflowDefinitionStore_createsValidInstance() {
     // Given & When
-    WorkflowDefinitionStoreConfiguration config = new WorkflowDefinitionStoreConfiguration();
-    WorkflowDefinitionStore store = config.inMemoryWorkflowDefinitionStore();
+    final WorkflowDefinitionStoreConfiguration config = new WorkflowDefinitionStoreConfiguration();
+    final WorkflowDefinitionStore store = config.inMemoryWorkflowDefinitionStore();
 
     // Then
     assertThat(store).isNotNull();
@@ -51,7 +55,7 @@ class WorkflowDefinitionStoreConfigurationTest {
   @Test
   void configuration_classHasValidSpringAnnotations() {
     // Given
-    WorkflowDefinitionStoreConfiguration config = new WorkflowDefinitionStoreConfiguration();
+    final WorkflowDefinitionStoreConfiguration config = new WorkflowDefinitionStoreConfiguration();
 
     // When & Then
     assertThat(config).isNotNull();
@@ -61,11 +65,11 @@ class WorkflowDefinitionStoreConfigurationTest {
   @Test
   void inMemoryWorkflowDefinitionStore_multipleCallsReturnDifferentInstances() {
     // Given
-    WorkflowDefinitionStoreConfiguration config = new WorkflowDefinitionStoreConfiguration();
+    final WorkflowDefinitionStoreConfiguration config = new WorkflowDefinitionStoreConfiguration();
 
     // When
-    WorkflowDefinitionStore store1 = config.inMemoryWorkflowDefinitionStore();
-    WorkflowDefinitionStore store2 = config.inMemoryWorkflowDefinitionStore();
+    final WorkflowDefinitionStore store1 = config.inMemoryWorkflowDefinitionStore();
+    final WorkflowDefinitionStore store2 = config.inMemoryWorkflowDefinitionStore();
 
     // Then
     assertThat(store1).isNotNull();
@@ -76,10 +80,10 @@ class WorkflowDefinitionStoreConfigurationTest {
   @Test
   void beanMethodCanBeCalledDirectly() {
     // Given
-    WorkflowDefinitionStoreConfiguration config = new WorkflowDefinitionStoreConfiguration();
+    final WorkflowDefinitionStoreConfiguration config = new WorkflowDefinitionStoreConfiguration();
 
     // When
-    WorkflowDefinitionStore store = config.inMemoryWorkflowDefinitionStore();
+    final WorkflowDefinitionStore store = config.inMemoryWorkflowDefinitionStore();
 
     // Then
     assertThat(store).isNotNull();

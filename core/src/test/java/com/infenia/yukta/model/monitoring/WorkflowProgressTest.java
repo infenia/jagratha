@@ -15,242 +15,240 @@
  */
 package com.infenia.yukta.model.execution;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 
+/** Tests for {@link WorkflowProgress}. */
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals"})
 @NoArgsConstructor
 class WorkflowProgressTest {
 
   @Test
   void testWorkflowProgressCreation() {
-    LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    List<TaskProgress> tasks = List.of();
+    final LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final List<TaskProgress> tasks = List.of();
 
-    WorkflowProgress progress =
+    final WorkflowProgress progress =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "COMPLETED", tasks, startTime, endTime);
 
-    assertEquals("exec-1", progress.executionId());
-    assertEquals("session-1", progress.sessionId());
-    assertEquals("workflow-1", progress.workflowId());
-    assertEquals("COMPLETED", progress.status());
-    assertEquals(startTime, progress.startTime());
-    assertEquals(endTime, progress.endTime());
-    assertNotNull(progress.tasks());
-    assertTrue(progress.tasks().isEmpty());
+    assertThat(progress.executionId()).isEqualTo("exec-1");
+    assertThat(progress.sessionId()).isEqualTo("session-1");
+    assertThat(progress.workflowId()).isEqualTo("workflow-1");
+    assertThat(progress.status()).isEqualTo("COMPLETED");
+    assertThat(progress.startTime()).isEqualTo(startTime);
+    assertThat(progress.endTime()).isEqualTo(endTime);
+    assertThat(progress.tasks()).isNotNull().isEmpty();
   }
 
   @Test
   void testWorkflowProgressWithTasks() {
-    LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    TaskProgress task1 =
+    final LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final TaskProgress task1 =
         new TaskProgress("node-1", "module-1", "COMPLETED", startTime, endTime, null);
-    TaskProgress task2 = new TaskProgress("node-2", "module-2", "RUNNING", startTime, null, null);
-    List<TaskProgress> tasks = List.of(task1, task2);
+    final TaskProgress task2 = new TaskProgress("node-2", "module-2", "RUNNING", startTime, null, null);
+    final List<TaskProgress> tasks = List.of(task1, task2);
 
-    WorkflowProgress progress =
+    final WorkflowProgress progress =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "RUNNING", tasks, startTime, endTime);
 
-    assertEquals(2, progress.tasks().size());
-    assertTrue(progress.tasks().contains(task1));
-    assertTrue(progress.tasks().contains(task2));
+    assertThat(progress.tasks()).hasSize(2).contains(task1, task2);
   }
 
   @Test
   void testWorkflowProgressTasksImmutability() {
-    LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    TaskProgress task1 =
+    final LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final TaskProgress task1 =
         new TaskProgress("node-1", "module-1", "COMPLETED", startTime, endTime, null);
-    List<TaskProgress> originalTasks = List.of(task1);
+    final List<TaskProgress> originalTasks = List.of(task1);
 
-    WorkflowProgress progress =
+    final WorkflowProgress progress =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "COMPLETED", originalTasks, startTime, endTime);
 
-    assertEquals(1, progress.tasks().size());
-
-    org.junit.jupiter.api.Assertions.assertThrows(
-        UnsupportedOperationException.class, () -> progress.tasks().add(null));
+    assertThat(progress.tasks()).hasSize(1);
+    assertThatThrownBy(() -> progress.tasks().add(null))
+        .isInstanceOf(UnsupportedOperationException.class);
   }
 
   @Test
   void testWorkflowProgressWithNullEndTime() {
-    LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    List<TaskProgress> tasks = List.of();
+    final LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final List<TaskProgress> tasks = List.of();
 
-    WorkflowProgress progress =
+    final WorkflowProgress progress =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "RUNNING", tasks, startTime, null);
 
-    assertEquals("RUNNING", progress.status());
-    assertNull(progress.endTime());
-    assertNotNull(progress.startTime());
+    assertThat(progress.status()).isEqualTo("RUNNING");
+    assertThat(progress.endTime()).isNull();
+    assertThat(progress.startTime()).isNotNull();
   }
 
   @Test
   void testWorkflowProgressWithNullStartTime() {
-    LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    List<TaskProgress> tasks = List.of();
+    final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final List<TaskProgress> tasks = List.of();
 
-    WorkflowProgress progress =
+    final WorkflowProgress progress =
         new WorkflowProgress("exec-2", "session-2", "workflow-2", "PENDING", tasks, null, endTime);
 
-    assertEquals("PENDING", progress.status());
-    assertNull(progress.startTime());
-    assertNotNull(progress.endTime());
+    assertThat(progress.status()).isEqualTo("PENDING");
+    assertThat(progress.startTime()).isNull();
+    assertThat(progress.endTime()).isNotNull();
   }
 
   @Test
   void testWorkflowProgressWithBothNullTimes() {
-    List<TaskProgress> tasks = List.of();
+    final List<TaskProgress> tasks = List.of();
 
-    WorkflowProgress progress =
+    final WorkflowProgress progress =
         new WorkflowProgress("exec-3", "session-3", "workflow-3", "QUEUED", tasks, null, null);
 
-    assertEquals("QUEUED", progress.status());
-    assertNull(progress.startTime());
-    assertNull(progress.endTime());
+    assertThat(progress.status()).isEqualTo("QUEUED");
+    assertThat(progress.startTime()).isNull();
+    assertThat(progress.endTime()).isNull();
   }
 
   @Test
   void testWorkflowProgressStatus() {
-    LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    List<TaskProgress> tasks = List.of();
+    final LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final List<TaskProgress> tasks = List.of();
 
-    WorkflowProgress inProgress =
+    final WorkflowProgress inProgress =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "RUNNING", tasks, startTime, null);
-    WorkflowProgress completed =
+    final WorkflowProgress completed =
         new WorkflowProgress(
             "exec-2", "session-2", "workflow-2", "COMPLETED", tasks, startTime, endTime);
-    WorkflowProgress failed =
+    final WorkflowProgress failed =
         new WorkflowProgress(
             "exec-3", "session-3", "workflow-3", "FAILED", tasks, startTime, endTime);
 
-    assertEquals("RUNNING", inProgress.status());
-    assertEquals("COMPLETED", completed.status());
-    assertEquals("FAILED", failed.status());
+    assertThat(inProgress.status()).isEqualTo("RUNNING");
+    assertThat(completed.status()).isEqualTo("COMPLETED");
+    assertThat(failed.status()).isEqualTo("FAILED");
   }
 
   @Test
   void testWorkflowProgressIdentifiers() {
-    LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    List<TaskProgress> tasks = List.of();
+    final LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final List<TaskProgress> tasks = List.of();
 
-    WorkflowProgress progress =
+    final WorkflowProgress progress =
         new WorkflowProgress(
             "exec-xyz", "session-abc", "workflow-123", "COMPLETED", tasks, startTime, endTime);
 
-    assertEquals("exec-xyz", progress.executionId());
-    assertEquals("session-abc", progress.sessionId());
-    assertEquals("workflow-123", progress.workflowId());
+    assertThat(progress.executionId()).isEqualTo("exec-xyz");
+    assertThat(progress.sessionId()).isEqualTo("session-abc");
+    assertThat(progress.workflowId()).isEqualTo("workflow-123");
   }
 
   @Test
   void testWorkflowProgressWithMultipleTasks() {
-    LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    LocalDateTime time1 = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    LocalDateTime time2 = LocalDateTime.of(2026, 5, 30, 10, 1, 0);
-    LocalDateTime time3 = LocalDateTime.of(2026, 5, 30, 10, 2, 0);
-    LocalDateTime time4 = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    TaskProgress task1 = new TaskProgress("node-1", "module-1", "COMPLETED", time1, time2, null);
-    TaskProgress task2 = new TaskProgress("node-2", "module-2", "COMPLETED", time2, time3, null);
-    TaskProgress task3 = new TaskProgress("node-3", "module-3", "COMPLETED", time3, time4, null);
-    List<TaskProgress> tasks = List.of(task1, task2, task3);
+    final LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final LocalDateTime time1 = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final LocalDateTime time2 = LocalDateTime.of(2026, 5, 30, 10, 1, 0);
+    final LocalDateTime time3 = LocalDateTime.of(2026, 5, 30, 10, 2, 0);
+    final LocalDateTime time4 = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final TaskProgress task1 = new TaskProgress("node-1", "module-1", "COMPLETED", time1, time2, null);
+    final TaskProgress task2 = new TaskProgress("node-2", "module-2", "COMPLETED", time2, time3, null);
+    final TaskProgress task3 = new TaskProgress("node-3", "module-3", "COMPLETED", time3, time4, null);
+    final List<TaskProgress> tasks = List.of(task1, task2, task3);
 
-    WorkflowProgress progress =
+    final WorkflowProgress progress =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "COMPLETED", tasks, startTime, endTime);
 
-    assertEquals(3, progress.tasks().size());
-    assertEquals("node-1", progress.tasks().get(0).nodeId());
-    assertEquals("node-2", progress.tasks().get(1).nodeId());
-    assertEquals("node-3", progress.tasks().get(2).nodeId());
+    assertThat(progress.tasks())
+        .hasSize(3)
+        .extracting(TaskProgress::nodeId)
+        .containsExactly("node-1", "node-2", "node-3");
   }
 
   @Test
   void testWorkflowProgressEquality() {
-    LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    List<TaskProgress> tasks = List.of();
+    final LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final List<TaskProgress> tasks = List.of();
 
-    WorkflowProgress progress1 =
+    final WorkflowProgress progress1 =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "COMPLETED", tasks, startTime, endTime);
-    WorkflowProgress progress2 =
+    final WorkflowProgress progress2 =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "COMPLETED", tasks, startTime, endTime);
 
-    assertEquals(progress1, progress2);
+    assertThat(progress1).isEqualTo(progress2);
   }
 
   @Test
   void testWorkflowProgressHashCode() {
-    LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    List<TaskProgress> tasks = List.of();
+    final LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final List<TaskProgress> tasks = List.of();
 
-    WorkflowProgress progress1 =
+    final WorkflowProgress progress1 =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "COMPLETED", tasks, startTime, endTime);
-    WorkflowProgress progress2 =
+    final WorkflowProgress progress2 =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "COMPLETED", tasks, startTime, endTime);
 
-    assertEquals(progress1.hashCode(), progress2.hashCode());
+    assertThat(progress1.hashCode()).isEqualTo(progress2.hashCode());
   }
 
   @Test
+  @SuppressWarnings("PMD.LawOfDemeter")
   void testWorkflowProgressToString() {
-    LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    List<TaskProgress> tasks = List.of();
+    final LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final List<TaskProgress> tasks = List.of();
 
-    WorkflowProgress progress =
+    final WorkflowProgress progress =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "COMPLETED", tasks, startTime, endTime);
 
-    String toString = progress.toString();
-    assertNotNull(toString);
-    assertTrue(toString.contains("exec-1"));
-    assertTrue(toString.contains("session-1"));
-    assertTrue(toString.contains("workflow-1"));
+    final String toString = progress.toString();
+    assertThat(toString)
+        .isNotNull()
+        .contains("exec-1", "session-1", "workflow-1");
   }
 
   @Test
   void testWorkflowProgressRecord() {
-    LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
-    LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
-    TaskProgress task =
+    final LocalDateTime startTime = LocalDateTime.of(2026, 5, 30, 10, 0, 0);
+    final LocalDateTime endTime = LocalDateTime.of(2026, 5, 30, 10, 5, 0);
+    final TaskProgress task =
         new TaskProgress("node-1", "module-1", "COMPLETED", startTime, endTime, null);
-    List<TaskProgress> tasks = List.of(task);
+    final List<TaskProgress> tasks = List.of(task);
 
-    WorkflowProgress progress =
+    final WorkflowProgress progress =
         new WorkflowProgress(
             "exec-1", "session-1", "workflow-1", "COMPLETED", tasks, startTime, endTime);
 
-    assertNotNull(progress);
-    assertEquals("exec-1", progress.executionId());
-    assertEquals("session-1", progress.sessionId());
-    assertEquals("workflow-1", progress.workflowId());
-    assertEquals("COMPLETED", progress.status());
-    assertEquals(1, progress.tasks().size());
-    assertEquals(startTime, progress.startTime());
-    assertEquals(endTime, progress.endTime());
+    assertThat(progress)
+        .isNotNull()
+        .extracting(
+            WorkflowProgress::executionId,
+            WorkflowProgress::sessionId,
+            WorkflowProgress::workflowId,
+            WorkflowProgress::status,
+            p -> p.tasks().size(),
+            WorkflowProgress::startTime,
+            WorkflowProgress::endTime)
+        .containsExactly("exec-1", "session-1", "workflow-1", "COMPLETED", 1, startTime, endTime);
   }
 }

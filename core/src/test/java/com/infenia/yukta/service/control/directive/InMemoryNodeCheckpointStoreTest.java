@@ -15,18 +15,21 @@
  */
 package com.infenia.yukta.service.control.directive;
 
-import lombok.NoArgsConstructor;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
 import java.util.UUID;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
+@SuppressWarnings({
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.CommentRequired"
+})
 @NoArgsConstructor
 class InMemoryNodeCheckpointStoreTest {
 

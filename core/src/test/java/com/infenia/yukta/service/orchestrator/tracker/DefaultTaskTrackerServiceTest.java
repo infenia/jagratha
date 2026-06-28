@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,7 +66,7 @@ class DefaultTaskTrackerServiceTest {
 
     StepVerifier.create(tracker.startWorkflow(executionId, sessionId, workflowId, nodes))
         .verifyComplete();
-    final WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
+    WorkflowProgress progress = tracker.getProgress(sessionId, executionId);
 
     assertThat(progress).isNotNull();
     assertThat(progress.status()).isEqualTo("RUNNING");
@@ -78,8 +77,13 @@ class DefaultTaskTrackerServiceTest {
     tracker.emitTaskStatusEvent(executionId, "node1", "moduleA", "SUCCESS", Map.of());
 
     // Loop to wait for state update
-    await().atMost(1, TimeUnit.SECONDS).until(() -> 
-        "SUCCESS".equals(tracker.getProgress(sessionId, executionId).tasks().getFirst().status()));
+    await()
+        .atMost(1, TimeUnit.SECONDS)
+        .until(
+            () ->
+                "SUCCESS"
+                    .equals(
+                        tracker.getProgress(sessionId, executionId).tasks().getFirst().status()));
 
     progress = tracker.getProgress(sessionId, executionId);
     assertThat(progress.tasks().getFirst().status()).isEqualTo("SUCCESS");
@@ -88,8 +92,9 @@ class DefaultTaskTrackerServiceTest {
     tracker.emitWorkflowStatusEvent(executionId, "COMPLETED");
 
     // Loop to wait for state update
-    await().atMost(1, TimeUnit.SECONDS).until(() -> 
-        "COMPLETED".equals(tracker.getProgress(sessionId, executionId).status()));
+    await()
+        .atMost(1, TimeUnit.SECONDS)
+        .until(() -> "COMPLETED".equals(tracker.getProgress(sessionId, executionId).status()));
 
     progress = tracker.getProgress(sessionId, executionId);
     assertThat(progress.status()).isEqualTo("COMPLETED");
@@ -529,7 +534,8 @@ class DefaultTaskTrackerServiceTest {
         new DefaultTaskTrackerService(Duration.ofMinutes(10));
 
     // Replace executionIndex with a map that throws on get()
-    final Field executionIndexField = DefaultTaskTrackerService.class.getDeclaredField("executionIndex");
+    final Field executionIndexField =
+        DefaultTaskTrackerService.class.getDeclaredField("executionIndex");
     executionIndexField.setAccessible(true);
 
     // Create a mock map that throws
@@ -560,7 +566,8 @@ class DefaultTaskTrackerServiceTest {
         new DefaultTaskTrackerService(Duration.ofMinutes(10));
 
     // Replace executionIndex with a map that throws on get()
-    final Field executionIndexField = DefaultTaskTrackerService.class.getDeclaredField("executionIndex");
+    final Field executionIndexField =
+        DefaultTaskTrackerService.class.getDeclaredField("executionIndex");
     executionIndexField.setAccessible(true);
 
     final Map<String, Object> throwingMap =
@@ -985,7 +992,7 @@ class DefaultTaskTrackerServiceTest {
     assertThat(tracker.getActiveSessions().size()).isEqualTo(1);
 
     // History should include both
-    var history = tracker.getHistory(sessionId);
+    final var history = tracker.getHistory(sessionId);
     assertThat(history.size()).isEqualTo(2);
   }
 
@@ -1047,7 +1054,7 @@ class DefaultTaskTrackerServiceTest {
       }
     }
 
-    var prog1 = tracker.getProgress(sessionId, executionId);
+    final var prog1 = tracker.getProgress(sessionId, executionId);
     assertThat(prog1.tasks().getFirst().startTime()).isNotNull();
 
     // RUNNING -> FAILURE
@@ -1066,7 +1073,7 @@ class DefaultTaskTrackerServiceTest {
       }
     }
 
-    var prog2 = tracker.getProgress(sessionId, executionId);
+    final var prog2 = tracker.getProgress(sessionId, executionId);
     assertThat(prog2.tasks().getFirst().endTime()).isNotNull();
   }
 
@@ -1176,8 +1183,8 @@ class DefaultTaskTrackerServiceTest {
       }
     }
 
-    var prog1 = tracker.getProgress(sessionId, executionId);
-    var firstStartTime = prog1.tasks().getFirst().startTime();
+    final var prog1 = tracker.getProgress(sessionId, executionId);
+    final var firstStartTime = prog1.tasks().getFirst().startTime();
     assertThat(firstStartTime).isNotNull();
 
     // Wait a bit
@@ -1199,7 +1206,7 @@ class DefaultTaskTrackerServiceTest {
       }
     }
 
-    var prog2 = tracker.getProgress(sessionId, executionId);
+    final var prog2 = tracker.getProgress(sessionId, executionId);
     assertThat(prog2.tasks().getFirst().startTime()).isEqualTo(firstStartTime);
   }
 
@@ -1231,8 +1238,8 @@ class DefaultTaskTrackerServiceTest {
       }
     }
 
-    var prog1 = tracker.getProgress(sessionId, executionId);
-    var firstEndTime = prog1.tasks().getFirst().endTime();
+    final var prog1 = tracker.getProgress(sessionId, executionId);
+    final var firstEndTime = prog1.tasks().getFirst().endTime();
     assertThat(firstEndTime).isNotNull();
 
     // Wait a bit
@@ -1254,7 +1261,7 @@ class DefaultTaskTrackerServiceTest {
       }
     }
 
-    var prog2 = tracker.getProgress(sessionId, executionId);
+    final var prog2 = tracker.getProgress(sessionId, executionId);
     assertThat(prog2.tasks().getFirst().endTime()).isEqualTo(firstEndTime);
   }
 
@@ -1414,7 +1421,8 @@ class DefaultTaskTrackerServiceTest {
   @Test
   void testGetProgressWhenStateIsNull() {
     // Try to get progress for non-existent session
-    final WorkflowProgress progress1 = tracker.getProgress("non-existent-session", "non-existent-exec");
+    final WorkflowProgress progress1 =
+        tracker.getProgress("non-existent-session", "non-existent-exec");
     assertThat(progress1).isNull();
 
     // Try to get progress with correct session but wrong execution
@@ -1773,7 +1781,7 @@ class DefaultTaskTrackerServiceTest {
   @Test
   void testNotifyStatusChangeWhenStateIsNullAfterCleanup() {
     // Create a workflow with short TTL
-    DefaultTaskTrackerService shortTtlTracker =
+    final DefaultTaskTrackerService shortTtlTracker =
         new DefaultTaskTrackerService(Duration.ofMillis(100));
     shortTtlTracker.init();
 
@@ -1840,7 +1848,7 @@ class DefaultTaskTrackerServiceTest {
     // Now emit with null metadata to test the "additional != null" false branch
     // We use reflection to call emitTaskStatusEvent with null metadata
     try {
-      java.lang.reflect.Method method =
+      final java.lang.reflect.Method method =
           DefaultTaskTrackerService.class.getDeclaredMethod(
               "emitTaskStatusEvent",
               String.class,
@@ -2050,20 +2058,22 @@ class DefaultTaskTrackerServiceTest {
     // 1. status == "RUNNING", current != null (already set)
     tracker.emitTaskStatusEvent(executionId, "node1", "mod", "RUNNING", Map.of());
     Thread.sleep(100);
-    java.time.LocalDateTime firstStart =
+    final java.time.LocalDateTime firstStart =
         tracker.getProgress(sessionId, executionId).tasks().getFirst().startTime();
     tracker.emitTaskStatusEvent(executionId, "node1", "mod", "RUNNING", Map.of());
     Thread.sleep(100);
-    assertThat(tracker.getProgress(sessionId, executionId).tasks().getFirst().startTime()).isEqualTo(firstStart);
+    assertThat(tracker.getProgress(sessionId, executionId).tasks().getFirst().startTime())
+        .isEqualTo(firstStart);
 
     // 2. Terminal status, current != null (already terminal)
     tracker.emitTaskStatusEvent(executionId, "node1", "mod", "SUCCESS", Map.of());
     Thread.sleep(100);
-    java.time.LocalDateTime firstEnd =
+    final java.time.LocalDateTime firstEnd =
         tracker.getProgress(sessionId, executionId).tasks().getFirst().endTime();
     tracker.emitTaskStatusEvent(executionId, "node1", "mod", "FAILURE", Map.of());
     Thread.sleep(100);
-    assertThat(tracker.getProgress(sessionId, executionId).tasks().getFirst().endTime()).isEqualTo(firstEnd);
+    assertThat(tracker.getProgress(sessionId, executionId).tasks().getFirst().endTime())
+        .isEqualTo(firstEnd);
   }
 
   @Test
@@ -2084,7 +2094,7 @@ class DefaultTaskTrackerServiceTest {
         .verifyComplete();
 
     // getProgressByExecutionId should return progress when state exists
-    WorkflowProgress progress = tracker.getProgressByExecutionId(executionId);
+    final WorkflowProgress progress = tracker.getProgressByExecutionId(executionId);
     assertThat(progress).isNotNull();
     assertThat(progress.executionId()).isEqualTo(executionId);
     assertThat(progress.sessionId()).isEqualTo(sessionId);
@@ -2096,7 +2106,7 @@ class DefaultTaskTrackerServiceTest {
   @Test
   void testGetProgressByExecutionIdNotFound() {
     // getProgressByExecutionId should return null when state does not exist
-    WorkflowProgress progress = tracker.getProgressByExecutionId("non-existent-exec-id");
+    final WorkflowProgress progress = tracker.getProgressByExecutionId("non-existent-exec-id");
     assertThat(progress).isNull();
   }
 
@@ -2127,7 +2137,7 @@ class DefaultTaskTrackerServiceTest {
     }
 
     // getProgressByExecutionId should return updated progress
-    WorkflowProgress progress = tracker.getProgressByExecutionId(executionId);
+    final WorkflowProgress progress = tracker.getProgressByExecutionId(executionId);
     assertThat(progress).isNotNull();
     assertThat(progress.tasks().getFirst().status()).isEqualTo("SUCCESS");
     assertThat(progress.tasks().getFirst().module()).isEqualTo("module");
@@ -2225,7 +2235,7 @@ class DefaultTaskTrackerServiceTest {
 
     // Should handle gracefully without crashing when state is null
     // Verify no state exists for this execution
-    WorkflowProgress progress = tracker.getProgressByExecutionId(executionId);
+    final WorkflowProgress progress = tracker.getProgressByExecutionId(executionId);
     assertThat(progress).isNull();
   }
 

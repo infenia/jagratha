@@ -20,18 +20,24 @@ import static org.mockito.Mockito.mock;
 
 import com.infenia.yukta.config.SessionConfigProperties;
 import com.infenia.yukta.service.workflow.store.WorkflowDefinitionStore;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
 
+/** Unit tests for {@link SessionConfigStoreConfiguration}. */
 @SpringBootTest
+@NoArgsConstructor
 class SessionConfigStoreConfigurationTest {
 
+  /** Injected store instance. */
   @Autowired private SessionConfigStore sessionConfigStore;
 
+  /** Injected properties instance. */
   @Autowired private SessionConfigProperties sessionConfigProperties;
 
+  /** Injected workflow definition store. */
   @Autowired private WorkflowDefinitionStore workflowDefinitionStore;
 
   @Test
@@ -47,12 +53,12 @@ class SessionConfigStoreConfigurationTest {
   @Test
   void inMemorySessionConfigStore_createsValidInstance() {
     // Given
-    SessionConfigProperties props = new SessionConfigProperties();
-    WorkflowDefinitionStore store = mock(WorkflowDefinitionStore.class);
-    SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
+    final SessionConfigProperties props = new SessionConfigProperties();
+    final WorkflowDefinitionStore store = mock(WorkflowDefinitionStore.class);
+    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
 
     // When
-    SessionConfigStore sessionStore = config.inMemorySessionConfigStore(props, store);
+    final SessionConfigStore sessionStore = config.inMemorySessionConfigStore(props, store);
 
     // Then
     assertThat(sessionStore).isNotNull();
@@ -73,7 +79,7 @@ class SessionConfigStoreConfigurationTest {
   @Test
   void configuration_classHasValidSpringAnnotations() {
     // Given
-    SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
+    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
 
     // When & Then
     assertThat(config).isNotNull();
@@ -83,11 +89,11 @@ class SessionConfigStoreConfigurationTest {
   @Test
   void inMemorySessionConfigStore_acceptsNullProperties() {
     // Given
-    SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
-    WorkflowDefinitionStore store = mock(WorkflowDefinitionStore.class);
+    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
+    final WorkflowDefinitionStore store = mock(WorkflowDefinitionStore.class);
 
     // When
-    SessionConfigStore sessionStore = config.inMemorySessionConfigStore(null, store);
+    final SessionConfigStore sessionStore = config.inMemorySessionConfigStore(null, store);
 
     // Then
     assertThat(sessionStore).isNotNull();
@@ -96,11 +102,11 @@ class SessionConfigStoreConfigurationTest {
   @Test
   void inMemorySessionConfigStore_acceptsNullWorkflowDefinitionStore() {
     // Given
-    SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
-    SessionConfigProperties props = new SessionConfigProperties();
+    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
+    final SessionConfigProperties props = new SessionConfigProperties();
 
     // When
-    SessionConfigStore sessionStore = config.inMemorySessionConfigStore(props, null);
+    final SessionConfigStore sessionStore = config.inMemorySessionConfigStore(props, null);
 
     // Then
     assertThat(sessionStore).isNotNull();
@@ -109,13 +115,13 @@ class SessionConfigStoreConfigurationTest {
   @Test
   void inMemorySessionConfigStore_multipleCallsReturnDifferentInstances() {
     // Given
-    SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
-    SessionConfigProperties props = new SessionConfigProperties();
-    WorkflowDefinitionStore store = mock(WorkflowDefinitionStore.class);
+    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
+    final SessionConfigProperties props = new SessionConfigProperties();
+    final WorkflowDefinitionStore store = mock(WorkflowDefinitionStore.class);
 
     // When
-    SessionConfigStore sessionStore1 = config.inMemorySessionConfigStore(props, store);
-    SessionConfigStore sessionStore2 = config.inMemorySessionConfigStore(props, store);
+    final SessionConfigStore sessionStore1 = config.inMemorySessionConfigStore(props, store);
+    final SessionConfigStore sessionStore2 = config.inMemorySessionConfigStore(props, store);
 
     // Then
     assertThat(sessionStore1).isNotNull();
@@ -126,12 +132,12 @@ class SessionConfigStoreConfigurationTest {
   @Test
   void beanMethodCanBeCalledDirectly() {
     // Given
-    SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
-    SessionConfigProperties props = new SessionConfigProperties();
-    WorkflowDefinitionStore store = mock(WorkflowDefinitionStore.class);
+    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
+    final SessionConfigProperties props = new SessionConfigProperties();
+    final WorkflowDefinitionStore store = mock(WorkflowDefinitionStore.class);
 
     // When
-    SessionConfigStore sessionStore = config.inMemorySessionConfigStore(props, store);
+    final SessionConfigStore sessionStore = config.inMemorySessionConfigStore(props, store);
 
     // Then
     assertThat(sessionStore).isNotNull();
@@ -141,10 +147,10 @@ class SessionConfigStoreConfigurationTest {
   @Test
   void configuration_withBothNullDependencies_stillCreatesInstance() {
     // Given
-    SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
+    final SessionConfigStoreConfiguration config = new SessionConfigStoreConfiguration();
 
     // When
-    SessionConfigStore sessionStore = config.inMemorySessionConfigStore(null, null);
+    final SessionConfigStore sessionStore = config.inMemorySessionConfigStore(null, null);
 
     // Then
     assertThat(sessionStore).isNotNull();

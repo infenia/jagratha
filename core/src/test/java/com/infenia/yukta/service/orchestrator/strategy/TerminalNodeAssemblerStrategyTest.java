@@ -47,6 +47,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,6 +64,17 @@ import reactor.util.context.Context;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
+@NoArgsConstructor
+@SuppressWarnings({
+  "PMD.ExcessiveImports",
+  "PMD.TooManyStaticImports",
+  "PMD.CommentRequired",
+  "PMD.TooManyMethods",
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.UseShortArrayInitializer",
+  "PMD.ShortVariable",
+  "PMD.UseVarargs"
+})
 class TerminalNodeAssemblerStrategyTest {
 
   @Mock private TaskTrackerService tracker;

@@ -17,13 +17,11 @@ package com.infenia.yukta.service.plugin;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.plugin.core.Plugin;
 import java.util.List;
-
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,7 +64,8 @@ class PluginRegistryTest {
     final Plugin thirdPlugin = mock(Plugin.class);
     when(thirdPlugin.getType()).thenReturn("type-3");
 
-    final PluginRegistry registry = new PluginRegistry(List.of(firstPlugin, secondPlugin, thirdPlugin));
+    final PluginRegistry registry =
+        new PluginRegistry(List.of(firstPlugin, secondPlugin, thirdPlugin));
 
     assertThat(registry.listPlugins().size()).isEqualTo(3);
     assertThat(registry.contains("type-1")).isTrue();
@@ -135,7 +134,8 @@ class PluginRegistryTest {
     final Plugin thirdPlugin = mock(Plugin.class);
     when(thirdPlugin.getType()).thenReturn("type3");
 
-    final PluginRegistry registry = new PluginRegistry(List.of(firstPlugin, secondPlugin, thirdPlugin));
+    final PluginRegistry registry =
+        new PluginRegistry(List.of(firstPlugin, secondPlugin, thirdPlugin));
     final List<Plugin> plugins = registry.listPlugins();
 
     assertThat(plugins).hasSize(3);

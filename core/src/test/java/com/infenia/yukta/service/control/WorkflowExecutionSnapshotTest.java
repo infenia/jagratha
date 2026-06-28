@@ -15,17 +15,22 @@
  */
 package com.infenia.yukta.service.control;
 
-import lombok.NoArgsConstructor;
-
 import static org.assertj.core.api.Assertions.*;
 
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings({
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.CommentRequired",
+  "PMD.TooManyMethods"
+})
 @DisplayName("WorkflowExecutionSnapshot Tests")
+@NoArgsConstructor
 class WorkflowExecutionSnapshotTest {
 
   @Test

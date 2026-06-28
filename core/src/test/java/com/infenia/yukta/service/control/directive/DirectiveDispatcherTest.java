@@ -15,8 +15,6 @@
  */
 package com.infenia.yukta.service.control.directive;
 
-import lombok.NoArgsConstructor;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -43,6 +41,7 @@ import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
 import java.util.List;
 import java.util.Map;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -51,6 +50,14 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
+@SuppressWarnings({
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.CommentRequired",
+  "PMD.ExcessiveImports",
+  "PMD.TooManyMethods",
+  "PMD.TooManyStaticImports",
+  "PMD.UnitTestShouldIncludeAssert"
+})
 @NoArgsConstructor
 class DirectiveDispatcherTest {
 
@@ -239,7 +246,7 @@ class DirectiveDispatcherTest {
     final String nodeId = "node-1";
 
     // Create prepared workflow with no parents for the target node
-    PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
+    final PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
     when(preparedWorkflow.parentsList()).thenReturn(Map.of());
 
     final ExecutionControl control =
@@ -320,11 +327,11 @@ class DirectiveDispatcherTest {
     assertThat(registry.findByExecutionId(executionId)).isEmpty();
 
     // Verify orchestrator.execute was called with new execution ID
-    var captor = ArgumentCaptor.forClass(String.class);
+    final var captor = ArgumentCaptor.forClass(String.class);
     verify(orchestrator, times(1))
         .execute(anyString(), anyString(), captor.capture(), any(), anyMap());
 
-    String newExecutionId = captor.getValue();
+    final String newExecutionId = captor.getValue();
     assertThat(newExecutionId).isNotEqualTo(executionId);
     assertThat(newExecutionId).isNotEmpty();
   }
@@ -360,8 +367,8 @@ class DirectiveDispatcherTest {
     final String parentNodeId = "node-1";
 
     // Create prepared workflow with parent relationship
-    PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
-    WorkflowNode parentNode = mock(WorkflowNode.class);
+    final PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
+    final WorkflowNode parentNode = mock(WorkflowNode.class);
     when(parentNode.nodeId()).thenReturn(parentNodeId);
 
     when(preparedWorkflow.parentsList()).thenReturn(Map.of(nodeId, List.of(parentNode)));
@@ -385,7 +392,7 @@ class DirectiveDispatcherTest {
     registry.register(control);
 
     // Store a checkpoint for the parent node
-    Message<?> parentCheckpoint = mock(Message.class);
+    final Message<?> parentCheckpoint = mock(Message.class);
     checkpointStore.save(executionId, parentNodeId, parentCheckpoint).block();
 
     final ExecutionControlCommand command =
@@ -404,7 +411,7 @@ class DirectiveDispatcherTest {
     assertThat(registry.findByExecutionId(executionId)).isEmpty();
 
     // Verify orchestrator.restartFromNode was called with checkpoints
-    var checkpointsCaptor = ArgumentCaptor.forClass(Map.class);
+    final var checkpointsCaptor = ArgumentCaptor.forClass(Map.class);
     verify(orchestrator, times(1))
         .restartFromNode(
             anyString(),
@@ -415,7 +422,7 @@ class DirectiveDispatcherTest {
             anyString(),
             checkpointsCaptor.capture());
 
-    Map<String, Message<?>> capturedCheckpoints = checkpointsCaptor.getValue();
+    final Map<String, Message<?>> capturedCheckpoints = checkpointsCaptor.getValue();
     assertThat(capturedCheckpoints).containsKey(parentNodeId);
     assertThat(capturedCheckpoints.get(parentNodeId)).isEqualTo(parentCheckpoint);
   }
@@ -427,8 +434,8 @@ class DirectiveDispatcherTest {
     final String parentNodeId = "node-1";
 
     // Create prepared workflow with parent relationship but no checkpoint
-    PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
-    WorkflowNode parentNode = mock(WorkflowNode.class);
+    final PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
+    final WorkflowNode parentNode = mock(WorkflowNode.class);
     when(parentNode.nodeId()).thenReturn(parentNodeId);
 
     when(preparedWorkflow.parentsList()).thenReturn(Map.of(nodeId, List.of(parentNode)));
@@ -469,7 +476,7 @@ class DirectiveDispatcherTest {
     assertThat(registry.findByExecutionId(executionId)).isEmpty();
 
     // Verify orchestrator.restartFromNode was called with empty checkpoints
-    var checkpointsCaptor = ArgumentCaptor.forClass(Map.class);
+    final var checkpointsCaptor = ArgumentCaptor.forClass(Map.class);
     verify(orchestrator, times(1))
         .restartFromNode(
             anyString(),
@@ -480,7 +487,7 @@ class DirectiveDispatcherTest {
             anyString(),
             checkpointsCaptor.capture());
 
-    Map<String, Message<?>> capturedCheckpoints = checkpointsCaptor.getValue();
+    final Map<String, Message<?>> capturedCheckpoints = checkpointsCaptor.getValue();
     assertThat(capturedCheckpoints).isEmpty();
   }
 
@@ -490,7 +497,7 @@ class DirectiveDispatcherTest {
     final String nodeId = "node-1";
 
     // Create prepared workflow with no parents for the node
-    PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
+    final PreparedWorkflow preparedWorkflow = mock(PreparedWorkflow.class);
     when(preparedWorkflow.parentsList()).thenReturn(Map.of());
 
     final ExecutionControl control =
@@ -527,7 +534,7 @@ class DirectiveDispatcherTest {
     assertThat(registry.findByExecutionId(executionId)).isEmpty();
 
     // Verify orchestrator.restartFromNode was called with empty checkpoints
-    var checkpointsCaptor = ArgumentCaptor.forClass(Map.class);
+    final var checkpointsCaptor = ArgumentCaptor.forClass(Map.class);
     verify(orchestrator, times(1))
         .restartFromNode(
             anyString(),
@@ -538,7 +545,7 @@ class DirectiveDispatcherTest {
             anyString(),
             checkpointsCaptor.capture());
 
-    Map<String, Message<?>> capturedCheckpoints = checkpointsCaptor.getValue();
+    final Map<String, Message<?>> capturedCheckpoints = checkpointsCaptor.getValue();
     assertThat(capturedCheckpoints).isEmpty();
   }
 

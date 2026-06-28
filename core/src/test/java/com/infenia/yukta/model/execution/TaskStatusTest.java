@@ -21,13 +21,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 
+/** Tests for {@link TaskStatus}. */
 @NoArgsConstructor
+@SuppressWarnings("PMD.TooManyMethods")
 class TaskStatusTest {
 
   @Test
   void isTerminal_successStatus_returnsTrue() {
     // When
-    boolean actualResult = TaskStatus.SUCCESS.isTerminal();
+    final boolean actualResult = TaskStatus.SUCCESS.isTerminal();
 
     // Then
     assertThat(actualResult).isTrue();
@@ -36,7 +38,7 @@ class TaskStatusTest {
   @Test
   void isTerminal_failureStatus_returnsTrue() {
     // When
-    boolean actualResult = TaskStatus.FAILURE.isTerminal();
+    final boolean actualResult = TaskStatus.FAILURE.isTerminal();
 
     // Then
     assertThat(actualResult).isTrue();
@@ -45,7 +47,7 @@ class TaskStatusTest {
   @Test
   void isTerminal_errorStatus_returnsTrue() {
     // When
-    boolean actualResult = TaskStatus.ERROR.isTerminal();
+    final boolean actualResult = TaskStatus.ERROR.isTerminal();
 
     // Then
     assertThat(actualResult).isTrue();
@@ -54,7 +56,7 @@ class TaskStatusTest {
   @Test
   void isTerminal_pendingStatus_returnsFalse() {
     // When
-    boolean actualResult = TaskStatus.PENDING.isTerminal();
+    final boolean actualResult = TaskStatus.PENDING.isTerminal();
 
     // Then
     assertThat(actualResult).isFalse();
@@ -63,7 +65,7 @@ class TaskStatusTest {
   @Test
   void isTerminal_runningStatus_returnsFalse() {
     // When
-    boolean actualResult = TaskStatus.RUNNING.isTerminal();
+    final boolean actualResult = TaskStatus.RUNNING.isTerminal();
 
     // Then
     assertThat(actualResult).isFalse();
@@ -72,7 +74,7 @@ class TaskStatusTest {
   @Test
   void valueOf_successStatusString_returnsSuccessConstant() {
     // When
-    TaskStatus actualStatus = TaskStatus.valueOf("SUCCESS");
+    final TaskStatus actualStatus = TaskStatus.valueOf("SUCCESS");
 
     // Then
     assertThat(actualStatus).isEqualTo(TaskStatus.SUCCESS);
@@ -81,7 +83,7 @@ class TaskStatusTest {
   @Test
   void valueOf_failureStatusString_returnsFailureConstant() {
     // When
-    TaskStatus actualStatus = TaskStatus.valueOf("FAILURE");
+    final TaskStatus actualStatus = TaskStatus.valueOf("FAILURE");
 
     // Then
     assertThat(actualStatus).isEqualTo(TaskStatus.FAILURE);
@@ -90,7 +92,7 @@ class TaskStatusTest {
   @Test
   void valueOf_errorStatusString_returnsErrorConstant() {
     // When
-    TaskStatus actualStatus = TaskStatus.valueOf("ERROR");
+    final TaskStatus actualStatus = TaskStatus.valueOf("ERROR");
 
     // Then
     assertThat(actualStatus).isEqualTo(TaskStatus.ERROR);
@@ -99,7 +101,7 @@ class TaskStatusTest {
   @Test
   void valueOf_pendingStatusString_returnsPendingConstant() {
     // When
-    TaskStatus actualStatus = TaskStatus.valueOf("PENDING");
+    final TaskStatus actualStatus = TaskStatus.valueOf("PENDING");
 
     // Then
     assertThat(actualStatus).isEqualTo(TaskStatus.PENDING);
@@ -108,7 +110,7 @@ class TaskStatusTest {
   @Test
   void valueOf_runningStatusString_returnsRunningConstant() {
     // When
-    TaskStatus actualStatus = TaskStatus.valueOf("RUNNING");
+    final TaskStatus actualStatus = TaskStatus.valueOf("RUNNING");
 
     // Then
     assertThat(actualStatus).isEqualTo(TaskStatus.RUNNING);
@@ -124,7 +126,7 @@ class TaskStatusTest {
   @Test
   void values_called_returnsAllEnumConstants() {
     // When
-    TaskStatus[] actualValues = TaskStatus.values();
+    final TaskStatus[] actualValues = TaskStatus.values();
 
     // Then
     assertThat(actualValues)
@@ -139,7 +141,7 @@ class TaskStatusTest {
   @Test
   void values_called_returnsArrayOfFiveElements() {
     // When
-    TaskStatus[] actualValues = TaskStatus.values();
+    final TaskStatus[] actualValues = TaskStatus.values();
 
     // Then
     assertThat(actualValues).hasSize(5);

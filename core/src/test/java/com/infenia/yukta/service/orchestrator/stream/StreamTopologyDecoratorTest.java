@@ -29,6 +29,7 @@ import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +45,13 @@ import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
+@NoArgsConstructor
+@SuppressWarnings({
+  "PMD.CommentRequired",
+  "PMD.TooManyMethods",
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.UseShortArrayInitializer"
+})
 class StreamTopologyDecoratorTest {
 
   @Mock private MessageStore messageStore;

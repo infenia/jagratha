@@ -26,7 +26,6 @@ import com.infenia.yukta.plugin.type.TriggerPlugin;
 import com.infenia.yukta.service.plugin.PluginRegistry;
 import java.util.List;
 import java.util.Map;
-
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,37 +42,52 @@ class WorkflowValidatorTest {
 
   /** Trigger plugin type identifier. */
   private static final String TRIGGER_ID = "T";
+
   /** Processor plugin type identifier. */
   private static final String PROCESSOR_ID = "P";
+
   /** Terminal plugin type identifier. */
   private static final String TERMINAL_ID = "TERM";
+
   /** Test workflow name. */
   private static final String WORKFLOW_NAME = "test-workflow";
+
   /** Default edge label. */
   private static final String DEFAULT_EDGE_LABEL = "default";
+
   /** Guard plugin type identifier. */
   private static final String GUARD_ID = "GUARD";
+
   /** Hybrid plugin type identifier. */
   private static final String HYBRID_ID = "HYBRID";
+
   /** Mapper plugin type identifier. */
   private static final String MAPPER_ID = "MAPPER";
+
   /** Filter plugin type identifier. */
   private static final String FILTER_ID = "FILTER";
+
   /** Unknown plugin type identifier. */
   private static final String UNKNOWN_ID = "UNKNOWN";
+
   /** Unknown type plugin identifier. */
   private static final String UNKNOWN_TYPE_ID = "UNKNOWN_TYPE";
+
   /** Custom plugin type identifier. */
   private static final String CUSTOM_ID = "CUSTOM";
+
   /** Terminal alternative type identifier. */
   private static final String TERMINAL_ALT_ID = "TERMINAL";
 
   /** Mocked plugin registry. */
   @Mock private PluginRegistry registry;
+
   /** Mocked trigger plugin. */
   @Mock private TriggerPlugin triggerPlugin;
+
   /** Mocked processor plugin. */
   @Mock private ProcessorPlugin processorPlugin;
+
   /** Mocked terminal plugin. */
   @Mock private TerminalPlugin terminalPlugin;
 
