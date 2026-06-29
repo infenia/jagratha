@@ -28,7 +28,11 @@ type Client struct {
 }
 
 // NewClient creates a new HTTP client with the given base URL.
+// If baseURL is empty, defaults to "http://localhost:8080".
 func NewClient(baseURL string) *Client {
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
 	return &Client{
 		BaseURL: strings.TrimRight(baseURL, "/"),
 		HTTPClient: &http.Client{
