@@ -48,6 +48,7 @@ tasks.register("goBuild") {
     val processBuilder = ProcessBuilder(
       "go", "build", "-ldflags=-s -w", "-o", "build/$binaryName", "./cmd/yukta"
     )
+    processBuilder.directory(projectDir)
     processBuilder.environment()["GOOS"] = goos
     processBuilder.environment()["GOARCH"] = goarch
     processBuilder.environment()["CGO_ENABLED"] = "0"
@@ -88,6 +89,7 @@ tasks.register("goBuildAll") {
       val processBuilder = ProcessBuilder(
         "go", "build", "-ldflags=-s -w", "-o", "build/$binaryName", "./cmd/yukta"
       )
+      processBuilder.directory(projectDir)
       processBuilder.environment()["GOOS"] = goos
       processBuilder.environment()["GOARCH"] = goarch
       processBuilder.environment()["CGO_ENABLED"] = "0"
