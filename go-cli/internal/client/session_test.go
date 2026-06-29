@@ -706,3 +706,110 @@ func TestApplyConfig_httpDoerFails_returnsError(t *testing.T) {
 		t.Errorf("expected doer error in ApplyConfig, got: %v", err)
 	}
 }
+
+// ===== Integration Tests (Real HTTP paths) =====
+
+// TestGetSessions_newRequestFails_withRealFactory tests newRequest error path in GetSessions.
+func TestGetSessions_newRequestFails_withRealFactory(t *testing.T) {
+	// Use an invalid base URL that will fail during newRequest
+	c := NewClient("http://localhost:8080")
+	c.RequestFactory = &MockRequestFactory{
+		Err: errors.New("network error"),
+	}
+
+	_, err := c.GetSessions()
+	if err == nil {
+		t.Error("expected error from newRequest failure")
+	}
+}
+
+// TestGetSessionDetails_newRequestFails_withRealFactory tests newRequest error path in GetSessionDetails.
+func TestGetSessionDetails_newRequestFails_withRealFactory(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	c.RequestFactory = &MockRequestFactory{
+		Err: errors.New("network error"),
+	}
+
+	_, err := c.GetSessionDetails("session-123")
+	if err == nil {
+		t.Error("expected error from newRequest failure")
+	}
+}
+
+// TestGetWorkflow_newRequestFails_withRealFactory tests newRequest error path in GetWorkflow.
+func TestGetWorkflow_newRequestFails_withRealFactory(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	c.RequestFactory = &MockRequestFactory{
+		Err: errors.New("network error"),
+	}
+
+	_, err := c.GetWorkflow("session-123", "workflow-456")
+	if err == nil {
+		t.Error("expected error from newRequest failure")
+	}
+}
+
+// TestApplyConfig_newRequestFails_withRealFactory tests newRequest error path in ApplyConfig.
+func TestApplyConfig_newRequestFails_withRealFactory(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	c.RequestFactory = &MockRequestFactory{
+		Err: errors.New("network error"),
+	}
+
+	err := c.ApplyConfig([]byte(`{"sessionId":"test"}`))
+	if err == nil {
+		t.Error("expected error from newRequest failure")
+	}
+}
+
+// TestGetSessions_doRequestFails_withRealFactory tests doRequest error path in GetSessions.
+func TestGetSessions_doRequestFails_withRealFactory(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	c.httpDoer = &MockHTTPDoer{
+		Err: errors.New("connection error"),
+	}
+
+	_, err := c.GetSessions()
+	if err == nil {
+		t.Error("expected error from doRequest failure")
+	}
+}
+
+// TestGetSessionDetails_doRequestFails_withRealFactory tests doRequest error path in GetSessionDetails.
+func TestGetSessionDetails_doRequestFails_withRealFactory(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	c.httpDoer = &MockHTTPDoer{
+		Err: errors.New("connection error"),
+	}
+
+	_, err := c.GetSessionDetails("session-123")
+	if err == nil {
+		t.Error("expected error from doRequest failure")
+	}
+}
+
+// TestGetWorkflow_doRequestFails_withRealFactory tests doRequest error path in GetWorkflow.
+func TestGetWorkflow_doRequestFails_withRealFactory(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	c.httpDoer = &MockHTTPDoer{
+		Err: errors.New("connection error"),
+	}
+
+	_, err := c.GetWorkflow("session-123", "workflow-456")
+	if err == nil {
+		t.Error("expected error from doRequest failure")
+	}
+}
+
+// TestApplyConfig_doRequestFails_withRealFactory tests doRequest error path in ApplyConfig.
+func TestApplyConfig_doRequestFails_withRealFactory(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	c.httpDoer = &MockHTTPDoer{
+		Err: errors.New("connection error"),
+	}
+
+	err := c.ApplyConfig([]byte(`{"sessionId":"test"}`))
+	if err == nil {
+		t.Error("expected error from doRequest failure")
+	}
+}
