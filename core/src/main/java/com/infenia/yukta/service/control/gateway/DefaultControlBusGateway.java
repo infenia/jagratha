@@ -379,8 +379,8 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
 
   @Override
   public <T extends ExecutionControlCommand> Mono<Void> executeCommand(final Message<T> command) {
-    @SuppressWarnings({"PMD.LawOfDemeter", "PMD.LocalVariableCouldBeFinal"})
-    var commandType = command.getPayload().getClass().getSimpleName();
+    @SuppressWarnings({"PMD.LawOfDemeter"})
+    final var commandType = command.getPayload().getClass().getSimpleName();
     log.atDebug().addKeyValue("commandType", commandType).log("Executing control command");
     return emit(command);
   }
