@@ -19,17 +19,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.message.store.MessageStore;
 import java.util.Collections;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
 
-@ExtendWith(MockitoExtension.class)
+/** Tests for {@link PersistingNodeMessageChannelProvider}. */
+@MockitoSettings
+@NoArgsConstructor
 class PersistingNodeMessageChannelProviderTest {
 
+  /** Mock message store for testing. */
   @Mock private MessageStore messageStore;
 
+  /** Provider instance under test. */
   private PersistingNodeMessageChannelProvider provider;
 
   @BeforeEach

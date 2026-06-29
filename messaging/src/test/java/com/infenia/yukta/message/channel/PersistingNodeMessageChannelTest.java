@@ -24,23 +24,34 @@ import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.message.store.MessageStore;
 import java.util.UUID;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-@ExtendWith(MockitoExtension.class)
+/** Tests for {@link PersistingNodeMessageChannel}. */
 @MockitoSettings(strictness = Strictness.LENIENT)
+@NoArgsConstructor
 class PersistingNodeMessageChannelTest {
 
+  /** Test message payload. */
+  private static final String DATA = "data";
+
+  /** Test node ID. */
+  private static final String NODE_ID = "node-1";
+
+  /** Test execution ID. */
+  private static final String EXEC_ID = "exec-1";
+
+  /** Mock message store for testing. */
   @Mock private MessageStore messageStore;
 
+  /** Channel instance under test. */
   private PersistingNodeMessageChannel channel;
 
   @BeforeEach
@@ -51,21 +62,21 @@ class PersistingNodeMessageChannelTest {
 
   @Test
   void inboundPassesThroughUnchanged() {
-    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "data");
+    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), DATA);
     final Flux<Message<?>> upstream = Flux.just(msg);
 
-    StepVerifier.create(channel.inbound("node-1", "exec-1", upstream))
-        .assertNext(m -> assertThat(m.getPayload()).isEqualTo("data"))
+    StepVerifier.create(channel.inbound(NODE_ID, EXEC_ID, upstream))
+        .assertNext(m -> assertThat(m.getPayload()).isEqualTo(DATA))
         .verifyComplete();
   }
 
   @Test
   void outboundPersistsMessageBeforeEmitting() {
-    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "data");
+    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), DATA);
     final Flux<Message<?>> pluginOutput = Flux.just(msg);
 
-    StepVerifier.create(channel.outbound("node-1", "exec-1", pluginOutput))
-        .assertNext(m -> assertThat(m.getPayload()).isEqualTo("data"))
+    StepVerifier.create(channel.outbound(NODE_ID, EXEC_ID, pluginOutput))
+        .assertNext(m -> assertThat(m.getPayload()).isEqualTo(DATA))
         .verifyComplete();
 
     verify(messageStore).store(msg);
@@ -77,7 +88,7 @@ class PersistingNodeMessageChannelTest {
     final Message<?> msg2 = DefaultMessage.create(UUID.randomUUID(), "data2");
     final Flux<Message<?>> pluginOutput = Flux.just(msg1, msg2);
 
-    StepVerifier.create(channel.outbound("node-1", "exec-1", pluginOutput))
+    StepVerifier.create(channel.outbound(NODE_ID, EXEC_ID, pluginOutput))
         .expectNextCount(2)
         .verifyComplete();
 
@@ -87,12 +98,12 @@ class PersistingNodeMessageChannelTest {
 
   @Test
   void outboundPropagatesStoreError() {
-    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "data");
+    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), DATA);
     final RuntimeException storeError = new RuntimeException("Store failed");
     when(messageStore.store(any())).thenReturn(Mono.error(storeError));
     final Flux<Message<?>> pluginOutput = Flux.just(msg);
 
-    StepVerifier.create(channel.outbound("node-1", "exec-1", pluginOutput))
+    StepVerifier.create(channel.outbound(NODE_ID, EXEC_ID, pluginOutput))
         .expectError(RuntimeException.class)
         .verify();
   }
