@@ -16,13 +16,10 @@
 package com.infenia.yukta.service.orchestrator.stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.ParentEdgeInfo;
-import com.infenia.yukta.plugin.store.MessageStore;
 import com.infenia.yukta.plugin.store.NodeCheckpointStore;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import com.infenia.yukta.service.store.InMemoryNodeCheckpointStore;
@@ -39,7 +36,6 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
@@ -54,8 +50,6 @@ import reactor.test.StepVerifier;
 })
 class StreamTopologyDecoratorTest {
 
-  @Mock private MessageStore messageStore;
-
   @Mock private DefaultTaskTrackerService tracker;
 
   private StreamTopologyDecorator decorator;
@@ -63,8 +57,7 @@ class StreamTopologyDecoratorTest {
   @BeforeEach
   void setUp() {
     final NodeCheckpointStore checkpointStore = new InMemoryNodeCheckpointStore();
-    decorator = new StreamTopologyDecorator(messageStore, tracker, checkpointStore);
-    when(messageStore.store(any())).thenReturn(Mono.empty());
+    decorator = new StreamTopologyDecorator(tracker, checkpointStore);
   }
 
   @Test
@@ -168,32 +161,6 @@ class StreamTopologyDecoratorTest {
     }
 
     StepVerifier.create(output).expectNextCount(2).verifyComplete();
-
-    // Cleanup
-    disposables.forEach(Disposable::dispose);
-  }
-
-  @Test
-  void testApplyLoggingAndBroadcastingWithoutMessageStore() {
-    final Message<?> msg = DefaultMessage.create(UUID.randomUUID(), "data");
-    final Flux<Message<?>> input = Flux.just(msg);
-    final List<Disposable> disposables = new ArrayList<>();
-    final List<Runnable> connectors = new ArrayList<>();
-
-    final NodeCheckpointStore checkpointStore = new InMemoryNodeCheckpointStore();
-    final StreamTopologyDecorator decoratorWithoutStore =
-        new StreamTopologyDecorator(null, tracker, checkpointStore);
-
-    final Flux<Message<?>> output =
-        decoratorWithoutStore.applyLoggingAndBroadcasting(
-            "exec-1", "node-1", input, 1024, disposables, connectors);
-
-    // Execute deferred connector subscriptions
-    for (final Runnable connector : connectors) {
-      connector.run();
-    }
-
-    StepVerifier.create(output).expectNextCount(1).verifyComplete();
 
     // Cleanup
     disposables.forEach(Disposable::dispose);

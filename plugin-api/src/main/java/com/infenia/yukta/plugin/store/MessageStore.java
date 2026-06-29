@@ -15,37 +15,11 @@
  */
 package com.infenia.yukta.plugin.store;
 
-import com.infenia.yukta.message.Message;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 /**
- * Interface for a central repository of all messages that pass through the system. Used for
- * auditing, debugging, and Message History reconstruction.
+ * Re-export of MessageStore from the messaging module for backward compatibility.
+ *
+ * @deprecated Use {@link com.infenia.yukta.message.store.MessageStore} directly from the
+ *     messaging module instead. This re-export will be removed in a future version.
  */
-public interface MessageStore {
-
-  /**
-   * Asynchronously store a copy of a message.
-   *
-   * @param message the message to store
-   * @return a Mono that completes when the message is accepted for storage
-   */
-  Mono<Void> store(Message<?> message);
-
-  /**
-   * Retrieve a message by its unique ID.
-   *
-   * @param messageId the message identifier
-   * @return a Mono containing the message if found
-   */
-  Mono<Message<?>> get(String messageId);
-
-  /**
-   * Find all messages associated with a specific trace.
-   *
-   * @param traceId the trace identifier
-   * @return a Flux of messages in chronological order
-   */
-  Flux<Message<?>> getByTrace(String traceId);
-}
+@Deprecated(since = "1.0", forRemoval = true)
+public interface MessageStore extends com.infenia.yukta.message.store.MessageStore {}
