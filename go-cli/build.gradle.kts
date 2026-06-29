@@ -13,75 +13,60 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.gradle.api.GradleException
-
 plugins {
   id("base")
 }
 
-// Helper function to detect current OS
-fun getHostOS(): String {
-  val osName = System.getProperty("os.name").lowercase()
-  return when {
-    osName.contains("mac") || osName.contains("darwin") -> "darwin"
-    osName.contains("windows") -> "windows"
-    else -> "linux"
-  }
-}
-
-// Helper function to detect current architecture
-fun getHostArch(): String {
-  val osArch = System.getProperty("os.arch").lowercase()
-  return when {
-    osArch.contains("aarch64") || osArch.contains("arm64") -> "arm64"
-    else -> "amd64"
-  }
-}
-
-// Helper function to get binary name
-fun getBinaryName(goos: String, goarch: String): String {
-  val baseName = "yukta-$goos-$goarch"
-  return if (goos == "windows") "$baseName.exe" else baseName
-}
-
-// Build for current OS/architecture
+// Build goBuild task
 tasks.register("goBuild") {
   group = "build"
   description = "Build Go CLI binary for current OS and architecture"
 
+  notCompatibleWithConfigurationCache("Go build process requires external command execution")
+
   doLast {
     file("build").mkdirs()
 
-    val goos = getHostOS()
-    val goarch = getHostArch()
-    val binaryName = getBinaryName(goos, goarch)
+    val osName = System.getProperty("os.name").lowercase()
+    val goos = when {
+      osName.contains("mac") || osName.contains("darwin") -> "darwin"
+      osName.contains("windows") -> "windows"
+      else -> "linux"
+    }
 
-    logger.info("Building Go CLI binary for $goos/$goarch -> build/$binaryName")
+    val osArch = System.getProperty("os.arch").lowercase()
+    val goarch = when {
+      osArch.contains("aarch64") || osArch.contains("arm64") -> "arm64"
+      else -> "amd64"
+    }
+
+    val baseName = "yukta-$goos-$goarch"
+    val binaryName = if (goos == "windows") "$baseName.exe" else baseName
+
+    println("Building Go CLI binary for $goos/$goarch -> build/$binaryName")
 
     val processBuilder = ProcessBuilder(
       "go", "build", "-ldflags=-s -w", "-o", "build/$binaryName", "./cmd/yukta"
     )
-    processBuilder.directory(projectDir)
     processBuilder.environment()["GOOS"] = goos
     processBuilder.environment()["GOARCH"] = goarch
     processBuilder.environment()["CGO_ENABLED"] = "0"
 
-    val process = processBuilder.start()
-    val exitCode = process.waitFor()
-
+    val exitCode = processBuilder.start().waitFor()
     if (exitCode != 0) {
-      val errorOutput = process.errorStream.bufferedReader().readText()
-      throw GradleException("Go build failed for $goos/$goarch with exit code $exitCode\n$errorOutput")
+      throw GradleException("Go build failed for $goos/$goarch with exit code $exitCode")
     }
 
-    logger.info("Successfully built Go CLI binary: build/$binaryName")
+    println("Successfully built Go CLI binary: build/$binaryName")
   }
 }
 
-// Build for all supported platforms
+// Build goBuildAll task
 tasks.register("goBuildAll") {
   group = "build"
   description = "Build Go CLI binaries for all supported platforms"
+
+  notCompatibleWithConfigurationCache("Go build process requires external command execution")
 
   doLast {
     val platforms = listOf(
@@ -92,17 +77,17 @@ tasks.register("goBuildAll") {
       Pair("windows", "amd64")
     )
 
-    // Ensure build directory exists
     file("build").mkdirs()
 
     for ((goos, goarch) in platforms) {
-      val binaryName = getBinaryName(goos, goarch)
-      logger.info("Building Go CLI for $goos/$goarch -> build/$binaryName")
+      val baseName = "yukta-$goos-$goarch"
+      val binaryName = if (goos == "windows") "$baseName.exe" else baseName
+
+      println("Building Go CLI for $goos/$goarch -> build/$binaryName")
 
       val processBuilder = ProcessBuilder(
         "go", "build", "-ldflags=-s -w", "-o", "build/$binaryName", "./cmd/yukta"
       )
-      processBuilder.directory(projectDir)
       processBuilder.environment()["GOOS"] = goos
       processBuilder.environment()["GOARCH"] = goarch
       processBuilder.environment()["CGO_ENABLED"] = "0"
@@ -113,7 +98,7 @@ tasks.register("goBuildAll") {
       }
     }
 
-    logger.info("Successfully built Go CLI binaries for all platforms")
+    println("Successfully built Go CLI binaries for all platforms")
   }
 }
 
