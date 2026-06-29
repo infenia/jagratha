@@ -1,0 +1,17 @@
+# Coverage configuration for Go CLI
+# Defines coverage requirements and per-file overrides
+
+coverage:
+  # Default minimum coverage requirement
+  min: 100
+
+  # Per-file coverage requirements with overrides
+  # Format: relative path from go-cli directory
+  overrides:
+    # Files with main() or entrypoint functions (typically lower coverage)
+    - path: cmd/yukta/main.go
+      min: 80
+
+    # Integration test file (special case)
+    - path: test/integration_test.go
+      min: 0  # Integration tests are supplementary

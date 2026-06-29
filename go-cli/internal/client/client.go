@@ -21,10 +21,25 @@ import (
 	"strings"
 )
 
+// RequestFactory abstracts HTTP request creation for testability.
+// It allows injecting mock implementations to simulate request creation failures.
+type RequestFactory interface {
+	NewRequest(method, urlStr string, body io.Reader) (*http.Request, error)
+}
+
+// DefaultRequestFactory uses the standard http.NewRequest function.
+type DefaultRequestFactory struct{}
+
+// NewRequest creates an HTTP request using the standard library.
+func (f *DefaultRequestFactory) NewRequest(method, urlStr string, body io.Reader) (*http.Request, error) {
+	return http.NewRequest(method, urlStr, body)
+}
+
 // Client provides an HTTP client wrapper for communicating with the Yukta API.
 type Client struct {
-	BaseURL    string
-	HTTPClient *http.Client
+	BaseURL        string
+	HTTPClient     *http.Client
+	RequestFactory RequestFactory
 }
 
 // NewClient creates a new HTTP client with the given base URL.
@@ -38,6 +53,7 @@ func NewClient(baseURL string) *Client {
 		HTTPClient: &http.Client{
 			Timeout: 0, // No timeout by default; can be customized later
 		},
+		RequestFactory: &DefaultRequestFactory{},
 	}
 }
 
@@ -60,7 +76,7 @@ func (c *Client) newRequest(method string, path string) (*http.Request, error) {
 		return nil, fmt.Errorf("invalid URL: %w", err)
 	}
 
-	req, err := http.NewRequest(method, urlStr, nil)
+	req, err := c.RequestFactory.NewRequest(method, urlStr, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

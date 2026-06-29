@@ -16,7 +16,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 )
 
 // GetSessions retrieves all available session identifiers from the API.
@@ -35,7 +34,7 @@ func (c *Client) GetSessions() ([]string, error) {
 	// Parse the response: {"data": {"sessionIds": [...]}}
 	var response struct {
 		Data struct {
-			SessionIds []string `json:"sessionIds"`
+			SessionIDs []string `json:"sessionIds"`
 		} `json:"data"`
 	}
 
@@ -43,7 +42,7 @@ func (c *Client) GetSessions() ([]string, error) {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	return response.Data.SessionIds, nil
+	return response.Data.SessionIDs, nil
 }
 
 // GetSessionDetails retrieves details of a specific session.
@@ -119,20 +118,15 @@ func (c *Client) ApplyConfig(configJSON []byte) error {
 		return fmt.Errorf("configJSON cannot be empty")
 	}
 
-	// Create base request
-	baseReq, err := c.newRequest("POST", "/api/sessions")
-	if err != nil {
-		return err
-	}
-
-	// Create request with body by manually constructing it
-	req, err := http.NewRequest("POST", baseReq.URL.String(), bytes.NewReader(configJSON))
+	// Create request with body using the factory
+	req, err := c.RequestFactory.NewRequest("POST", c.BaseURL+"/api/sessions", bytes.NewReader(configJSON))
 	if err != nil {
 		return fmt.Errorf("failed to create request with body: %w", err)
 	}
 
-	// Copy headers from base request
-	req.Header = baseReq.Header.Clone()
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
 
 	// Execute the request
 	_, err = c.doRequest(req)
