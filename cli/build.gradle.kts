@@ -26,7 +26,7 @@ plugins {
 configure<DependencyManagementExtension> {
     imports {
         // Spring Boot version is managed in libs.versions.toml
-        mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.3")
+        mavenBom("org.springframework.boot:spring-boot-dependencies:4.1.0")
     }
 }
 
