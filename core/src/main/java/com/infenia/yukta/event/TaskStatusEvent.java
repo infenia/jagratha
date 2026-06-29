@@ -59,6 +59,7 @@ public record TaskStatusEvent(
       final String module,
       final String status,
       final Map<String, Object> metadata) {
-    return new TaskStatusEvent(executionId, nodeId, module, status, metadata, LocalDateTime.now(ZoneId.systemDefault()));
+    return new TaskStatusEvent(
+        executionId, nodeId, module, status, metadata, LocalDateTime.now(ZoneId.systemDefault()));
   }
 }
