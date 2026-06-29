@@ -28,7 +28,7 @@ class DaemonCommandTest {
   @Test
   @DisplayName("constructor creates instance")
   void constructor_createsInstance() {
-    DaemonCommand command = new DaemonCommand();
+    final DaemonCommand command = new DaemonCommand();
 
     assertThat(command).isNotNull();
   }
@@ -36,7 +36,7 @@ class DaemonCommandTest {
   @Test
   @DisplayName("run throws exception when no subcommand provided")
   void run_throwsException() {
-    DaemonCommand command = new DaemonCommand();
+    final DaemonCommand command = new DaemonCommand();
 
     assertThatThrownBy(command::run).isInstanceOf(InitializationException.class);
   }
@@ -44,7 +44,7 @@ class DaemonCommandTest {
   @Test
   @DisplayName("implements Runnable interface")
   void isRunnable() {
-    DaemonCommand command = new DaemonCommand();
+    final DaemonCommand command = new DaemonCommand();
 
     assertThat(command).isInstanceOf(Runnable.class);
   }
