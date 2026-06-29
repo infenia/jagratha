@@ -29,12 +29,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.NonNull;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mapstruct.factory.Mappers;
 
 /** Tests for SessionMapper. */
-@SpringBootTest
 @SuppressWarnings({"PMD.AvoidAccessibilityAlteration", "PMD.TooManyMethods"})
 @NoArgsConstructor
 class SessionMapperTest {
@@ -80,7 +79,12 @@ class SessionMapperTest {
   private static final String TARGET_NODE = "target-node";
 
   /** Mapper for session data transformation. */
-  @Autowired private SessionMapper mapper;
+  private SessionMapper mapper;
+
+  @BeforeEach
+  void setUp() {
+    mapper = Mappers.getMapper(SessionMapper.class);
+  }
 
   @Test
   void testConfigRequestToSessionConfigData() {

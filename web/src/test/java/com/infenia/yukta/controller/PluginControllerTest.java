@@ -25,15 +25,12 @@ import com.infenia.yukta.service.plugin.PluginRegistry;
 import java.util.List;
 import java.util.Optional;
 import lombok.NoArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 /** Tests for PluginController. */
-@WebFluxTest(PluginController.class)
 @NoArgsConstructor
 @SuppressWarnings("PMD.LawOfDemeter")
 class PluginControllerTest {
@@ -42,10 +39,17 @@ class PluginControllerTest {
   private static final String TEST_PLUGIN = "test-plugin";
 
   /** Web test client for testing controller endpoints. */
-  @Autowired private WebTestClient webTestClient;
+  private WebTestClient webTestClient;
 
   /** Mock registry for plugin operations. */
-  @MockitoBean private PluginRegistry registry;
+  private PluginRegistry registry;
+
+  @BeforeEach
+  void setUp() {
+    registry = Mockito.mock(PluginRegistry.class);
+    final PluginController controller = new PluginController(registry);
+    webTestClient = WebTestClient.bindToController(controller).build();
+  }
 
   @Test
   void testListPlugins() {

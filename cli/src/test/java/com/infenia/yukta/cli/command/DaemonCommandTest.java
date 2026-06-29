@@ -38,8 +38,7 @@ class DaemonCommandTest {
   void run_throwsException() {
     DaemonCommand command = new DaemonCommand();
 
-    assertThatThrownBy(command::run)
-        .isInstanceOf(InitializationException.class);
+    assertThatThrownBy(command::run).isInstanceOf(InitializationException.class);
   }
 
   @Test

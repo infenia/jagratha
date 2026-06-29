@@ -39,10 +39,7 @@ public class DefaultProcessProvider implements ProcessProvider {
    */
   @Override
   public Process startProcess(
-      final List<String> command,
-      final File workDir,
-      final File stdout,
-      final File stderr)
+      final List<String> command, final File workDir, final File stdout, final File stderr)
       throws IOException {
     final ProcessBuilder processBuilder = new ProcessBuilder(command);
     processBuilder.directory(workDir);

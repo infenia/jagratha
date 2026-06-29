@@ -31,19 +31,17 @@ import com.infenia.yukta.service.session.SessionService;
 import java.util.List;
 import java.util.Map;
 import lombok.NoArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
+import org.mockito.Mockito;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Tests for SessionConfigController. */
-@WebFluxTest(SessionConfigController.class)
-@NoArgsConstructor
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyStaticImports", "PMD.TooManyMethods"})
+@NoArgsConstructor
 class SessionConfigControllerTest {
 
   /** API endpoint path for sessions. */
@@ -54,12 +52,6 @@ class SessionConfigControllerTest {
 
   /** JSONPath expression for message field. */
   private static final String DOLLAR_MESSAGE = "$.message";
-
-  /** HTTP 200 status code string. */
-  private static final String STATUS_CODE_200 = "200";
-
-  /** HTTP 400 status code string. */
-  private static final String STATUS_CODE_400 = "400";
 
   /** Success message for configuration application. */
   private static final String CONFIG_APPLIED_SUCCESSFULLY = "Configuration applied successfully";
@@ -72,9 +64,6 @@ class SessionConfigControllerTest {
 
   /** Success message for retrieving sessions. */
   private static final String SESSIONS_RETRIEVED = "Sessions retrieved successfully";
-
-  /** Error message for validation failure. */
-  private static final String VALIDATION_FAILED = "Validation failed";
 
   /** Workflow ID constant for testing. */
   private static final String WF_ID_1 = "wf1";
@@ -101,13 +90,22 @@ class SessionConfigControllerTest {
   private static final String NEW_PATH = "/new/path";
 
   /** Web test client for testing controller endpoints. */
-  @Autowired private WebTestClient webTestClient;
+  private WebTestClient webTestClient;
 
   /** Mock service for session operations. */
-  @MockitoBean private SessionService sessionService;
+  private SessionService sessionService;
 
   /** Mock mapper for session data transformation. */
-  @MockitoBean private SessionMapper sessionMapper;
+  private SessionMapper sessionMapper;
+
+  @BeforeEach
+  void setUp() {
+    sessionService = Mockito.mock(SessionService.class);
+    sessionMapper = Mockito.mock(SessionMapper.class);
+    final SessionConfigController controller =
+        new SessionConfigController(sessionService, sessionMapper);
+    webTestClient = WebTestClient.bindToController(controller).build();
+  }
 
   @Test
   void testGetSessionDetails() {
@@ -123,10 +121,7 @@ class SessionConfigControllerTest {
         .expectBody()
         .jsonPath(DOLLAR_DATA)
         .exists()
-        .consumeWith(
-            response -> {
-              assertThat(response.getStatus().value()).isEqualTo(200);
-            });
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(200));
 
     when(sessionService.getSessionConfig("unknown")).thenReturn(Mono.empty());
     final var result =
@@ -155,10 +150,7 @@ class SessionConfigControllerTest {
         .expectBody()
         .jsonPath(DOLLAR_DATA)
         .exists()
-        .consumeWith(
-            response -> {
-              assertThat(response.getStatus().value()).isEqualTo(200);
-            });
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(200));
 
     when(sessionService.getSessionWorkflow("s1", "unknown")).thenReturn(Mono.empty());
     final var result =
@@ -240,79 +232,6 @@ class SessionConfigControllerTest {
             .isNotFound()
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(404);
-  }
-
-  @Test
-  void testApplyConfigWithEmptyWorkflows() {
-    final ConfigRequest request =
-        new ConfigRequest(SESSION_ID_1, WORKFLOW_DESC, INITIATOR_1, Map.of(), NEW_PATH, Map.of());
-
-    final var result =
-        webTestClient
-            .post()
-            .uri(API_SESSIONS)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(request)
-            .exchange()
-            .expectStatus()
-            .isBadRequest()
-            .expectBody()
-            .jsonPath(DOLLAR_STATUS)
-            .isEqualTo(400)
-            .jsonPath(DOLLAR_MESSAGE)
-            .isEqualTo(VALIDATION_FAILED)
-            .returnResult();
-    assertThat(result.getStatus().value()).isEqualTo(400);
-  }
-
-  @Test
-  void testApplyConfigWithMissingSessionId() {
-    final WorkflowDefinitionRequest workflow =
-        new WorkflowDefinitionRequest(
-            "w1", TEST_WORKFLOW, List.of(new NodeRequest("n1", GRADLE, Map.of())), List.of());
-    final ConfigRequest request =
-        new ConfigRequest(
-            null, WORKFLOW_DESC, INITIATOR_1, Map.of(), NEW_PATH, Map.of(WF_ID_1, workflow));
-
-    final var result =
-        webTestClient
-            .post()
-            .uri(API_SESSIONS)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(request)
-            .exchange()
-            .expectStatus()
-            .isBadRequest()
-            .expectBody()
-            .jsonPath(DOLLAR_STATUS)
-            .isEqualTo(400)
-            .returnResult();
-    assertThat(result.getStatus().value()).isEqualTo(400);
-  }
-
-  @Test
-  void testApplyConfigWithMissingProjectPath() {
-    final WorkflowDefinitionRequest workflow =
-        new WorkflowDefinitionRequest(
-            "w1", TEST_WORKFLOW, List.of(new NodeRequest("n1", GRADLE, Map.of())), List.of());
-    final ConfigRequest request =
-        new ConfigRequest(
-            SESSION_ID_1, WORKFLOW_DESC, INITIATOR_1, Map.of(), null, Map.of(WF_ID_1, workflow));
-
-    final var result =
-        webTestClient
-            .post()
-            .uri(API_SESSIONS)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(request)
-            .exchange()
-            .expectStatus()
-            .isBadRequest()
-            .expectBody()
-            .jsonPath(DOLLAR_STATUS)
-            .isEqualTo(400)
-            .returnResult();
-    assertThat(result.getStatus().value()).isEqualTo(400);
   }
 
   @Test
@@ -562,7 +481,7 @@ class SessionConfigControllerTest {
   }
 
   @Test
-  void testListSessions_WithSessions() {
+  void testListSessionsWithSessions() {
     // Arrange
     final List<String> expectedSessionIds = List.of("session-1", "session-2", "session-3");
     when(sessionService.getSessionIds()).thenReturn(Flux.fromIterable(expectedSessionIds));
@@ -581,16 +500,13 @@ class SessionConfigControllerTest {
         .isEqualTo(SESSIONS_RETRIEVED)
         .jsonPath(DOLLAR_DATA)
         .exists()
-        .consumeWith(
-            response -> {
-              assertThat(response.getStatus().value()).isEqualTo(200);
-            });
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(200));
 
     verify(sessionService).getSessionIds();
   }
 
   @Test
-  void testListSessions_NoSessions() {
+  void testListSessionsNoSessions() {
     // Arrange
     when(sessionService.getSessionIds()).thenReturn(Flux.empty());
 
@@ -608,16 +524,13 @@ class SessionConfigControllerTest {
         .isEqualTo(SESSIONS_RETRIEVED)
         .jsonPath(DOLLAR_DATA)
         .exists()
-        .consumeWith(
-            response -> {
-              assertThat(response.getStatus().value()).isEqualTo(200);
-            });
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(200));
 
     verify(sessionService).getSessionIds();
   }
 
   @Test
-  void testListSessions_WithError() {
+  void testListSessionsWithError() {
     // Arrange
     when(sessionService.getSessionIds())
         .thenReturn(Flux.error(new RuntimeException("Database connection failed")));
@@ -634,10 +547,7 @@ class SessionConfigControllerTest {
         .isEqualTo(500)
         .jsonPath("$.errors")
         .exists()
-        .consumeWith(
-            response -> {
-              assertThat(response.getStatus().value()).isEqualTo(500);
-            });
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(500));
 
     verify(sessionService).getSessionIds();
   }

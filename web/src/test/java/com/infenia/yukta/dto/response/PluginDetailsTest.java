@@ -106,7 +106,7 @@ class PluginDetailsTest {
   @Test
   void uiDesign_record_returnsCorrectUiDesignData() {
     // Given
-    final UiDesign expectedUiDesign = new UiDesign("<div>Gradle</div>", 150, 250);
+    final UiDesign expectedUiDesign = new UiDesign("<div>gradle</div>", 150, 250);
     final PluginDetails details =
         new PluginDetails(
             GRADLE, PluginCategory.PROCESSOR, DESCRIPTION, USAGE, expectedUiDesign, List.of());

@@ -18,17 +18,21 @@ package com.infenia.yukta.mapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import lombok.NoArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mapstruct.factory.Mappers;
 
 /** Tests for WorkflowMapper. */
-@SpringBootTest
 @NoArgsConstructor
 class WorkflowMapperTest {
 
   /** Mapper for workflow data transformation. */
-  @Autowired private WorkflowMapper mapper;
+  private WorkflowMapper mapper;
+
+  @BeforeEach
+  void setUp() {
+    mapper = Mappers.getMapper(WorkflowMapper.class);
+  }
 
   @Test
   void testMapperIsNotNull() {

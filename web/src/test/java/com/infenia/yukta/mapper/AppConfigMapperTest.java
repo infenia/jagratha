@@ -29,15 +29,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.NoArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mapstruct.factory.Mappers;
 
 /** Tests for AppConfigMapper. */
-@SpringBootTest
 @NoArgsConstructor
 @SuppressWarnings({"PMD.AvoidAccessibilityAlteration", "PMD.TooManyMethods"})
 class AppConfigMapperTest {
+
+  /** Application Configuration Mapper. */
+  private AppConfigMapper mapper;
 
   /** Node identifier 1. */
   private static final String NODE_1 = "node-1";
@@ -79,8 +81,10 @@ class AppConfigMapperTest {
   /** Target node identifier. */
   private static final String TARGET_NODE = "target-node";
 
-  /** Mapper for config and workflow data transformation. */
-  @Autowired private AppConfigMapper mapper;
+  @BeforeEach
+  void setUp() {
+    mapper = Mappers.getMapper(AppConfigMapper.class);
+  }
 
   @Test
   void testToDataMapsConfigRequest() {
@@ -192,7 +196,7 @@ class AppConfigMapperTest {
     assertThat(result).isNotNull();
     assertThat(result.nodes()).hasSize(4);
     assertThat(result.edges()).hasSize(3);
-    assertThat(result.nodes().get(0).nodeId()).isEqualTo(NODE_1);
+    assertThat(result.nodes().getFirst().nodeId()).isEqualTo(NODE_1);
   }
 
   @Test
