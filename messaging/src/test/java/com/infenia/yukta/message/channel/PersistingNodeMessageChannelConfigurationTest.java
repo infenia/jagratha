@@ -22,7 +22,6 @@ import java.util.Map;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Tests for {@link PersistingNodeMessageChannelConfiguration}. */
@@ -94,10 +93,6 @@ class PersistingNodeMessageChannelConfigurationTest {
       return Mono.empty();
     }
 
-    @Override
-    public Flux<com.infenia.yukta.message.Message<?>> getByTrace(final String traceId) {
-      return Flux.empty();
-    }
   }
 
   /** Stub provider for tests. */
