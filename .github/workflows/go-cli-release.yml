@@ -1,0 +1,136 @@
+name: Go CLI Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags (v1.0.0, v1.2.3, etc.)
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GO_VERSION: '1.21'
+  BINARY_NAME: yukta
+
+permissions:
+  contents: write  # Required to create releases and upload artifacts
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: Build binaries for all platforms
+  # Matrix strategy builds for multiple OS/arch combinations
+  # ─────────────────────────────────────────────
+  build:
+    name: Build binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          # Windows ARM64 is not a standard combination
+          - goos: windows
+            goarch: arm64
+
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build binary
+        run: |
+          cd go-cli
+
+          # Determine output filename with OS-specific extension
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            OUTPUT_FILE="${{ env.BINARY_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}.exe"
+          else
+            OUTPUT_FILE="${{ env.BINARY_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          fi
+
+          echo "Building: $OUTPUT_FILE"
+
+          go build \
+            -ldflags="-s -w" \
+            -o "$OUTPUT_FILE" \
+            ./cmd/yukta
+
+          # Verify the binary was created
+          if [ ! -f "$OUTPUT_FILE" ]; then
+            echo "Error: Binary not created"
+            exit 1
+          fi
+
+          echo "BINARY_PATH=$OUTPUT_FILE" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: yukta-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: go-cli/${{ env.BINARY_PATH }}
+          retention-days: 7
+
+  # ─────────────────────────────────────────────
+  # Job 2: Create GitHub release and attach artifacts
+  # Runs after all build jobs complete successfully
+  # ─────────────────────────────────────────────
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+
+      - name: Prepare artifacts for release
+        run: |
+          mkdir -p release
+
+          # Flatten artifact structure and rename
+          for dir in artifacts/*/; do
+            artifact_name=$(basename "$dir")
+
+            # Extract goos and goarch from artifact name (format: yukta-goos-goarch)
+            IFS='-' read -r _ goos goarch <<< "$artifact_name"
+
+            # Handle Windows .exe extension
+            if [ -z "$goarch" ]; then
+              # This means we couldn't parse correctly, try another approach
+              binary_file=$(ls "$dir" | head -1)
+              cp "$dir$binary_file" "release/$binary_file"
+            else
+              binary_file=$(ls "$dir" | head -1)
+              cp "$dir$binary_file" "release/$binary_file"
+            fi
+
+            # Make binary executable on non-Windows
+            if [[ ! "$binary_file" =~ .exe$ ]]; then
+              chmod +x "release/$binary_file"
+            fi
+          done
+
+          ls -lah release/
+
+      - name: Create release with artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true
+          files: release/*
+          draft: false
+          prerelease: false
