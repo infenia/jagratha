@@ -18,8 +18,8 @@ package com.infenia.yukta.plugin.store;
 /**
  * Re-export of MessageStore from the messaging module for backward compatibility.
  *
- * @deprecated Use {@link com.infenia.yukta.message.store.MessageStore} directly from the
- *     messaging module instead. This re-export will be removed in a future version.
+ * @deprecated Use {@link com.infenia.yukta.message.store.MessageStore} directly from the messaging
+ *     module instead. This re-export will be removed in a future version.
  */
 @Deprecated(since = "1.0", forRemoval = true)
 public interface MessageStore extends com.infenia.yukta.message.store.MessageStore {}

@@ -53,9 +53,10 @@ class PersistingNodeMessageChannelConfigurationTest {
   @SuppressWarnings("PMD.UnitTestShouldIncludeAssert")
   void persistingNodeMessageChannelProvider_whenMessageStoreAbsent_doesNotRegisterBean() {
     contextRunner.run(
-        context -> assertThat(context)
-            .doesNotHaveBean(NodeMessageChannelProvider.class)
-            .doesNotHaveBean(MessageStore.class));
+        context ->
+            assertThat(context)
+                .doesNotHaveBean(NodeMessageChannelProvider.class)
+                .doesNotHaveBean(MessageStore.class));
   }
 
   @Test
