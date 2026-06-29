@@ -143,7 +143,7 @@ public class YuktaDaemonClient {
    * @return response data map
    */
   public Map<String, Object> sendCommand(
-          final String workflowId, final String nodeId, final Map<String, Object> payload) {
+      final String workflowId, final String nodeId, final Map<String, Object> payload) {
     final ApiResponse<Map<String, Object>> response =
         daemonWebClient
             .post()

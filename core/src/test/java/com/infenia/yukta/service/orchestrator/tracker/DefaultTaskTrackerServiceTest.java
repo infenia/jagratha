@@ -42,7 +42,6 @@ import reactor.test.StepVerifier;
   "PMD.AvoidAccessibilityAlteration",
   "PMD.CognitiveComplexity",
   "PMD.ShortVariable",
-  "PMD.UseCollectionIsEmpty",
   "PMD.UnitTestShouldIncludeAssert"
 })
 class DefaultTaskTrackerServiceTest {

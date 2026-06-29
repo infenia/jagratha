@@ -86,7 +86,7 @@ public class DaemonManager {
     }
 
     try (final var randomAccessFile = new java.io.RandomAccessFile(pidFilePath.toFile(), "rw");
-         final FileLock lock = randomAccessFile.getChannel().tryLock()) {
+        final FileLock lock = randomAccessFile.getChannel().tryLock()) {
 
       if (lock == null) {
         throw new DaemonStartupException(

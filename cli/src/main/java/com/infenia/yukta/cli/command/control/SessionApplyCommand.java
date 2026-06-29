@@ -18,7 +18,6 @@ package com.infenia.yukta.cli.command.control;
 import com.infenia.yukta.cli.CliFormatter;
 import com.infenia.yukta.cli.YuktaDaemonClient;
 import com.infenia.yukta.dto.request.ConfigRequest;
-
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,7 +52,9 @@ public class SessionApplyCommand implements Runnable {
    * @param formatter the CLI formatter
    */
   public SessionApplyCommand(
-          final YuktaDaemonClient daemonClient, final ObjectMapper objectMapper, final CliFormatter formatter) {
+      final YuktaDaemonClient daemonClient,
+      final ObjectMapper objectMapper,
+      final CliFormatter formatter) {
     this.daemonClient = daemonClient;
     this.objectMapper = objectMapper;
     this.formatter = formatter;

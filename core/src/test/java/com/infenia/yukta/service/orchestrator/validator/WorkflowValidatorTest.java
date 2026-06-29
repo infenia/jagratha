@@ -154,7 +154,9 @@ class WorkflowValidatorTest {
     // Sub-case 2: Endpoint but not terminal (Hybrid is PROCESSOR + TriggerPlugin)
     // Fails at validateEntryPoints (no incoming → entry point but not canBeTrigger)
     // Only needs getCategory
-    /** Hybrid plugin implementing both Trigger and Processor for test. */
+
+    @SuppressWarnings("PMD.CommentRequired")
+    /*  Interface for testing plugins that implement multiple categories.   */
     interface Hybrid extends TriggerPlugin, ProcessorPlugin {
       @Override
       default PluginCategory getCategory() {

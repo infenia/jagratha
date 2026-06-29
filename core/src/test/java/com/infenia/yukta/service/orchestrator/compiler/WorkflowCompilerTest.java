@@ -209,7 +209,7 @@ class WorkflowCompilerTest {
     final NodeAssembler mockAssembler = mock(NodeAssembler.class);
     when(assemblerStrategy.supports(plugin, false)).thenReturn(true);
     when(assemblerStrategy.createAssembler(
-            eq(node), eq(plugin), eq(Duration.ofSeconds(120)), eq(0), eq(1024)))
+            eq(node), eq(plugin), eq(Duration.ofMinutes(2)), eq(0), eq(1024)))
         .thenReturn(mockAssembler);
 
     final NodeAssembler[] assemblers = compiler.compileAssemblers(edges, parents, plugins, order);
