@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 // ClientInterface defines the contract for HTTP client operations.
@@ -118,4 +119,31 @@ func (m *MockRequestFactory) NewRequest(method, urlStr string, body io.Reader) (
 		return nil, m.Err
 	}
 	return http.NewRequest(method, urlStr, body)
+}
+
+// MockHTTPDoer provides a mock implementation of HTTPDoer for testing.
+// It allows simulating http.Client.Do failures.
+type MockHTTPDoer struct {
+	DoFunc    func(req *http.Request) (*http.Response, error)
+	Err       error
+	CallCount int
+}
+
+// Do implements the HTTPDoer interface.
+// If DoFunc is set, it calls that; otherwise, it returns the Err field.
+func (m *MockHTTPDoer) Do(req *http.Request) (*http.Response, error) {
+	m.CallCount++
+	if m.DoFunc != nil {
+		return m.DoFunc(req)
+	}
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	// Return a default successful response
+	return &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader("{}")),
+	}, nil
 }

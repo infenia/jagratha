@@ -14,6 +14,7 @@ package client
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -487,5 +488,118 @@ func TestNewClient_initializesRequestFactory(t *testing.T) {
 	_, ok := c.RequestFactory.(*DefaultRequestFactory)
 	if !ok {
 		t.Errorf("expected DefaultRequestFactory, got %T", c.RequestFactory)
+	}
+}
+
+// TestDoRequest_httpDoerFails_returnsWrappedError tests error handling when HTTPDoer.Do fails.
+func TestDoRequest_httpDoerFails_returnsWrappedError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: errors.New("network error: connection refused"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	req, err := c.newRequest("GET", "/api/sessions")
+	if err != nil {
+		t.Fatalf("unexpected error creating request: %v", err)
+	}
+
+	_, err = c.doRequest(req)
+	if err == nil {
+		t.Error("expected error when HTTPDoer fails, got nil")
+	}
+	if !strings.Contains(err.Error(), "request failed") {
+		t.Errorf("expected 'request failed' in error message, got: %v", err)
+	}
+	if mockDoer.CallCount != 1 {
+		t.Errorf("expected HTTPDoer to be called once, got %d calls", mockDoer.CallCount)
+	}
+}
+
+// TestDoRequest_httpDoerFails_wrapsError tests that HTTPDoer error is properly wrapped.
+func TestDoRequest_httpDoerFails_wrapsError(t *testing.T) {
+	originalErr := errors.New("connection timeout")
+	mockDoer := &MockHTTPDoer{
+		Err: originalErr,
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	req, err := c.newRequest("POST", "/api/test")
+	if err != nil {
+		t.Fatalf("unexpected error creating request: %v", err)
+	}
+
+	_, err = c.doRequest(req)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	errorMsg := err.Error()
+	if !strings.Contains(errorMsg, "request failed") {
+		t.Errorf("expected 'request failed' in error, got: %v", errorMsg)
+	}
+	if !strings.Contains(errorMsg, "connection timeout") {
+		t.Errorf("expected original error 'connection timeout' in message, got: %v", errorMsg)
+	}
+}
+
+// TestDoRequest_httpDoerSuccess_callsDoer tests that HTTPDoer.Do is called correctly on success.
+func TestDoRequest_httpDoerSuccess_callsDoer(t *testing.T) {
+	responseBody := `{"data": {"sessionIds": ["session-1"]}}`
+	mockDoer := &MockHTTPDoer{
+		DoFunc: func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: 200,
+				Status:     "200 OK",
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(responseBody)),
+			}, nil
+		},
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	req, err := c.newRequest("GET", "/api/sessions")
+	if err != nil {
+		t.Fatalf("unexpected error creating request: %v", err)
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if string(body) != responseBody {
+		t.Errorf("expected body %q, got %q", responseBody, string(body))
+	}
+	if mockDoer.CallCount != 1 {
+		t.Errorf("expected HTTPDoer to be called once, got %d calls", mockDoer.CallCount)
+	}
+}
+
+// TestNewClient_initializesHTTPDoer tests that NewClient initializes the HTTPDoer.
+func TestNewClient_initializesHTTPDoer(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	if c.httpDoer == nil {
+		t.Error("expected HTTPDoer to be initialized, got nil")
+	}
+	if c.httpDoer != c.HTTPClient {
+		t.Error("expected HTTPDoer to be the HTTPClient instance")
 	}
 }

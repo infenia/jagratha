@@ -35,11 +35,18 @@ func (f *DefaultRequestFactory) NewRequest(method, urlStr string, body io.Reader
 	return http.NewRequest(method, urlStr, body)
 }
 
+// HTTPDoer abstracts the http.Client.Do method for testability.
+// It allows injecting mock implementations to simulate HTTP execution failures.
+type HTTPDoer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 // Client provides an HTTP client wrapper for communicating with the Yukta API.
 type Client struct {
 	BaseURL        string
 	HTTPClient     *http.Client
 	RequestFactory RequestFactory
+	httpDoer       HTTPDoer
 }
 
 // NewClient creates a new HTTP client with the given base URL.
@@ -48,12 +55,14 @@ func NewClient(baseURL string) *Client {
 	if baseURL == "" {
 		baseURL = "http://localhost:8080"
 	}
+	httpClient := &http.Client{
+		Timeout: 0, // No timeout by default; can be customized later
+	}
 	return &Client{
-		BaseURL: strings.TrimRight(baseURL, "/"),
-		HTTPClient: &http.Client{
-			Timeout: 0, // No timeout by default; can be customized later
-		},
+		BaseURL:        strings.TrimRight(baseURL, "/"),
+		HTTPClient:     httpClient,
 		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       httpClient,
 	}
 }
 
@@ -94,7 +103,7 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 		return nil, errors.New("request cannot be nil")
 	}
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.httpDoer.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
