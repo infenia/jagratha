@@ -92,7 +92,6 @@ class PersistingNodeMessageChannelConfigurationTest {
     public Mono<com.infenia.yukta.message.Message<?>> get(final String messageId) {
       return Mono.empty();
     }
-
   }
 
   /** Stub provider for tests. */

@@ -39,5 +39,4 @@ public interface MessageStore {
    * @return a Mono containing the message if found
    */
   Mono<Message<?>> get(String messageId);
-
 }

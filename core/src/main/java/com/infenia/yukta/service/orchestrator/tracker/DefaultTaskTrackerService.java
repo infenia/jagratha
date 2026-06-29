@@ -30,15 +30,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -48,6 +39,12 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.concurrent.Queues;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Service for tracking the progress of workflows and tasks. */
 @Slf4j
@@ -194,7 +191,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
         () -> {
           final WorkflowState state =
               new WorkflowState(
-                  executionId, sessionId, workflowId, "RUNNING", nodeIds, LocalDateTime.now());
+                  executionId, sessionId, workflowId, "RUNNING", nodeIds, LocalDateTime.now(ZoneId.systemDefault()));
 
           sessionStates
               .computeIfAbsent(sessionId, _ -> new ConcurrentHashMap<>())
@@ -706,12 +703,12 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
     }
 
     private LocalDateTime determineStartTime(final LocalDateTime current, final String status) {
-      return ("RUNNING".equals(status) && current == null) ? LocalDateTime.now() : current;
+      return ("RUNNING".equals(status) && current == null) ? LocalDateTime.now(ZoneId.systemDefault()) : current;
     }
 
     private LocalDateTime determineEndTime(final LocalDateTime current, final String status) {
       final TaskStatus taskStatus = TaskStatus.valueOf(status);
-      return (taskStatus.isTerminal() && current == null) ? LocalDateTime.now() : current;
+      return (taskStatus.isTerminal() && current == null) ? LocalDateTime.now(ZoneId.systemDefault()) : current;
     }
 
     private Map<String, Object> mergeMetadata(
