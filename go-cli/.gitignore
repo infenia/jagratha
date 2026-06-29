@@ -32,5 +32,6 @@ go.work
 .directory
 
 # Local development
+build/
 dist/
 bin/

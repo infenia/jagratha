@@ -34,10 +34,12 @@ Subcommands allow you to:
 		// This is a command group; no Run action needed. Subcommands are added separately.
 	}
 
-	// Subcommands will be registered here in future tasks:
+	// Subcommands are registered as they are implemented in later tasks:
 	// - sessionCmd.AddCommand(ListCmd(c))     // Task 6
 	// - sessionCmd.AddCommand(GetCmd(c))      // Task 7
 	// - sessionCmd.AddCommand(ApplyCmd(c))    // Task 8
+	sessionCmd.AddCommand(ListCmd(c))     // Task 6
+	sessionCmd.AddCommand(GetCmd(c))      // Task 7
 	sessionCmd.AddCommand(WorkflowCmd(c)) // Task 9
 
 	return sessionCmd
