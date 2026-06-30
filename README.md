@@ -6,10 +6,32 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Java 25+](https://img.shields.io/badge/java-25%2B-orange?style=flat-square)](https://www.oracle.com/java/)
-[![Spring Boot 4.0](https://img.shields.io/badge/spring--boot-4.0-6db33f?style=flat-square)](https://spring.io/projects/spring-boot)
+[![Spring Boot 4.0.3](https://img.shields.io/badge/spring--boot-4.0.3-6db33f?style=flat-square)](https://spring.io/projects/spring-boot)
 [![Gradle 9.0](https://img.shields.io/badge/gradle-9.0-02303a?style=flat-square)](https://gradle.org/)
 [![MCP Native](https://img.shields.io/badge/MCP-native-blueviolet?style=flat-square)](https://modelcontextprotocol.io/)
 [![GraalVM](https://img.shields.io/badge/GraalVM-native%20image-red?style=flat-square)](https://www.graalvm.org/)
+
+---
+
+## Project Structure
+
+```text
+.
+├── boot/               # Application entry point and configuration
+├── core/               # Core orchestration engine (DAG, execution)
+├── plugin-api/         # SPI for extending Yukta with custom plugins
+├── messaging/          # Reactive messaging abstractions
+├── mcp/                # Model Context Protocol (MCP) implementation
+├── web/                # REST API controllers and SSE streaming
+├── ui/                 # Interactive web dashboard (JTE + Alpine.js)
+├── plugins/            # Built-in plugin implementations
+│   ├── processors/     # Message transformation and routing
+│   ├── triggers/       # Workflow initiation (REST, schedule, etc.)
+│   └── terminals/      # Output sinks (Console, etc.)
+├── cli/                # Lightweight Go-based CLI
+├── bruno/              # API testing collection
+└── docs/               # Detailed documentation and specifications
+```
 
 ---
 
@@ -479,12 +501,13 @@ curl http://localhost:8080/api/workflow/demo/status/{executionId}
 
 ## Tech Stack (For the Curious)
 
-- **Java 25** (reactive language features)
-- **Spring Boot 4.0.2** (enterprise-grade stability)
-- **Project Reactor** (non-blocking, sub-100ms latency)
-- **GraalVM** (native image, 50MB executable)
-- **JTE + Alpine.js** (interactive web UI)
-- **MCP** (AI integration)
+- **Java 25** (Virtual Threads & Reactive features)
+- **Spring Boot 4.0.3** (Enterprise-grade stability)
+- **Project Reactor** (Non-blocking orchestration, <100ms latency)
+- **Jackson 3** (`tools.jackson` namespace for high-performance JSON)
+- **GraalVM** (Native Image, ~50MB executable, instant start)
+- **JTE + Alpine.js** (Interactive, server-side rendered UI)
+- **MCP** (Model Context Protocol for native AI integration)
 
 ---
 
@@ -499,13 +522,15 @@ curl http://localhost:8080/api/workflow/demo/status/{executionId}
 
 ---
 
-## Getting Started
+## Documentation
 
-- **New here?** Start with **[Getting Started Guide](docs/getting-started.md)** (5 min tutorial)
-- **Want the details?** Read **[Architecture & Design](docs/architecture.md)** (deep dive)
-- **Need API docs?** Check **[API Reference](docs/api-reference.md)** (all endpoints)
-- **Building plugins?** See **[Plugin Development](docs/plugin-development.md)** (extend Yukta)
-- **Contributing?** Read **[Development Setup](docs/development-setup.md)** (help us improve)
+- **[Getting Started Guide](docs/getting-started.md)** - 5-minute tutorial to run your first workflow.
+- **[Architecture Overview](docs/architecture.md)** - Deep dive into the 3-layer design and reactive execution.
+- **[Technology Stack](docs/TECHNOLOGY.md)** - Rationale behind Java 25, WebFlux, Loom, and Jackson 3.
+- **[Integrations (MCP/ACP)](docs/integrations.md)** - How to connect Yukta with AI agents and external systems.
+- **[API Reference](docs/api-reference.md)** - Detailed REST API and SSE documentation.
+- **[Plugin Development](docs/plugin-development.md)** - How to extend Yukta with custom processors and triggers.
+- **[Development Setup](docs/development-setup.md)** - Instructions for contributors.
 
 ---
 
