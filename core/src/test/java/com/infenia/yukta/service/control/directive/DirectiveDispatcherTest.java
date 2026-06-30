@@ -598,43 +598,4 @@ class DirectiveDispatcherTest {
     // Then - verify control stream was subscribed and error was handled gracefully
     verify(controlBusService, times(1)).getControlStream();
   }
-
-  // Legacy test names for backward compatibility
-  @Test
-  void testDispatchStopCommand() {
-    dispatch_commandWithActiveExecution_invokesProcessorAndAppliesDirective();
-  }
-
-  @Test
-  void testDispatchNoActiveExecution() {
-    dispatch_noActiveExecution_completesEmpty();
-  }
-
-  @Test
-  void testDispatchRestartCommand() {
-    final String executionId = "exec-1";
-
-    final ExecutionControl control = createControl("session-1", "workflow-1", executionId);
-    registry.register(control);
-
-    final ExecutionControlCommand command = new ExecutionControlCommand.RestartCommand(executionId);
-
-    when(processor.canProcess(command)).thenReturn(true);
-    when(processor.getPriority()).thenReturn(0);
-    when(processor.process(command)).thenReturn(Mono.just(new WorkflowDirective.Restart()));
-
-    StepVerifier.create(dispatcher.dispatch(command)).verifyComplete();
-
-    verify(processor, times(1)).process(command);
-  }
-
-  @Test
-  void testDispatchProcessorNotFound() {
-    dispatch_processorNotFound_throwsIllegalArgumentException();
-  }
-
-  @Test
-  void testDispatchMultipleProcessorsPriority() {
-    dispatch_multipleProcessors_selectsByHighestPriority();
-  }
 }

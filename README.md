@@ -1,7 +1,9 @@
-<div style="text-align: center;">
-  <img src="ui/src/main/resources/static/images/favicon.svg" alt="Yukta" width="120" height="120" style="border-radius: 64px; padding: 4px; background-color: #fff;" />
-  <h1 style="margin-top: 12px;">Yukta</h1>
-  <p><strong>Orchestrate multi-step workflows with confidence.</strong> Define once, execute anywhere, integrate with AI.</p>
+<div align="center">
+  <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
+    <img src="ui/src/main/resources/static/images/favicon.svg" alt="Yukta" width="80" height="80" style="border-radius: 50%; padding: 4px; background-color: #fff; border: 2px solid #f1f5f9;" />
+    <h1 style="margin: 0; border-bottom: none;">Yukta</h1>
+  </div>
+  <p style="margin-top: 16px;"><strong>Orchestrate multi-step workflows with confidence.</strong><br/>Define once, execute anywhere, integrate with AI.</p>
 </div>
 
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
