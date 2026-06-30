@@ -45,12 +45,7 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.CommentRequired",
-  "PMD.TooManyMethods",
-  "PMD.AvoidDuplicateLiterals",
-  "PMD.CompareObjectsWithEquals"
-})
+@SuppressWarnings({"PMD.CommentRequired", "PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals"})
 class StreamAssemblyHelperTest {
 
   @Mock private TaskTrackerService tracker;

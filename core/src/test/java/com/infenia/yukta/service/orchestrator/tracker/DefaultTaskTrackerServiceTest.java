@@ -2067,6 +2067,7 @@ class DefaultTaskTrackerServiceTest {
     invokeInitLogErrorHandler();
   }
 
+  @SuppressWarnings("PMD.SignatureDeclareThrowsException")
   private void invokeInitTaskStatusErrorHandler() throws Exception {
     final DefaultTaskTrackerService trackerWithError =
         new DefaultTaskTrackerService(Duration.ofMinutes(10));
@@ -2098,6 +2099,7 @@ class DefaultTaskTrackerServiceTest {
     assertThat(true).isTrue();
   }
 
+  @SuppressWarnings("PMD.SignatureDeclareThrowsException")
   private void invokeInitWorkflowStatusErrorHandler() throws Exception {
     final DefaultTaskTrackerService trackerWithError =
         new DefaultTaskTrackerService(Duration.ofMinutes(10));
@@ -2127,6 +2129,7 @@ class DefaultTaskTrackerServiceTest {
     assertThat(true).isTrue();
   }
 
+  @SuppressWarnings("PMD.SignatureDeclareThrowsException")
   private void invokeInitLogErrorHandler() throws Exception {
     final DefaultTaskTrackerService trackerWithError =
         new DefaultTaskTrackerService(Duration.ofMinutes(10));
