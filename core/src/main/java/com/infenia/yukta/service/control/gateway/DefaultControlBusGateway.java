@@ -753,10 +753,7 @@ public class DefaultControlBusGateway implements ControlBusGateway, ExecutionSta
                     .addKeyValue("executionId", executionId)
                     .log("Stream error"))
         .doOnComplete(
-            () ->
-                log.atInfo()
-                    .addKeyValue("executionId", executionId)
-                    .log("Stream completed"));
+            () -> log.atInfo().addKeyValue("executionId", executionId).log("Stream completed"));
   }
 
   @Override

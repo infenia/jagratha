@@ -599,8 +599,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
    */
   @Override
   public Flux<WorkflowProgress> getStatusStream(@NotBlank final String executionId) {
-    final Sinks.Many<WorkflowProgress> sink = statusSinks.get(executionId);
-    return sink != null ? sink.asFlux() : Flux.empty();
+    return getStatusStream(executionId, true);
   }
 
   /**
@@ -617,8 +616,16 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
   @Override
   public Flux<WorkflowProgress> getStatusStream(
       @NotBlank final String executionId, final boolean includeHistory) {
+    log.atDebug()
+        .addKeyValue("executionId", executionId)
+        .addKeyValue("includeHistory", includeHistory)
+        .log("Getting status stream");
+
     final Sinks.Many<WorkflowProgress> sink = statusSinks.get(executionId);
     if (sink == null) {
+      log.atWarn()
+          .addKeyValue("executionId", executionId)
+          .log("No status sink found for execution");
       return Flux.empty();
     }
 
@@ -626,6 +633,10 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
 
     if (includeHistory) {
       final List<WorkflowProgress> history = statusHistoryCache.get(executionId);
+      log.atDebug()
+          .addKeyValue("executionId", executionId)
+          .addKeyValue("historySize", history.size())
+          .log("Including history in stream");
       statusFlux = Flux.fromIterable(history).concatWith(statusFlux);
     }
 
@@ -633,9 +644,10 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
         .doOnNext(progress -> statusHistoryCache.put(executionId, progress))
         .takeUntil(this::isWorkflowTerminal)
         .doOnComplete(
-            () -> log.atInfo()
-                .addKeyValue("executionId", executionId)
-                .log("Status stream completed"));
+            () ->
+                log.atInfo()
+                    .addKeyValue("executionId", executionId)
+                    .log("Status stream completed"));
   }
 
   private WorkflowState findState(final String executionId) {

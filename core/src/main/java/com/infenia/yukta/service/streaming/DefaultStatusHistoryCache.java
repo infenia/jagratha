@@ -21,6 +21,7 @@ import com.infenia.yukta.model.execution.WorkflowProgress;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
@@ -38,9 +39,11 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class DefaultStatusHistoryCache implements StatusHistoryCache {
 
+  /** Maximum TTL for history cache. */
   private static final int MAX_TTL_MINUTES = 30;
 
-  private final Cache<String, ConcurrentLinkedDeque<WorkflowProgress>> cache;
+  /** Cache storing workflow progress history per execution. */
+  private final Cache<String, Deque<WorkflowProgress>> cache;
 
   /**
    * Create a new cache with the configured TTL.
@@ -63,9 +66,10 @@ public class DefaultStatusHistoryCache implements StatusHistoryCache {
   }
 
   @Override
+  @SuppressWarnings("PMD.AvoidCatchingGenericException")
   public void put(@NotBlank final String executionId, @NotNull final WorkflowProgress progress) {
     try {
-      ConcurrentLinkedDeque<WorkflowProgress> deque =
+      final Deque<WorkflowProgress> deque =
           cache.get(
               executionId,
               _ -> {
@@ -81,7 +85,7 @@ public class DefaultStatusHistoryCache implements StatusHistoryCache {
           .addKeyValue("executionId", executionId)
           .addKeyValue("historySize", deque.size())
           .log("Progress recorded to history");
-    } catch (final Exception e) {
+    } catch (final RuntimeException e) {
       log.atWarn()
           .setCause(e)
           .addKeyValue("executionId", executionId)
@@ -91,20 +95,20 @@ public class DefaultStatusHistoryCache implements StatusHistoryCache {
 
   @Override
   public List<WorkflowProgress> get(@NotBlank final String executionId) {
-    final ConcurrentLinkedDeque<WorkflowProgress> deque = cache.getIfPresent(executionId);
+    final Deque<WorkflowProgress> deque = cache.getIfPresent(executionId);
 
+    final List<WorkflowProgress> history;
     if (deque == null) {
+      log.atTrace().addKeyValue("executionId", executionId).log("History cache miss or expired");
+      history = Collections.emptyList();
+    } else {
+      history = List.copyOf(deque);
       log.atTrace()
           .addKeyValue("executionId", executionId)
-          .log("History cache miss or expired");
-      return Collections.emptyList();
+          .addKeyValue("historySize", history.size())
+          .log("Retrieved history from cache");
     }
 
-    final List<WorkflowProgress> history = List.copyOf(deque);
-    log.atTrace()
-        .addKeyValue("executionId", executionId)
-        .addKeyValue("historySize", history.size())
-        .log("Retrieved history from cache");
     return history;
   }
 }
