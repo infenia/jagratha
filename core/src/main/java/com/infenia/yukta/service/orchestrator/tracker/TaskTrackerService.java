@@ -147,8 +147,7 @@ public interface TaskTrackerService {
    * @param includeHistory if true, emits cached history before live updates
    * @return the status flux, or empty if execution not found
    */
-  Flux<WorkflowProgress> getStatusStream(
-      @NotBlank String executionId, final boolean includeHistory);
+  Flux<WorkflowProgress> getStatusStream(@NotBlank String executionId, boolean includeHistory);
 
   /**
    * Get history of executions for a session.

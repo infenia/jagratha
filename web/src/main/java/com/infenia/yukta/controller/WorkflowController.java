@@ -59,7 +59,7 @@ import reactor.core.publisher.Mono;
 @Tag(
     name = "Workflow API",
     description = "Endpoints for starting and monitoring workflow executions")
-@SuppressWarnings("PMD.AvoidDuplicateLiterals")
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.ExcessiveImports"})
 public class WorkflowController {
   /** The service for managing workflow operations. */
   private final WorkflowService workflowService;

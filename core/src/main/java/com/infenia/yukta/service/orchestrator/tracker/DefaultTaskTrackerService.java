@@ -26,6 +26,7 @@ import com.infenia.yukta.service.streaming.StatusHistoryCache;
 import com.infenia.yukta.validation.NodeId;
 import com.infenia.yukta.validation.SessionId;
 import com.infenia.yukta.validation.WorkflowId;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -64,6 +65,7 @@ import reactor.util.concurrent.Queues;
   "PMD.OnlyOneReturn",
   "PMD.AvoidDuplicateLiterals"
 })
+@SuppressFBWarnings("EI2")
 public class DefaultTaskTrackerService implements TaskTrackerService {
 
   /** Batch size for event processing. */

@@ -18,6 +18,7 @@ package com.infenia.yukta.service.streaming;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.infenia.yukta.model.execution.WorkflowProgress;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Collections;
@@ -38,6 +39,7 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
+@SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
 public class DefaultStatusHistoryCache implements StatusHistoryCache {
 
   /** Maximum TTL for history cache. */
