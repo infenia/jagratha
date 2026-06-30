@@ -40,6 +40,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
@@ -354,8 +355,8 @@ public class WorkflowController {
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
       @Parameter(description = "Execution ID") @PathVariable final String executionId,
       @Parameter(description = "Include historical status updates (last N minutes)")
-      @RequestParam(defaultValue = "true")
-      final boolean includeHistory) {
+          @RequestParam(defaultValue = "true")
+          final boolean includeHistory) {
     log.atInfo().log(
         "streamWorkflowStatus: sessionId={}, executionId={}, includeHistory={}",
         sessionId,
