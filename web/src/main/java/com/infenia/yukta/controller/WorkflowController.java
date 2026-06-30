@@ -352,10 +352,17 @@ public class WorkflowController {
       description = "Streams the status and progress of a specific workflow execution via SSE")
   public Flux<ServerSentEvent<WorkflowProgress>> streamWorkflowStatus(
       @Parameter(description = SESSION_ID_PARAM) @PathVariable final String sessionId,
-      @Parameter(description = "Execution ID") @PathVariable final String executionId) {
-    log.atInfo().log("streamWorkflowStatus: sessionId={}, executionId={}", sessionId, executionId);
+      @Parameter(description = "Execution ID") @PathVariable final String executionId,
+      @Parameter(description = "Include historical status updates (last N minutes)")
+      @RequestParam(defaultValue = "true")
+      final boolean includeHistory) {
+    log.atInfo().log(
+        "streamWorkflowStatus: sessionId={}, executionId={}, includeHistory={}",
+        sessionId,
+        executionId,
+        includeHistory);
     return controlBus
-        .watchExecution(executionId)
+        .watchExecution(executionId, includeHistory)
         .doOnNext(
             _ ->
                 log.atDebug().log(
