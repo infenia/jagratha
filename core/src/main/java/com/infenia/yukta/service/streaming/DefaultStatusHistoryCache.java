@@ -37,6 +37,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Slf4j
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public class DefaultStatusHistoryCache implements StatusHistoryCache {
 
   /** Maximum TTL for history cache. */
