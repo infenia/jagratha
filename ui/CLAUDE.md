@@ -10,12 +10,16 @@ JTE UI module with Tailwind CSS.
 
 # Tailwind build (managed via Gradle)
 ./gradlew :ui:tailwind
+
+# Bundle/minify JS with esbuild (src/main/js/app.js)
+./gradlew :ui:bundleJs
 ```
 
 ## Tech Stack
 - **JTE**: Templates in `src/main/jte/`.
 - **Tailwind CSS 4**: Processed by `pnpm exec tailwindcss`.
 - **Alpine.js**: For client-side interactivity.
+- **esbuild**: Bundles `src/main/js/app.js` via the `bundleJs` task.
 
 ## Frontend Assets
 - **CSS Input**: `src/main/resources/static/css/input.css`

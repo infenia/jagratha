@@ -16,8 +16,8 @@ A lightweight, cross-platform command-line interface (CLI) for Yukta, built in G
 # Run Go tests
 ./gradlew :cli:goTest
 
-# Run Go linters
-./gradlew :cli:goCheck
+# Run all Go checks (format, vet, lint, security, vuln scan) — wired into :cli:check
+./gradlew :cli:check
 ```
 
 ### Makefile Commands (from cli/ folder)
@@ -30,13 +30,13 @@ make fmt       # Format code
 ```
 
 ## Project Structure
-- `main.go`: Entry point.
-- `cmd/`: Command definitions (Cobra).
-- `pkg/api/`: HTTP client and types.
-- `pkg/config/`: Configuration management.
+- `cmd/yukta/main.go`: Entry point.
+- `internal/commands/`: Command definitions (Cobra).
+- `internal/client/`: HTTP client and types.
+- `internal/app/`: Application configuration.
 
 ## Tech Stack
-- **Go 1.21+**
+- **Go 1.26**
 - **Cobra** (CLI framework)
 
 ## Imports

@@ -9,7 +9,7 @@ Core service layer and workflow orchestration engine.
 ./gradlew :core:test
 
 # Run a single test class
-./gradlew :core:test --tests com.infenia.yukta.service.WorkflowOrchestratorTest
+./gradlew :core:test --tests com.infenia.yukta.service.orchestrator.WorkflowOrchestratorTest
 ```
 
 ## Key Architecture & Patterns
@@ -20,8 +20,8 @@ All service logic uses **Project Reactor** (`Mono`, `Flux`).
 - Avoid blocking operations.
 
 ### Workflow Orchestration
-- `com.infenia.yukta.service.WorkflowOrchestrator`: DAG orchestration logic.
-- `com.infenia.yukta.service.WorkflowRegistry`: Plugin registration.
+- `com.infenia.yukta.service.orchestrator.WorkflowOrchestrator`: DAG orchestration logic, split across `assembly/`, `compiler/`, `preparator/`, `strategy/`, `stream/`, `tracker/`, and `validator/` subpackages.
+- `com.infenia.yukta.service.plugin.PluginRegistry`: Plugin registration.
 - Executes a Directed Acyclic Graph (DAG) of nodes and edges.
 
 ### Immutability & Records

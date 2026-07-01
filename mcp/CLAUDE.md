@@ -13,6 +13,12 @@ MCP server implementation and tool providers.
 - Integrates with AI agents using Model Context Protocol.
 - Provides native MCP integration for Yukta.
 
+## Key Files
+- `src/main/java/com/infenia/yukta/mcp/AppMcpTools.java`: `@McpTool` providers (workflow/session/plugin management).
+- `src/main/java/com/infenia/yukta/mcp/AppMcpPrompts.java`: `@McpPrompt` templates.
+- `src/main/java/com/infenia/yukta/mcp/AppMcpResources.java`: `@McpResource` providers.
+- `src/main/java/com/infenia/yukta/mcp/provider/`: Backing implementations (e.g. `DefaultLogProvider`, `DefaultSessionInfoProvider`, `DefaultPluginInfoProvider`).
+
 ## Tech Stack
 - **Spring AI MCP Server** (WebFlux)
 

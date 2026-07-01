@@ -15,8 +15,10 @@ Plugin abstraction interfaces and base classes.
 3. **TerminalPlugin**: Finalizes workflows.
 
 ## Key Files
-- `com.infenia.yukta.plugin.Plugin`: Base interface.
-- `com.infenia.yukta.plugin.core.WorkflowPlugin`: Workflow-aware plugin.
+- `com.infenia.yukta.plugin.core.Plugin`: Base interface for all workflow plugins.
+- `com.infenia.yukta.plugin.type.TriggerPlugin`, `.type.ProcessorPlugin`, `.type.TerminalPlugin`: Category-specific plugin interfaces.
+- `com.infenia.yukta.plugin.core.WorkflowContext`, `.core.PluginCategory`: Shared plugin-execution types.
+- `com.infenia.yukta.plugin.store`: `IdempotencyStore`, `NodeCheckpointStore`, `ClaimCheckStore`, `SecretProvider`.
 
 ## Imports
 @.claude/rules/coding-standards.md
