@@ -69,10 +69,48 @@ public class StreamTopologyDecorator {
     return shouldRetry;
   }
 
-  private static String truncateLogLine(final String line) {
-    return line.length() <= MAX_LOG_LINE_SIZE
-        ? line
-        : line.substring(0, MAX_LOG_LINE_SIZE - 20) + "\n[... truncated ...]";
+  /**
+   * Split a log line into chunks if it exceeds MAX_LOG_LINE_SIZE.
+   *
+   * <p>Preserves all log data by splitting into multiple lines at newline boundaries. Each chunk
+   * becomes a separate log entry to avoid data loss from truncation.
+   *
+   * @param line the log line to split
+   * @return array of log chunks, each <= MAX_LOG_LINE_SIZE
+   */
+  private static String[] splitLogLine(final String line) {
+    if (line.length() <= MAX_LOG_LINE_SIZE) {
+      return new String[] {line};
+    }
+
+    final List<String> chunks = new ArrayList<>();
+    final String[] lines = line.split("\n", -1);
+    final StringBuilder currentChunk = new StringBuilder();
+
+    for (int i = 0; i < lines.length; i++) {
+      final String currentLine = lines[i];
+      final int potentialSize =
+          currentChunk.length() + (currentChunk.length() > 0 ? 1 : 0) + currentLine.length();
+
+      if (potentialSize <= MAX_LOG_LINE_SIZE) {
+        if (currentChunk.length() > 0) {
+          currentChunk.append("\n");
+        }
+        currentChunk.append(currentLine);
+      } else {
+        if (currentChunk.length() > 0) {
+          chunks.add(currentChunk.toString());
+        }
+        currentChunk.setLength(0);
+        currentChunk.append(currentLine);
+      }
+    }
+
+    if (currentChunk.length() > 0) {
+      chunks.add(currentChunk.toString());
+    }
+
+    return chunks.toArray(new String[0]);
   }
 
   /**
@@ -248,7 +286,10 @@ public class StreamTopologyDecorator {
         msg -> {
           final String payload = String.valueOf(msg.getPayload());
           log.atTrace().setMessage("Processing message payload: {}").addArgument(payload).log();
-          tracker.emitLogEvent(executionId, truncateLogLine(payload));
+          final String[] chunks = splitLogLine(payload);
+          for (final String chunk : chunks) {
+            tracker.emitLogEvent(executionId, nodeId, chunk);
+          }
         });
   }
 }

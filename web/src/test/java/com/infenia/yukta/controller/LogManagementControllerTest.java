@@ -15,130 +15,170 @@
  */
 package com.infenia.yukta.controller;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.service.LogRetrievalService;
+import com.infenia.yukta.logging.api.ExecutionSummary;
+import com.infenia.yukta.logging.api.LogStream;
+import com.infenia.yukta.logging.api.PluginLogEntry;
+import com.infenia.yukta.logging.api.PluginLogReader;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/** Tests for LogManagementController. */
+/** Tests for LogManagementController with PluginLogReader. */
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.UnitTestShouldIncludeAssert"})
 @NoArgsConstructor
-@SuppressWarnings("PMD.LawOfDemeter")
 class LogManagementControllerTest {
 
-  /** Session identifier for testing. */
-  private static final String SESSION_ID = "sess-1";
+  /** Test execution ID. */
+  private static final String EXEC_ID = "exec-123";
 
-  /** Test log file name. */
-  private static final String TEST_LOG = "test.log";
+  /** Test session ID. */
+  private static final String SESSION_ID = "session-456";
 
-  /** Sample log content. */
-  private static final String LOG_CONTENT = "content";
+  /** Test node ID. */
+  private static final String NODE_ID = "node-001";
 
-  /** API logs endpoint path. */
-  private static final String API_LOGS_ENDPOINT = "/api/logs/";
+  /** Test plugin ID. */
+  private static final String PLUGIN_ID = "process-executor";
+
+  /** Test plugin name. */
+  private static final String PLUGIN_NAME = "Process Executor";
 
   /** Web test client for testing controller endpoints. */
   private WebTestClient webClient;
 
-  /** Mock service for log retrieval operations. */
-  private LogRetrievalService logs;
+  /** Mock log reader for testing. */
+  private PluginLogReader mockReader;
 
   @BeforeEach
   void setUp() {
-    logs = mock(LogRetrievalService.class);
-    final LogManagementController controller = new LogManagementController(logs);
+    mockReader = mock(PluginLogReader.class);
+    @SuppressWarnings("unchecked")
+    final ObjectProvider<PluginLogReader> provider = mock(ObjectProvider.class);
+    when(provider.stream()).thenReturn(java.util.stream.Stream.of(mockReader));
+
+    final LogManagementController controller = new LogManagementController(provider);
     webClient = WebTestClient.bindToController(controller).build();
   }
 
   @Test
-  void testListLogs() {
-    when(logs.listLogs(SESSION_ID)).thenReturn(Mono.just(List.of(TEST_LOG)));
+  void testGetExecutionLogs() {
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            EXEC_ID,
+            SESSION_ID,
+            NODE_ID,
+            PLUGIN_ID,
+            PLUGIN_NAME,
+            LogStream.STDOUT,
+            "Test message",
+            LocalDateTime.now(ZoneId.systemDefault()),
+            java.util.Map.of());
 
-    final var result =
-        webClient
-            .get()
-            .uri(API_LOGS_ENDPOINT + SESSION_ID)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectBody()
-            .jsonPath("$.data[0]")
-            .isEqualTo(TEST_LOG)
-            .returnResult();
-    assertThat(result.getStatus().value()).isEqualTo(200);
+    when(mockReader.readExecution(EXEC_ID)).thenReturn(Flux.just(entry));
+
+    webClient
+        .get()
+        .uri("/api/executions/" + EXEC_ID + "/logs")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBodyList(PluginLogEntry.class)
+        .isEqualTo(List.of(entry));
   }
 
   @Test
-  void testGetLogContent() {
-    when(logs.getLogContent(SESSION_ID, TEST_LOG)).thenReturn(Mono.just(LOG_CONTENT));
+  void testGetRawExecutionLogs() {
+    when(mockReader.getRawContent(EXEC_ID)).thenReturn(Mono.just("Raw log content"));
 
-    final var result =
-        webClient
-            .get()
-            .uri(API_LOGS_ENDPOINT + SESSION_ID + "/" + TEST_LOG)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectBody()
-            .jsonPath("$.data")
-            .isEqualTo(LOG_CONTENT)
-            .returnResult();
-    assertThat(result.getStatus().value()).isEqualTo(200);
+    webClient
+        .get()
+        .uri("/api/executions/" + EXEC_ID + "/logs/raw")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody(String.class)
+        .isEqualTo("Raw log content");
   }
 
   @Test
-  void testGetLogContentNotFound() {
-    when(logs.getLogContent(SESSION_ID, TEST_LOG))
-        .thenReturn(Mono.error(new java.io.IOException()));
+  void testGetSessionLogs() {
+    final PluginLogEntry entry1 =
+        new PluginLogEntry(
+            "exec-001",
+            SESSION_ID,
+            NODE_ID,
+            "plugin-id",
+            "Plugin",
+            LogStream.STDOUT,
+            "Message 1",
+            LocalDateTime.now(ZoneId.systemDefault()),
+            java.util.Map.of());
+    final PluginLogEntry entry2 =
+        new PluginLogEntry(
+            "exec-002",
+            SESSION_ID,
+            NODE_ID,
+            "plugin-id",
+            "Plugin",
+            LogStream.STDOUT,
+            "Message 2",
+            LocalDateTime.now(ZoneId.systemDefault()),
+            java.util.Map.of());
 
-    final var result =
-        webClient
-            .get()
-            .uri(API_LOGS_ENDPOINT + SESSION_ID + "/" + TEST_LOG)
-            .exchange()
-            .expectStatus()
-            .isNotFound()
-            .returnResult();
-    assertThat(result.getStatus().value()).isEqualTo(404);
+    when(mockReader.readSession(SESSION_ID)).thenReturn(Flux.just(entry1, entry2));
+
+    webClient
+        .get()
+        .uri("/api/executions/session/" + SESSION_ID + "/logs")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBodyList(PluginLogEntry.class)
+        .hasSize(2);
   }
 
   @Test
-  void testGetRawLogContent() {
-    when(logs.getLogContent(SESSION_ID, TEST_LOG)).thenReturn(Mono.just(LOG_CONTENT));
+  void testListSessionExecutions() {
+    final ExecutionSummary summary =
+        new ExecutionSummary(EXEC_ID, SESSION_ID, LocalDateTime.now(), LocalDateTime.now(), 5L);
 
-    final var result =
-        webClient
-            .get()
-            .uri("/api/logs/" + SESSION_ID + "/" + TEST_LOG + "/raw")
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectBody(String.class)
-            .isEqualTo(LOG_CONTENT)
-            .returnResult();
-    assertThat(result.getStatus().value()).isEqualTo(200);
+    when(mockReader.listExecutions(SESSION_ID)).thenReturn(Mono.just(List.of(summary)));
+
+    webClient
+        .get()
+        .uri("/api/executions/session/" + SESSION_ID + "/executions")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBodyList(ExecutionSummary.class)
+        .hasSize(1);
   }
 
   @Test
-  void testGetRawLogContentNotFound() {
-    when(logs.getLogContent(SESSION_ID, TEST_LOG))
-        .thenReturn(Mono.error(new java.io.IOException()));
+  void testLogServiceNotConfigured() {
+    @SuppressWarnings("unchecked")
+    final ObjectProvider<PluginLogReader> emptyProvider = mock(ObjectProvider.class);
+    when(emptyProvider.stream()).thenReturn(java.util.stream.Stream.empty());
 
-    final var result =
-        webClient
-            .get()
-            .uri("/api/logs/" + SESSION_ID + "/" + TEST_LOG + "/raw")
-            .exchange()
-            .expectStatus()
-            .isNotFound()
-            .returnResult();
-    assertThat(result.getStatus().value()).isEqualTo(404);
+    final LogManagementController controllerNoService = new LogManagementController(emptyProvider);
+    final WebTestClient clientNoService =
+        WebTestClient.bindToController(controllerNoService).build();
+
+    clientNoService
+        .get()
+        .uri("/api/executions/" + EXEC_ID + "/logs")
+        .exchange()
+        .expectStatus()
+        .is5xxServerError();
   }
 }

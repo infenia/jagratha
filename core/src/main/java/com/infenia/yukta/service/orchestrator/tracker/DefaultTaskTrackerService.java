@@ -321,16 +321,20 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
    * Emit a log event for asynchronous processing.
    *
    * @param executionId the execution identifier
+   * @param nodeId the node identifier (for plugin resolution)
    * @param line the log line
    */
   @Override
   public void emitLogEvent(
-      @NotBlank final String executionId, @NotBlank @Size(max = 16_384) final String line) {
+      @NotBlank final String executionId,
+      @NotBlank final String nodeId,
+      @NotBlank @Size(max = 16_384) final String line) {
     log.atTrace()
         .addKeyValue("executionId", executionId)
+        .addKeyValue("nodeId", nodeId)
         .addKeyValue("lineLength", line.length())
         .log("Emitting workflow log event");
-    logSink.emitNext(WorkflowLogEvent.create(executionId, line), RETRY_HANDLER);
+    logSink.emitNext(WorkflowLogEvent.create(executionId, nodeId, line), RETRY_HANDLER);
   }
 
   /**
@@ -363,7 +367,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
   @Override
   public Mono<Void> appendLog(
       @NotBlank final String executionId, @NotBlank @Size(max = 16_384) final String line) {
-    return Mono.fromRunnable(() -> emitLogEvent(executionId, line));
+    return Mono.fromRunnable(() -> emitLogEvent(executionId, "system", line));
   }
 
   /**

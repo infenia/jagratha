@@ -116,7 +116,7 @@ class DefaultTaskTrackerServiceTest {
         .verifyComplete();
 
     StepVerifier.create(tracker.getLogStream(executionId))
-        .then(() -> tracker.emitLogEvent(executionId, "log line 1"))
+        .then(() -> tracker.emitLogEvent(executionId, "system", "log line 1"))
         .expectNext("log line 1")
         .thenCancel()
         .verify();
@@ -158,7 +158,7 @@ class DefaultTaskTrackerServiceTest {
   void testEventsForUnknownExecution() {
     tracker.emitTaskStatusEvent("unknown", "n", "m", "s", Map.of());
     tracker.emitWorkflowStatusEvent("unknown", "s");
-    tracker.emitLogEvent("unknown", "log");
+    tracker.emitLogEvent("unknown", "system", "log");
     // Should not crash - test passes if no exception is thrown
     assertThat(true).isTrue();
   }
@@ -614,7 +614,7 @@ class DefaultTaskTrackerServiceTest {
     trackerWithError.init();
 
     // Emit a log event — should not crash
-    trackerWithError.emitLogEvent("exec-id", "log line");
+    trackerWithError.emitLogEvent("exec-id", "system", "log line");
 
     // Wait for async processing
     Thread.sleep(200);
