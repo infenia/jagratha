@@ -75,7 +75,7 @@ tasks.register<Exec>("opengrep") {
     environment("HOME", tempDir)
 
     commandLine("opengrep", "scan",
-        "--config=${configFile.absolutePath}",
+        "--config=auto",
         "--output=${reportFile.absolutePath}",
         "--json",
         "--quiet",

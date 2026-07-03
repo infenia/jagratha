@@ -8,8 +8,9 @@ OpenGrep is integrated into the Gradle build via the `quality-conventions` plugi
 
 ## Configuration
 
-- **Config File**: `.semgrep.yml` - Defines rulesets and scan configuration (uses Semgrep-compatible YAML format)
+- **Config Mode**: `auto` - OpenGrep automatically detects and loads default security rules
 - **Output**: Scan reports are generated in `build/reports/opengrep/opengrep-report.sarif` (SARIF format)
+- **Note**: The `.semgrep.yml` file is kept for reference but not currently used by the auto-config mode
 
 ## Running OpenGrep
 
