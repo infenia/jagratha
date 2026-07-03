@@ -113,12 +113,15 @@ jobs:
         run: |
           echo "▶ Installing OpenGrep..."
           curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
+
+          # Add to PATH for this step and export for subsequent steps
+          export PATH="$HOME/.local/bin:$HOME/.opengrep/cli/latest/bin:$PATH"
           opengrep --version
 
-      - name: Add OpenGrep to PATH
-        run: |
+          # Persist PATH for all subsequent steps in this job
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
           echo "$HOME/.opengrep/cli/latest/bin" >> $GITHUB_PATH
-          echo "▶ Added OpenGrep to GITHUB_PATH"
+          echo "▶ OpenGrep installed and added to GITHUB_PATH"
 
       - name: Verify dependency lock files are up-to-date
         run: |
