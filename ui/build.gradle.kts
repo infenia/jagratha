@@ -22,7 +22,6 @@ plugins {
     id("com.infenia.yukta.node-conventions")
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.jte)
-    alias(libs.plugins.cyclonedx)
 }
 
 coverageConfig {
