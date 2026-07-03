@@ -1,7 +1,6 @@
 plugins {
     base
     alias(libs.plugins.spotless) apply false
-    alias(libs.plugins.cyclonedx) apply false
 }
 
 allprojects {

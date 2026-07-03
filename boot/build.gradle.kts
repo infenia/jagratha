@@ -17,7 +17,6 @@ plugins {
     id("com.infenia.yukta.spring-conventions")
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.graalvm.buildtools.native)
-    alias(libs.plugins.cyclonedx)
 }
 
 dependencies {

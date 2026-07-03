@@ -222,12 +222,6 @@ jobs:
             echo "▶ No module tasks matched — nothing to build"
           fi
 
-      - name: Generate CycloneDX SBOM (all modules)
-        run: |
-          echo "▶ Generating CycloneDX Software Bill of Materials for all modules..."
-          ./gradlew cyclonedxBom --no-configuration-cache
-          echo "✓ CycloneDX SBOM generated for all modules"
-
       - name: Run Trivy vulnerability scanner (Filesystem)
         uses: aquasecurity/trivy-action@master
         with:
@@ -251,24 +245,25 @@ jobs:
           sarif_file: 'trivy-fs-results.sarif'
           category: 'Trivy Filesystem Scan'
 
-      - name: Scan CycloneDX SBOMs with Trivy
+      - name: Generate SBOM from compiled artifacts
         continue-on-error: true
         run: |
-          echo "▶ Scanning CycloneDX SBOMs with Trivy..."
-          find . -name "bom.json" -type f | while read sbom_file; do
-            echo "Scanning SBOM: $sbom_file"
-            trivy sbom --severity HIGH,CRITICAL "$sbom_file"
+          echo "▶ Generating SBOMs from compiled JAR artifacts..."
+          find . -path "*/build/libs/*.jar" -type f | while read jar_file; do
+            module=$(echo "$jar_file" | cut -d'/' -f2)
+            echo "Generating SBOM for: $jar_file"
+            trivy image --format cyclonedx --output "sbom-${module}.json" "file://${jar_file}"
           done
-          echo "✓ SBOM scanning complete"
+          echo "✓ SBOM generation complete"
 
-      - name: Upload SBOM and security artifacts
+      - name: Upload security artifacts (SBOMs and SARIF reports)
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: security-reports
           path: |
             trivy-*.sarif
-            **/build/bom.json
+            sbom-*.json
           retention-days: 30
           if-no-files-found: warn
 

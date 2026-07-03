@@ -15,7 +15,6 @@
  */
 plugins {
     id("com.infenia.yukta.library-conventions")
-    alias(libs.plugins.cyclonedx)
 }
 
 dependencies {
