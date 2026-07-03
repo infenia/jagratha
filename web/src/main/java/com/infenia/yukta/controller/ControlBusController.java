@@ -162,18 +162,23 @@ public class ControlBusController {
   /**
    * Stream execution logs in real-time via SSE.
    *
+   * @param sessionId the session identifier
    * @param executionId the execution identifier
    * @return a flux of log lines
    */
   @GetMapping(
-      value = "/control/executions/{executionId}/logs/stream",
+      value = "/control/sessions/{sessionId}/executions/{executionId}/logs/stream",
       produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   @Operation(
       summary = "Stream execution logs",
       description = "Streams log lines for an execution in real-time via Server-Sent Events")
-  public Flux<String> streamLogs(@PathVariable final String executionId) {
-    log.atInfo().log("streamLogs reached: executionId={}", executionId);
-    return controlBus.watchLogs(executionId);
+  public Flux<String> streamLogs(
+      @PathVariable final String sessionId, @PathVariable final String executionId) {
+    log.atInfo()
+        .addKeyValue("sessionId", sessionId)
+        .addKeyValue("executionId", executionId)
+        .log("Streaming execution logs");
+    return controlBus.watchLogs(sessionId, executionId);
   }
 
   /**

@@ -15,22 +15,19 @@
  */
 package com.infenia.yukta.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.logging.api.LogStream;
-import com.infenia.yukta.logging.api.PluginLogEntry;
-import com.infenia.yukta.service.LogStreamingService;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.List;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 
-/** Tests for LogManagementController with LogStreamingService. */
+/** Tests for LogManagementController with ControlBusGateway. */
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.UnitTestShouldIncludeAssert"})
 @NoArgsConstructor
 class LogManagementControllerTest {
@@ -41,102 +38,52 @@ class LogManagementControllerTest {
   /** Test session ID. */
   private static final String SESSION_ID = "session-456";
 
-  /** Test node ID. */
-  private static final String NODE_ID = "node-001";
-
-  /** Test plugin ID. */
-  private static final String PLUGIN_ID = "process-executor";
-
-  /** Test plugin name. */
-  private static final String PLUGIN_NAME = "Process Executor";
-
   /** Web test client for testing controller endpoints. */
   private WebTestClient webClient;
 
-  /** Mock log streaming service for testing. */
-  private LogStreamingService mockService;
+  /** Mock control bus gateway for testing. */
+  private ControlBusGateway mockControlBus;
 
   @BeforeEach
   void setUp() {
-    mockService = mock(LogStreamingService.class);
-    final LogManagementController controller = new LogManagementController(mockService);
+    mockControlBus = mock(ControlBusGateway.class);
+    final LogManagementController controller = new LogManagementController(mockControlBus);
     webClient = WebTestClient.bindToController(controller).build();
   }
 
   @Test
   void testStreamExecutionLogs() {
-    final PluginLogEntry entry =
-        new PluginLogEntry(
-            EXEC_ID,
-            SESSION_ID,
-            NODE_ID,
-            PLUGIN_ID,
-            PLUGIN_NAME,
-            LogStream.STDOUT,
-            "Test message",
-            LocalDateTime.now(ZoneId.systemDefault()),
-            java.util.Map.of());
+    when(mockControlBus.watchLogs(SESSION_ID, EXEC_ID))
+        .thenReturn(Flux.just("log line 1", "log line 2"));
 
-    when(mockService.isConfigured()).thenReturn(true);
-    when(mockService.streamExecutionLogs(EXEC_ID)).thenReturn(Flux.just(entry));
-
-    webClient
-        .get()
-        .uri("/api/sessions/" + SESSION_ID + "/executions/" + EXEC_ID + "/logs")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBodyList(PluginLogEntry.class)
-        .isEqualTo(List.of(entry));
+    final var result =
+        webClient
+            .get()
+            .uri("/api/sessions/" + SESSION_ID + "/executions/" + EXEC_ID + "/logs")
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 
   @Test
-  void testStreamExecutionLogsMultipleEntries() {
-    final PluginLogEntry entry1 =
-        new PluginLogEntry(
-            EXEC_ID,
-            SESSION_ID,
-            NODE_ID,
-            "plugin-1",
-            "Plugin 1",
-            LogStream.STDOUT,
-            "Message 1",
-            LocalDateTime.now(ZoneId.systemDefault()),
-            java.util.Map.of());
-    final PluginLogEntry entry2 =
-        new PluginLogEntry(
-            EXEC_ID,
-            SESSION_ID,
-            NODE_ID,
-            "plugin-2",
-            "Plugin 2",
-            LogStream.STDERR,
-            "Message 2",
-            LocalDateTime.now(ZoneId.systemDefault()),
-            java.util.Map.of());
+  void testStreamExecutionLogsMultipleLines() {
+    when(mockControlBus.watchLogs(SESSION_ID, EXEC_ID))
+        .thenReturn(Flux.just("line 1", "line 2", "line 3", "line 4", "line 5"));
 
-    when(mockService.isConfigured()).thenReturn(true);
-    when(mockService.streamExecutionLogs(EXEC_ID)).thenReturn(Flux.just(entry1, entry2));
-
-    webClient
-        .get()
-        .uri("/api/sessions/" + SESSION_ID + "/executions/" + EXEC_ID + "/logs")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBodyList(PluginLogEntry.class)
-        .hasSize(2);
-  }
-
-  @Test
-  void testLogServiceNotConfigured() {
-    when(mockService.isConfigured()).thenReturn(false);
-
-    webClient
-        .get()
-        .uri("/api/sessions/" + SESSION_ID + "/executions/" + EXEC_ID + "/logs")
-        .exchange()
-        .expectStatus()
-        .isEqualTo(503);
+    final var result =
+        webClient
+            .get()
+            .uri("/api/sessions/" + SESSION_ID + "/executions/" + EXEC_ID + "/logs")
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectHeader()
+            .contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM)
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
   }
 }
