@@ -18,22 +18,19 @@ package com.infenia.yukta.controller;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.logging.api.ExecutionSummary;
 import com.infenia.yukta.logging.api.LogStream;
 import com.infenia.yukta.logging.api.PluginLogEntry;
-import com.infenia.yukta.logging.api.PluginLogReader;
+import com.infenia.yukta.service.LogStreamingService;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
-/** Tests for LogManagementController with PluginLogReader. */
+/** Tests for LogManagementController with LogStreamingService. */
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.UnitTestShouldIncludeAssert"})
 @NoArgsConstructor
 class LogManagementControllerTest {
@@ -56,22 +53,18 @@ class LogManagementControllerTest {
   /** Web test client for testing controller endpoints. */
   private WebTestClient webClient;
 
-  /** Mock log reader for testing. */
-  private PluginLogReader mockReader;
+  /** Mock log streaming service for testing. */
+  private LogStreamingService mockService;
 
   @BeforeEach
   void setUp() {
-    mockReader = mock(PluginLogReader.class);
-    @SuppressWarnings("unchecked")
-    final ObjectProvider<PluginLogReader> provider = mock(ObjectProvider.class);
-    when(provider.stream()).thenReturn(java.util.stream.Stream.of(mockReader));
-
-    final LogManagementController controller = new LogManagementController(provider);
+    mockService = mock(LogStreamingService.class);
+    final LogManagementController controller = new LogManagementController(mockService);
     webClient = WebTestClient.bindToController(controller).build();
   }
 
   @Test
-  void testGetExecutionLogs() {
+  void testStreamExecutionLogs() {
     final PluginLogEntry entry =
         new PluginLogEntry(
             EXEC_ID,
@@ -84,11 +77,12 @@ class LogManagementControllerTest {
             LocalDateTime.now(ZoneId.systemDefault()),
             java.util.Map.of());
 
-    when(mockReader.readExecution(EXEC_ID)).thenReturn(Flux.just(entry));
+    when(mockService.isConfigured()).thenReturn(true);
+    when(mockService.streamExecutionLogs(EXEC_ID)).thenReturn(Flux.just(entry));
 
     webClient
         .get()
-        .uri("/api/executions/" + EXEC_ID + "/logs")
+        .uri("/api/sessions/" + SESSION_ID + "/executions/" + EXEC_ID + "/logs")
         .exchange()
         .expectStatus()
         .isOk()
@@ -97,49 +91,36 @@ class LogManagementControllerTest {
   }
 
   @Test
-  void testGetRawExecutionLogs() {
-    when(mockReader.getRawContent(EXEC_ID)).thenReturn(Mono.just("Raw log content"));
-
-    webClient
-        .get()
-        .uri("/api/executions/" + EXEC_ID + "/logs/raw")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody(String.class)
-        .isEqualTo("Raw log content");
-  }
-
-  @Test
-  void testGetSessionLogs() {
+  void testStreamExecutionLogsMultipleEntries() {
     final PluginLogEntry entry1 =
         new PluginLogEntry(
-            "exec-001",
+            EXEC_ID,
             SESSION_ID,
             NODE_ID,
-            "plugin-id",
-            "Plugin",
+            "plugin-1",
+            "Plugin 1",
             LogStream.STDOUT,
             "Message 1",
             LocalDateTime.now(ZoneId.systemDefault()),
             java.util.Map.of());
     final PluginLogEntry entry2 =
         new PluginLogEntry(
-            "exec-002",
+            EXEC_ID,
             SESSION_ID,
             NODE_ID,
-            "plugin-id",
-            "Plugin",
-            LogStream.STDOUT,
+            "plugin-2",
+            "Plugin 2",
+            LogStream.STDERR,
             "Message 2",
             LocalDateTime.now(ZoneId.systemDefault()),
             java.util.Map.of());
 
-    when(mockReader.readSession(SESSION_ID)).thenReturn(Flux.just(entry1, entry2));
+    when(mockService.isConfigured()).thenReturn(true);
+    when(mockService.streamExecutionLogs(EXEC_ID)).thenReturn(Flux.just(entry1, entry2));
 
     webClient
         .get()
-        .uri("/api/executions/session/" + SESSION_ID + "/logs")
+        .uri("/api/sessions/" + SESSION_ID + "/executions/" + EXEC_ID + "/logs")
         .exchange()
         .expectStatus()
         .isOk()
@@ -148,37 +129,14 @@ class LogManagementControllerTest {
   }
 
   @Test
-  void testListSessionExecutions() {
-    final ExecutionSummary summary =
-        new ExecutionSummary(EXEC_ID, SESSION_ID, LocalDateTime.now(), LocalDateTime.now(), 5L);
-
-    when(mockReader.listExecutions(SESSION_ID)).thenReturn(Mono.just(List.of(summary)));
+  void testLogServiceNotConfigured() {
+    when(mockService.isConfigured()).thenReturn(false);
 
     webClient
         .get()
-        .uri("/api/executions/session/" + SESSION_ID + "/executions")
+        .uri("/api/sessions/" + SESSION_ID + "/executions/" + EXEC_ID + "/logs")
         .exchange()
         .expectStatus()
-        .isOk()
-        .expectBodyList(ExecutionSummary.class)
-        .hasSize(1);
-  }
-
-  @Test
-  void testLogServiceNotConfigured() {
-    @SuppressWarnings("unchecked")
-    final ObjectProvider<PluginLogReader> emptyProvider = mock(ObjectProvider.class);
-    when(emptyProvider.stream()).thenReturn(java.util.stream.Stream.empty());
-
-    final LogManagementController controllerNoService = new LogManagementController(emptyProvider);
-    final WebTestClient clientNoService =
-        WebTestClient.bindToController(controllerNoService).build();
-
-    clientNoService
-        .get()
-        .uri("/api/executions/" + EXEC_ID + "/logs")
-        .exchange()
-        .expectStatus()
-        .is5xxServerError();
+        .isEqualTo(503);
   }
 }
