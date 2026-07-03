@@ -228,44 +228,38 @@ jobs:
           ./gradlew cyclonedxBom --no-configuration-cache
           echo "✓ CycloneDX SBOM generated for all modules"
 
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy vulnerability scanner (Filesystem)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-fs-results.sarif'
+          format: 'table'
           severity: 'HIGH,CRITICAL'
+          exit-code: '1'
 
-      - name: Scan CycloneDX SBOMs with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'sbom'
-          sbom-filename: '**/build/bom.json'
-          format: 'sarif'
-          output: 'trivy-sbom-results.sarif'
-          severity: 'HIGH,CRITICAL'
-
-      - name: Check for critical vulnerabilities
+      - name: Generate Trivy SARIF for filesystem scan
+        continue-on-error: true
         run: |
-          echo "▶ Checking Trivy results for critical vulnerabilities..."
-          # Count critical vulnerabilities in SARIF output
-          CRITICAL_COUNT=$(grep -c '"level": "error"' trivy-fs-results.sarif 2>/dev/null || echo 0)
-
-          if [ "$CRITICAL_COUNT" -gt 0 ]; then
-            echo "❌ Found $CRITICAL_COUNT critical vulnerabilities"
-            echo "Review the Trivy SARIF report for details: trivy-fs-results.sarif"
-            exit 1
-          else
-            echo "✓ No critical vulnerabilities detected"
-          fi
+          echo "▶ Generating Trivy SARIF report for GitHub Security..."
+          trivy fs --format sarif --output trivy-fs-results.sarif --severity HIGH,CRITICAL .
+          echo "✓ SARIF report generated"
 
       - name: Upload Trivy SARIF report to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && hashFiles('trivy-fs-results.sarif') != ''
         with:
           sarif_file: 'trivy-fs-results.sarif'
           category: 'Trivy Filesystem Scan'
+
+      - name: Scan CycloneDX SBOMs with Trivy
+        continue-on-error: true
+        run: |
+          echo "▶ Scanning CycloneDX SBOMs with Trivy..."
+          find . -name "bom.json" -type f | while read sbom_file; do
+            echo "Scanning SBOM: $sbom_file"
+            trivy sbom --severity HIGH,CRITICAL "$sbom_file"
+          done
+          echo "✓ SBOM scanning complete"
 
       - name: Upload SBOM and security artifacts
         if: always()
@@ -276,6 +270,7 @@ jobs:
             trivy-*.sarif
             **/build/bom.json
           retention-days: 30
+          if-no-files-found: warn
 
       # Upload test reports (helpful for debugging)
       - name: Upload test reports
