@@ -222,6 +222,61 @@ jobs:
             echo "▶ No module tasks matched — nothing to build"
           fi
 
+      - name: Generate CycloneDX SBOM (all modules)
+        run: |
+          echo "▶ Generating CycloneDX Software Bill of Materials for all modules..."
+          ./gradlew cyclonedxBom --no-configuration-cache
+          echo "✓ CycloneDX SBOM generated for all modules"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-fs-results.sarif'
+          severity: 'HIGH,CRITICAL'
+
+      - name: Scan CycloneDX SBOMs with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'sbom'
+          sbom-filename: '**/build/bom.json'
+          format: 'sarif'
+          output: 'trivy-sbom-results.sarif'
+          severity: 'HIGH,CRITICAL'
+
+      - name: Check for critical vulnerabilities
+        run: |
+          echo "▶ Checking Trivy results for critical vulnerabilities..."
+          # Count critical vulnerabilities in SARIF output
+          CRITICAL_COUNT=$(grep -c '"level": "error"' trivy-fs-results.sarif 2>/dev/null || echo 0)
+
+          if [ "$CRITICAL_COUNT" -gt 0 ]; then
+            echo "❌ Found $CRITICAL_COUNT critical vulnerabilities"
+            echo "Review the Trivy SARIF report for details: trivy-fs-results.sarif"
+            exit 1
+          else
+            echo "✓ No critical vulnerabilities detected"
+          fi
+
+      - name: Upload Trivy SARIF report to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-fs-results.sarif'
+          category: 'Trivy Filesystem Scan'
+
+      - name: Upload SBOM and security artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: security-reports
+          path: |
+            trivy-*.sarif
+            **/build/bom.json
+          retention-days: 30
+
       # Upload test reports (helpful for debugging)
       - name: Upload test reports
         if: failure()
