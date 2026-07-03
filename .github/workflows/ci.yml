@@ -115,6 +115,11 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
           opengrep --version
 
+      - name: Add OpenGrep to PATH
+        run: |
+          echo "$HOME/.opengrep/cli/latest/bin" >> $GITHUB_PATH
+          echo "▶ Added OpenGrep to GITHUB_PATH"
+
       - name: Verify dependency lock files are up-to-date
         run: |
           echo "▶ Verifying lock files match resolved dependencies..."
