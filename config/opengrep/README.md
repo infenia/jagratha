@@ -54,7 +54,7 @@ To add custom rules or modify behavior:
 OpenGrep CLI must be installed and available in the `PATH`:
 ```bash
 # Recommended: Install OpenGrep (auto-detects platform)
-curl -fsSL https://opengrep.dev/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
 
 # Or via Homebrew (macOS)
 brew install opengrep/homebrew-opengrep/opengrep

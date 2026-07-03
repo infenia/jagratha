@@ -112,7 +112,7 @@ jobs:
       - name: Install OpenGrep
         run: |
           echo "▶ Installing OpenGrep..."
-          curl -fsSL https://opengrep.dev/install.sh | sh
+          curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
           opengrep --version
 
       - name: Verify dependency lock files are up-to-date
