@@ -109,6 +109,12 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Install OpenGrep
+        run: |
+          echo "▶ Installing OpenGrep..."
+          curl -fsSL https://opengrep.dev/install.sh | sh
+          opengrep --version
+
       - name: Verify dependency lock files are up-to-date
         run: |
           echo "▶ Verifying lock files match resolved dependencies..."
