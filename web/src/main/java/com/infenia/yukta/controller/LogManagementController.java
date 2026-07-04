@@ -41,9 +41,6 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class LogManagementController {
 
-  /** HTTP 200 OK response code. */
-  private static final String RESPONSE_CODE_200 = "200";
-
   /** The control bus gateway for log streaming. */
   private final ControlBusGateway controlBus;
 
@@ -59,7 +56,7 @@ public class LogManagementController {
       summary = "Stream execution logs",
       description = "Streams log lines for a specific execution in real-time")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
-      responseCode = RESPONSE_CODE_200,
+      responseCode = "200",
       description = "Stream of log lines")
   public Flux<String> streamExecutionLogs(
       @Parameter(description = "Session identifier") @PathVariable final String sessionId,
