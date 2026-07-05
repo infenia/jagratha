@@ -15,12 +15,13 @@
  */
 package com.infenia.yukta.logging.impl.memory;
 
+import com.infenia.yukta.logging.api.LogLevel;
 import com.infenia.yukta.logging.api.LogStream;
 import com.infenia.yukta.logging.api.PluginLogEntry;
 import com.infenia.yukta.logging.api.PluginLogWriter;
 import com.infenia.yukta.logging.api.PluginLogger;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -35,7 +36,6 @@ public class DefaultPluginLogger implements PluginLogger {
 
   private final String executionId;
   private final String sessionId;
-  private final String nodeId;
   private final String pluginId;
   private final String pluginName;
   private final PluginLogWriter writer;
@@ -45,7 +45,6 @@ public class DefaultPluginLogger implements PluginLogger {
    *
    * @param executionId the execution identifier
    * @param sessionId the session identifier
-   * @param nodeId the node identifier
    * @param pluginId the plugin identifier
    * @param pluginName the plugin display name
    * @param writer the log writer
@@ -53,13 +52,11 @@ public class DefaultPluginLogger implements PluginLogger {
   public DefaultPluginLogger(
       final String executionId,
       final String sessionId,
-      final String nodeId,
       final String pluginId,
       final String pluginName,
       final PluginLogWriter writer) {
     this.executionId = executionId;
     this.sessionId = sessionId;
-    this.nodeId = nodeId;
     this.pluginId = pluginId;
     this.pluginName = pluginName;
     this.writer = writer;
@@ -67,33 +64,33 @@ public class DefaultPluginLogger implements PluginLogger {
 
   @Override
   public Mono<Void> logStdout(final String message) {
-    return logStdout(message, Map.of());
+    return logToStream(LogStream.STDOUT, message, LogLevel.INFO);
   }
 
   @Override
   public Mono<Void> logStdout(final String message, final Map<String, Object> metadata) {
-    return logToStream(LogStream.STDOUT, message, metadata);
+    return logToStream(LogStream.STDOUT, message, LogLevel.INFO);
   }
 
   @Override
   public Mono<Void> logStderr(final String message) {
-    return logStderr(message, Map.of());
+    return logToStream(LogStream.STDERR, message, LogLevel.ERROR);
   }
 
   @Override
   public Mono<Void> logStderr(final String message, final Map<String, Object> metadata) {
-    return logToStream(LogStream.STDERR, message, metadata);
+    return logToStream(LogStream.STDERR, message, LogLevel.ERROR);
   }
 
   @Override
   public Mono<Void> logCustom(final String stream, final String message) {
-    return logCustom(stream, message, Map.of());
+    return logToStream(LogStream.CUSTOM, message, LogLevel.INFO);
   }
 
   @Override
   public Mono<Void> logCustom(
       final String stream, final String message, final Map<String, Object> metadata) {
-    return logToStream(LogStream.CUSTOM, message, metadata);
+    return logToStream(LogStream.CUSTOM, message, LogLevel.INFO);
   }
 
   @Override
@@ -102,17 +99,16 @@ public class DefaultPluginLogger implements PluginLogger {
   }
 
   private Mono<Void> logToStream(
-      final LogStream stream, final String message, final Map<String, Object> metadata) {
+      final LogStream stream, final String message, final LogLevel logLevel) {
     return writer.write(
         new PluginLogEntry(
             executionId,
             sessionId,
-            nodeId,
             pluginId,
             pluginName,
             stream,
             message,
-            LocalDateTime.now(ZoneId.systemDefault()),
-            metadata));
+            logLevel,
+            Instant.now(Clock.systemUTC())));
   }
 }

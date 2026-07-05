@@ -18,7 +18,10 @@ package com.infenia.yukta.logging.impl.memory;
 import com.infenia.yukta.logging.api.ExecutionSummary;
 import com.infenia.yukta.logging.api.PluginLogEntry;
 import com.infenia.yukta.logging.api.PluginLogReader;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -85,15 +88,22 @@ public class InMemoryPluginLogReader implements PluginLogReader {
                   continue;
                 }
 
+                final Instant firstInstant = first.timestamp();
+                final LocalDateTime startTime =
+                    ZonedDateTime.ofInstant(firstInstant, ZoneId.systemDefault()).toLocalDateTime();
+
                 final Builder builder =
                     new Builder()
                         .executionId(entry.getKey())
                         .sessionId(sessionId)
-                        .startTime(first.timestamp())
+                        .startTime(startTime)
                         .entryCount(entries.size());
 
                 final PluginLogEntry last = entries.getLast();
-                builder.endTime(last.timestamp());
+                final Instant lastInstant = last.timestamp();
+                final LocalDateTime endTime =
+                    ZonedDateTime.ofInstant(lastInstant, ZoneId.systemDefault()).toLocalDateTime();
+                builder.endTime(endTime);
 
                 builders.put(entry.getKey(), builder);
               }

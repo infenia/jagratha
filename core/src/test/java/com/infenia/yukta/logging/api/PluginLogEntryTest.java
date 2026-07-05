@@ -16,113 +16,139 @@
 package com.infenia.yukta.logging.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
 class PluginLogEntryTest {
 
   @Test
   void testCreatePluginLogEntry() {
-    final LocalDateTime now = LocalDateTime.now();
-    final Map<String, Object> metadata = Map.of("version", "1.0");
+    final Instant now = Instant.now();
 
     final PluginLogEntry entry =
         new PluginLogEntry(
             "exec-123",
             "session-456",
-            "node-001",
             "process-executor",
             "Process Executor",
             LogStream.STDOUT,
             "Hello World",
-            now,
-            metadata);
+            LogLevel.INFO,
+            now);
 
     assertThat(entry.executionId()).isEqualTo("exec-123");
     assertThat(entry.sessionId()).isEqualTo("session-456");
-    assertThat(entry.nodeId()).isEqualTo("node-001");
     assertThat(entry.pluginId()).isEqualTo("process-executor");
     assertThat(entry.pluginName()).isEqualTo("Process Executor");
     assertThat(entry.stream()).isEqualTo(LogStream.STDOUT);
     assertThat(entry.message()).isEqualTo("Hello World");
+    assertThat(entry.logLevel()).isEqualTo(LogLevel.INFO);
     assertThat(entry.timestamp()).isEqualTo(now);
-    assertThat(entry.metadata()).containsEntry("version", "1.0");
   }
 
   @Test
-  void testMetadataImmutable() {
-    final Map<String, Object> metadata = new HashMap<>();
-    metadata.put("key", "value");
+  void testFormat() {
+    final Instant now = Instant.ofEpochMilli(1000000000000L);
 
     final PluginLogEntry entry =
         new PluginLogEntry(
             "exec-123",
             "session-456",
-            "node-001",
             "plugin-id",
             "Plugin Name",
             LogStream.STDERR,
             "Error message",
-            LocalDateTime.now(),
-            metadata);
+            LogLevel.ERROR,
+            now);
 
-    metadata.put("key2", "value2");
-
-    assertThat(entry.metadata()).doesNotContainKey("key2");
+    final String formatted = entry.format();
+    assertThat(formatted).contains("ERROR");
+    assertThat(formatted).contains("plugin-id");
+    assertThat(formatted).contains("Plugin Name");
+    assertThat(formatted).contains("Error message");
+    assertThat(formatted).contains("STDERR");
   }
 
   @Test
-  void testNullMetadataBecomesEmpty() {
+  void testDifferentLogLevels() {
+    final Instant now = Instant.now();
+
+    final PluginLogEntry debugEntry =
+        new PluginLogEntry(
+            "exec-123",
+            "session-456",
+            "plugin-id",
+            "Plugin Name",
+            LogStream.STDOUT,
+            "Debug message",
+            LogLevel.DEBUG,
+            now);
+
+    final PluginLogEntry warnEntry =
+        new PluginLogEntry(
+            "exec-123",
+            "session-456",
+            "plugin-id",
+            "Plugin Name",
+            LogStream.STDOUT,
+            "Warning message",
+            LogLevel.WARN,
+            now);
+
+    assertThat(debugEntry.logLevel()).isEqualTo(LogLevel.DEBUG);
+    assertThat(warnEntry.logLevel()).isEqualTo(LogLevel.WARN);
+  }
+
+  @Test
+  void testAllFieldsAccessible() {
+    final Instant now = Instant.now();
     final PluginLogEntry entry =
         new PluginLogEntry(
             "exec-123",
             "session-456",
-            "node-001",
             "plugin-id",
             "Plugin Name",
             LogStream.CUSTOM,
             "Custom message",
-            LocalDateTime.now(),
-            null);
+            LogLevel.WARN,
+            now);
 
-    assertThat(entry.metadata()).isEmpty();
+    assertThat(entry.executionId()).isEqualTo("exec-123");
+    assertThat(entry.sessionId()).isEqualTo("session-456");
+    assertThat(entry.pluginId()).isEqualTo("plugin-id");
+    assertThat(entry.pluginName()).isEqualTo("Plugin Name");
+    assertThat(entry.stream()).isEqualTo(LogStream.CUSTOM);
+    assertThat(entry.message()).isEqualTo("Custom message");
+    assertThat(entry.logLevel()).isEqualTo(LogLevel.WARN);
+    assertThat(entry.timestamp()).isEqualTo(now);
   }
 
   @Test
-  void testExecutionIdRequired() {
-    assertThatThrownBy(
-            () ->
-                new PluginLogEntry(
-                    null,
-                    "session-456",
-                    "node-001",
-                    "plugin-id",
-                    "Plugin Name",
-                    LogStream.STDOUT,
-                    "message",
-                    LocalDateTime.now(),
-                    Map.of()))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
+  void testEqualsAndHashCode() {
+    final Instant now = Instant.ofEpochMilli(1000000000000L);
+    final PluginLogEntry entry1 =
+        new PluginLogEntry(
+            "exec-123",
+            "session-456",
+            "plugin-id",
+            "Plugin Name",
+            LogStream.STDOUT,
+            "message",
+            LogLevel.INFO,
+            now);
+    final PluginLogEntry entry2 =
+        new PluginLogEntry(
+            "exec-123",
+            "session-456",
+            "plugin-id",
+            "Plugin Name",
+            LogStream.STDOUT,
+            "message",
+            LogLevel.INFO,
+            now);
 
-  @Test
-  void testPluginIdRequired() {
-    assertThatThrownBy(
-            () ->
-                new PluginLogEntry(
-                    "exec-123",
-                    "session-456",
-                    "node-001",
-                    null,
-                    "Plugin Name",
-                    LogStream.STDOUT,
-                    "message",
-                    LocalDateTime.now(),
-                    Map.of()))
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThat(entry1).isEqualTo(entry2);
+    assertThat(entry1.hashCode()).isEqualTo(entry2.hashCode());
   }
 }

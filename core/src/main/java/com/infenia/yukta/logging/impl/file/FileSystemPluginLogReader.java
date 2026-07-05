@@ -16,6 +16,7 @@
 package com.infenia.yukta.logging.impl.file;
 
 import com.infenia.yukta.logging.api.ExecutionSummary;
+import com.infenia.yukta.logging.api.LogLevel;
 import com.infenia.yukta.logging.api.LogStream;
 import com.infenia.yukta.logging.api.PluginLogEntry;
 import com.infenia.yukta.logging.api.PluginLogReader;
@@ -23,7 +24,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +46,8 @@ import reactor.core.scheduler.Schedulers;
 @RequiredArgsConstructor
 public class FileSystemPluginLogReader implements PluginLogReader {
 
-  private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+  private static final DateTimeFormatter TIMESTAMP_FORMAT =
+      DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault());
 
   /** Base directory for log files. */
   private final String baseLogDir;
@@ -124,12 +128,21 @@ public class FileSystemPluginLogReader implements PluginLogReader {
                 for (final Path logFile : files.toArray(Path[]::new)) {
                   if (logFile.toString().endsWith(".log")) {
                     final String executionId = logFile.getFileName().toString().replace(".log", "");
-                    final long entryCount = Files.lines(logFile).count();
+                    final long entryCount;
+                    try (final var lineStream = Files.lines(logFile)) {
+                      entryCount = lineStream.count();
+                    }
                     final List<PluginLogEntry> entries = readLogFile(logFile, sessionId);
 
                     if (!entries.isEmpty()) {
-                      final LocalDateTime startTime = entries.getFirst().timestamp();
-                      final LocalDateTime endTime = entries.getLast().timestamp();
+                      final Instant startInstant = entries.getFirst().timestamp();
+                      final Instant endInstant = entries.getLast().timestamp();
+                      final var startTime =
+                          ZonedDateTime.ofInstant(startInstant, ZoneId.systemDefault())
+                              .toLocalDateTime();
+                      final var endTime =
+                          ZonedDateTime.ofInstant(endInstant, ZoneId.systemDefault())
+                              .toLocalDateTime();
                       summaries.add(
                           new ExecutionSummary(
                               executionId, sessionId, startTime, endTime, entryCount));
@@ -201,23 +214,24 @@ public class FileSystemPluginLogReader implements PluginLogReader {
   private PluginLogEntry parseLine(
       final String line, final String executionId, final String sessionId) {
     try {
-      final String[] parts = line.split(" \\| ");
-      if (parts.length >= 4) {
-        final LocalDateTime timestamp = LocalDateTime.parse(parts[0].trim(), TIMESTAMP_FORMAT);
-        final LogStream stream = LogStream.valueOf(parts[1].trim());
-        final String pluginId = parts[2].trim();
-        final String message = parts[3].trim();
+      final List<String> parts = List.of(line.split(" \\| ", -1));
+      if (parts.size() >= 4) {
+        final String timestampStr = parts.get(0).trim();
+        final Instant timestamp = parseTimestamp(timestampStr);
+        final LogStream stream = LogStream.valueOf(parts.get(1).trim());
+        final String pluginId = parts.get(2).trim();
+        final String pluginName = parts.get(2).trim();
+        final String message = parts.get(3).trim();
 
         return new PluginLogEntry(
             executionId,
             sessionId,
             pluginId,
-            pluginId,
-            pluginId,
+            pluginName,
             stream,
             message,
-            timestamp,
-            java.util.Map.of());
+            LogLevel.INFO,
+            timestamp);
       }
     } catch (final Exception e) {
       log.atTrace()
@@ -227,5 +241,20 @@ public class FileSystemPluginLogReader implements PluginLogReader {
     }
 
     return null;
+  }
+
+  private Instant parseTimestamp(final String timestampStr) {
+    try {
+      final ZonedDateTime zonedDateTime = ZonedDateTime.parse(timestampStr, TIMESTAMP_FORMAT);
+      return zonedDateTime.toInstant();
+    } catch (final Exception e) {
+      try {
+        return java.time.LocalDateTime.parse(timestampStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            .atZone(ZoneId.systemDefault())
+            .toInstant();
+      } catch (final Exception e2) {
+        return Instant.now();
+      }
+    }
   }
 }

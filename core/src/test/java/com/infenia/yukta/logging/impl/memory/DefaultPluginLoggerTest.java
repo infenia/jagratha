@@ -39,12 +39,7 @@ class DefaultPluginLoggerTest {
 
     logger =
         new DefaultPluginLogger(
-            "exec-123",
-            "session-456",
-            "node-001",
-            "process-executor",
-            "Process Executor",
-            mockWriter);
+            "exec-123", "session-456", "process-executor", "Process Executor", mockWriter);
   }
 
   @Test

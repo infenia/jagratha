@@ -17,9 +17,10 @@ package com.infenia.yukta.logging.impl.memory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.infenia.yukta.logging.api.LogLevel;
 import com.infenia.yukta.logging.api.LogStream;
 import com.infenia.yukta.logging.api.PluginLogEntry;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,13 +42,12 @@ class InMemoryPluginLogWriterTest {
         new PluginLogEntry(
             "exec-123",
             "session-456",
-            "node-001",
             "plugin-id",
             "Plugin",
             LogStream.STDOUT,
             "Test message",
-            LocalDateTime.now(),
-            java.util.Map.of());
+            LogLevel.INFO,
+            Instant.now());
 
     writer.write(entry).block();
 
@@ -62,24 +62,22 @@ class InMemoryPluginLogWriterTest {
         new PluginLogEntry(
             "exec-123",
             "session-456",
-            "node-001",
             "plugin-1",
             "Plugin 1",
             LogStream.STDOUT,
             "Message 1",
-            LocalDateTime.now(),
-            java.util.Map.of());
+            LogLevel.INFO,
+            Instant.now());
     final PluginLogEntry entry2 =
         new PluginLogEntry(
             "exec-123",
             "session-456",
-            "node-002",
             "plugin-2",
             "Plugin 2",
             LogStream.STDERR,
             "Message 2",
-            LocalDateTime.now(),
-            java.util.Map.of());
+            LogLevel.ERROR,
+            Instant.now());
 
     writer.writeBatch(List.of(entry1, entry2)).block();
 
@@ -94,24 +92,22 @@ class InMemoryPluginLogWriterTest {
         new PluginLogEntry(
             "exec-001",
             "session-456",
-            "node-001",
             "plugin-id",
             "Plugin",
             LogStream.STDOUT,
             "Exec 1",
-            LocalDateTime.now(),
-            java.util.Map.of());
+            LogLevel.INFO,
+            Instant.now());
     final PluginLogEntry entry2 =
         new PluginLogEntry(
             "exec-002",
             "session-456",
-            "node-001",
             "plugin-id",
             "Plugin",
             LogStream.STDOUT,
             "Exec 2",
-            LocalDateTime.now(),
-            java.util.Map.of());
+            LogLevel.INFO,
+            Instant.now());
 
     writer.write(entry1).block();
     writer.write(entry2).block();

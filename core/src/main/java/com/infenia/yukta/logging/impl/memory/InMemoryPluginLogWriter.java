@@ -20,6 +20,7 @@ import com.infenia.yukta.logging.api.PluginLogWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -31,6 +32,7 @@ import reactor.core.scheduler.Schedulers;
  * <p>Stores logs in ConcurrentHashMap indexed by execution ID. Suitable for development and unit
  * testing. Not recommended for production as logs are not persisted.
  */
+@Getter
 @Slf4j
 @RequiredArgsConstructor
 public class InMemoryPluginLogWriter implements PluginLogWriter {
@@ -45,7 +47,7 @@ public class InMemoryPluginLogWriter implements PluginLogWriter {
               storage.computeIfAbsent(entry.executionId(), _ -> new ArrayList<>()).add(entry);
               log.atTrace()
                   .addKeyValue("executionId", entry.executionId())
-                  .addKeyValue("nodeId", entry.nodeId())
+                  .addKeyValue("pluginId", entry.pluginId())
                   .addKeyValue("stream", entry.stream())
                   .log("Wrote plugin log entry to memory");
             })
@@ -71,14 +73,5 @@ public class InMemoryPluginLogWriter implements PluginLogWriter {
   @Override
   public Mono<Void> close() {
     return Mono.fromRunnable(() -> log.atDebug().log("Closed in-memory plugin log writer"));
-  }
-
-  /**
-   * Get storage reference for testing purposes.
-   *
-   * @return the storage map
-   */
-  public Map<String, List<PluginLogEntry>> getStorage() {
-    return storage;
   }
 }

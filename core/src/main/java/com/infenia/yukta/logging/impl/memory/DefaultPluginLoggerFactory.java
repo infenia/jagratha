@@ -50,6 +50,6 @@ public class DefaultPluginLoggerFactory implements PluginLoggerFactory {
         .addKeyValue("executionId", executionId)
         .addKeyValue("pluginId", pluginId)
         .log("Creating PluginLogger instance");
-    return new DefaultPluginLogger(executionId, sessionId, pluginId, pluginId, pluginName, writer);
+    return new DefaultPluginLogger(executionId, sessionId, pluginId, pluginName, writer);
   }
 }
