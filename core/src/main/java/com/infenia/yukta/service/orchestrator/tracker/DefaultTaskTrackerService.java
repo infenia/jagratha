@@ -440,15 +440,41 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
   }
 
   /**
-   * Get the log stream for an execution.
+   * Get the log stream for an execution with history and auto-termination.
+   *
+   * <p>Emits all logs from execution start, then continues with live logs as they arrive. Stream
+   * auto-completes when execution reaches terminal state.
    *
    * @param executionId the execution identifier
-   * @return the log flux
+   * @return the log flux that completes on workflow terminal state
    */
   @Override
   public Flux<String> getLogStream(@NotBlank final String executionId) {
+    log.atDebug().addKeyValue("executionId", executionId).log("Getting log stream");
+
     final Sinks.Many<String> sink = logSinks.get(executionId);
-    return sink != null ? sink.asFlux() : Flux.empty();
+    if (sink == null) {
+      log.atWarn().addKeyValue("executionId", executionId).log("No log sink found for execution");
+      return Flux.empty();
+    }
+
+    Flux<String> logFlux = sink.asFlux();
+
+    return logFlux
+        .takeUntil(
+            _ -> {
+              final WorkflowState state = findState(executionId);
+              if (state != null && isTerminal(state.status) && state.endTime != null) {
+                log.atDebug()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("status", state.status)
+                    .log("Workflow terminal status detected, terminating log stream");
+                return true;
+              }
+              return false;
+            })
+        .doOnComplete(
+            () -> log.atInfo().addKeyValue("executionId", executionId).log("Log stream completed"));
   }
 
   /**
