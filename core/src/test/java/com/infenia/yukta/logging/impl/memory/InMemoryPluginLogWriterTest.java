@@ -22,104 +22,262 @@ import com.infenia.yukta.logging.api.LogStream;
 import com.infenia.yukta.logging.api.PluginLogEntry;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Unit tests for InMemoryPluginLogWriter.
+ *
+ * <p>Verifies that the in-memory implementation correctly stores and retrieves log entries.
+ */
+@NoArgsConstructor
+@DisplayName("InMemoryPluginLogWriter")
 class InMemoryPluginLogWriterTest {
 
+  /** Test execution ID. */
+  private static final String EXECUTION_ID = "exec-123";
+
+  /** Test session ID. */
+  private static final String SESSION_ID = "session-456";
+
+  /** The writer being tested. */
   private InMemoryPluginLogWriter writer;
 
   @BeforeEach
   void setUp() {
-    final ConcurrentHashMap<String, List<PluginLogEntry>> storage = new ConcurrentHashMap<>();
+    final Map<String, List<PluginLogEntry>> storage = new ConcurrentHashMap<>();
     writer = new InMemoryPluginLogWriter(storage);
   }
 
-  @Test
-  void testWriteSingleEntry() {
-    final PluginLogEntry entry =
-        new PluginLogEntry(
-            "exec-123",
-            "session-456",
-            "plugin-id",
-            "Plugin",
-            LogStream.STDOUT,
-            "Test message",
-            LogLevel.INFO,
-            Instant.now());
+  @Nested
+  @DisplayName("Write Operations")
+  class WriteOperationsTests {
 
-    writer.write(entry).block();
+    @Test
+    void testWriteSingleEntry() {
+      final PluginLogEntry entry =
+          new PluginLogEntry(
+              EXECUTION_ID,
+              SESSION_ID,
+              "plugin-id",
+              "Plugin",
+              LogStream.STDOUT,
+              "Test message",
+              LogLevel.INFO,
+              Instant.now());
 
-    final List<PluginLogEntry> stored = writer.getStorage().get("exec-123");
-    assertThat(stored).hasSize(1);
-    assertThat(stored.getFirst()).isEqualTo(entry);
+      writer.write(entry).block();
+
+      final List<PluginLogEntry> stored = writer.getStorage().get(EXECUTION_ID);
+      assertThat(stored).hasSize(1);
+      assertThat(stored.getFirst()).isEqualTo(entry);
+    }
+
+    @Test
+    void testWriteBatch() {
+      final PluginLogEntry entry1 =
+          new PluginLogEntry(
+              EXECUTION_ID,
+              SESSION_ID,
+              "plugin-1",
+              "Plugin 1",
+              LogStream.STDOUT,
+              "Message 1",
+              LogLevel.INFO,
+              Instant.now());
+      final PluginLogEntry entry2 =
+          new PluginLogEntry(
+              EXECUTION_ID,
+              SESSION_ID,
+              "plugin-2",
+              "Plugin 2",
+              LogStream.STDERR,
+              "Message 2",
+              LogLevel.ERROR,
+              Instant.now());
+
+      writer.writeBatch(List.of(entry1, entry2)).block();
+
+      final List<PluginLogEntry> stored = writer.getStorage().get(EXECUTION_ID);
+      assertThat(stored).hasSize(2);
+      assertThat(stored).containsExactly(entry1, entry2);
+    }
+
+    @Test
+    @DisplayName("writeBatch with empty list returns empty without error")
+    void writeBatch_emptyEntries_returnsEmpty() {
+      writer.writeBatch(List.of()).block();
+      assertThat(writer.getStorage()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("writeBatch groups entries by execution ID")
+    void writeBatch_multipleExecutions_groupedByExecution() {
+      final PluginLogEntry entry1 =
+          new PluginLogEntry(
+              "exec-1",
+              SESSION_ID,
+              "plugin-id",
+              "Plugin",
+              LogStream.STDOUT,
+              "Exec 1 msg",
+              LogLevel.INFO,
+              Instant.now());
+      final PluginLogEntry entry2 =
+          new PluginLogEntry(
+              "exec-2",
+              SESSION_ID,
+              "plugin-id",
+              "Plugin",
+              LogStream.STDOUT,
+              "Exec 2 msg",
+              LogLevel.INFO,
+              Instant.now());
+
+      writer.writeBatch(List.of(entry1, entry2)).block();
+
+      assertThat(writer.getStorage()).hasSize(2);
+      assertThat(writer.getStorage().get("exec-1")).hasSize(1);
+      assertThat(writer.getStorage().get("exec-2")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("writeBatch appends to existing execution")
+    void writeBatch_appendsToExistingExecution_doesNotReplace() {
+      final PluginLogEntry entry1 =
+          new PluginLogEntry(
+              EXECUTION_ID,
+              SESSION_ID,
+              "plugin-1",
+              "Plugin 1",
+              LogStream.STDOUT,
+              "Message 1",
+              LogLevel.INFO,
+              Instant.now());
+      final PluginLogEntry entry2 =
+          new PluginLogEntry(
+              EXECUTION_ID,
+              SESSION_ID,
+              "plugin-2",
+              "Plugin 2",
+              LogStream.STDOUT,
+              "Message 2",
+              LogLevel.INFO,
+              Instant.now());
+
+      writer.write(entry1).block();
+      writer.writeBatch(List.of(entry2)).block();
+
+      final List<PluginLogEntry> stored = writer.getStorage().get(EXECUTION_ID);
+      assertThat(stored).hasSize(2);
+    }
   }
 
-  @Test
-  void testWriteBatch() {
-    final PluginLogEntry entry1 =
-        new PluginLogEntry(
-            "exec-123",
-            "session-456",
-            "plugin-1",
-            "Plugin 1",
-            LogStream.STDOUT,
-            "Message 1",
-            LogLevel.INFO,
-            Instant.now());
-    final PluginLogEntry entry2 =
-        new PluginLogEntry(
-            "exec-123",
-            "session-456",
-            "plugin-2",
-            "Plugin 2",
-            LogStream.STDERR,
-            "Message 2",
-            LogLevel.ERROR,
-            Instant.now());
+  @Nested
+  @DisplayName("Multiple Executions")
+  class MultipleExecutionsTests {
 
-    writer.writeBatch(List.of(entry1, entry2)).block();
+    @Test
+    void testMultipleExecutions() {
+      final PluginLogEntry entry1 =
+          new PluginLogEntry(
+              "exec-001",
+              SESSION_ID,
+              "plugin-id",
+              "Plugin",
+              LogStream.STDOUT,
+              "Exec 1",
+              LogLevel.INFO,
+              Instant.now());
+      final PluginLogEntry entry2 =
+          new PluginLogEntry(
+              "exec-002",
+              SESSION_ID,
+              "plugin-id",
+              "Plugin",
+              LogStream.STDOUT,
+              "Exec 2",
+              LogLevel.INFO,
+              Instant.now());
 
-    final List<PluginLogEntry> stored = writer.getStorage().get("exec-123");
-    assertThat(stored).hasSize(2);
-    assertThat(stored).containsExactly(entry1, entry2);
+      writer.write(entry1).block();
+      writer.write(entry2).block();
+
+      assertThat(writer.getStorage()).hasSize(2);
+      assertThat(writer.getStorage().get("exec-001")).hasSize(1);
+      assertThat(writer.getStorage().get("exec-002")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("multiple writes to same execution append")
+    void writeMultiple_sameExecution_appended() {
+      final PluginLogEntry entry1 =
+          new PluginLogEntry(
+              EXECUTION_ID,
+              SESSION_ID,
+              "plugin-1",
+              "Plugin 1",
+              LogStream.STDOUT,
+              "First",
+              LogLevel.INFO,
+              Instant.now());
+      final PluginLogEntry entry2 =
+          new PluginLogEntry(
+              EXECUTION_ID,
+              SESSION_ID,
+              "plugin-2",
+              "Plugin 2",
+              LogStream.STDOUT,
+              "Second",
+              LogLevel.INFO,
+              Instant.now());
+
+      writer.write(entry1).block();
+      writer.write(entry2).block();
+
+      final List<PluginLogEntry> stored = writer.getStorage().get(EXECUTION_ID);
+      assertThat(stored).hasSize(2);
+    }
   }
 
-  @Test
-  void testMultipleExecutions() {
-    final PluginLogEntry entry1 =
-        new PluginLogEntry(
-            "exec-001",
-            "session-456",
-            "plugin-id",
-            "Plugin",
-            LogStream.STDOUT,
-            "Exec 1",
-            LogLevel.INFO,
-            Instant.now());
-    final PluginLogEntry entry2 =
-        new PluginLogEntry(
-            "exec-002",
-            "session-456",
-            "plugin-id",
-            "Plugin",
-            LogStream.STDOUT,
-            "Exec 2",
-            LogLevel.INFO,
-            Instant.now());
+  @Nested
+  @DisplayName("Lifecycle Operations")
+  class LifecycleTests {
 
-    writer.write(entry1).block();
-    writer.write(entry2).block();
+    @Test
+    @DisplayName("close does not throw exception")
+    void close_returnsCompletedMono() {
+      final var closeResult = writer.close();
+      assertThat(closeResult).isNotNull();
+      closeResult.block();
+    }
 
-    assertThat(writer.getStorage()).hasSize(2);
-    assertThat(writer.getStorage().get("exec-001")).hasSize(1);
-    assertThat(writer.getStorage().get("exec-002")).hasSize(1);
-  }
+    @Test
+    @DisplayName("close returns Mono that completes")
+    void close_completesWithoutError() {
+      final PluginLogEntry entry =
+          new PluginLogEntry(
+              EXECUTION_ID,
+              SESSION_ID,
+              "plugin-id",
+              "Plugin",
+              LogStream.STDOUT,
+              "Test message",
+              LogLevel.INFO,
+              Instant.now());
 
-  @Test
-  void testClose() {
-    writer.close().block();
-    // Should complete without error
+      writer.write(entry).block();
+      assertThat(writer.getStorage()).isNotEmpty();
+
+      // Close should complete without error
+      writer.close().block();
+      // Note: close doesn't necessarily clear storage, just performs cleanup
+      assertThat(writer).isNotNull();
+    }
   }
 }

@@ -15,10 +15,9 @@
  */
 package com.infenia.yukta.logging.impl.memory;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.infenia.yukta.logging.api.LogLevel;
 import com.infenia.yukta.logging.api.LogStream;
@@ -26,94 +25,283 @@ import com.infenia.yukta.logging.api.PluginLogEntry;
 import com.infenia.yukta.logging.api.PluginLogStore;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@ExtendWith(MockitoExtension.class)
+/** Tests for LogStoreSubscriber reactive subscription to log flux. */
+@MockitoSettings
+@NoArgsConstructor
+@DisplayName("LogStoreSubscriber")
 class LogStoreSubscriberTest {
 
+  /** Mock task tracker service. */
   @Mock private DefaultTaskTrackerService taskTracker;
+
+  /** Mock log store for persistence. */
   @Mock private PluginLogStore store;
 
+  @Captor private ArgumentCaptor<PluginLogEntry> entryCaptor;
+
+  /** Subject under test. */
   private LogStoreSubscriber subscriber;
 
   @BeforeEach
   void setUp() {
+    when(taskTracker.getLogFlux()).thenReturn(Flux.empty());
     subscriber = new LogStoreSubscriber(store, taskTracker);
   }
 
-  @Test
-  void testSubscriberWritesEntriesNonBlocking() {
-    final PluginLogEntry entry1 =
-        new PluginLogEntry(
-            "exec-1",
-            "session-1",
-            "processor-1",
-            "Processor",
-            LogStream.STDOUT,
-            "Message 1",
-            LogLevel.INFO,
-            Instant.now());
+  @Nested
+  @DisplayName("Initialization and Subscription")
+  class InitializationTests {
 
-    final PluginLogEntry entry2 =
-        new PluginLogEntry(
-            "exec-1",
-            "session-1",
-            "processor-1",
-            "Processor",
-            LogStream.STDOUT,
-            "Message 2",
-            LogLevel.INFO,
-            Instant.now());
+    @Test
+    @DisplayName("init subscribes to log flux and writes entries")
+    void init_subscribesToLogFlux_writesToStore() {
+      final PluginLogEntry entry =
+          new PluginLogEntry(
+              "exec-1",
+              "session-1",
+              "processor-1",
+              "Processor",
+              LogStream.STDOUT,
+              "Message 1",
+              LogLevel.INFO,
+              Instant.now());
 
-    when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry1, entry2));
-    when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
+      when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
+      when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
 
-    subscriber.init();
+      subscriber.init();
 
-    // Allow time for async subscription to complete
-    try {
-      Thread.sleep(200);
-    } catch (final InterruptedException e) {
-      Thread.currentThread().interrupt();
+      try {
+        Thread.sleep(200);
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+
+      verify(store).write(any(PluginLogEntry.class));
+      subscriber.dispose();
     }
 
-    verify(store, times(2)).write(any(PluginLogEntry.class));
+    @Test
+    @DisplayName("init with multiple log events writes all entries")
+    void init_multipleLogEvents_allWritten() {
+      final PluginLogEntry entry1 =
+          new PluginLogEntry(
+              "exec-1",
+              "session-1",
+              "processor-1",
+              "Processor",
+              LogStream.STDOUT,
+              "Message 1",
+              LogLevel.INFO,
+              Instant.now());
 
-    subscriber.dispose();
+      final PluginLogEntry entry2 =
+          new PluginLogEntry(
+              "exec-1",
+              "session-1",
+              "processor-1",
+              "Processor",
+              LogStream.STDOUT,
+              "Message 2",
+              LogLevel.INFO,
+              Instant.now());
+
+      final PluginLogEntry entry3 =
+          new PluginLogEntry(
+              "exec-1",
+              "session-1",
+              "processor-1",
+              "Processor",
+              LogStream.STDERR,
+              "Message 3",
+              LogLevel.ERROR,
+              Instant.now());
+
+      when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry1, entry2, entry3));
+      when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
+
+      subscriber.init();
+
+      try {
+        Thread.sleep(300);
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+
+      verify(store, times(3)).write(any(PluginLogEntry.class));
+      subscriber.dispose();
+    }
   }
 
-  @Test
-  void testSubscriberHandlesWriteErrors() {
-    final PluginLogEntry entry =
-        new PluginLogEntry(
-            "exec-1",
-            "session-1",
-            "processor-1",
-            "Processor",
-            LogStream.STDERR,
-            "Error message",
-            LogLevel.ERROR,
-            Instant.now());
+  @Nested
+  @DisplayName("Error Handling")
+  class ErrorHandlingTests {
 
-    when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
-    when(store.write(any(PluginLogEntry.class)))
-        .thenReturn(Mono.error(new RuntimeException("Store write failed")));
+    @Test
+    @DisplayName("handles write errors gracefully without throwing")
+    void init_writeErrorOccurs_handlesErrorGracefully() {
+      final PluginLogEntry entry =
+          new PluginLogEntry(
+              "exec-1",
+              "session-1",
+              "processor-1",
+              "Processor",
+              LogStream.STDERR,
+              "Error message",
+              LogLevel.ERROR,
+              Instant.now());
 
-    subscriber.init();
+      when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
+      when(store.write(any(PluginLogEntry.class)))
+          .thenReturn(Mono.error(new RuntimeException("Store write failed")));
 
-    // Should not throw, error should be handled gracefully
-    try {
-      Thread.sleep(200);
-    } catch (final InterruptedException e) {
-      Thread.currentThread().interrupt();
+      subscriber.init();
+
+      try {
+        Thread.sleep(200);
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+
+      verify(store).write(any(PluginLogEntry.class));
+      subscriber.dispose();
     }
 
-    subscriber.dispose();
+    @Test
+    @DisplayName("handles multiple errors without terminating subscription")
+    void init_multipleErrors_continuesProcessing() {
+      final PluginLogEntry entry1 =
+          new PluginLogEntry(
+              "exec-1",
+              "session-1",
+              "processor-1",
+              "Processor",
+              LogStream.STDOUT,
+              "Message 1",
+              LogLevel.INFO,
+              Instant.now());
+
+      final PluginLogEntry entry2 =
+          new PluginLogEntry(
+              "exec-1",
+              "session-1",
+              "processor-1",
+              "Processor",
+              LogStream.STDOUT,
+              "Message 2",
+              LogLevel.INFO,
+              Instant.now());
+
+      when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry1, entry2));
+      when(store.write(any(PluginLogEntry.class)))
+          .thenReturn(
+              Mono.error(new RuntimeException("Store write failed")),
+              Mono.error(new RuntimeException("Store write failed")));
+
+      subscriber.init();
+
+      try {
+        Thread.sleep(200);
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+
+      verify(store, times(2)).write(any(PluginLogEntry.class));
+      subscriber.dispose();
+    }
+  }
+
+  @Nested
+  @DisplayName("Cleanup and Disposal")
+  class CleanupTests {
+
+    @Test
+    @DisplayName("dispose does not throw exception")
+    void dispose_withActiveSubscription_disposesSubscription() {
+      final PluginLogEntry entry =
+          new PluginLogEntry(
+              "exec-1",
+              "session-1",
+              "processor-1",
+              "Processor",
+              LogStream.STDOUT,
+              "Message",
+              LogLevel.INFO,
+              Instant.now());
+
+      when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
+      when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
+
+      subscriber.init();
+
+      try {
+        Thread.sleep(100);
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+
+      // Should not throw
+      subscriber.dispose();
+      assertThat(subscriber).isNotNull();
+    }
+  }
+
+  @Nested
+  @DisplayName("Entry Capture and Verification")
+  class EntryCapturingTests {
+
+    @Test
+    @DisplayName("captures and verifies entry details")
+    void init_capturesEntryDetails_verifiesContent() {
+      final Instant now = Instant.now();
+      final PluginLogEntry entry =
+          new PluginLogEntry(
+              "exec-123",
+              "session-456",
+              "plugin-789",
+              "MyPlugin",
+              LogStream.STDOUT,
+              "Test log message",
+              LogLevel.INFO,
+              now);
+
+      when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
+      when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
+
+      subscriber.init();
+
+      try {
+        Thread.sleep(200);
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+
+      verify(store).write(entryCaptor.capture());
+      final PluginLogEntry captured = entryCaptor.getValue();
+      assertThat(captured.executionId()).isEqualTo("exec-123");
+      assertThat(captured.sessionId()).isEqualTo("session-456");
+      assertThat(captured.pluginId()).isEqualTo("plugin-789");
+      assertThat(captured.pluginName()).isEqualTo("MyPlugin");
+      assertThat(captured.stream()).isEqualTo(LogStream.STDOUT);
+      assertThat(captured.message()).isEqualTo("Test log message");
+      assertThat(captured.logLevel()).isEqualTo(LogLevel.INFO);
+      assertThat(captured.timestamp()).isEqualTo(now);
+
+      subscriber.dispose();
+    }
   }
 }
