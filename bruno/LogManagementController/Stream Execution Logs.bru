@@ -16,7 +16,7 @@ params:path {
 }
 
 headers {
-  Accept: application/stream+json
+  Accept: text/event-stream
 }
 
 script:post-response {
@@ -29,11 +29,11 @@ tests {
   test("Stream execution logs - 200 OK", function() {
     expect(res.status).to.equal(200);
   });
-
+  
   test("Response is array of log entries", function() {
     expect(res.body).to.be.an('array');
   });
-
+  
   test("Log entries have required fields", function() {
     if (res.body.length > 0) {
       const entry = res.body[0];
