@@ -37,7 +37,7 @@ class InMemoryPluginLogReaderTest {
   @BeforeEach
   void setUp() {
     storage = new ConcurrentHashMap<>();
-    reader = new InMemoryPluginLogReader((ConcurrentHashMap<String, List<PluginLogEntry>>) storage);
+    reader = new InMemoryPluginLogReader(storage);
   }
 
   private void addEntry(

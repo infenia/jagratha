@@ -113,7 +113,7 @@ class FileSystemPluginLogWriterTest {
   }
 
   @Test
-  void testMultipleExecutions() throws IOException {
+  void testMultipleExecutions() {
     final PluginLogEntry entry1 =
         new PluginLogEntry(
             "exec-001",

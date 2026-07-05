@@ -88,31 +88,30 @@ public class StreamTopologyDecorator {
     final String[] lines = line.split("\n", -1);
     final StringBuilder currentChunk = new StringBuilder();
 
-    for (int i = 0; i < lines.length; i++) {
-      final String currentLine = lines[i];
-      final int potentialSize =
-          currentChunk.length() + (currentChunk.length() > 0 ? 1 : 0) + currentLine.length();
+      for (final String currentLine : lines) {
+          final int potentialSize =
+                  currentChunk.length() + (!currentChunk.isEmpty() ? 1:0) + currentLine.length();
 
-      if (potentialSize <= MAX_LOG_LINE_SIZE) {
-        if (currentChunk.length() > 0) {
-          currentChunk.append("\n");
-        }
-        currentChunk.append(currentLine);
-      } else {
-        if (currentChunk.length() > 0) {
-          chunks.add(currentChunk.toString());
-          currentChunk.setLength(0);
-        }
-        // Handle individual lines that exceed MAX_LOG_LINE_SIZE
-        if (currentLine.length() > MAX_LOG_LINE_SIZE) {
-          splitLongLine(currentLine, chunks);
-        } else {
-          currentChunk.append(currentLine);
-        }
+          if (potentialSize <= MAX_LOG_LINE_SIZE) {
+              if (!currentChunk.isEmpty()) {
+                  currentChunk.append("\n");
+              }
+              currentChunk.append(currentLine);
+          } else {
+              if (!currentChunk.isEmpty()) {
+                  chunks.add(currentChunk.toString());
+                  currentChunk.setLength(0);
+              }
+              // Handle individual lines that exceed MAX_LOG_LINE_SIZE
+              if (currentLine.length() > MAX_LOG_LINE_SIZE) {
+                  splitLongLine(currentLine, chunks);
+              } else {
+                  currentChunk.append(currentLine);
+              }
+          }
       }
-    }
 
-    if (currentChunk.length() > 0) {
+    if (!currentChunk.isEmpty()) {
       chunks.add(currentChunk.toString());
     }
 
