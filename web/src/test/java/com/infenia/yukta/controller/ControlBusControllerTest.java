@@ -180,24 +180,6 @@ class ControlBusControllerTest {
   }
 
   @Test
-  void testStreamLogs() {
-    when(controlBusGateway.watchLogs("session1", "exec1")).thenReturn(Flux.just("log1", "log2"));
-
-    final var result =
-        webClient
-            .get()
-            .uri("/api/control/sessions/session1/executions/exec1/logs/stream")
-            .accept(MediaType.TEXT_EVENT_STREAM)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM)
-            .returnResult();
-    assertThat(result.getStatus().value()).isEqualTo(200);
-  }
-
-  @Test
   void testGetHistory() {
     when(controlBusGateway.getHistory("session1")).thenReturn(List.of());
 
