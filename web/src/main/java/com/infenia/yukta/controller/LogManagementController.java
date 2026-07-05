@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * REST controller for execution log streaming.
@@ -53,16 +54,18 @@ public class LogManagementController {
    * Stream execution logs with history.
    *
    * <p>Streams historical log entries first (if available), then continues with live updates.
+   * Automatically stops streaming when execution reaches a terminal state (completed/failed/cancelled/stopped).
    *
    * @param sessionId the session identifier
    * @param executionId the execution identifier
-   * @return flux of log lines with history-then-live ordering
+   * @return flux of log lines with history-then-live ordering that completes on execution end
    */
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   @Operation(
       summary = "Stream execution logs with history",
       description =
-          "Streams historical log entries first (if available), then continues with live updates")
+          "Streams historical log entries first (if available), then continues with live updates."
+              + " Stops when execution reaches a terminal state.")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "200",
       description = "Stream of log lines with history-then-live ordering")
@@ -75,33 +78,89 @@ public class LogManagementController {
         .addKeyValue("executionId", executionId)
         .log("Streaming execution logs");
 
-    // Phase 1: Emit historical logs from store
-    final Flux<String> historicalLogs =
-        logStore
-            .readExecution(executionId)
-            .map(PluginLogEntry::format)
-            .doOnNext(
-                    _ ->
-                    log.atDebug()
-                        .addKeyValue("executionId", executionId)
-                        .log("Emitting historical log entry"))
-            .doOnComplete(
-                () ->
-                    log.atDebug()
-                        .addKeyValue("executionId", executionId)
-                        .log("Historical logs complete"));
+    return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
+        .flatMapMany(
+            progress -> {
+              if (progress == null) {
+                log.atWarn()
+                    .addKeyValue("executionId", executionId)
+                    .log("Execution not found");
+                return Flux.empty();
+              }
 
-    // Phase 2: Emit live logs from control bus
-    final Flux<String> liveLogs =
-        controlBus
-            .watchLogs(sessionId, executionId)
-            .doOnNext(
-                    _ ->
-                    log.atTrace()
-                        .addKeyValue("executionId", executionId)
-                        .log("Emitting live log entry"));
+              final boolean isTerminal = isExecutionTerminal(progress.status());
 
-    // Concatenate: history first, then live
-    return historicalLogs.concatWith(liveLogs);
+              if (isTerminal) {
+                log.atDebug()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("status", progress.status())
+                    .log("Execution already terminated, streaming historical logs only");
+                return logStore
+                    .readExecution(executionId)
+                    .map(PluginLogEntry::format)
+                    .doOnNext(
+                        _ ->
+                            log.atDebug()
+                                .addKeyValue("executionId", executionId)
+                                .log("Emitting historical log entry"))
+                    .doOnComplete(
+                        () ->
+                            log.atDebug()
+                                .addKeyValue("executionId", executionId)
+                                .log("Historical logs complete"));
+              }
+
+              log.atDebug()
+                  .addKeyValue("executionId", executionId)
+                  .addKeyValue("status", progress.status())
+                  .log("Execution in progress, streaming history then live logs");
+
+              final Flux<String> historicalLogs =
+                  logStore
+                      .readExecution(executionId)
+                      .map(PluginLogEntry::format)
+                      .doOnNext(
+                          _ ->
+                              log.atDebug()
+                                  .addKeyValue("executionId", executionId)
+                                  .log("Emitting historical log entry"))
+                      .doOnComplete(
+                          () ->
+                              log.atDebug()
+                                  .addKeyValue("executionId", executionId)
+                                  .log("Historical logs complete"));
+
+              final Flux<String> liveLogs =
+                  controlBus
+                      .watchLogs(sessionId, executionId)
+                      .doOnNext(
+                          _ ->
+                              log.atTrace()
+                                  .addKeyValue("executionId", executionId)
+                                  .log("Emitting live log entry"))
+                      .takeUntilOther(
+                          controlBus
+                              .watchExecution(executionId)
+                              .doOnComplete(
+                                  () ->
+                                      log.atDebug()
+                                          .addKeyValue("executionId", executionId)
+                                          .log("Execution reached terminal state, terminating logs"))
+                              .ignoreElements());
+
+              return historicalLogs.concatWith(liveLogs);
+            })
+        .doOnComplete(
+            () ->
+                log.atInfo()
+                    .addKeyValue("executionId", executionId)
+                    .log("Log stream completed"));
+  }
+
+  private boolean isExecutionTerminal(final String status) {
+    return "COMPLETED".equals(status)
+        || "FAILED".equals(status)
+        || "CANCELLED".equals(status)
+        || "WORKFLOW_STOPPED".equals(status);
   }
 }
