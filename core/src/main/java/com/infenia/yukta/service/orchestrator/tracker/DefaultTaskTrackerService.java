@@ -683,7 +683,18 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
 
     return statusFlux
         .doOnNext(progress -> statusHistoryCache.put(executionId, progress))
-        .takeUntil(this::isWorkflowTerminal)
+        .filter(
+            progress -> {
+              final boolean isTerminal = isWorkflowTerminal(progress);
+              if (isTerminal) {
+                log.atDebug()
+                    .addKeyValue("executionId", executionId)
+                    .addKeyValue("status", progress.status())
+                    .log("Workflow terminal status detected, terminating stream");
+              }
+              return isTerminal;
+            })
+        .take(1)
         .doOnComplete(
             () ->
                 log.atInfo()
