@@ -16,6 +16,7 @@
 package com.infenia.yukta.service.orchestrator.preparator;
 
 import com.infenia.yukta.model.workflow.WorkflowNode;
+// CHECKSTYLE.SUPPRESS: AvoidStarImport for 1 lines
 import java.util.*;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @NoArgsConstructor
-@SuppressWarnings("PMD.AvoidDuplicateLiterals")
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "checkstyle:AvoidStarImport"})
 public class TopologicalSortService {
 
   /**
