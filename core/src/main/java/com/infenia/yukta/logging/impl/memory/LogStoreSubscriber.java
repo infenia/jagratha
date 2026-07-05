@@ -73,7 +73,7 @@ public class LogStoreSubscriber {
     log.info("Log store subscriber initialized");
   }
 
-  /* Dispose of the subscription when component is destroyed. */
+  /** Dispose of the subscription when component is destroyed. */
   @PreDestroy
   public void dispose() {
     if (subscription != null && !subscription.isDisposed()) {
