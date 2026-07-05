@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.controller;
 
+import com.infenia.yukta.logging.api.PluginLogEntry;
 import com.infenia.yukta.logging.api.PluginLogStore;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import io.swagger.v3.oas.annotations.Operation;
@@ -75,12 +76,12 @@ public class LogManagementController {
         .log("Streaming execution logs");
 
     // Phase 1: Emit historical logs from store
-    Flux<String> historicalLogs =
+    final Flux<String> historicalLogs =
         logStore
             .readExecution(executionId)
-            .map(entry -> entry.format())
+            .map(PluginLogEntry::format)
             .doOnNext(
-                logLine ->
+                    _ ->
                     log.atDebug()
                         .addKeyValue("executionId", executionId)
                         .log("Emitting historical log entry"))
@@ -91,11 +92,11 @@ public class LogManagementController {
                         .log("Historical logs complete"));
 
     // Phase 2: Emit live logs from control bus
-    Flux<String> liveLogs =
+    final Flux<String> liveLogs =
         controlBus
             .watchLogs(sessionId, executionId)
             .doOnNext(
-                logLine ->
+                    _ ->
                     log.atTrace()
                         .addKeyValue("executionId", executionId)
                         .log("Emitting live log entry"));
