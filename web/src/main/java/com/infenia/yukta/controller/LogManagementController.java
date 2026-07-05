@@ -15,6 +15,7 @@
  */
 package com.infenia.yukta.controller;
 
+import com.infenia.yukta.logging.api.PluginLogStore;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,27 +45,62 @@ public class LogManagementController {
   /** The control bus gateway for log streaming. */
   private final ControlBusGateway controlBus;
 
+  /** The plugin log store for historical log retrieval. */
+  private final PluginLogStore logStore;
+
   /**
-   * Stream logs for a specific execution.
+   * Stream execution logs with history.
+   *
+   * <p>Streams historical log entries first (if available), then continues with live updates.
    *
    * @param sessionId the session identifier
    * @param executionId the execution identifier
-   * @return flux of log lines in chronological order
+   * @return flux of log lines with history-then-live ordering
    */
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   @Operation(
-      summary = "Stream execution logs",
-      description = "Streams log lines for a specific execution in real-time")
+      summary = "Stream execution logs with history",
+      description =
+          "Streams historical log entries first (if available), then continues with live updates")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = "200",
-      description = "Stream of log lines")
+      description = "Stream of log lines with history-then-live ordering")
   public Flux<String> streamExecutionLogs(
       @Parameter(description = "Session identifier") @PathVariable final String sessionId,
       @Parameter(description = "Execution identifier") @PathVariable final String executionId) {
+
     log.atInfo()
         .addKeyValue("sessionId", sessionId)
         .addKeyValue("executionId", executionId)
         .log("Streaming execution logs");
-    return controlBus.watchLogs(sessionId, executionId);
+
+    // Phase 1: Emit historical logs from store
+    Flux<String> historicalLogs =
+        logStore
+            .readExecution(executionId)
+            .map(entry -> entry.format())
+            .doOnNext(
+                logLine ->
+                    log.atDebug()
+                        .addKeyValue("executionId", executionId)
+                        .log("Emitting historical log entry"))
+            .doOnComplete(
+                () ->
+                    log.atDebug()
+                        .addKeyValue("executionId", executionId)
+                        .log("Historical logs complete"));
+
+    // Phase 2: Emit live logs from control bus
+    Flux<String> liveLogs =
+        controlBus
+            .watchLogs(sessionId, executionId)
+            .doOnNext(
+                logLine ->
+                    log.atTrace()
+                        .addKeyValue("executionId", executionId)
+                        .log("Emitting live log entry"));
+
+    // Concatenate: history first, then live
+    return historicalLogs.concatWith(liveLogs);
   }
 }
