@@ -37,8 +37,13 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 public class LogStoreSubscriber {
 
+  /** The log storage backend. */
   private final PluginLogStore store;
+
+  /** The source of log events. */
   private final DefaultTaskTrackerService taskTracker;
+
+  /** The subscription to the log event stream. */
   private Disposable subscription;
 
   /**
@@ -58,10 +63,10 @@ public class LogStoreSubscriber {
                         .write(entry)
                         .onErrorResume(
                             error -> {
-                              log.warn(
-                                  "Failed to write log entry for execution {}: {}",
-                                  entry.executionId(),
-                                  error.getMessage());
+                              log.atWarn()
+                                  .addKeyValue("executionId", entry.executionId())
+                                  .addKeyValue("error", error.getMessage())
+                                  .log("Failed to write log entry");
                               return reactor.core.publisher.Mono.empty();
                             }))
             .subscribeOn(Schedulers.boundedElastic())
