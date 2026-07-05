@@ -18,6 +18,9 @@ package com.infenia.yukta.service.orchestrator.tracker;
 import com.infenia.yukta.event.TaskStatusEvent;
 import com.infenia.yukta.event.WorkflowLogEvent;
 import com.infenia.yukta.event.WorkflowStatusEvent;
+import com.infenia.yukta.logging.api.LogLevel;
+import com.infenia.yukta.logging.api.LogStream;
+import com.infenia.yukta.logging.api.PluginLogEntry;
 import com.infenia.yukta.model.execution.TaskProgress;
 import com.infenia.yukta.model.execution.TaskStatus;
 import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
@@ -446,6 +449,38 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
   public Flux<String> getLogStream(@NotBlank final String executionId) {
     final Sinks.Many<String> sink = logSinks.get(executionId);
     return sink != null ? sink.asFlux() : Flux.empty();
+  }
+
+  /**
+   * Get a Flux of all log entries across all executions.
+   *
+   * <p>Converts WorkflowLogEvent to PluginLogEntry with available context. Missing fields
+   * (pluginId, pluginName, stream, logLevel) are populated with defaults or derived values.
+   *
+   * @return flux of plugin log entries
+   */
+  public Flux<PluginLogEntry> getLogFlux() {
+    return logSink
+        .asFlux()
+        .map(
+            event -> {
+              final WorkflowState state = findState(event.executionId());
+              final String sessionId = state != null ? state.sessionId : "unknown";
+              final String module =
+                  state != null && state.taskMap.get(event.nodeId()) != null
+                      ? state.taskMap.get(event.nodeId()).module()
+                      : "unknown";
+
+              return new PluginLogEntry(
+                  event.executionId(),
+                  sessionId,
+                  event.nodeId(), // Use nodeId as pluginId
+                  module, // Use module as pluginName
+                  LogStream.STDOUT, // Default to STDOUT
+                  event.line(),
+                  LogLevel.INFO, // Default to INFO
+                  event.timestamp().atZone(ZoneId.systemDefault()).toInstant());
+            });
   }
 
   /**
