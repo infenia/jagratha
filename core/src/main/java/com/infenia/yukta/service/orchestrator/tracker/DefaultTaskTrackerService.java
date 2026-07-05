@@ -683,7 +683,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
 
     return statusFlux
         .doOnNext(progress -> statusHistoryCache.put(executionId, progress))
-        .filter(
+        .takeUntil(
             progress -> {
               final boolean isTerminal = isWorkflowTerminal(progress);
               if (isTerminal) {
@@ -694,7 +694,6 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
               }
               return isTerminal;
             })
-        .take(1)
         .doOnComplete(
             () ->
                 log.atInfo()
@@ -726,10 +725,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
     final String status = progress.status();
     final LocalDateTime endTime = progress.endTime();
 
-    final Set<String> terminalStatuses =
-        Set.of("COMPLETED", "FAILED", "CANCELLED", "WORKFLOW_STOPPED");
-
-    final boolean isTerminalStatus = terminalStatuses.contains(status);
+    final boolean isTerminalStatus = isTerminal(status);
     final boolean hasEndTime = endTime != null;
 
     if (isTerminalStatus && hasEndTime) {
