@@ -54,7 +54,8 @@ public class LogManagementController {
    * Stream execution logs with history.
    *
    * <p>Streams historical log entries first (if available), then continues with live updates.
-   * Automatically stops streaming when execution reaches a terminal state (completed/failed/cancelled/stopped).
+   * Automatically stops streaming when execution reaches a terminal state
+   * (completed/failed/cancelled/stopped).
    *
    * @param sessionId the session identifier
    * @param executionId the execution identifier
@@ -81,13 +82,6 @@ public class LogManagementController {
     return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
         .flatMapMany(
             progress -> {
-              if (progress == null) {
-                log.atWarn()
-                    .addKeyValue("executionId", executionId)
-                    .log("Execution not found");
-                return Flux.empty();
-              }
-
               final boolean isTerminal = isExecutionTerminal(progress.status());
 
               if (isTerminal) {
@@ -130,6 +124,23 @@ public class LogManagementController {
                                   .addKeyValue("executionId", executionId)
                                   .log("Historical logs complete"));
 
+              final var executionTermination =
+                  controlBus
+                      .watchExecution(executionId)
+                      .filter(
+                          p -> {
+                            final boolean isTerminalState =
+                                isExecutionTerminal(p.status()) && p.endTime() != null;
+                            if (isTerminalState) {
+                              log.atDebug()
+                                  .addKeyValue("executionId", executionId)
+                                  .addKeyValue("status", p.status())
+                                  .log("Execution reached terminal state");
+                            }
+                            return isTerminalState;
+                          })
+                      .ignoreElements();
+
               final Flux<String> liveLogs =
                   controlBus
                       .watchLogs(sessionId, executionId)
@@ -138,23 +149,12 @@ public class LogManagementController {
                               log.atTrace()
                                   .addKeyValue("executionId", executionId)
                                   .log("Emitting live log entry"))
-                      .takeUntilOther(
-                          controlBus
-                              .watchExecution(executionId)
-                              .doOnComplete(
-                                  () ->
-                                      log.atDebug()
-                                          .addKeyValue("executionId", executionId)
-                                          .log("Execution reached terminal state, terminating logs"))
-                              .ignoreElements());
+                      .takeUntilOther(executionTermination);
 
               return historicalLogs.concatWith(liveLogs);
             })
         .doOnComplete(
-            () ->
-                log.atInfo()
-                    .addKeyValue("executionId", executionId)
-                    .log("Log stream completed"));
+            () -> log.atInfo().addKeyValue("executionId", executionId).log("Log stream completed"));
   }
 
   private boolean isExecutionTerminal(final String status) {
