@@ -72,8 +72,9 @@ public class StreamTopologyDecorator {
   /**
    * Split a log line into chunks if it exceeds MAX_LOG_LINE_SIZE.
    *
-   * <p>Preserves all log data by splitting into multiple lines at newline boundaries. Each chunk
-   * becomes a separate log entry to avoid data loss from truncation.
+   * <p>Preserves all log data by splitting at newline boundaries first, then splitting individual
+   * lines that exceed MAX_LOG_LINE_SIZE character-by-character. Each chunk becomes a separate log
+   * entry to avoid validation failures from oversized lines.
    *
    * @param line the log line to split
    * @return array of log chunks, each <= MAX_LOG_LINE_SIZE
@@ -100,9 +101,14 @@ public class StreamTopologyDecorator {
       } else {
         if (currentChunk.length() > 0) {
           chunks.add(currentChunk.toString());
+          currentChunk.setLength(0);
         }
-        currentChunk.setLength(0);
-        currentChunk.append(currentLine);
+        // Handle individual lines that exceed MAX_LOG_LINE_SIZE
+        if (currentLine.length() > MAX_LOG_LINE_SIZE) {
+          splitLongLine(currentLine, chunks);
+        } else {
+          currentChunk.append(currentLine);
+        }
       }
     }
 
@@ -111,6 +117,21 @@ public class StreamTopologyDecorator {
     }
 
     return chunks.toArray(new String[0]);
+  }
+
+  /**
+   * Split a single line that exceeds MAX_LOG_LINE_SIZE into character-bounded chunks.
+   *
+   * @param line the line to split
+   * @param chunks the list to append chunks to
+   */
+  private static void splitLongLine(final String line, final List<String> chunks) {
+    int offset = 0;
+    while (offset < line.length()) {
+      final int endOffset = Math.min(offset + MAX_LOG_LINE_SIZE, line.length());
+      chunks.add(line.substring(offset, endOffset));
+      offset = endOffset;
+    }
   }
 
   /**
