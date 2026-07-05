@@ -15,42 +15,30 @@
  */
 package com.infenia.yukta.logging.api;
 
-import jakarta.annotation.Nullable;
-import java.time.LocalDateTime;
-import java.util.Map;
+import java.time.Instant;
 
 /**
- * Represents a single plugin log entry with execution context and stream information.
+ * Immutable log entry for plugin execution logs.
  *
- * @param executionId unique execution identifier
- * @param sessionId session identifier
- * @param nodeId the node identifier (used to resolve pluginId)
- * @param pluginId the plugin type/identifier
- * @param pluginName the plugin display name
- * @param stream the output stream type
- * @param message the log message
- * @param timestamp when the log was recorded
- * @param metadata additional context metadata
+ * <p>Captures a single log message with full execution context and metadata.
  */
 public record PluginLogEntry(
     String executionId,
     String sessionId,
-    String nodeId,
     String pluginId,
-    @Nullable String pluginName,
+    String pluginName,
     LogStream stream,
     String message,
-    LocalDateTime timestamp,
-    Map<String, Object> metadata) {
+    LogLevel logLevel,
+    Instant timestamp) {
 
-  /** Compact constructor to ensure metadata is immutable and validate required fields. */
-  public PluginLogEntry {
-    if (executionId == null) {
-      throw new IllegalArgumentException("executionId cannot be null");
-    }
-    if (pluginId == null) {
-      throw new IllegalArgumentException("pluginId cannot be null");
-    }
-    metadata = metadata != null ? Map.copyOf(metadata) : Map.of();
+  /**
+   * Format this log entry as a human-readable string.
+   *
+   * @return formatted log line
+   */
+  public String format() {
+    return String.format(
+        "[%s] [%s] [%s/%s] %s: %s", timestamp, logLevel, pluginId, pluginName, stream, message);
   }
 }

@@ -16,17 +16,20 @@
 package com.infenia.yukta.logging.api;
 
 /**
- * Enumeration of log stream types.
+ * Enumeration of log levels.
  *
- * <p>Categorizes log output by source/type for filtering and presentation.
+ * <p>Standard severity levels for categorizing log messages.
  */
-public enum LogStream {
-  /** Standard output stream. */
-  STDOUT,
+public enum LogLevel {
+  /** Debug level - detailed diagnostic information. */
+  DEBUG,
 
-  /** Standard error stream. */
-  STDERR,
+  /** Info level - general informational messages. */
+  INFO,
 
-  /** Custom application-specific stream. */
-  CUSTOM
+  /** Warn level - warning messages for potentially problematic situations. */
+  WARN,
+
+  /** Error level - error messages for failures. */
+  ERROR
 }
