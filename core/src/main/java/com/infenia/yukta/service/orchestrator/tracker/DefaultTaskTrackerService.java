@@ -627,7 +627,9 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
     if (sink != null) {
       final WorkflowState state = findState(executionId);
       if (state != null) {
-        sink.tryEmitNext(getProgress(state.sessionId, executionId));
+        final WorkflowProgress progress = getProgress(state.sessionId, executionId);
+        statusHistoryCache.put(executionId, progress);
+        sink.emitNext(progress, RETRY_HANDLER);
       }
     }
   }
@@ -682,7 +684,6 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
     }
 
     return statusFlux
-        .doOnNext(progress -> statusHistoryCache.put(executionId, progress))
         .takeUntil(
             progress -> {
               final boolean isTerminal = isWorkflowTerminal(progress);
