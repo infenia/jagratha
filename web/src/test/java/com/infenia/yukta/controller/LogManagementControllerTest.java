@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.logging.api.PluginLogStore;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,10 +45,15 @@ class LogManagementControllerTest {
   /** Mock control bus gateway for testing. */
   private ControlBusGateway mockControlBus;
 
+  /** Mock plugin log store for testing. */
+  private PluginLogStore mockLogStore;
+
   @BeforeEach
   void setUp() {
     mockControlBus = mock(ControlBusGateway.class);
-    final LogManagementController controller = new LogManagementController(mockControlBus);
+    mockLogStore = mock(PluginLogStore.class);
+    final LogManagementController controller =
+        new LogManagementController(mockControlBus, mockLogStore);
     webClient = WebTestClient.bindToController(controller).build();
   }
 
