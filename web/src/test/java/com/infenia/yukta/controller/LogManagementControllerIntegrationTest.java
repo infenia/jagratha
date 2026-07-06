@@ -87,7 +87,9 @@ class LogManagementControllerIntegrationTest {
             LogStream.STDOUT,
             "Historical line 1",
             LogLevel.INFO,
-            now.minusSeconds(10));
+            now.minusSeconds(10),
+            null,
+            null);
 
     final PluginLogEntry historical2 =
         new PluginLogEntry(
@@ -98,7 +100,9 @@ class LogManagementControllerIntegrationTest {
             LogStream.STDOUT,
             "Historical line 2",
             LogLevel.INFO,
-            now.minusSeconds(5));
+            now.minusSeconds(5),
+            null,
+            null);
 
     when(mockLogStore.readExecution(executionId)).thenReturn(Flux.just(historical1, historical2));
 

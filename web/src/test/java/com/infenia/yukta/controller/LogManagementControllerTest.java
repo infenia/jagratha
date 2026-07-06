@@ -80,7 +80,9 @@ class LogManagementControllerTest {
         LogStream.STDOUT,
         message,
         LogLevel.INFO,
-        Instant.now());
+        Instant.now(),
+        null,
+        null);
   }
 
   @Test
