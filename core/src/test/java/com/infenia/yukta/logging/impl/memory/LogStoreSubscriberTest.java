@@ -492,7 +492,9 @@ class LogStoreSubscriberTest {
     @Test
     @DisplayName("buildAndSubscribe handles subscription lifecycle")
     void buildAndSubscribe_managesSubscriptionLifecycle() {
-      when(taskTracker.getLogFlux()).thenReturn(Flux.empty());
+      // Flux.never() keeps the subscription alive so isDisposed() can be deterministically
+      // asserted false before dispose(), instead of racing an async-completing flux.
+      when(taskTracker.getLogFlux()).thenReturn(Flux.never());
 
       final Disposable disposable = subscriber.buildAndSubscribe();
 
