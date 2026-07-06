@@ -36,7 +36,12 @@ import reactor.core.publisher.Mono;
 
 /** Tests for {@link DefaultPluginLogger}. */
 @NoArgsConstructor
-@SuppressWarnings({"PMD.TooManyMethods", "PMD.AvoidAccessibilityAlteration", "PMD.LawOfDemeter"})
+@SuppressWarnings({
+  "PMD.TooManyMethods",
+  "PMD.AvoidAccessibilityAlteration",
+  "PMD.LawOfDemeter",
+  "PMD.UseConcurrentHashMap"
+})
 class DefaultPluginLoggerTest {
 
   /** Execution ID for testing. */
@@ -59,6 +64,15 @@ class DefaultPluginLoggerTest {
 
   /** Docker plugin name for testing. */
   private static final String DOCKER_PLUGIN_NAME = "Docker Plugin";
+
+  /** Custom message literal for testing. */
+  private static final String CUSTOM_MESSAGE = "Custom message";
+
+  /** Test plugin ID for testing. */
+  private static final String TEST_PLUGIN = "test-plugin";
+
+  /** Test plugin name for testing. */
+  private static final String TEST_PLUGIN_NAME = "Test Plugin";
 
   /** Mock PluginLogWriter for test verification. */
   private PluginLogWriter mockWriter;
@@ -113,7 +127,7 @@ class DefaultPluginLoggerTest {
 
   @Test
   void testLogCustom() {
-    logger.logCustom(DOCKER_BUILD, "Custom message").block();
+    logger.logCustom(DOCKER_BUILD, CUSTOM_MESSAGE).block();
 
     verify(mockWriter).write(any(PluginLogEntry.class));
   }
@@ -133,7 +147,7 @@ class DefaultPluginLoggerTest {
   void testLogCustomWithMetadata() {
     final Map<String, Object> metadata = Map.of("key", "value");
 
-    logger.logCustom("custom-stream", "Custom message", metadata).block();
+    logger.logCustom("custom-stream", CUSTOM_MESSAGE, metadata).block();
 
     verify(mockWriter).write(any(PluginLogEntry.class));
   }
@@ -323,5 +337,152 @@ class DefaultPluginLoggerTest {
         .contains("STDOUT")
         .contains("Simple message")
         .doesNotContain("{");
+  }
+
+  @Test
+  void pluginLogEntry_format_customStreamWithNullCustomStreamName() {
+    final Instant timestamp = Instant.parse("2026-07-07T11:05:00Z");
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            EXEC_ID,
+            SESSION_ID,
+            TEST_PLUGIN,
+            TEST_PLUGIN_NAME,
+            LogStream.CUSTOM,
+            CUSTOM_MESSAGE,
+            LogLevel.INFO,
+            timestamp,
+            null,
+            null);
+
+    final String formatted = entry.format();
+
+    Assertions.assertThat(formatted)
+        .contains("2026-07-07T11:05:00Z")
+        .contains("INFO")
+        .contains(TEST_PLUGIN)
+        .contains(TEST_PLUGIN_NAME)
+        .contains("CUSTOM")
+        .contains(CUSTOM_MESSAGE);
+  }
+
+  @Test
+  void pluginLogEntry_format_stderrWithEmptyMetadata() {
+    final Instant timestamp = Instant.parse("2026-07-07T11:10:00Z");
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            EXEC_ID,
+            SESSION_ID,
+            "error-plugin",
+            "Error Plugin",
+            LogStream.STDERR,
+            "Error occurred",
+            LogLevel.ERROR,
+            timestamp,
+            null,
+            Map.of());
+
+    final String formatted = entry.format();
+
+    Assertions.assertThat(formatted)
+        .contains("2026-07-07T11:10:00Z")
+        .contains("ERROR")
+        .contains("error-plugin")
+        .contains("Error Plugin")
+        .contains("STDERR")
+        .contains("Error occurred")
+        .doesNotContain("{");
+  }
+
+  @Test
+  void testClose_withError() {
+    final RuntimeException testException = new RuntimeException("Test error");
+    when(mockWriter.close()).thenReturn(Mono.error(testException));
+
+    Assertions.assertThatThrownBy(() -> logger.close().block())
+        .isInstanceOf(RuntimeException.class)
+        .hasMessage("Test error");
+  }
+
+  @Test
+  void testLogStderr_capturesLogLevel() {
+    final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
+
+    logger.logStderr("Error message").block();
+
+    verify(mockWriter).write(captor.capture());
+    final PluginLogEntry capturedEntry = captor.getValue();
+    Assertions.assertThat(capturedEntry.logLevel()).isEqualTo(LogLevel.ERROR);
+  }
+
+  @Test
+  void testLogStdout_capturesLogLevel() {
+    final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
+
+    logger.logStdout("Info message").block();
+
+    verify(mockWriter).write(captor.capture());
+    final PluginLogEntry capturedEntry = captor.getValue();
+    Assertions.assertThat(capturedEntry.logLevel()).isEqualTo(LogLevel.INFO);
+  }
+
+  @Test
+  void testLogCustom_capturesStreamAndLogLevel() {
+    final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
+
+    logger.logCustom("custom-stream", "Custom message").block();
+
+    verify(mockWriter).write(captor.capture());
+    final PluginLogEntry capturedEntry = captor.getValue();
+    Assertions.assertThat(capturedEntry.stream()).isEqualTo(LogStream.CUSTOM);
+    Assertions.assertThat(capturedEntry.logLevel()).isEqualTo(LogLevel.INFO);
+  }
+
+  @Test
+  void testLogStderr_capturesStreamType() {
+    final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
+
+    logger.logStderr("Error").block();
+
+    verify(mockWriter).write(captor.capture());
+    final PluginLogEntry capturedEntry = captor.getValue();
+    Assertions.assertThat(capturedEntry.stream()).isEqualTo(LogStream.STDERR);
+  }
+
+  @Test
+  void testLogStdout_capturesStreamType() {
+    final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
+
+    logger.logStdout("Output").block();
+
+    verify(mockWriter).write(captor.capture());
+    final PluginLogEntry capturedEntry = captor.getValue();
+    Assertions.assertThat(capturedEntry.stream()).isEqualTo(LogStream.STDOUT);
+  }
+
+  @Test
+  void pluginLogEntry_defensiveCopyMetadata() {
+    final Map<String, Object> originalMetadata = Map.of("key1", "value1");
+    final Map<String, Object> mutableMetadata = new java.util.LinkedHashMap<>(originalMetadata);
+
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            EXEC_ID,
+            SESSION_ID,
+            TEST_PLUGIN,
+            TEST_PLUGIN_NAME,
+            LogStream.STDOUT,
+            "Message",
+            LogLevel.INFO,
+            Instant.now(),
+            null,
+            mutableMetadata);
+
+    mutableMetadata.put("key2", "value2");
+
+    Assertions.assertThat(entry.metadata())
+        .hasSize(1)
+        .containsEntry("key1", "value1")
+        .doesNotContainKey("key2");
   }
 }
