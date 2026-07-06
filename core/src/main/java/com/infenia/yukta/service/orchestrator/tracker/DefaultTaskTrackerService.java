@@ -506,7 +506,9 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
                   LogStream.STDOUT, // Default to STDOUT
                   event.line(),
                   LogLevel.INFO, // Default to INFO
-                  event.timestamp().atZone(ZoneId.systemDefault()).toInstant());
+                  event.timestamp().atZone(ZoneId.systemDefault()).toInstant(),
+                  null,
+                  null);
             });
   }
 

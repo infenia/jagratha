@@ -80,7 +80,9 @@ class InMemoryPluginLogStoreTest {
             LogStream.STDOUT,
             "Processing started",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     store.write(entry).block();
 
@@ -106,7 +108,9 @@ class InMemoryPluginLogStoreTest {
             LogStream.STDOUT,
             "Line 1",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
     final PluginLogEntry entry2 =
         new PluginLogEntry(
             executionId,
@@ -116,7 +120,9 @@ class InMemoryPluginLogStoreTest {
             LogStream.STDOUT,
             "Line 2",
             LogLevel.WARN,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     store.write(entry1).then(store.write(entry2)).block();
 
@@ -149,7 +155,9 @@ class InMemoryPluginLogStoreTest {
             LogStream.STDOUT,
             "To be deleted",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     StepVerifier.create(
             store
@@ -187,7 +195,9 @@ class InMemoryPluginLogStoreTest {
             LogStream.STDOUT,
             "Exec1 message",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     final PluginLogEntry entry2 =
         new PluginLogEntry(
@@ -198,7 +208,9 @@ class InMemoryPluginLogStoreTest {
             LogStream.STDOUT,
             "Exec2 message",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     store.write(entry1).then(store.write(entry2)).block();
 
@@ -233,7 +245,9 @@ class InMemoryPluginLogStoreTest {
             LogStream.STDOUT,
             "Test message",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     store.write(entry).block();
 
@@ -258,7 +272,9 @@ class InMemoryPluginLogStoreTest {
             LogStream.STDOUT,
             "To clean",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     store.write(entry).then(store.cleanup(executionId)).block();
 
@@ -289,7 +305,9 @@ class InMemoryPluginLogStoreTest {
             LogStream.STDOUT,
             "First",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     final PluginLogEntry entry2 =
         new PluginLogEntry(
@@ -300,7 +318,9 @@ class InMemoryPluginLogStoreTest {
             LogStream.STDOUT,
             "Second",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     final PluginLogEntry entry3 =
         new PluginLogEntry(
@@ -311,7 +331,9 @@ class InMemoryPluginLogStoreTest {
             LogStream.STDERR,
             "Third",
             LogLevel.ERROR,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     store.write(entry1).then(store.write(entry2)).then(store.write(entry3)).block();
 

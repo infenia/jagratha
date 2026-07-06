@@ -73,33 +73,33 @@ public class DefaultPluginLogger implements PluginLogger {
 
   @Override
   public Mono<Void> logStdout(final String message) {
-    return logToStream(LogStream.STDOUT, message, LogLevel.INFO);
+    return logToStream(LogStream.STDOUT, null, message, LogLevel.INFO, null);
   }
 
   @Override
   public Mono<Void> logStdout(final String message, final Map<String, Object> metadata) {
-    return logToStream(LogStream.STDOUT, message, LogLevel.INFO);
+    return logToStream(LogStream.STDOUT, null, message, LogLevel.INFO, metadata);
   }
 
   @Override
   public Mono<Void> logStderr(final String message) {
-    return logToStream(LogStream.STDERR, message, LogLevel.ERROR);
+    return logToStream(LogStream.STDERR, null, message, LogLevel.ERROR, null);
   }
 
   @Override
   public Mono<Void> logStderr(final String message, final Map<String, Object> metadata) {
-    return logToStream(LogStream.STDERR, message, LogLevel.ERROR);
+    return logToStream(LogStream.STDERR, null, message, LogLevel.ERROR, metadata);
   }
 
   @Override
   public Mono<Void> logCustom(final String stream, final String message) {
-    return logToStream(LogStream.CUSTOM, message, LogLevel.INFO);
+    return logToStream(LogStream.CUSTOM, stream, message, LogLevel.INFO, null);
   }
 
   @Override
   public Mono<Void> logCustom(
       final String stream, final String message, final Map<String, Object> metadata) {
-    return logToStream(LogStream.CUSTOM, message, LogLevel.INFO);
+    return logToStream(LogStream.CUSTOM, stream, message, LogLevel.INFO, metadata);
   }
 
   @Override
@@ -108,7 +108,11 @@ public class DefaultPluginLogger implements PluginLogger {
   }
 
   private Mono<Void> logToStream(
-      final LogStream stream, final String message, final LogLevel logLevel) {
+      final LogStream stream,
+      final String customStreamName,
+      final String message,
+      final LogLevel logLevel,
+      final Map<String, Object> metadata) {
     return writer.write(
         new PluginLogEntry(
             executionId,
@@ -118,7 +122,9 @@ public class DefaultPluginLogger implements PluginLogger {
             stream,
             message,
             logLevel,
-            Instant.now(Clock.systemUTC())));
+            Instant.now(Clock.systemUTC()),
+            customStreamName,
+            metadata));
   }
 
   /** Immutable adapter for PluginLogWriter to prevent EI2 exposure violations. */

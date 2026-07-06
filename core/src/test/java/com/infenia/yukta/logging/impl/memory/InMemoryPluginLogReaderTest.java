@@ -88,7 +88,9 @@ class InMemoryPluginLogReaderTest {
             LogStream.STDOUT,
             message,
             LogLevel.INFO,
-            timestamp);
+            timestamp,
+            null,
+            null);
     storage.computeIfAbsent(executionId, _ -> new ArrayList<>()).add(entry);
   }
 
@@ -434,7 +436,9 @@ class InMemoryPluginLogReaderTest {
             LogStream.STDOUT,
             "stdout message",
             LogLevel.INFO,
-            now);
+            now,
+            null,
+            null);
     final PluginLogEntry stderrEntry =
         new PluginLogEntry(
             EXECUTION_ID_001,
@@ -444,7 +448,9 @@ class InMemoryPluginLogReaderTest {
             LogStream.STDERR,
             "stderr message",
             LogLevel.ERROR,
-            now);
+            now,
+            null,
+            null);
     storage.computeIfAbsent(EXECUTION_ID_001, _ -> new ArrayList<>()).add(stdoutEntry);
     storage.computeIfAbsent(EXECUTION_ID_001, _ -> new ArrayList<>()).add(stderrEntry);
 

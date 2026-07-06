@@ -67,7 +67,9 @@ class FileSystemPluginLogWriterTest {
             LogStream.STDOUT,
             "Test message",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     writer.write(entry).block();
 
@@ -89,7 +91,9 @@ class FileSystemPluginLogWriterTest {
             LogStream.STDOUT,
             "Message 1",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
     final PluginLogEntry entry2 =
         new PluginLogEntry(
             "exec-123",
@@ -99,7 +103,9 @@ class FileSystemPluginLogWriterTest {
             LogStream.STDERR,
             "Message 2",
             LogLevel.ERROR,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     writer.writeBatch(List.of(entry1, entry2)).block();
 
@@ -145,7 +151,9 @@ class FileSystemPluginLogWriterTest {
             LogStream.STDOUT,
             "Exec 1",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
     final PluginLogEntry entry2 =
         new PluginLogEntry(
             "exec-002",
@@ -155,7 +163,9 @@ class FileSystemPluginLogWriterTest {
             LogStream.STDOUT,
             "Exec 2",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     writer.write(entry1).block();
     writer.write(entry2).block();
@@ -175,7 +185,9 @@ class FileSystemPluginLogWriterTest {
             LogStream.STDOUT,
             "First message",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
     final PluginLogEntry secondEntry =
         new PluginLogEntry(
             "exec-123",
@@ -185,7 +197,9 @@ class FileSystemPluginLogWriterTest {
             LogStream.STDOUT,
             "Second message",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     writer.write(firstEntry).block();
     writer.write(secondEntry).block();
@@ -207,7 +221,9 @@ class FileSystemPluginLogWriterTest {
             LogStream.STDOUT,
             "Exec 1 message",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
     final PluginLogEntry entry2 =
         new PluginLogEntry(
             "exec-002",
@@ -217,7 +233,9 @@ class FileSystemPluginLogWriterTest {
             LogStream.STDOUT,
             "Exec 2 message",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     writer.writeBatch(List.of(entry1, entry2)).block();
 
@@ -240,7 +258,9 @@ class FileSystemPluginLogWriterTest {
             LogStream.STDOUT,
             "Line one\nLine two\rLine three",
             LogLevel.ERROR,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     writer.write(entry).block();
 
@@ -274,7 +294,9 @@ class FileSystemPluginLogWriterTest {
             LogStream.STDOUT,
             "Test message",
             LogLevel.INFO,
-            Instant.now());
+            Instant.now(),
+            null,
+            null);
 
     final var result = blockedWriter.write(entry).block();
 

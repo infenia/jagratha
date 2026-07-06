@@ -235,7 +235,9 @@ class DefaultPluginLoggerFactoryTest {
                 LogStream.STDOUT,
                 "Message 1",
                 LogLevel.INFO,
-                now),
+                now,
+                null,
+                null),
             new PluginLogEntry(
                 "exec-123",
                 SESSION_ID,
@@ -244,7 +246,9 @@ class DefaultPluginLoggerFactoryTest {
                 LogStream.STDOUT,
                 "Message 2",
                 LogLevel.INFO,
-                now));
+                now,
+                null,
+                null));
     when(mockWriter.writeBatch(any(List.class))).thenReturn(Mono.empty());
 
     // When - access the adapter via reflection through the factory's writer field
@@ -274,7 +278,9 @@ class DefaultPluginLoggerFactoryTest {
             LogStream.STDERR,
             "Test message",
             LogLevel.ERROR,
-            now);
+            now,
+            null,
+            null);
     when(mockWriter.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
 
     // When - access the adapter via reflection and invoke write

@@ -50,7 +50,9 @@ class PluginLogEntryTest {
             LogStream.STDOUT,
             "Hello World",
             LogLevel.INFO,
-            now);
+            now,
+            null,
+            null);
 
     assertThat(entry.executionId()).isEqualTo(EXEC_ID);
     assertThat(entry.sessionId()).isEqualTo(SESSION_ID);
@@ -75,7 +77,9 @@ class PluginLogEntryTest {
             LogStream.STDERR,
             "Error message",
             LogLevel.ERROR,
-            now);
+            now,
+            null,
+            null);
 
     final String formatted = entry.format();
     assertThat(formatted).contains("ERROR");
@@ -98,7 +102,9 @@ class PluginLogEntryTest {
             LogStream.STDOUT,
             "Debug message",
             LogLevel.DEBUG,
-            now);
+            now,
+            null,
+            null);
 
     final PluginLogEntry warnEntry =
         new PluginLogEntry(
@@ -109,7 +115,9 @@ class PluginLogEntryTest {
             LogStream.STDOUT,
             "Warning message",
             LogLevel.WARN,
-            now);
+            now,
+            null,
+            null);
 
     assertThat(debugEntry.logLevel()).isEqualTo(LogLevel.DEBUG);
     assertThat(warnEntry.logLevel()).isEqualTo(LogLevel.WARN);
@@ -127,7 +135,9 @@ class PluginLogEntryTest {
             LogStream.CUSTOM,
             "Custom message",
             LogLevel.WARN,
-            now);
+            now,
+            null,
+            null);
 
     assertThat(entry.executionId()).isEqualTo(EXEC_ID);
     assertThat(entry.sessionId()).isEqualTo(SESSION_ID);
@@ -151,7 +161,9 @@ class PluginLogEntryTest {
             LogStream.STDOUT,
             "message",
             LogLevel.INFO,
-            now);
+            now,
+            null,
+            null);
     final PluginLogEntry entry2 =
         new PluginLogEntry(
             EXEC_ID,
@@ -161,7 +173,9 @@ class PluginLogEntryTest {
             LogStream.STDOUT,
             "message",
             LogLevel.INFO,
-            now);
+            now,
+            null,
+            null);
 
     assertThat(entry1).isEqualTo(entry2);
     assertThat(entry1.hashCode()).isEqualTo(entry2.hashCode());

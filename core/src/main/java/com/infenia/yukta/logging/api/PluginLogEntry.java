@@ -30,7 +30,16 @@ public record PluginLogEntry(
     LogStream stream,
     String message,
     LogLevel logLevel,
-    Instant timestamp) {
+    Instant timestamp,
+    String customStreamName,
+    java.util.Map<String, Object> metadata) {
+
+  /**
+   * Compact constructor to ensure metadata defensively copied to prevent mutation after creation.
+   */
+  public PluginLogEntry {
+    metadata = metadata == null ? java.util.Map.of() : java.util.Map.copyOf(metadata);
+  }
 
   /**
    * Format this log entry as a human-readable string.
@@ -38,7 +47,33 @@ public record PluginLogEntry(
    * @return formatted log line
    */
   public String format() {
-    return String.format(
-        "[%s] [%s] [%s/%s] %s: %s", timestamp, logLevel, pluginId, pluginName, stream, message);
+    final String streamDisplay =
+        stream == LogStream.CUSTOM && customStreamName != null
+            ? customStreamName
+            : stream.toString();
+    final StringBuilder stringBuilder =
+        new StringBuilder()
+            .append('[')
+            .append(timestamp)
+            .append("] [")
+            .append(logLevel)
+            .append("] [")
+            .append(pluginId)
+            .append('/')
+            .append(pluginName)
+            .append("] ")
+            .append(streamDisplay)
+            .append(": ")
+            .append(message);
+
+    if (!metadata.isEmpty()) {
+      stringBuilder.append(" {");
+      metadata.forEach(
+          (key, value) -> stringBuilder.append(key).append('=').append(value).append(", "));
+      stringBuilder.setLength(stringBuilder.length() - 2);
+      stringBuilder.append('}');
+    }
+
+    return stringBuilder.toString();
   }
 }

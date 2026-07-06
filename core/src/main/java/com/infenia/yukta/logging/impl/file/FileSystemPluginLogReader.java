@@ -242,7 +242,16 @@ public class FileSystemPluginLogReader implements PluginLogReader {
 
         entry =
             new PluginLogEntry(
-                executionId, sessionId, pluginId, pluginName, stream, message, logLevel, timestamp);
+                executionId,
+                sessionId,
+                pluginId,
+                pluginName,
+                stream,
+                message,
+                logLevel,
+                timestamp,
+                null,
+                null);
       }
     } catch (final IllegalArgumentException | IndexOutOfBoundsException e) {
       log.atTrace()

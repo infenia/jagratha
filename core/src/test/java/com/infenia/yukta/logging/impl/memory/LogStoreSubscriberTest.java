@@ -103,7 +103,9 @@ class LogStoreSubscriberTest {
               LogStream.STDOUT,
               "Message 1",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
       when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
@@ -130,7 +132,9 @@ class LogStoreSubscriberTest {
               LogStream.STDOUT,
               "Message 1",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       final PluginLogEntry entry2 =
           new PluginLogEntry(
@@ -141,7 +145,9 @@ class LogStoreSubscriberTest {
               LogStream.STDOUT,
               "Message 2",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       final PluginLogEntry entry3 =
           new PluginLogEntry(
@@ -152,7 +158,9 @@ class LogStoreSubscriberTest {
               LogStream.STDERR,
               "Message 3",
               LogLevel.ERROR,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry1, entry2, entry3));
       when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
@@ -202,7 +210,9 @@ class LogStoreSubscriberTest {
               LogStream.STDERR,
               "Error message",
               LogLevel.ERROR,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
       when(store.write(any(PluginLogEntry.class)))
@@ -229,7 +239,9 @@ class LogStoreSubscriberTest {
               LogStream.STDOUT,
               "Message 1",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       final PluginLogEntry entry2 =
           new PluginLogEntry(
@@ -240,7 +252,9 @@ class LogStoreSubscriberTest {
               LogStream.STDOUT,
               "Message 2",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry1, entry2));
       when(store.write(any(PluginLogEntry.class)))
@@ -288,7 +302,9 @@ class LogStoreSubscriberTest {
               LogStream.STDOUT,
               "Message",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
       when(store.write(any(PluginLogEntry.class)))
@@ -327,7 +343,9 @@ class LogStoreSubscriberTest {
               LogStream.STDOUT,
               "Message",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
       when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
@@ -380,7 +398,9 @@ class LogStoreSubscriberTest {
               LogStream.STDOUT,
               "Message",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
       when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
@@ -415,7 +435,9 @@ class LogStoreSubscriberTest {
               LogStream.STDOUT,
               "Pipeline test",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
       when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
@@ -439,7 +461,9 @@ class LogStoreSubscriberTest {
               LogStream.STDERR,
               "Error test",
               LogLevel.ERROR,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
       when(store.write(any(PluginLogEntry.class)))
@@ -475,7 +499,9 @@ class LogStoreSubscriberTest {
               LogStream.STDOUT,
               "Complete test",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
       when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
@@ -549,7 +575,9 @@ class LogStoreSubscriberTest {
               LogStream.STDOUT,
               "Test log message",
               LogLevel.INFO,
-              now);
+              now,
+              null,
+              null);
 
       when(taskTracker.getLogFlux()).thenReturn(Flux.just(entry));
       when(store.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());

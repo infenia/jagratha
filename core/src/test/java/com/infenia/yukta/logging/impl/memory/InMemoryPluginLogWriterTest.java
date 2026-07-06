@@ -75,7 +75,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDOUT,
               "Test message",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       writer.write(entry).block();
 
@@ -95,7 +97,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDOUT,
               "Message 1",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
       final PluginLogEntry entry2 =
           new PluginLogEntry(
               EXECUTION_ID,
@@ -105,7 +109,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDERR,
               "Message 2",
               LogLevel.ERROR,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       writer.writeBatch(List.of(entry1, entry2)).block();
 
@@ -133,7 +139,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDOUT,
               "Exec 1 msg",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
       final PluginLogEntry entry2 =
           new PluginLogEntry(
               "exec-2",
@@ -143,7 +151,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDOUT,
               "Exec 2 msg",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       writer.writeBatch(List.of(entry1, entry2)).block();
 
@@ -164,7 +174,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDOUT,
               "Message 1",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
       final PluginLogEntry entry2 =
           new PluginLogEntry(
               EXECUTION_ID,
@@ -174,7 +186,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDOUT,
               "Message 2",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       writer.write(entry1).block();
       writer.writeBatch(List.of(entry2)).block();
@@ -200,7 +214,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDOUT,
               "Exec 1",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
       final PluginLogEntry entry2 =
           new PluginLogEntry(
               "exec-002",
@@ -210,7 +226,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDOUT,
               "Exec 2",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       writer.write(entry1).block();
       writer.write(entry2).block();
@@ -232,7 +250,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDOUT,
               "First",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
       final PluginLogEntry entry2 =
           new PluginLogEntry(
               EXECUTION_ID,
@@ -242,7 +262,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDOUT,
               "Second",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       writer.write(entry1).block();
       writer.write(entry2).block();
@@ -277,7 +299,9 @@ class InMemoryPluginLogWriterTest {
               LogStream.STDOUT,
               "Test message",
               LogLevel.INFO,
-              Instant.now());
+              Instant.now(),
+              null,
+              null);
 
       writer.write(entry).block();
       assertThat(writer.getStorage()).isNotEmpty();
