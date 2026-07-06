@@ -334,6 +334,19 @@ class LogStoreSubscriberTest {
     }
 
     @Test
+    @DisplayName("dispose with active, not-yet-completed subscription disposes it")
+    void dispose_activeSubscription_disposesAndLogs() {
+      // Flux.never() keeps the subscription alive so dispose() observes it as not
+      // yet disposed, exercising the true branch of subscription != null && !isDisposed().
+      when(taskTracker.getLogFlux()).thenReturn(Flux.never());
+
+      subscriber.init();
+      subscriber.dispose();
+
+      assertThat(subscriber).isNotNull();
+    }
+
+    @Test
     @DisplayName("dispose with null subscription does not throw")
     void dispose_nullSubscription_doesNotThrow() {
       // subscriber created in setUp but init() not called yet

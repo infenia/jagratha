@@ -67,7 +67,7 @@ public class LogStoreSubscriber {
   protected Disposable buildAndSubscribe() {
     return buildLogPipeline()
         .subscribe(
-            _ -> {},
+            null,
             error -> log.error("Log store subscription failed", error),
             () -> log.info("Log store subscription completed"));
   }
