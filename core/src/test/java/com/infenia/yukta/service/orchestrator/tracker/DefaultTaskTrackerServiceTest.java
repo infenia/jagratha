@@ -533,6 +533,10 @@ class DefaultTaskTrackerServiceTest {
 
   @Test
   void testInitTaskStatusErrorHandler() throws Exception {
+    verifyInitTaskStatusErrorHandler();
+  }
+
+  private void verifyInitTaskStatusErrorHandler() throws Exception {
     final DefaultTaskTrackerService trackerWithError =
         new DefaultTaskTrackerService(Duration.ofMinutes(10), statusHistoryCache);
 
@@ -565,6 +569,10 @@ class DefaultTaskTrackerServiceTest {
 
   @Test
   void testInitWorkflowStatusErrorHandler() throws Exception {
+    verifyInitWorkflowStatusErrorHandler();
+  }
+
+  private void verifyInitWorkflowStatusErrorHandler() throws Exception {
     final DefaultTaskTrackerService trackerWithError =
         new DefaultTaskTrackerService(Duration.ofMinutes(10), statusHistoryCache);
 
@@ -595,6 +603,10 @@ class DefaultTaskTrackerServiceTest {
 
   @Test
   void testInitLogErrorHandler() throws Exception {
+    verifyInitLogErrorHandler();
+  }
+
+  private void verifyInitLogErrorHandler() throws Exception {
     final DefaultTaskTrackerService trackerWithError =
         new DefaultTaskTrackerService(Duration.ofMinutes(10), statusHistoryCache);
 
@@ -2067,9 +2079,9 @@ class DefaultTaskTrackerServiceTest {
 
   @Test
   void testEventHandlerErrorLogging() throws Exception {
-    testInitTaskStatusErrorHandler();
-    testInitWorkflowStatusErrorHandler();
-    testInitLogErrorHandler();
+    verifyInitTaskStatusErrorHandler();
+    verifyInitWorkflowStatusErrorHandler();
+    verifyInitLogErrorHandler();
   }
 
   @Test

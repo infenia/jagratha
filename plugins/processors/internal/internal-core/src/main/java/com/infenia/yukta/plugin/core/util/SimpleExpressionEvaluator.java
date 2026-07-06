@@ -91,9 +91,9 @@ public final class SimpleExpressionEvaluator {
   }
 
   private abstract static class Expression {
-    protected final String path;
+    final String path;
 
-    protected Expression(final String path) {
+    Expression(final String path) {
       this.path = path;
     }
 
@@ -101,7 +101,7 @@ public final class SimpleExpressionEvaluator {
 
     abstract boolean evaluate(Message<?> message);
 
-    protected Object getValue(final Message<?> message) {
+    Object getValue(final Message<?> message) {
       Object value = null;
       if (path.startsWith(PAYLOAD_PREFIX)) {
         value = getNested(message.getPayload(), path.substring(PAYLOAD_PREFIX.length()));
