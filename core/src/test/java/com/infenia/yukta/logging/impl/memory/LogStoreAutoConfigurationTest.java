@@ -17,15 +17,11 @@ package com.infenia.yukta.logging.impl.memory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.infenia.yukta.logging.api.PluginLogEntry;
 import com.infenia.yukta.logging.api.PluginLogStore;
 import com.infenia.yukta.logging.api.PluginLogStoreConfig;
-import java.time.Duration;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /** Unit tests for {@link LogStoreAutoConfiguration}. */
 @NoArgsConstructor
@@ -59,5 +55,4 @@ class LogStoreAutoConfigurationTest {
     assertThat(maxMinutes).isPositive();
     assertThat(maxMinutes).isGreaterThanOrEqualTo(1440);
   }
-
 }
