@@ -28,7 +28,9 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +40,13 @@ import org.junit.jupiter.api.Test;
  * <p>Verifies that the in-memory implementation correctly reads and filters log entries with
  * complete branch coverage.
  */
+@NoArgsConstructor
+@SuppressWarnings({
+  "PMD.TooManyMethods",
+  "PMD.CommentRequired",
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.LinguisticNaming"
+})
 class InMemoryPluginLogReaderTest {
 
   private InMemoryPluginLogReader reader;
@@ -286,11 +295,11 @@ class InMemoryPluginLogReaderTest {
     // Then
     assertThat(actualSummaries).hasSize(2);
     assertThat(actualSummaries)
-        .filteredOn(summary -> summary.executionId().equals(EXECUTION_ID_001))
+        .filteredOn(summary -> EXECUTION_ID_001.equals(summary.executionId()))
         .extracting(ExecutionSummary::entryCount)
         .containsExactly(2L);
     assertThat(actualSummaries)
-        .filteredOn(summary -> summary.executionId().equals(EXECUTION_ID_002))
+        .filteredOn(summary -> EXECUTION_ID_002.equals(summary.executionId()))
         .extracting(ExecutionSummary::entryCount)
         .containsExactly(1L);
   }
@@ -401,7 +410,8 @@ class InMemoryPluginLogReaderTest {
     addEntry(EXECUTION_ID_001, SESSION_ID_456, PLUGIN_ID_1, PLUGIN_NAME_1, "Third line", now);
 
     // When
-    final String actualContent = reader.getRawContent(EXECUTION_ID_001).block();
+    final String actualContent =
+        Objects.requireNonNull(reader.getRawContent(EXECUTION_ID_001).block());
 
     // Then - entries should be separated by newlines
     final String[] lines = actualContent.split("\n");

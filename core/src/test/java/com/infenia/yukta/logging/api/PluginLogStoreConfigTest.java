@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 /** Test suite for {@link PluginLogStoreConfig}. */
 @NoArgsConstructor
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.CommentRequired", "PMD.LawOfDemeter"})
 class PluginLogStoreConfigTest {
 
   private PluginLogStoreConfig config;

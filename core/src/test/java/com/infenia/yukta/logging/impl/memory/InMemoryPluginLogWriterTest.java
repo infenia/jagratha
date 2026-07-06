@@ -37,6 +37,11 @@ import org.junit.jupiter.api.Test;
  */
 @NoArgsConstructor
 @DisplayName("InMemoryPluginLogWriter")
+@SuppressWarnings({
+  "PMD.CommentRequired",
+  "PMD.CommentDefaultAccessModifier",
+  "PMD.AvoidDuplicateLiterals"
+})
 class InMemoryPluginLogWriterTest {
 
   /** Test execution ID. */
@@ -56,6 +61,7 @@ class InMemoryPluginLogWriterTest {
 
   @Nested
   @DisplayName("Write Operations")
+  @NoArgsConstructor
   class WriteOperationsTests {
 
     @Test
@@ -180,6 +186,7 @@ class InMemoryPluginLogWriterTest {
 
   @Nested
   @DisplayName("Multiple Executions")
+  @NoArgsConstructor
   class MultipleExecutionsTests {
 
     @Test
@@ -247,6 +254,7 @@ class InMemoryPluginLogWriterTest {
 
   @Nested
   @DisplayName("Lifecycle Operations")
+  @NoArgsConstructor
   class LifecycleTests {
 
     @Test

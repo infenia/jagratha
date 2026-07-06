@@ -31,7 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /** Tests for FileSystemPluginLogReader. */
 @NoArgsConstructor
-@SuppressWarnings({"PMD.TooManyMethods"})
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals", "PMD.LinguisticNaming"})
 class FileSystemPluginLogReaderTest {
 
   /** Temporary directory for test files. */

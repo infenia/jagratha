@@ -37,6 +37,14 @@ import reactor.core.publisher.Mono;
 
 /** Unit tests for {@link DefaultPluginLoggerFactory} and ImmutablePluginLogWriterAdapter. */
 @NoArgsConstructor
+@SuppressWarnings({
+  "PMD.TooManyStaticImports",
+  "PMD.TooManyMethods",
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.LocalVariableCouldBeFinal",
+  "PMD.LawOfDemeter",
+  "PMD.AvoidAccessibilityAlteration"
+})
 class DefaultPluginLoggerFactoryTest {
 
   /** Session ID used in test scenarios. */

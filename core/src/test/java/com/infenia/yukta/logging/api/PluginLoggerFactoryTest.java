@@ -30,6 +30,7 @@ import reactor.core.publisher.Mono;
 
 /** Tests for PluginLoggerFactory. */
 @NoArgsConstructor
+@SuppressWarnings({"PMD.TooManyStaticImports", "PMD.AvoidDuplicateLiterals"})
 class PluginLoggerFactoryTest {
 
   @Test

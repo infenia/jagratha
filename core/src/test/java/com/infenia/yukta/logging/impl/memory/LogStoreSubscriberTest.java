@@ -48,6 +48,12 @@ import reactor.test.StepVerifier;
 @MockitoSettings
 @NoArgsConstructor
 @DisplayName("LogStoreSubscriber")
+@SuppressWarnings({
+  "PMD.TooManyStaticImports",
+  "PMD.CommentRequired",
+  "PMD.CommentDefaultAccessModifier",
+  "PMD.LawOfDemeter"
+})
 class LogStoreSubscriberTest {
 
   /** Test execution ID. */
@@ -82,6 +88,7 @@ class LogStoreSubscriberTest {
 
   @Nested
   @DisplayName("Initialization and Subscription")
+  @NoArgsConstructor
   class InitializationTests {
 
     @Test
@@ -155,6 +162,7 @@ class LogStoreSubscriberTest {
       await()
           .atMost(Duration.ofSeconds(1))
           .untilAsserted(() -> verify(store, times(3)).write(any(PluginLogEntry.class)));
+      assertThat(subscriber).isNotNull();
       subscriber.dispose();
     }
 
@@ -179,6 +187,7 @@ class LogStoreSubscriberTest {
 
   @Nested
   @DisplayName("Error Handling")
+  @NoArgsConstructor
   class ErrorHandlingTests {
 
     @Test
@@ -204,6 +213,7 @@ class LogStoreSubscriberTest {
       await()
           .atMost(Duration.ofSeconds(1))
           .untilAsserted(() -> verify(store).write(any(PluginLogEntry.class)));
+      assertThat(subscriber).isNotNull();
       subscriber.dispose();
     }
 
@@ -302,6 +312,7 @@ class LogStoreSubscriberTest {
 
   @Nested
   @DisplayName("Cleanup and Disposal")
+  @NoArgsConstructor
   class CleanupTests {
 
     @Test
@@ -389,6 +400,7 @@ class LogStoreSubscriberTest {
 
   @Nested
   @DisplayName("Pipeline Testing")
+  @NoArgsConstructor
   class PipelineTests {
 
     @Test
@@ -521,6 +533,7 @@ class LogStoreSubscriberTest {
 
   @Nested
   @DisplayName("Entry Capture and Verification")
+  @NoArgsConstructor
   class EntryCapturingTests {
 
     @Test

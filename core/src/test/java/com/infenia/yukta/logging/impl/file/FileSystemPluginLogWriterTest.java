@@ -36,6 +36,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 /** Tests for FileSystemPluginLogWriter. */
 @NoArgsConstructor
 @ExtendWith(OutputCaptureExtension.class)
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals"})
 class FileSystemPluginLogWriterTest {
 
   /** Temporary directory for test files. */

@@ -34,6 +34,11 @@ import reactor.core.publisher.Mono;
 
 /** Tests for {@link DefaultPluginLogger}. */
 @NoArgsConstructor
+@SuppressWarnings({
+  "PMD.TooManyMethods",
+  "PMD.LocalVariableCouldBeFinal",
+  "PMD.AvoidAccessibilityAlteration"
+})
 class DefaultPluginLoggerTest {
 
   /** Mock PluginLogWriter for test verification. */
