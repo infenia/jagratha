@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 /** Unit tests for {@link LogStoreAutoConfiguration}. */
 @NoArgsConstructor
 @DisplayName("LogStoreAutoConfiguration")
-@SuppressWarnings({"PMD.CommentRequired", "PMD.CommentDefaultAccessModifier"})
 class LogStoreAutoConfigurationTest {
 
   @Test
