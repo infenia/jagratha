@@ -238,7 +238,7 @@ class FileSystemPluginLogWriterTest {
             PLUGIN_ID,
             "Display Name",
             LogStream.STDOUT,
-            "Line one\nLine two",
+            "Line one\nLine two\rLine three",
             LogLevel.ERROR,
             Instant.now());
 
@@ -254,7 +254,7 @@ class FileSystemPluginLogWriterTest {
               assertThat(readEntry.pluginId()).isEqualTo(PLUGIN_ID);
               assertThat(readEntry.pluginName()).isEqualTo("Display Name");
               assertThat(readEntry.logLevel()).isEqualTo(LogLevel.ERROR);
-              assertThat(readEntry.message()).isEqualTo("Line one\nLine two");
+              assertThat(readEntry.message()).isEqualTo("Line one\nLine two\rLine three");
             });
   }
 

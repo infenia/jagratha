@@ -62,7 +62,7 @@ class FileSystemPluginLogReaderTest {
     final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
 
     assertThat(entries).hasSize(2);
-    assertThat(entries.get(0).message()).isEqualTo("Message 1");
+    assertThat(entries.getFirst().message()).isEqualTo("Message 1");
     assertThat(entries.get(0).logLevel()).isEqualTo(LogLevel.INFO);
     assertThat(entries.get(0).pluginName()).isEqualTo("Plugin One");
     assertThat(entries.get(1).message()).isEqualTo("Message 2");
@@ -296,6 +296,20 @@ class FileSystemPluginLogReaderTest {
 
     assertThat(entries).hasSize(1);
     assertThat(entries.getFirst().message()).isEqualTo("Line one\nLine two");
+  }
+
+  @Test
+  void readExecution_escapedCarriageReturnInMessage_unescapesToActualCarriageReturn()
+      throws IOException {
+    final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
+    Files.writeString(
+        sessionDir.resolve("exec-123.log"),
+        "2026-07-02T10:00:00 | STDOUT | INFO | plugin-1 | Plugin One | Line one\\rLine two\n");
+
+    final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
+
+    assertThat(entries).hasSize(1);
+    assertThat(entries.getFirst().message()).isEqualTo("Line one\rLine two");
   }
 
   @Test

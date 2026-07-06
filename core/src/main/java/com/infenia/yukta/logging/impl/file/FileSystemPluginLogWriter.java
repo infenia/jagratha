@@ -146,12 +146,12 @@ public class FileSystemPluginLogWriter implements PluginLogWriter {
   }
 
   /**
-   * Escape newlines in a message so it stays on a single line in the log file.
+   * Escape newlines and carriage returns in a message so it stays on a single line in the log file.
    *
    * @param message the raw message
-   * @return the message with embedded newlines escaped
+   * @return the message with embedded line terminators escaped
    */
   private static String escapeMessage(final String message) {
-    return message.replace("\n", "\\n");
+    return message.replace("\r", "\\r").replace("\n", "\\n");
   }
 }

@@ -265,13 +265,13 @@ public class FileSystemPluginLogReader implements PluginLogReader {
   }
 
   /**
-   * Reverse the newline escaping applied by FileSystemPluginLogWriter.
+   * Reverse the line-terminator escaping applied by FileSystemPluginLogWriter.
    *
    * @param message the escaped message read from a log line
-   * @return the original message with newlines restored
+   * @return the original message with newlines and carriage returns restored
    */
   private static String unescapeMessage(final String message) {
-    return message.replace("\\n", "\n");
+    return message.replace("\\n", "\n").replace("\\r", "\r");
   }
 
   private Instant parseTimestamp(final String timestampStr) {
