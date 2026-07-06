@@ -38,7 +38,6 @@ import reactor.core.publisher.Mono;
 @NoArgsConstructor
 @SuppressWarnings({
   "PMD.TooManyMethods",
-  "PMD.LocalVariableCouldBeFinal",
   "PMD.AvoidAccessibilityAlteration",
   "PMD.LawOfDemeter"
 })
