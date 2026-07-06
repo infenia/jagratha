@@ -44,6 +44,9 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class LogManagementController {
 
+  /** Log key for the execution identifier. */
+  private static final String EXECUTION_ID = "executionId";
+
   /** The control bus gateway for log streaming. */
   private final ControlBusGateway controlBus;
 
@@ -76,7 +79,7 @@ public class LogManagementController {
 
     log.atInfo()
         .addKeyValue("sessionId", sessionId)
-        .addKeyValue("executionId", executionId)
+        .addKeyValue(EXECUTION_ID, executionId)
         .log("Streaming execution logs");
 
     return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
@@ -86,7 +89,7 @@ public class LogManagementController {
 
               if (isTerminal) {
                 log.atDebug()
-                    .addKeyValue("executionId", executionId)
+                    .addKeyValue(EXECUTION_ID, executionId)
                     .addKeyValue("status", progress.status())
                     .log("Execution already terminated, streaming historical logs only");
                 return logStore
@@ -95,17 +98,17 @@ public class LogManagementController {
                     .doOnNext(
                         _ ->
                             log.atDebug()
-                                .addKeyValue("executionId", executionId)
+                                .addKeyValue(EXECUTION_ID, executionId)
                                 .log("Emitting historical log entry"))
                     .doOnComplete(
                         () ->
                             log.atDebug()
-                                .addKeyValue("executionId", executionId)
+                                .addKeyValue(EXECUTION_ID, executionId)
                                 .log("Historical logs complete"));
               }
 
               log.atDebug()
-                  .addKeyValue("executionId", executionId)
+                  .addKeyValue(EXECUTION_ID, executionId)
                   .addKeyValue("status", progress.status())
                   .log("Execution in progress, streaming history then live logs");
 
@@ -116,12 +119,12 @@ public class LogManagementController {
                       .doOnNext(
                           _ ->
                               log.atDebug()
-                                  .addKeyValue("executionId", executionId)
+                                  .addKeyValue(EXECUTION_ID, executionId)
                                   .log("Emitting historical log entry"))
                       .doOnComplete(
                           () ->
                               log.atDebug()
-                                  .addKeyValue("executionId", executionId)
+                                  .addKeyValue(EXECUTION_ID, executionId)
                                   .log("Historical logs complete"));
 
               final var executionTermination =
@@ -133,7 +136,7 @@ public class LogManagementController {
                                 isExecutionTerminal(p.status()) && p.endTime() != null;
                             if (isTerminalState) {
                               log.atDebug()
-                                  .addKeyValue("executionId", executionId)
+                                  .addKeyValue(EXECUTION_ID, executionId)
                                   .addKeyValue("status", p.status())
                                   .log("Execution reached terminal state");
                             }
@@ -147,14 +150,14 @@ public class LogManagementController {
                       .doOnNext(
                           _ ->
                               log.atTrace()
-                                  .addKeyValue("executionId", executionId)
+                                  .addKeyValue(EXECUTION_ID, executionId)
                                   .log("Emitting live log entry"))
                       .takeUntilOther(executionTermination);
 
               return historicalLogs.concatWith(liveLogs);
             })
         .doOnComplete(
-            () -> log.atInfo().addKeyValue("executionId", executionId).log("Log stream completed"));
+            () -> log.atInfo().addKeyValue(EXECUTION_ID, executionId).log("Log stream completed"));
   }
 
   private boolean isExecutionTerminal(final String status) {

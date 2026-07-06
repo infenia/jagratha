@@ -23,8 +23,13 @@ import com.infenia.yukta.logging.api.LogLevel;
 import com.infenia.yukta.logging.api.LogStream;
 import com.infenia.yukta.logging.api.PluginLogEntry;
 import com.infenia.yukta.logging.api.PluginLogStore;
+import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Objects;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,12 +73,12 @@ class LogManagementControllerIntegrationTest {
    */
   @Test
   void testStreamLogsEmitsHistoryThenLive() {
-    String sessionId = "session-123";
-    String executionId = "exec-456";
-    Instant now = Instant.now();
+    final String sessionId = "session-123";
+    final String executionId = "exec-456";
+    final Instant now = Instant.now();
 
     // Set up historical logs from store
-    PluginLogEntry historical1 =
+    final PluginLogEntry historical1 =
         new PluginLogEntry(
             executionId,
             sessionId,
@@ -84,7 +89,7 @@ class LogManagementControllerIntegrationTest {
             LogLevel.INFO,
             now.minusSeconds(10));
 
-    PluginLogEntry historical2 =
+    final PluginLogEntry historical2 =
         new PluginLogEntry(
             executionId,
             sessionId,
@@ -97,27 +102,40 @@ class LogManagementControllerIntegrationTest {
 
     when(mockLogStore.readExecution(executionId)).thenReturn(Flux.just(historical1, historical2));
 
+    // Set up an in-progress execution that never reaches a terminal state during the test
+    when(mockControlBus.getCurrentProgress(executionId))
+        .thenReturn(
+            new WorkflowProgress(
+                executionId,
+                sessionId,
+                "workflow-1",
+                "RUNNING",
+                List.of(),
+                LocalDateTime.now(ZoneOffset.UTC),
+                null));
+    when(mockControlBus.watchExecution(executionId)).thenReturn(Flux.never());
+
     // Set up live logs from control bus with delay
     when(mockControlBus.watchLogs(sessionId, executionId))
         .thenReturn(Flux.just("Live line 1", "Live line 2"));
 
     // Execute request and collect results
-    webTestClient
-        .get()
-        .uri("/api/sessions/" + sessionId + "/executions/" + executionId + "/logs")
-        .accept(MediaType.TEXT_EVENT_STREAM)
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .returnResult(String.class)
-        .getResponseBody()
-        .take(4)
-        .collectList()
-        .block()
-        .forEach(
-            line -> {
-              assertThat(line).containsAnyOf("Historical", "Live");
-            });
+    final var lines =
+        webTestClient
+            .get()
+            .uri("/api/sessions/" + sessionId + "/executions/" + executionId + "/logs")
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .returnResult(String.class)
+            .getResponseBody()
+            .take(4)
+            .collectList()
+            .block();
+
+    Objects.requireNonNull(lines)
+        .forEach(line -> assertThat(line).containsAnyOf("Historical", "Live"));
   }
 
   /**
@@ -127,11 +145,24 @@ class LogManagementControllerIntegrationTest {
    */
   @Test
   void testStreamLogsHandlesEmptyHistory() {
-    String sessionId = "session-789";
-    String executionId = "exec-new";
+    final String sessionId = "session-789";
+    final String executionId = "exec-new";
 
     // Mock: no historical logs
     when(mockLogStore.readExecution(executionId)).thenReturn(Flux.empty());
+
+    // Mock: in-progress execution
+    when(mockControlBus.getCurrentProgress(executionId))
+        .thenReturn(
+            new WorkflowProgress(
+                executionId,
+                sessionId,
+                "workflow-1",
+                "RUNNING",
+                List.of(),
+                LocalDateTime.now(ZoneOffset.UTC),
+                null));
+    when(mockControlBus.watchExecution(executionId)).thenReturn(Flux.never());
 
     // Mock: live logs available
     when(mockControlBus.watchLogs(sessionId, executionId))
