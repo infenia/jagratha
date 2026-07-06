@@ -34,6 +34,33 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class DefaultPluginLogger implements PluginLogger {
 
+  /** Key for execution ID in structured logs. */
+  private static final String EXECUTION_ID = "executionId";
+
+  /** Key for session ID in structured logs. */
+  private static final String SESSION_ID = "sessionId";
+
+  /** Key for plugin ID in structured logs. */
+  private static final String PLUGIN_ID = "pluginId";
+
+  /** Key for plugin name in structured logs. */
+  private static final String PLUGIN_NAME = "pluginName";
+
+  /** Key for stream type in structured logs. */
+  private static final String STREAM = "stream";
+
+  /** Key for custom stream name in structured logs. */
+  private static final String CUSTOM_STREAM_NAME = "customStreamName";
+
+  /** Key for message in structured logs. */
+  private static final String MESSAGE = "message";
+
+  /** Key for log level in structured logs. */
+  private static final String LOG_LEVEL = "logLevel";
+
+  /** Key for metadata in structured logs. */
+  private static final String METADATA = "metadata";
+
   /** The execution identifier. */
   private final String executionId;
 
@@ -69,42 +96,134 @@ public class DefaultPluginLogger implements PluginLogger {
     this.pluginId = pluginId;
     this.pluginName = pluginName;
     this.writer = new ImmutablePluginLogWriterAdapter(writer);
+    log.atInfo()
+        .addKeyValue(EXECUTION_ID, executionId)
+        .addKeyValue(SESSION_ID, sessionId)
+        .addKeyValue(PLUGIN_ID, pluginId)
+        .addKeyValue(PLUGIN_NAME, pluginName)
+        .log("DefaultPluginLogger initialized");
   }
 
   @Override
   public Mono<Void> logStdout(final String message) {
+    log.atDebug()
+        .addKeyValue(EXECUTION_ID, executionId)
+        .addKeyValue(SESSION_ID, sessionId)
+        .addKeyValue(PLUGIN_ID, pluginId)
+        .addKeyValue(PLUGIN_NAME, pluginName)
+        .addKeyValue(STREAM, LogStream.STDOUT)
+        .addKeyValue(MESSAGE, message)
+        .addKeyValue(LOG_LEVEL, LogLevel.INFO)
+        .addKeyValue(METADATA, null)
+        .log("Logging to stdout");
     return logToStream(LogStream.STDOUT, null, message, LogLevel.INFO, null);
   }
 
   @Override
   public Mono<Void> logStdout(final String message, final Map<String, Object> metadata) {
+    log.atDebug()
+        .addKeyValue(EXECUTION_ID, executionId)
+        .addKeyValue(SESSION_ID, sessionId)
+        .addKeyValue(PLUGIN_ID, pluginId)
+        .addKeyValue(PLUGIN_NAME, pluginName)
+        .addKeyValue(STREAM, LogStream.STDOUT)
+        .addKeyValue(MESSAGE, message)
+        .addKeyValue(LOG_LEVEL, LogLevel.INFO)
+        .addKeyValue(METADATA, metadata)
+        .log("Logging to stdout with metadata");
     return logToStream(LogStream.STDOUT, null, message, LogLevel.INFO, metadata);
   }
 
   @Override
   public Mono<Void> logStderr(final String message) {
+    log.atDebug()
+        .addKeyValue(EXECUTION_ID, executionId)
+        .addKeyValue(SESSION_ID, sessionId)
+        .addKeyValue(PLUGIN_ID, pluginId)
+        .addKeyValue(PLUGIN_NAME, pluginName)
+        .addKeyValue(STREAM, LogStream.STDERR)
+        .addKeyValue(MESSAGE, message)
+        .addKeyValue(LOG_LEVEL, LogLevel.ERROR)
+        .addKeyValue(METADATA, null)
+        .log("Logging to stderr");
     return logToStream(LogStream.STDERR, null, message, LogLevel.ERROR, null);
   }
 
   @Override
   public Mono<Void> logStderr(final String message, final Map<String, Object> metadata) {
+    log.atDebug()
+        .addKeyValue(EXECUTION_ID, executionId)
+        .addKeyValue(SESSION_ID, sessionId)
+        .addKeyValue(PLUGIN_ID, pluginId)
+        .addKeyValue(PLUGIN_NAME, pluginName)
+        .addKeyValue(STREAM, LogStream.STDERR)
+        .addKeyValue(MESSAGE, message)
+        .addKeyValue(LOG_LEVEL, LogLevel.ERROR)
+        .addKeyValue(METADATA, metadata)
+        .log("Logging to stderr with metadata");
     return logToStream(LogStream.STDERR, null, message, LogLevel.ERROR, metadata);
   }
 
   @Override
   public Mono<Void> logCustom(final String stream, final String message) {
+    log.atDebug()
+        .addKeyValue(EXECUTION_ID, executionId)
+        .addKeyValue(SESSION_ID, sessionId)
+        .addKeyValue(PLUGIN_ID, pluginId)
+        .addKeyValue(PLUGIN_NAME, pluginName)
+        .addKeyValue(STREAM, LogStream.CUSTOM)
+        .addKeyValue(CUSTOM_STREAM_NAME, stream)
+        .addKeyValue(MESSAGE, message)
+        .addKeyValue(LOG_LEVEL, LogLevel.INFO)
+        .addKeyValue(METADATA, null)
+        .log("Logging to custom stream");
     return logToStream(LogStream.CUSTOM, stream, message, LogLevel.INFO, null);
   }
 
   @Override
   public Mono<Void> logCustom(
       final String stream, final String message, final Map<String, Object> metadata) {
+    log.atDebug()
+        .addKeyValue(EXECUTION_ID, executionId)
+        .addKeyValue(SESSION_ID, sessionId)
+        .addKeyValue(PLUGIN_ID, pluginId)
+        .addKeyValue(PLUGIN_NAME, pluginName)
+        .addKeyValue(STREAM, LogStream.CUSTOM)
+        .addKeyValue(CUSTOM_STREAM_NAME, stream)
+        .addKeyValue(MESSAGE, message)
+        .addKeyValue(LOG_LEVEL, LogLevel.INFO)
+        .addKeyValue(METADATA, metadata)
+        .log("Logging to custom stream with metadata");
     return logToStream(LogStream.CUSTOM, stream, message, LogLevel.INFO, metadata);
   }
 
   @Override
   public Mono<Void> close() {
-    return writer.close();
+    log.atDebug()
+        .addKeyValue(EXECUTION_ID, executionId)
+        .addKeyValue(SESSION_ID, sessionId)
+        .addKeyValue(PLUGIN_ID, pluginId)
+        .addKeyValue(PLUGIN_NAME, pluginName)
+        .log("Closing DefaultPluginLogger");
+    return writer
+        .close()
+        .doOnSuccess(
+            v ->
+                log.atDebug()
+                    .addKeyValue(EXECUTION_ID, executionId)
+                    .addKeyValue(SESSION_ID, sessionId)
+                    .addKeyValue(PLUGIN_ID, pluginId)
+                    .addKeyValue(PLUGIN_NAME, pluginName)
+                    .log("DefaultPluginLogger closed successfully"))
+        .doOnError(
+            error ->
+                log.atWarn()
+                    .addKeyValue(EXECUTION_ID, executionId)
+                    .addKeyValue(SESSION_ID, sessionId)
+                    .addKeyValue(PLUGIN_ID, pluginId)
+                    .addKeyValue(PLUGIN_NAME, pluginName)
+                    .setCause(error)
+                    .log("Error closing DefaultPluginLogger"));
   }
 
   private Mono<Void> logToStream(
