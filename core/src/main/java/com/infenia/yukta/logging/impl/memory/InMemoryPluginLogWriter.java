@@ -20,6 +20,7 @@ import com.infenia.yukta.logging.api.PluginLogWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,26 +43,28 @@ public class InMemoryPluginLogWriter implements PluginLogWriter {
 
   @Override
   public Mono<Void> write(final PluginLogEntry entry) {
-    return Mono.fromRunnable(
-            () -> {
-              storage.computeIfAbsent(entry.executionId(), _ -> new ArrayList<>()).add(entry);
-              log.atTrace()
-                  .addKeyValue("executionId", entry.executionId())
-                  .addKeyValue("pluginId", entry.pluginId())
-                  .addKeyValue("stream", entry.stream())
-                  .log("Wrote plugin log entry to memory");
-            })
-        .subscribeOn(Schedulers.parallel())
-        .then();
+    return writeBatch(List.of(entry));
   }
 
   @Override
   public Mono<Void> writeBatch(final List<PluginLogEntry> entries) {
     return Mono.fromRunnable(
             () -> {
-              for (final PluginLogEntry entry : entries) {
-                storage.computeIfAbsent(entry.executionId(), _ -> new ArrayList<>()).add(entry);
-              }
+              final var entriesByExecution =
+                  entries.stream()
+                      .collect(
+                          Collectors.groupingBy(
+                              PluginLogEntry::executionId,
+                              Collectors.toCollection(ArrayList::new)));
+              entriesByExecution.forEach(
+                  (executionId, execEntries) ->
+                      storage.merge(
+                          executionId,
+                          execEntries,
+                          (existing, newEntries) -> {
+                            existing.addAll(newEntries);
+                            return existing;
+                          }));
               log.atTrace()
                   .addKeyValue("entriesCount", entries.size())
                   .log("Wrote plugin log batch to memory");

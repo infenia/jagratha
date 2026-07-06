@@ -37,6 +37,9 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 public class FileSystemPluginLogWriter implements PluginLogWriter {
 
+  /** Log file extension used for plugin log files. */
+  private static final String LOG_FILE_EXTENSION = ".log";
+
   /** Base directory for log files. */
   private final String baseLogDir;
 
@@ -65,32 +68,36 @@ public class FileSystemPluginLogWriter implements PluginLogWriter {
 
   @Override
   public Mono<Void> writeBatch(final List<PluginLogEntry> entries) {
+    final Mono<Void> result;
     if (entries.isEmpty()) {
-      return Mono.empty();
+      result = Mono.empty();
+    } else {
+      result =
+          Mono.fromRunnable(
+                  () -> {
+                    final var entriesByExecution =
+                        entries.stream()
+                            .collect(Collectors.groupingBy(PluginLogEntry::executionId));
+
+                    for (final var entry : entriesByExecution.entrySet()) {
+                      final String executionId = entry.getKey();
+                      final List<PluginLogEntry> execEntries = entry.getValue();
+
+                      if (!execEntries.isEmpty()) {
+                        final String sessionId = execEntries.getFirst().sessionId();
+                        writeToFile(sessionId, executionId, execEntries);
+                      }
+                    }
+                  })
+              .subscribeOn(Schedulers.boundedElastic())
+              .doFinally(
+                  _ ->
+                      log.atTrace()
+                          .addKeyValue("entriesCount", entries.size())
+                          .log("Wrote plugin log batch to file system"))
+              .then();
     }
-
-    return Mono.fromRunnable(
-            () -> {
-              final var entriesByExecution =
-                  entries.stream().collect(Collectors.groupingBy(PluginLogEntry::executionId));
-
-              for (final var entry : entriesByExecution.entrySet()) {
-                final String executionId = entry.getKey();
-                final List<PluginLogEntry> execEntries = entry.getValue();
-
-                if (!execEntries.isEmpty()) {
-                  final String sessionId = execEntries.getFirst().sessionId();
-                  writeToFile(sessionId, executionId, execEntries);
-                }
-              }
-            })
-        .subscribeOn(Schedulers.boundedElastic())
-        .doFinally(
-            _ ->
-                log.atTrace()
-                    .addKeyValue("entriesCount", entries.size())
-                    .log("Wrote plugin log batch to file system"))
-        .then();
+    return result;
   }
 
   @Override
@@ -104,7 +111,7 @@ public class FileSystemPluginLogWriter implements PluginLogWriter {
       final Path logDir = Path.of(baseLogDir).resolve(sessionId);
       Files.createDirectories(logDir);
 
-      final Path logFile = logDir.resolve(executionId + ".log");
+      final Path logFile = logDir.resolve(executionId + LOG_FILE_EXTENSION);
       final String content =
           entries.stream()
               .map(

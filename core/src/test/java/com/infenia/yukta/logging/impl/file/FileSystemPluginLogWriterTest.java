@@ -25,15 +25,26 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+/** Tests for FileSystemPluginLogWriter. */
+@NoArgsConstructor
 class FileSystemPluginLogWriterTest {
 
+  /** Temporary directory for test files. */
   @TempDir private Path tempDir;
 
+  /** Log writer instance for testing. */
   private FileSystemPluginLogWriter writer;
+
+  /** Session ID used in test scenarios. */
+  private static final String SESSION_ID = "session-456";
+
+  /** Plugin ID used in test scenarios. */
+  private static final String PLUGIN_ID = "plugin-id";
 
   @BeforeEach
   void setUp() {
@@ -45,8 +56,8 @@ class FileSystemPluginLogWriterTest {
     final PluginLogEntry entry =
         new PluginLogEntry(
             "exec-123",
-            "session-456",
-            "plugin-id",
+            SESSION_ID,
+            PLUGIN_ID,
             "Plugin",
             LogStream.STDOUT,
             "Test message",
@@ -55,11 +66,11 @@ class FileSystemPluginLogWriterTest {
 
     writer.write(entry).block();
 
-    final Path logFile = tempDir.resolve("session-456").resolve("exec-123.log");
+    final Path logFile = tempDir.resolve(SESSION_ID).resolve("exec-123.log");
     assertThat(logFile).exists();
     final String content = Files.readString(logFile);
     assertThat(content).contains("Test message");
-    assertThat(content).contains("plugin-id");
+    assertThat(content).contains(PLUGIN_ID);
   }
 
   @Test
@@ -67,7 +78,7 @@ class FileSystemPluginLogWriterTest {
     final PluginLogEntry entry1 =
         new PluginLogEntry(
             "exec-123",
-            "session-456",
+            SESSION_ID,
             "plugin-1",
             "Plugin 1",
             LogStream.STDOUT,
@@ -77,7 +88,7 @@ class FileSystemPluginLogWriterTest {
     final PluginLogEntry entry2 =
         new PluginLogEntry(
             "exec-123",
-            "session-456",
+            SESSION_ID,
             "plugin-2",
             "Plugin 2",
             LogStream.STDERR,
@@ -87,7 +98,7 @@ class FileSystemPluginLogWriterTest {
 
     writer.writeBatch(List.of(entry1, entry2)).block();
 
-    final Path logFile = tempDir.resolve("session-456").resolve("exec-123.log");
+    final Path logFile = tempDir.resolve(SESSION_ID).resolve("exec-123.log");
     assertThat(logFile).exists();
     final String content = Files.readString(logFile);
     assertThat(content).contains("Message 1");
@@ -117,8 +128,8 @@ class FileSystemPluginLogWriterTest {
     final PluginLogEntry entry1 =
         new PluginLogEntry(
             "exec-001",
-            "session-456",
-            "plugin-id",
+            SESSION_ID,
+            PLUGIN_ID,
             "Plugin",
             LogStream.STDOUT,
             "Exec 1",
@@ -127,8 +138,8 @@ class FileSystemPluginLogWriterTest {
     final PluginLogEntry entry2 =
         new PluginLogEntry(
             "exec-002",
-            "session-456",
-            "plugin-id",
+            SESSION_ID,
+            PLUGIN_ID,
             "Plugin",
             LogStream.STDOUT,
             "Exec 2",
@@ -138,7 +149,7 @@ class FileSystemPluginLogWriterTest {
     writer.write(entry1).block();
     writer.write(entry2).block();
 
-    assertThat(tempDir.resolve("session-456").resolve("exec-001.log")).exists();
-    assertThat(tempDir.resolve("session-456").resolve("exec-002.log")).exists();
+    assertThat(tempDir.resolve(SESSION_ID).resolve("exec-001.log")).exists();
+    assertThat(tempDir.resolve(SESSION_ID).resolve("exec-002.log")).exists();
   }
 }

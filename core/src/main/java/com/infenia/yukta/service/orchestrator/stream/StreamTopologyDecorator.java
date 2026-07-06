@@ -80,42 +80,49 @@ public class StreamTopologyDecorator {
    * @return array of log chunks, each <= MAX_LOG_LINE_SIZE
    */
   private static String[] splitLogLine(final String line) {
+    final String[] result;
     if (line.length() <= MAX_LOG_LINE_SIZE) {
-      return new String[] {line};
+      result = new String[] {line};
+    } else {
+      final List<String> chunks = new ArrayList<>();
+      final String[] lines = line.split("\n", -1);
+      final StringBuilder currentChunk = new StringBuilder();
+
+      for (final String currentLine : lines) {
+        processLine(currentLine, currentChunk, chunks);
+      }
+
+      flushChunk(currentChunk, chunks);
+      result = chunks.toArray(new String[0]);
     }
+    return result;
+  }
 
-    final List<String> chunks = new ArrayList<>();
-    final String[] lines = line.split("\n", -1);
-    final StringBuilder currentChunk = new StringBuilder();
+  private static void processLine(
+      final String currentLine, final StringBuilder currentChunk, final List<String> chunks) {
+    final int potentialSize =
+        currentChunk.length() + (currentChunk.isEmpty() ? 0 : 1) + currentLine.length();
 
-    for (final String currentLine : lines) {
-      final int potentialSize =
-          currentChunk.length() + (!currentChunk.isEmpty() ? 1 : 0) + currentLine.length();
-
-      if (potentialSize <= MAX_LOG_LINE_SIZE) {
-        if (!currentChunk.isEmpty()) {
-          currentChunk.append("\n");
-        }
-        currentChunk.append(currentLine);
+    if (potentialSize <= MAX_LOG_LINE_SIZE) {
+      if (!currentChunk.isEmpty()) {
+        currentChunk.append('\n');
+      }
+      currentChunk.append(currentLine);
+    } else {
+      flushChunk(currentChunk, chunks);
+      if (currentLine.length() > MAX_LOG_LINE_SIZE) {
+        splitLongLine(currentLine, chunks);
       } else {
-        if (!currentChunk.isEmpty()) {
-          chunks.add(currentChunk.toString());
-          currentChunk.setLength(0);
-        }
-        // Handle individual lines that exceed MAX_LOG_LINE_SIZE
-        if (currentLine.length() > MAX_LOG_LINE_SIZE) {
-          splitLongLine(currentLine, chunks);
-        } else {
-          currentChunk.append(currentLine);
-        }
+        currentChunk.append(currentLine);
       }
     }
+  }
 
+  private static void flushChunk(final StringBuilder currentChunk, final List<String> chunks) {
     if (!currentChunk.isEmpty()) {
       chunks.add(currentChunk.toString());
+      currentChunk.setLength(0);
     }
-
-    return chunks.toArray(new String[0]);
   }
 
   /**

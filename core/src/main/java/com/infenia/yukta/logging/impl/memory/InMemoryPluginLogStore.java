@@ -41,8 +41,8 @@ public class InMemoryPluginLogStore implements PluginLogStore {
   /** Caffeine cache storing log entries per execution ID. */
   private final Cache<String, List<PluginLogEntry>> cache;
 
-  /** Log store configuration with retention settings. */
-  private final PluginLogStoreConfig config;
+  /** Retention duration extracted from config. */
+  private final Duration retention;
 
   /**
    * Constructs an in-memory store with Caffeine cache.
@@ -52,12 +52,12 @@ public class InMemoryPluginLogStore implements PluginLogStore {
    * @param config the log store configuration
    */
   public InMemoryPluginLogStore(final PluginLogStoreConfig config) {
-    this.config = config;
-    final Duration retention = config.getEffectiveRetention();
+    final Duration effectiveRetention = config.getEffectiveRetention();
+    this.retention = effectiveRetention;
 
     this.cache =
         Caffeine.newBuilder()
-            .expireAfterWrite(retention)
+            .expireAfterWrite(effectiveRetention)
             .removalListener(
                 (key, value, cause) ->
                     log.debug("Log entry expired for execution: {} ({})", key, cause))
@@ -70,13 +70,11 @@ public class InMemoryPluginLogStore implements PluginLogStore {
             () -> {
               final String executionId = entry.executionId();
               cache.asMap().computeIfAbsent(executionId, k -> new ArrayList<>()).add(entry);
-              if (log.isTraceEnabled()) {
-                log.trace(
+                log.atTrace().log(
                     "Log written for execution {}: [{}] {}",
                     executionId,
                     entry.logLevel(),
                     entry.message());
-              }
             })
         .subscribeOn(Schedulers.boundedElastic())
         .then();
@@ -103,6 +101,6 @@ public class InMemoryPluginLogStore implements PluginLogStore {
 
   @Override
   public Duration getEffectiveRetention() {
-    return config.getEffectiveRetention();
+    return retention;
   }
 }

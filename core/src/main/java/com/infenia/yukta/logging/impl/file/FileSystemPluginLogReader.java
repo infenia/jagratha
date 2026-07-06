@@ -44,8 +44,16 @@ import reactor.core.scheduler.Schedulers;
  */
 @Slf4j
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.UnnecessaryModifier")
 public class FileSystemPluginLogReader implements PluginLogReader {
 
+  /** Log file extension used for plugin log files. */
+  private static final String LOG_FILE_EXTENSION = ".log";
+
+  /** Minimum number of parts expected in a parsed log line. */
+  private static final int MIN_LOG_PARTS = 4;
+
+  /** ISO offset date time formatter for parsing log timestamps. */
   private static final DateTimeFormatter TIMESTAMP_FORMAT =
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault());
 
@@ -65,7 +73,7 @@ public class FileSystemPluginLogReader implements PluginLogReader {
 
               try (final var sessions = Files.list(baseDir)) {
                 for (final Path sessionDir : sessions.toArray(Path[]::new)) {
-                  final Path logFile = sessionDir.resolve(executionId + ".log");
+                  final Path logFile = sessionDir.resolve(executionId + LOG_FILE_EXTENSION);
                   if (Files.exists(logFile)) {
                     entries.addAll(readLogFile(logFile, sessionDir.getFileName().toString()));
                   }
@@ -96,7 +104,7 @@ public class FileSystemPluginLogReader implements PluginLogReader {
 
               try (final var files = Files.list(sessionDir)) {
                 for (final Path logFile : files.toArray(Path[]::new)) {
-                  if (logFile.toString().endsWith(".log")) {
+                  if (logFile.toString().endsWith(LOG_FILE_EXTENSION)) {
                     entries.addAll(readLogFile(logFile, sessionId));
                   }
                 }
@@ -126,8 +134,9 @@ public class FileSystemPluginLogReader implements PluginLogReader {
 
               try (final var files = Files.list(sessionDir)) {
                 for (final Path logFile : files.toArray(Path[]::new)) {
-                  if (logFile.toString().endsWith(".log")) {
-                    final String executionId = logFile.getFileName().toString().replace(".log", "");
+                  if (logFile.toString().endsWith(LOG_FILE_EXTENSION)) {
+                    final String executionId =
+                        logFile.getFileName().toString().replace(LOG_FILE_EXTENSION, "");
                     final long entryCount;
                     try (final var lineStream = Files.lines(logFile)) {
                       entryCount = lineStream.count();
@@ -175,7 +184,7 @@ public class FileSystemPluginLogReader implements PluginLogReader {
 
               try (final var sessions = Files.list(baseDir)) {
                 for (final Path sessionDir : sessions.toArray(Path[]::new)) {
-                  final Path logFile = sessionDir.resolve(executionId + ".log");
+                  final Path logFile = sessionDir.resolve(executionId + LOG_FILE_EXTENSION);
                   if (Files.exists(logFile)) {
                     return Files.readString(logFile, StandardCharsets.UTF_8);
                   }
@@ -194,18 +203,21 @@ public class FileSystemPluginLogReader implements PluginLogReader {
 
   private List<PluginLogEntry> readLogFile(final Path logFile, final String sessionId) {
     final List<PluginLogEntry> entries = new ArrayList<>();
-    final String executionId = logFile.getFileName().toString().replace(".log", "");
+    final Path fileName = logFile.getFileName();
+    if (fileName != null) {
+      final String executionId = fileName.toString().replace(LOG_FILE_EXTENSION, "");
 
-    try {
-      final List<String> lines = Files.readAllLines(logFile, StandardCharsets.UTF_8);
-      for (final String line : lines) {
-        final PluginLogEntry entry = parseLine(line, executionId, sessionId);
-        if (entry != null) {
-          entries.add(entry);
+      try {
+        final List<String> lines = Files.readAllLines(logFile, StandardCharsets.UTF_8);
+        for (final String line : lines) {
+          final PluginLogEntry entry = parseLine(line, executionId, sessionId);
+          if (entry != null) {
+            entries.add(entry);
+          }
         }
+      } catch (final IOException e) {
+        log.atWarn().addKeyValue("logFile", logFile).setCause(e).log("Error reading log file");
       }
-    } catch (final IOException e) {
-      log.atWarn().addKeyValue("logFile", logFile).setCause(e).log("Error reading log file");
     }
 
     return entries;
@@ -213,9 +225,10 @@ public class FileSystemPluginLogReader implements PluginLogReader {
 
   private PluginLogEntry parseLine(
       final String line, final String executionId, final String sessionId) {
+    PluginLogEntry entry = null;
     try {
-      final List<String> parts = List.of(line.split(" \\| ", -1));
-      if (parts.size() >= 4) {
+      final List<String> parts = List.of(line.split(" \\| ", 4));
+      if (parts.size() >= MIN_LOG_PARTS) {
         final String timestampStr = parts.get(0).trim();
         final Instant timestamp = parseTimestamp(timestampStr);
         final LogStream stream = LogStream.valueOf(parts.get(1).trim());
@@ -223,38 +236,45 @@ public class FileSystemPluginLogReader implements PluginLogReader {
         final String pluginName = parts.get(2).trim();
         final String message = parts.get(3).trim();
 
-        return new PluginLogEntry(
-            executionId,
-            sessionId,
-            pluginId,
-            pluginName,
-            stream,
-            message,
-            LogLevel.INFO,
-            timestamp);
+        entry =
+            new PluginLogEntry(
+                executionId,
+                sessionId,
+                pluginId,
+                pluginName,
+                stream,
+                message,
+                LogLevel.INFO,
+                timestamp);
       }
-    } catch (final Exception e) {
+    } catch (final IllegalArgumentException | IndexOutOfBoundsException e) {
       log.atTrace()
           .addKeyValue("line", line.substring(0, Math.min(50, line.length())))
           .setCause(e)
           .log("Failed to parse log line");
     }
-
-    return null;
+    return entry;
   }
 
   private Instant parseTimestamp(final String timestampStr) {
+    Instant result;
     try {
       final ZonedDateTime zonedDateTime = ZonedDateTime.parse(timestampStr, TIMESTAMP_FORMAT);
-      return zonedDateTime.toInstant();
-    } catch (final Exception e) {
+      result = zonedDateTime.toInstant();
+    } catch (final java.time.format.DateTimeParseException e) {
       try {
-        return java.time.LocalDateTime.parse(timestampStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            .atZone(ZoneId.systemDefault())
-            .toInstant();
-      } catch (final Exception e2) {
-        return Instant.now();
+        result =
+            java.time.LocalDateTime.parse(timestampStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                .atZone(ZoneId.systemDefault())
+                .toInstant();
+      } catch (final java.time.format.DateTimeParseException e2) {
+        log.atDebug()
+            .addKeyValue("timestampStr", timestampStr)
+            .setCause(e2)
+            .log("Failed to parse timestamp, using current time");
+        result = Instant.now();
       }
     }
+    return result;
   }
 }

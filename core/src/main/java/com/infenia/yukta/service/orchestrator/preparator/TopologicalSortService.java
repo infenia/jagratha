@@ -26,7 +26,11 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @NoArgsConstructor
-@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "checkstyle:AvoidStarImport"})
+@SuppressWarnings({
+  "PMD.AvoidDuplicateLiterals",
+  "checkstyle:AvoidStarImport",
+  "PMD.UseConcurrentHashMap"
+})
 public class TopologicalSortService {
 
   /**

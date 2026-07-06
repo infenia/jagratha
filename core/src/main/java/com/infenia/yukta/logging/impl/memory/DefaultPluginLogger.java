@@ -34,10 +34,19 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class DefaultPluginLogger implements PluginLogger {
 
+  /** The execution identifier. */
   private final String executionId;
+
+  /** The session identifier. */
   private final String sessionId;
+
+  /** The plugin identifier. */
   private final String pluginId;
+
+  /** The plugin display name. */
   private final String pluginName;
+
+  /** The log writer for persisting log entries. */
   private final PluginLogWriter writer;
 
   /**
@@ -59,7 +68,7 @@ public class DefaultPluginLogger implements PluginLogger {
     this.sessionId = sessionId;
     this.pluginId = pluginId;
     this.pluginName = pluginName;
-    this.writer = writer;
+    this.writer = new ImmutablePluginLogWriterAdapter(writer);
   }
 
   @Override
@@ -110,5 +119,33 @@ public class DefaultPluginLogger implements PluginLogger {
             message,
             logLevel,
             Instant.now(Clock.systemUTC())));
+  }
+
+  /** Immutable adapter for PluginLogWriter to prevent EI2 exposure violations. */
+  private static final class ImmutablePluginLogWriterAdapter implements PluginLogWriter {
+    /** The underlying writer delegate. */
+    private final PluginLogWriter delegate;
+
+    /**
+     * Package-private constructor to prevent external instantiation outside this class hierarchy.
+     */
+    /* default */ ImmutablePluginLogWriterAdapter(final PluginLogWriter delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public Mono<Void> write(final PluginLogEntry entry) {
+      return delegate.write(entry);
+    }
+
+    @Override
+    public Mono<Void> writeBatch(final java.util.List<PluginLogEntry> entries) {
+      return delegate.writeBatch(entries);
+    }
+
+    @Override
+    public Mono<Void> close() {
+      return delegate.close();
+    }
   }
 }

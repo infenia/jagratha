@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 /**
@@ -54,28 +55,44 @@ public class LogStoreSubscriber {
    */
   @PostConstruct
   public void init() {
-    subscription =
-        taskTracker
-            .getLogFlux()
-            .flatMap(
-                entry ->
-                    store
-                        .write(entry)
-                        .onErrorResume(
-                            error -> {
-                              log.atWarn()
-                                  .addKeyValue("executionId", entry.executionId())
-                                  .addKeyValue("error", error.getMessage())
-                                  .log("Failed to write log entry");
-                              return reactor.core.publisher.Mono.empty();
-                            }))
-            .subscribeOn(Schedulers.boundedElastic())
-            .subscribe(
-                _ -> {},
-                error -> log.error("Log store subscription failed", error),
-                () -> log.info("Log store subscription completed"));
-
+    subscription = buildAndSubscribe();
     log.info("Log store subscriber initialized");
+  }
+
+  /**
+   * Build and subscribe to the log pipeline. Extracted for testability.
+   *
+   * @return the Disposable subscription
+   */
+  protected Disposable buildAndSubscribe() {
+    return buildLogPipeline()
+        .subscribe(
+            _ -> {},
+            error -> log.error("Log store subscription failed", error),
+            () -> log.info("Log store subscription completed"));
+  }
+
+  /**
+   * Build the reactive pipeline for log processing. Extracted for testability.
+   *
+   * @return the Flux representing the log processing pipeline
+   */
+  protected Flux<Void> buildLogPipeline() {
+    return taskTracker
+        .getLogFlux()
+        .flatMap(
+            entry ->
+                store
+                    .write(entry)
+                    .onErrorResume(
+                        error -> {
+                          log.atWarn()
+                              .addKeyValue("executionId", entry.executionId())
+                              .addKeyValue("error", error.getMessage())
+                              .log("Failed to write log entry");
+                          return reactor.core.publisher.Mono.empty();
+                        }))
+        .subscribeOn(Schedulers.boundedElastic());
   }
 
   /** Dispose of the subscription when component is destroyed. */

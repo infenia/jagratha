@@ -18,7 +18,6 @@ package com.infenia.yukta.logging.impl.memory;
 import com.infenia.yukta.logging.api.ExecutionSummary;
 import com.infenia.yukta.logging.api.PluginLogEntry;
 import com.infenia.yukta.logging.api.PluginLogReader;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -74,45 +73,28 @@ public class InMemoryPluginLogReader implements PluginLogReader {
   @Override
   public Mono<List<ExecutionSummary>> listExecutions(final String sessionId) {
     return Mono.fromCallable(
-            () -> {
-              final Map<String, Builder> builders = new java.util.HashMap<>();
-
-              for (final Map.Entry<String, List<PluginLogEntry>> entry : storage.entrySet()) {
-                final List<PluginLogEntry> entries = entry.getValue();
-                if (entries.isEmpty()) {
-                  continue;
-                }
-
-                final PluginLogEntry first = entries.getFirst();
-                if (!sessionId.equals(first.sessionId())) {
-                  continue;
-                }
-
-                final Instant firstInstant = first.timestamp();
-                final LocalDateTime startTime =
-                    ZonedDateTime.ofInstant(firstInstant, ZoneId.systemDefault()).toLocalDateTime();
-
-                final Builder builder =
-                    new Builder()
-                        .executionId(entry.getKey())
-                        .sessionId(sessionId)
-                        .startTime(startTime)
-                        .entryCount(entries.size());
-
-                final PluginLogEntry last = entries.getLast();
-                final Instant lastInstant = last.timestamp();
-                final LocalDateTime endTime =
-                    ZonedDateTime.ofInstant(lastInstant, ZoneId.systemDefault()).toLocalDateTime();
-                builder.endTime(endTime);
-
-                builders.put(entry.getKey(), builder);
-              }
-
-              return builders.values().stream()
-                  .map(Builder::build)
-                  .sorted((a, b) -> b.startTime().compareTo(a.startTime()))
-                  .collect(Collectors.toList());
-            })
+            () ->
+                storage.entrySet().stream()
+                    .filter(
+                        entry ->
+                            !entry.getValue().isEmpty()
+                                && sessionId.equals(entry.getValue().getFirst().sessionId()))
+                    .map(
+                        entry -> {
+                          final List<PluginLogEntry> entries = entry.getValue();
+                          final PluginLogEntry first = entries.getFirst();
+                          final PluginLogEntry last = entries.getLast();
+                          final LocalDateTime startTime =
+                              ZonedDateTime.ofInstant(first.timestamp(), ZoneId.systemDefault())
+                                  .toLocalDateTime();
+                          final LocalDateTime endTime =
+                              ZonedDateTime.ofInstant(last.timestamp(), ZoneId.systemDefault())
+                                  .toLocalDateTime();
+                          return new ExecutionSummary(
+                              entry.getKey(), sessionId, startTime, endTime, entries.size());
+                        })
+                    .sorted((a, b) -> b.startTime().compareTo(a.startTime()))
+                    .collect(Collectors.toList()))
         .subscribeOn(Schedulers.boundedElastic())
         .doOnNext(
             summaries ->
@@ -143,49 +125,5 @@ public class InMemoryPluginLogReader implements PluginLogReader {
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("contentLength", content.length())
                     .log("Retrieved raw log content"));
-  }
-
-  /** Helper builder class for ExecutionSummary. */
-  public static class Builder {
-    private String executionId;
-    private String sessionId;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
-    private long entryCount;
-
-    /** Set the execution ID. */
-    public Builder executionId(final String executionId) {
-      this.executionId = executionId;
-      return this;
-    }
-
-    /** Set the session ID. */
-    public Builder sessionId(final String sessionId) {
-      this.sessionId = sessionId;
-      return this;
-    }
-
-    /** Set the start time. */
-    public Builder startTime(final LocalDateTime startTime) {
-      this.startTime = startTime;
-      return this;
-    }
-
-    /** Set the end time. */
-    public Builder endTime(final LocalDateTime endTime) {
-      this.endTime = endTime;
-      return this;
-    }
-
-    /** Set the entry count. */
-    public Builder entryCount(final long entryCount) {
-      this.entryCount = entryCount;
-      return this;
-    }
-
-    /** Build the ExecutionSummary. */
-    public ExecutionSummary build() {
-      return new ExecutionSummary(executionId, sessionId, startTime, endTime, entryCount);
-    }
   }
 }

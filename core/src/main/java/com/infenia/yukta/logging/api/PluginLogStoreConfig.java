@@ -45,8 +45,8 @@ public class PluginLogStoreConfig {
    * @return effective retention duration
    */
   public Duration getEffectiveRetention() {
-    int configured = retention.getDefaultPeriodMinutes();
-    int capped = Math.min(configured, MAX_RETENTION_MINUTES);
+    final int configured = retention.getDefaultPeriodMinutes();
+    final int capped = Math.min(configured, MAX_RETENTION_MINUTES);
     return Duration.ofMinutes(capped);
   }
 
@@ -68,16 +68,29 @@ public class PluginLogStoreConfig {
       return defaultPeriodMinutes;
     }
 
-    public void setDefaultPeriodMinutes(int defaultPeriodMinutes) {
+    public void setDefaultPeriodMinutes(final int defaultPeriodMinutes) {
       this.defaultPeriodMinutes = defaultPeriodMinutes;
     }
   }
 
+  /**
+   * Get a defensive copy of the retention configuration.
+   *
+   * @return a copy of the retention configuration
+   */
   public Retention getRetention() {
-    return retention;
+    final Retention copy = new Retention();
+    copy.setDefaultPeriodMinutes(retention.getDefaultPeriodMinutes());
+    return copy;
   }
 
-  public void setRetention(Retention retention) {
-    this.retention = retention;
+  /**
+   * Set the retention configuration.
+   *
+   * @param retention the retention configuration to set
+   */
+  public void setRetention(final Retention retention) {
+    this.retention = new Retention();
+    this.retention.setDefaultPeriodMinutes(retention.getDefaultPeriodMinutes());
   }
 }

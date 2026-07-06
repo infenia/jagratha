@@ -37,19 +37,50 @@ public class DefaultPluginLoggerFactory implements PluginLoggerFactory {
    * @param writer the log writer
    */
   public DefaultPluginLoggerFactory(final PluginLogWriter writer) {
-    this.writer = writer;
+    this.writer = new ImmutablePluginLogWriterAdapter(writer);
   }
 
   @Override
-  public PluginLogger create(
-      final String executionId,
-      final String sessionId,
-      final String pluginId,
-      final String pluginName) {
+  public PluginLogger create(final PluginLoggerFactory.LoggerContext context) {
     log.atDebug()
-        .addKeyValue("executionId", executionId)
-        .addKeyValue("pluginId", pluginId)
+        .addKeyValue("executionId", context.executionId())
+        .addKeyValue("pluginId", context.pluginId())
         .log("Creating PluginLogger instance");
-    return new DefaultPluginLogger(executionId, sessionId, pluginId, pluginName, writer);
+    return new DefaultPluginLogger(
+        context.executionId(),
+        context.sessionId(),
+        context.pluginId(),
+        context.pluginName(),
+        writer);
+  }
+
+  /** Immutable adapter for PluginLogWriter to prevent EI2 exposure violations. */
+  private static final class ImmutablePluginLogWriterAdapter implements PluginLogWriter {
+    /** The underlying writer delegate. */
+    private final PluginLogWriter delegate;
+
+    /**
+     * Package-private constructor to prevent external instantiation outside this class hierarchy.
+     */
+    /* default */ ImmutablePluginLogWriterAdapter(final PluginLogWriter delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public reactor.core.publisher.Mono<Void> write(
+        final com.infenia.yukta.logging.api.PluginLogEntry entry) {
+      return delegate.write(entry);
+    }
+
+    @Override
+    public reactor.core.publisher.Mono<Void> writeBatch(
+        final java.util.List<com.infenia.yukta.logging.api.PluginLogEntry> entries) {
+      return delegate.writeBatch(entries);
+    }
+
+    @Override
+    public reactor.core.publisher.Mono<Void> close() {
+      return delegate.close();
+    }
   }
 }

@@ -66,7 +66,8 @@ import reactor.util.concurrent.Queues;
   "PMD.CouplingBetweenObjects",
   "PMD.UseObjectForClearerAPI",
   "PMD.OnlyOneReturn",
-  "PMD.AvoidDuplicateLiterals"
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.LawOfDemeter"
 })
 @SuppressFBWarnings("EI2")
 public class DefaultTaskTrackerService implements TaskTrackerService {
@@ -458,7 +459,7 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
       return Flux.empty();
     }
 
-    Flux<String> logFlux = sink.asFlux();
+    final Flux<String> logFlux = sink.asFlux();
 
     return logFlux
         .takeUntil(
