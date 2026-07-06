@@ -36,11 +36,7 @@ import reactor.core.publisher.Mono;
 
 /** Tests for {@link DefaultPluginLogger}. */
 @NoArgsConstructor
-@SuppressWarnings({
-  "PMD.TooManyMethods",
-  "PMD.AvoidAccessibilityAlteration",
-  "PMD.LawOfDemeter"
-})
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.AvoidAccessibilityAlteration", "PMD.LawOfDemeter"})
 class DefaultPluginLoggerTest {
 
   /** Execution ID for testing. */
