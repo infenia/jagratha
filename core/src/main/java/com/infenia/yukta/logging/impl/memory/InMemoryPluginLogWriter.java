@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,7 @@ import reactor.core.scheduler.Schedulers;
  * <p>Stores logs in ConcurrentHashMap indexed by execution ID. Suitable for development and unit
  * testing. Not recommended for production as logs are not persisted.
  */
-@Getter
+@Getter(AccessLevel.PACKAGE)
 @Slf4j
 @RequiredArgsConstructor
 public class InMemoryPluginLogWriter implements PluginLogWriter {
@@ -62,8 +63,11 @@ public class InMemoryPluginLogWriter implements PluginLogWriter {
                           executionId,
                           execEntries,
                           (existing, newEntries) -> {
-                            existing.addAll(newEntries);
-                            return existing;
+                            final List<PluginLogEntry> merged =
+                                new ArrayList<>(existing.size() + newEntries.size());
+                            merged.addAll(existing);
+                            merged.addAll(newEntries);
+                            return merged;
                           }));
               log.atTrace()
                   .addKeyValue("entriesCount", entries.size())

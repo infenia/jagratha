@@ -18,6 +18,7 @@ package com.infenia.yukta.logging.impl.file;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.logging.api.ExecutionSummary;
+import com.infenia.yukta.logging.api.LogLevel;
 import com.infenia.yukta.logging.api.PluginLogEntry;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -54,24 +55,30 @@ class FileSystemPluginLogReaderTest {
     Files.writeString(
         sessionDir.resolve("exec-123.log"),
         """
-        2026-07-02T10:00:00 | STDOUT | plugin-1 | Message 1
-        2026-07-02T10:00:01 | STDERR | plugin-2 | Message 2
+        2026-07-02T10:00:00 | STDOUT | INFO | plugin-1 | Plugin One | Message 1
+        2026-07-02T10:00:01 | STDERR | ERROR | plugin-2 | Plugin Two | Message 2
         """);
 
     final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
 
     assertThat(entries).hasSize(2);
     assertThat(entries.get(0).message()).isEqualTo("Message 1");
+    assertThat(entries.get(0).logLevel()).isEqualTo(LogLevel.INFO);
+    assertThat(entries.get(0).pluginName()).isEqualTo("Plugin One");
     assertThat(entries.get(1).message()).isEqualTo("Message 2");
+    assertThat(entries.get(1).logLevel()).isEqualTo(LogLevel.ERROR);
+    assertThat(entries.get(1).pluginName()).isEqualTo("Plugin Two");
   }
 
   @Test
   void testReadSession() throws IOException {
     final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
     Files.writeString(
-        sessionDir.resolve("exec-001.log"), "2026-07-02T10:00:00 | STDOUT | plugin-1 | Exec 1\n");
+        sessionDir.resolve("exec-001.log"),
+        "2026-07-02T10:00:00 | STDOUT | INFO | plugin-1 | Plugin One | Exec 1\n");
     Files.writeString(
-        sessionDir.resolve("exec-002.log"), "2026-07-02T10:00:01 | STDOUT | plugin-1 | Exec 2\n");
+        sessionDir.resolve("exec-002.log"),
+        "2026-07-02T10:00:01 | STDOUT | INFO | plugin-1 | Plugin One | Exec 2\n");
 
     final List<PluginLogEntry> entries = reader.readSession(SESSION_ID).collectList().block();
 
@@ -91,8 +98,8 @@ class FileSystemPluginLogReaderTest {
     Files.writeString(
         sessionDir.resolve("exec-123.log"),
         """
-        2026-07-02T10:00:00 | STDOUT | plugin-1 | Message 1
-        2026-07-02T10:00:01 | STDOUT | plugin-1 | Message 2
+        2026-07-02T10:00:00 | STDOUT | INFO | plugin-1 | Plugin One | Message 1
+        2026-07-02T10:00:01 | STDOUT | INFO | plugin-1 | Plugin One | Message 2
         """);
 
     final String content = reader.getRawContent("exec-123").block();
@@ -106,10 +113,10 @@ class FileSystemPluginLogReaderTest {
     final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
     Files.writeString(
         sessionDir.resolve("exec-001.log"),
-        "2026-07-02T10:00:00+00:00 | STDOUT | plugin-1 | Message 1\n");
+        "2026-07-02T10:00:00+00:00 | STDOUT | INFO | plugin-1 | Plugin One | Message 1\n");
     Files.writeString(
         sessionDir.resolve("exec-002.log"),
-        "2026-07-02T10:00:05+00:00 | STDOUT | plugin-1 | Message 2\n");
+        "2026-07-02T10:00:05+00:00 | STDOUT | INFO | plugin-1 | Plugin One | Message 2\n");
 
     final List<ExecutionSummary> summaries = reader.listExecutions(SESSION_ID).block();
 
@@ -153,7 +160,7 @@ class FileSystemPluginLogReaderTest {
     final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
     Files.writeString(
         sessionDir.resolve("exec-123.log"),
-        "2026-07-02T10:00:00 | STDOUT | plugin-1 | Message with | delimiter\n");
+        "2026-07-02T10:00:00 | STDOUT | INFO | plugin-1 | Plugin One | Message with | delimiter\n");
 
     final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
 
@@ -168,7 +175,7 @@ class FileSystemPluginLogReaderTest {
         sessionDir.resolve("exec-123.log"),
         """
         invalid line without delimiters
-        2026-07-02T10:00:00 | STDOUT | plugin-1 | Valid message
+        2026-07-02T10:00:00 | STDOUT | INFO | plugin-1 | Plugin One | Valid message
         """);
 
     final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
@@ -182,10 +189,10 @@ class FileSystemPluginLogReaderTest {
     final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
     Files.writeString(
         sessionDir.resolve("exec-001.log"),
-        "2026-07-02T10:00:00+00:00 | STDOUT | plugin-1 | Message 1\n");
+        "2026-07-02T10:00:00+00:00 | STDOUT | INFO | plugin-1 | Plugin One | Message 1\n");
     Files.writeString(
         sessionDir.resolve("exec-002.log"),
-        "2026-07-02T10:00:10+00:00 | STDOUT | plugin-1 | Message 2\n");
+        "2026-07-02T10:00:10+00:00 | STDOUT | INFO | plugin-1 | Plugin One | Message 2\n");
 
     final List<ExecutionSummary> summaries = reader.listExecutions(SESSION_ID).block();
 
@@ -217,7 +224,8 @@ class FileSystemPluginLogReaderTest {
   void testReadSessionWithoutLogExtension() throws IOException {
     final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
     Files.writeString(
-        sessionDir.resolve("exec-123.txt"), "2026-07-02T10:00:00 | STDOUT | plugin-1 | Message\n");
+        sessionDir.resolve("exec-123.txt"),
+        "2026-07-02T10:00:00 | STDOUT | INFO | plugin-1 | Plugin One | Message\n");
 
     final List<PluginLogEntry> entries = reader.readSession(SESSION_ID).collectList().block();
 
@@ -229,7 +237,7 @@ class FileSystemPluginLogReaderTest {
     final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
     Files.writeString(
         sessionDir.resolve("exec-123.log"),
-        "2026-07-02T10:00:00 | STDERR | plugin-1 | Error message\n");
+        "2026-07-02T10:00:00 | STDERR | ERROR | plugin-1 | Plugin One | Error message\n");
 
     final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
 
@@ -278,6 +286,19 @@ class FileSystemPluginLogReaderTest {
   }
 
   @Test
+  void readExecution_escapedNewlineInMessage_unescapesToActualNewline() throws IOException {
+    final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
+    Files.writeString(
+        sessionDir.resolve("exec-123.log"),
+        "2026-07-02T10:00:00 | STDOUT | INFO | plugin-1 | Plugin One | Line one\\nLine two\n");
+
+    final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
+
+    assertThat(entries).hasSize(1);
+    assertThat(entries.getFirst().message()).isEqualTo("Line one\nLine two");
+  }
+
+  @Test
   void readExecution_logFileIsDirectory_returnsEmptyList() throws IOException {
     final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
     Files.createDirectories(sessionDir.resolve("exec-123.log"));
@@ -292,7 +313,7 @@ class FileSystemPluginLogReaderTest {
     final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
     Files.writeString(
         sessionDir.resolve("exec-123.log"),
-        "2026-07-02T10:00:00 | NOT_A_STREAM | plugin-1 | Message\n");
+        "2026-07-02T10:00:00 | NOT_A_STREAM | INFO | plugin-1 | Plugin One | Message\n");
 
     final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
 
@@ -303,7 +324,8 @@ class FileSystemPluginLogReaderTest {
   void readExecution_unparseableTimestamp_fallsBackToCurrentInstant() throws IOException {
     final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
     Files.writeString(
-        sessionDir.resolve("exec-123.log"), "not-a-timestamp | STDOUT | plugin-1 | Message\n");
+        sessionDir.resolve("exec-123.log"),
+        "not-a-timestamp | STDOUT | INFO | plugin-1 | Plugin One | Message\n");
     final Instant before = Instant.now();
 
     final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
@@ -319,7 +341,7 @@ class FileSystemPluginLogReaderTest {
     Files.writeString(sessionDir.resolve("exec-invalid.log"), "not a valid log line\n");
     Files.writeString(
         sessionDir.resolve("exec-valid.log"),
-        "2026-07-02T10:00:00+00:00 | STDOUT | plugin-1 | Message\n");
+        "2026-07-02T10:00:00+00:00 | STDOUT | INFO | plugin-1 | Plugin One | Message\n");
 
     final List<ExecutionSummary> summaries = reader.listExecutions(SESSION_ID).block();
 
@@ -332,7 +354,7 @@ class FileSystemPluginLogReaderTest {
     final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
     Files.writeString(
         sessionDir.resolve("exec-001.log"),
-        "2026-07-02T10:00:00+00:00 | STDOUT | plugin-1 | Message\n");
+        "2026-07-02T10:00:00+00:00 | STDOUT | INFO | plugin-1 | Plugin One | Message\n");
     Files.writeString(sessionDir.resolve("readme.txt"), "not a log file\n");
 
     final List<ExecutionSummary> summaries = reader.listExecutions(SESSION_ID).block();

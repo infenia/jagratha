@@ -29,21 +29,12 @@ tests {
   test("Stream execution logs - 200 OK", function() {
     expect(res.status).to.equal(200);
   });
-  
-  test("Response is array of log entries", function() {
-    expect(res.body).to.be.an('array');
+
+  test("Response is a text/event-stream", function() {
+    expect(res.headers['content-type']).to.include('text/event-stream');
   });
-  
-  test("Log entries have required fields", function() {
-    if (res.body.length > 0) {
-      const entry = res.body[0];
-      expect(entry).to.have.property('executionId');
-      expect(entry).to.have.property('sessionId');
-      expect(entry).to.have.property('nodeId');
-      expect(entry).to.have.property('pluginId');
-      expect(entry).to.have.property('stream');
-      expect(entry).to.have.property('message');
-      expect(entry).to.have.property('timestamp');
-    }
+
+  test("Response body is a plain-text log stream, not JSON", function() {
+    expect(res.body).to.be.a('string');
   });
 }

@@ -52,7 +52,7 @@ public class FileSystemPluginLogReader implements PluginLogReader {
   private static final String LOG_FILE_EXTENSION = ".log";
 
   /** Minimum number of parts expected in a parsed log line. */
-  private static final int MIN_LOG_PARTS = 4;
+  private static final int MIN_LOG_PARTS = 6;
 
   /** ISO offset date time formatter for parsing log timestamps. */
   private static final DateTimeFormatter TIMESTAMP_FORMAT =
@@ -241,25 +241,19 @@ public class FileSystemPluginLogReader implements PluginLogReader {
       final String line, final String executionId, final String sessionId) {
     PluginLogEntry entry = null;
     try {
-      final List<String> parts = List.of(line.split(" \\| ", 4));
+      final List<String> parts = List.of(line.split(" \\| ", MIN_LOG_PARTS));
       if (parts.size() >= MIN_LOG_PARTS) {
         final String timestampStr = parts.get(0).trim();
         final Instant timestamp = parseTimestamp(timestampStr);
         final LogStream stream = LogStream.valueOf(parts.get(1).trim());
-        final String pluginId = parts.get(2).trim();
-        final String pluginName = parts.get(2).trim();
-        final String message = parts.get(3).trim();
+        final LogLevel logLevel = LogLevel.valueOf(parts.get(2).trim());
+        final String pluginId = parts.get(3).trim();
+        final String pluginName = parts.get(4).trim();
+        final String message = unescapeMessage(parts.get(5).trim());
 
         entry =
             new PluginLogEntry(
-                executionId,
-                sessionId,
-                pluginId,
-                pluginName,
-                stream,
-                message,
-                LogLevel.INFO,
-                timestamp);
+                executionId, sessionId, pluginId, pluginName, stream, message, logLevel, timestamp);
       }
     } catch (final IllegalArgumentException | IndexOutOfBoundsException e) {
       log.atTrace()
@@ -268,6 +262,16 @@ public class FileSystemPluginLogReader implements PluginLogReader {
           .log("Failed to parse log line");
     }
     return entry;
+  }
+
+  /**
+   * Reverse the newline escaping applied by FileSystemPluginLogWriter.
+   *
+   * @param message the escaped message read from a log line
+   * @return the original message with newlines restored
+   */
+  private static String unescapeMessage(final String message) {
+    return message.replace("\\n", "\n");
   }
 
   private Instant parseTimestamp(final String timestampStr) {

@@ -36,7 +36,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 /** Tests for FileSystemPluginLogWriter. */
 @NoArgsConstructor
 @ExtendWith(OutputCaptureExtension.class)
-@SuppressWarnings({"PMD.AvoidDuplicateLiterals"})
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.TooManyMethods"})
 class FileSystemPluginLogWriterTest {
 
   /** Temporary directory for test files. */
@@ -227,6 +227,35 @@ class FileSystemPluginLogWriterTest {
     assertThat(logFile2).exists();
     assertThat(Files.readString(logFile1)).contains("Exec 1 message").doesNotContain("Exec 2");
     assertThat(Files.readString(logFile2)).contains("Exec 2 message").doesNotContain("Exec 1");
+  }
+
+  @Test
+  void write_thenRead_preservesLogLevelPluginNameAndEmbeddedNewline() {
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            "exec-123",
+            SESSION_ID,
+            PLUGIN_ID,
+            "Display Name",
+            LogStream.STDOUT,
+            "Line one\nLine two",
+            LogLevel.ERROR,
+            Instant.now());
+
+    writer.write(entry).block();
+
+    final FileSystemPluginLogReader reader = new FileSystemPluginLogReader(tempDir.toString());
+    final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
+
+    assertThat(entries)
+        .singleElement()
+        .satisfies(
+            readEntry -> {
+              assertThat(readEntry.pluginId()).isEqualTo(PLUGIN_ID);
+              assertThat(readEntry.pluginName()).isEqualTo("Display Name");
+              assertThat(readEntry.logLevel()).isEqualTo(LogLevel.ERROR);
+              assertThat(readEntry.message()).isEqualTo("Line one\nLine two");
+            });
   }
 
   @Test

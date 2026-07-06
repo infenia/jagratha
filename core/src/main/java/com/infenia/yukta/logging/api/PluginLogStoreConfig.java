@@ -34,19 +34,22 @@ public class PluginLogStoreConfig {
   /** Hardcoded maximum retention period (24 hours). Non-configurable. */
   private static final int MAX_RETENTION_MINUTES = 1440;
 
+  /** Hardcoded minimum retention period. Non-configurable. */
+  private static final int MIN_RETENTION_MINUTES = 1;
+
   /** User-configurable default retention period in minutes. */
   private Retention retention = new Retention();
 
   /**
    * Get the effective retention duration.
    *
-   * <p>Returns the minimum of user-configured retention and hardcoded maximum.
+   * <p>Returns the user-configured retention clamped between the hardcoded minimum and maximum.
    *
    * @return effective retention duration
    */
   public Duration getEffectiveRetention() {
     final int configured = retention.getDefaultPeriodMinutes();
-    final int capped = Math.min(configured, MAX_RETENTION_MINUTES);
+    final int capped = Math.min(Math.max(configured, MIN_RETENTION_MINUTES), MAX_RETENTION_MINUTES);
     return Duration.ofMinutes(capped);
   }
 

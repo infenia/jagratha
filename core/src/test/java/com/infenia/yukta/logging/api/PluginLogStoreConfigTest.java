@@ -108,13 +108,23 @@ class PluginLogStoreConfigTest {
   }
 
   @Test
-  void testRetentionSetterWithZero() {
+  void testRetentionSetterWithZeroClampsToMinimum() {
     final PluginLogStoreConfig.Retention retention = new PluginLogStoreConfig.Retention();
     retention.setDefaultPeriodMinutes(0);
     config.setRetention(retention);
 
     final Duration effective = config.getEffectiveRetention();
-    assertThat(effective).isEqualTo(Duration.ofMinutes(0));
+    assertThat(effective).isEqualTo(Duration.ofMinutes(1));
+  }
+
+  @Test
+  void testRetentionSetterWithNegativeValueClampsToMinimum() {
+    final PluginLogStoreConfig.Retention retention = new PluginLogStoreConfig.Retention();
+    retention.setDefaultPeriodMinutes(-10);
+    config.setRetention(retention);
+
+    final Duration effective = config.getEffectiveRetention();
+    assertThat(effective).isEqualTo(Duration.ofMinutes(1));
   }
 
   @Test

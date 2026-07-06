@@ -23,6 +23,7 @@ import com.infenia.yukta.logging.api.PluginLogStoreConfig;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -69,7 +70,10 @@ public class InMemoryPluginLogStore implements PluginLogStore {
     return Mono.fromRunnable(
             () -> {
               final String executionId = entry.executionId();
-              cache.asMap().computeIfAbsent(executionId, k -> new ArrayList<>()).add(entry);
+              cache
+                  .asMap()
+                  .computeIfAbsent(executionId, k -> new CopyOnWriteArrayList<>())
+                  .add(entry);
               log.atTrace()
                   .log(
                       "Log written for execution {}: [{}] {}",

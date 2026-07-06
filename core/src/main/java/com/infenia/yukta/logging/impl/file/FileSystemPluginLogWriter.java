@@ -32,7 +32,8 @@ import reactor.core.scheduler.Schedulers;
  * File-system based implementation of PluginLogWriter.
  *
  * <p>Persists logs to /var/log/yukta/plugins/{sessionId}/{executionId}.log with timestamp, stream,
- * pluginId, and message format.
+ * logLevel, pluginId, pluginName, and message format. Newlines embedded in messages are escaped so
+ * each log entry stays on a single line.
  */
 @Slf4j
 public class FileSystemPluginLogWriter implements PluginLogWriter {
@@ -114,8 +115,13 @@ public class FileSystemPluginLogWriter implements PluginLogWriter {
               .map(
                   e ->
                       String.format(
-                          "%s | %s | %s | %s",
-                          e.timestamp(), e.stream(), e.pluginId(), e.message()))
+                          "%s | %s | %s | %s | %s | %s",
+                          e.timestamp(),
+                          e.stream(),
+                          e.logLevel(),
+                          e.pluginId(),
+                          e.pluginName(),
+                          escapeMessage(e.message())))
               .collect(Collectors.joining("\n"));
 
       final OpenOption[] options =
@@ -137,5 +143,15 @@ public class FileSystemPluginLogWriter implements PluginLogWriter {
           .setCause(e)
           .log("Failed to write plugin logs to file");
     }
+  }
+
+  /**
+   * Escape newlines in a message so it stays on a single line in the log file.
+   *
+   * @param message the raw message
+   * @return the message with embedded newlines escaped
+   */
+  private static String escapeMessage(final String message) {
+    return message.replace("\n", "\\n");
   }
 }
