@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -36,6 +37,7 @@ import reactor.core.scheduler.Schedulers;
  * each log entry stays on a single line.
  */
 @Slf4j
+@RequiredArgsConstructor
 public class FileSystemPluginLogWriter implements PluginLogWriter {
 
   /** Log file extension used for plugin log files. */
@@ -43,15 +45,6 @@ public class FileSystemPluginLogWriter implements PluginLogWriter {
 
   /** Base directory for log files. */
   private final String baseLogDir;
-
-  /**
-   * Create FileSystemPluginLogWriter with specified base directory.
-   *
-   * @param baseLogDir the base directory for logs
-   */
-  public FileSystemPluginLogWriter(final String baseLogDir) {
-    this.baseLogDir = baseLogDir;
-  }
 
   /**
    * Create FileSystemPluginLogWriter with default base directory.

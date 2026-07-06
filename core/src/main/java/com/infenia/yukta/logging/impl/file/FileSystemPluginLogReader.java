@@ -66,30 +66,44 @@ public class FileSystemPluginLogReader implements PluginLogReader {
     return Mono.fromCallable(
             () -> {
               final List<PluginLogEntry> entries = new ArrayList<>();
-              final Path baseDir = Path.of(baseLogDir);
-
-              if (!Files.exists(baseDir)) {
-                return entries;
+              final Path logFile = findExecutionLogFile(executionId);
+              if (logFile != null) {
+                final Path sessionDir = logFile.getParent();
+                entries.addAll(readLogFile(logFile, sessionDir.getFileName().toString()));
               }
-
-              try (final var sessions = Files.list(baseDir)) {
-                for (final Path sessionDir : sessions.toArray(Path[]::new)) {
-                  final Path logFile = sessionDir.resolve(executionId + LOG_FILE_EXTENSION);
-                  if (Files.exists(logFile)) {
-                    entries.addAll(readLogFile(logFile, sessionDir.getFileName().toString()));
-                  }
-                }
-              } catch (final IOException e) {
-                log.atWarn()
-                    .addKeyValue("baseDir", baseLogDir)
-                    .setCause(e)
-                    .log("Error reading execution logs");
-              }
-
               return entries;
             })
         .subscribeOn(Schedulers.boundedElastic())
         .flatMapIterable(entries -> entries);
+  }
+
+  /**
+   * Scan the base log directory's sessions for the log file matching an execution.
+   *
+   * @param executionId the execution to locate
+   * @return the matching log file path, or {@code null} if not found
+   */
+  private Path findExecutionLogFile(final String executionId) {
+    final Path baseDir = Path.of(baseLogDir);
+    Path matchedLogFile = null;
+
+    if (Files.exists(baseDir)) {
+      try (final var sessions = Files.list(baseDir)) {
+        for (final Path sessionDir : sessions.toArray(Path[]::new)) {
+          final Path logFile = sessionDir.resolve(executionId + LOG_FILE_EXTENSION);
+          if (Files.exists(logFile)) {
+            matchedLogFile = logFile;
+            break;
+          }
+        }
+      } catch (final IOException e) {
+        log.atWarn()
+            .addKeyValue("baseDir", baseLogDir)
+            .setCause(e)
+            .log("Error scanning sessions for execution log");
+      }
+    }
+    return matchedLogFile;
   }
 
   @Override
@@ -138,10 +152,6 @@ public class FileSystemPluginLogReader implements PluginLogReader {
                   if (logFile.toString().endsWith(LOG_FILE_EXTENSION)) {
                     final String executionId =
                         logFile.getFileName().toString().replace(LOG_FILE_EXTENSION, "");
-                    final long entryCount;
-                    try (final var lineStream = Files.lines(logFile)) {
-                      entryCount = lineStream.count();
-                    }
                     final List<PluginLogEntry> entries = readLogFile(logFile, sessionId);
 
                     if (!entries.isEmpty()) {
@@ -155,7 +165,7 @@ public class FileSystemPluginLogReader implements PluginLogReader {
                               .toLocalDateTime();
                       summaries.add(
                           new ExecutionSummary(
-                              executionId, sessionId, startTime, endTime, entryCount));
+                              executionId, sessionId, startTime, endTime, entries.size()));
                     }
                   }
                 }
@@ -177,28 +187,7 @@ public class FileSystemPluginLogReader implements PluginLogReader {
   public Mono<String> getRawContent(final String executionId) {
     return Mono.fromCallable(
             () -> {
-              final Path baseDir = Path.of(baseLogDir);
-
-              if (!Files.exists(baseDir)) {
-                return "";
-              }
-
-              Path matchedLogFile = null;
-              try (final var sessions = Files.list(baseDir)) {
-                for (final Path sessionDir : sessions.toArray(Path[]::new)) {
-                  final Path logFile = sessionDir.resolve(executionId + LOG_FILE_EXTENSION);
-                  if (Files.exists(logFile)) {
-                    matchedLogFile = logFile;
-                    break;
-                  }
-                }
-              } catch (final IOException e) {
-                log.atWarn()
-                    .addKeyValue("executionId", executionId)
-                    .setCause(e)
-                    .log("Error reading raw log content");
-                return "";
-              }
+              final Path matchedLogFile = findExecutionLogFile(executionId);
 
               if (matchedLogFile == null) {
                 return "";
