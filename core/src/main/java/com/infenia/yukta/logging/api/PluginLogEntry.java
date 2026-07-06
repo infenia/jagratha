@@ -16,6 +16,11 @@
 package com.infenia.yukta.logging.api;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Immutable log entry for plugin execution logs.
@@ -32,13 +37,39 @@ public record PluginLogEntry(
     LogLevel logLevel,
     Instant timestamp,
     String customStreamName,
-    java.util.Map<String, Object> metadata) {
+    Map<String, Object> metadata) {
 
   /**
    * Compact constructor to ensure metadata defensively copied to prevent mutation after creation.
+   * Also recursively freezes nested mutable collections to prevent external mutation leaks.
    */
   public PluginLogEntry {
-    metadata = metadata == null ? java.util.Map.of() : java.util.Map.copyOf(metadata);
+    if (metadata == null) {
+      metadata = Map.of();
+    } else {
+      metadata = freezeMetadata(metadata);
+    }
+  }
+
+  @SuppressWarnings("PMD.UseConcurrentHashMap")
+  private static Map<String, Object> freezeMetadata(final Map<String, Object> original) {
+    final Map<String, Object> frozen = new LinkedHashMap<>();
+    original.forEach((key, value) -> frozen.put(key, freezeValue(value)));
+    return Collections.unmodifiableMap(frozen);
+  }
+
+  @SuppressWarnings("PMD.OnlyOneReturn")
+  private static Object freezeValue(final Object value) {
+    if (value instanceof List) {
+      return List.copyOf((List<?>) value);
+    }
+    if (value instanceof Set) {
+      return Set.copyOf((Set<?>) value);
+    }
+    if (value instanceof Map) {
+      return Map.copyOf((Map<?, ?>) value);
+    }
+    return value;
   }
 
   /**

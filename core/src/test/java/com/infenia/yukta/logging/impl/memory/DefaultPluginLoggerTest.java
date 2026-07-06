@@ -40,7 +40,8 @@ import reactor.core.publisher.Mono;
   "PMD.TooManyMethods",
   "PMD.AvoidAccessibilityAlteration",
   "PMD.LawOfDemeter",
-  "PMD.UseConcurrentHashMap"
+  "PMD.UseConcurrentHashMap",
+  "PMD.AvoidDuplicateLiterals"
 })
 class DefaultPluginLoggerTest {
 
@@ -484,5 +485,86 @@ class DefaultPluginLoggerTest {
         .hasSize(1)
         .containsEntry("key1", "value1")
         .doesNotContainKey("key2");
+  }
+
+  @Test
+  void pluginLogEntry_defensivelyFreezeNestedListMetadata() {
+    final List<String> mutableList = new java.util.ArrayList<>();
+    mutableList.add("item1");
+    final Map<String, Object> metadata = Map.of("tags", mutableList);
+
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            EXEC_ID,
+            SESSION_ID,
+            TEST_PLUGIN,
+            TEST_PLUGIN_NAME,
+            LogStream.STDOUT,
+            "Message",
+            LogLevel.INFO,
+            Instant.now(),
+            null,
+            metadata);
+
+    mutableList.add("item2");
+
+    @SuppressWarnings("unchecked")
+    final List<String> capturedList = (List<String>) entry.metadata().get("tags");
+    Assertions.assertThat(capturedList).hasSize(1).containsExactly("item1").doesNotContain("item2");
+  }
+
+  @Test
+  void pluginLogEntry_defensivelyFreezeNestedMapMetadata() {
+    final Map<String, String> mutableNestedMap = new java.util.HashMap<>();
+    mutableNestedMap.put("setting1", "value1");
+    final Map<String, Object> metadata = Map.of("config", mutableNestedMap);
+
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            EXEC_ID,
+            SESSION_ID,
+            TEST_PLUGIN,
+            TEST_PLUGIN_NAME,
+            LogStream.STDOUT,
+            "Message",
+            LogLevel.INFO,
+            Instant.now(),
+            null,
+            metadata);
+
+    mutableNestedMap.put("setting2", "value2");
+
+    @SuppressWarnings("unchecked")
+    final Map<String, String> capturedMap = (Map<String, String>) entry.metadata().get("config");
+    Assertions.assertThat(capturedMap)
+        .hasSize(1)
+        .containsEntry("setting1", "value1")
+        .doesNotContainKey("setting2");
+  }
+
+  @Test
+  void pluginLogEntry_defensivelyFreezeNestedSetMetadata() {
+    final java.util.Set<String> mutableSet = new java.util.HashSet<>();
+    mutableSet.add("tag1");
+    final Map<String, Object> metadata = Map.of("tags", mutableSet);
+
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            EXEC_ID,
+            SESSION_ID,
+            TEST_PLUGIN,
+            TEST_PLUGIN_NAME,
+            LogStream.STDOUT,
+            "Message",
+            LogLevel.INFO,
+            Instant.now(),
+            null,
+            metadata);
+
+    mutableSet.add("tag2");
+
+    @SuppressWarnings("unchecked")
+    final java.util.Set<String> capturedSet = (java.util.Set<String>) entry.metadata().get("tags");
+    Assertions.assertThat(capturedSet).hasSize(1).containsExactly("tag1").doesNotContain("tag2");
   }
 }
