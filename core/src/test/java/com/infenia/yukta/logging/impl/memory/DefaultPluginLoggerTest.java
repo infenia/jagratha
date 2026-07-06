@@ -39,9 +39,25 @@ import reactor.core.publisher.Mono;
 @SuppressWarnings({
   "PMD.TooManyMethods",
   "PMD.LocalVariableCouldBeFinal",
-  "PMD.AvoidAccessibilityAlteration"
+  "PMD.AvoidAccessibilityAlteration",
+  "PMD.LawOfDemeter"
 })
 class DefaultPluginLoggerTest {
+
+  /** Execution ID for testing. */
+  private static final String EXEC_ID = "exec-123";
+  /** Session ID for testing. */
+  private static final String SESSION_ID = "session-456";
+  /** Process executor plugin ID for testing. */
+  private static final String PROCESS_EXECUTOR_ID = "process-executor";
+  /** Process executor plugin name for testing. */
+  private static final String PROCESS_EXECUTOR_NAME = "Process Executor";
+  /** Docker build custom stream name for testing. */
+  private static final String DOCKER_BUILD = "docker-build";
+  /** Docker plugin ID for testing. */
+  private static final String DOCKER_PLUGIN = "docker-plugin";
+  /** Docker plugin name for testing. */
+  private static final String DOCKER_PLUGIN_NAME = "Docker Plugin";
 
   /** Mock PluginLogWriter for test verification. */
   private PluginLogWriter mockWriter;
@@ -56,7 +72,7 @@ class DefaultPluginLoggerTest {
 
     logger =
         new DefaultPluginLogger(
-            "exec-123", "session-456", "process-executor", "Process Executor", mockWriter);
+            EXEC_ID, SESSION_ID, PROCESS_EXECUTOR_ID, PROCESS_EXECUTOR_NAME, mockWriter);
   }
 
   @Test
@@ -83,8 +99,9 @@ class DefaultPluginLoggerTest {
     logger.logStdout("User action logged", metadata).block();
 
     verify(mockWriter).write(captor.capture());
-    final PluginLogEntry entry = captor.getValue();
-    Assertions.assertThat(entry.metadata()).containsExactlyInAnyOrderEntriesOf(metadata);
+    final PluginLogEntry capturedEntry = captor.getValue();
+    Assertions.assertThat(capturedEntry.metadata())
+        .containsExactlyInAnyOrderEntriesOf(metadata);
   }
 
   @Test
@@ -96,7 +113,7 @@ class DefaultPluginLoggerTest {
 
   @Test
   void testLogCustom() {
-    logger.logCustom("docker-build", "Custom message").block();
+    logger.logCustom(DOCKER_BUILD, "Custom message").block();
 
     verify(mockWriter).write(any(PluginLogEntry.class));
   }
@@ -105,11 +122,11 @@ class DefaultPluginLoggerTest {
   void testLogCustom_preservesCustomStreamName() {
     final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
 
-    logger.logCustom("docker-build", "Building image").block();
+    logger.logCustom(DOCKER_BUILD, "Building image").block();
 
     verify(mockWriter).write(captor.capture());
-    final PluginLogEntry entry = captor.getValue();
-    Assertions.assertThat(entry.customStreamName()).isEqualTo("docker-build");
+    final PluginLogEntry capturedEntry = captor.getValue();
+    Assertions.assertThat(capturedEntry.customStreamName()).isEqualTo(DOCKER_BUILD);
   }
 
   @Test
@@ -126,12 +143,13 @@ class DefaultPluginLoggerTest {
     final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
     final Map<String, Object> metadata = Map.of("layer", "final", "size", "2GB");
 
-    logger.logCustom("docker-build", "Layer completed", metadata).block();
+    logger.logCustom(DOCKER_BUILD, "Layer completed", metadata).block();
 
     verify(mockWriter).write(captor.capture());
-    final PluginLogEntry entry = captor.getValue();
-    Assertions.assertThat(entry.customStreamName()).isEqualTo("docker-build");
-    Assertions.assertThat(entry.metadata()).containsExactlyInAnyOrderEntriesOf(metadata);
+    final PluginLogEntry capturedEntry = captor.getValue();
+    Assertions.assertThat(capturedEntry.customStreamName()).isEqualTo(DOCKER_BUILD);
+    Assertions.assertThat(capturedEntry.metadata())
+        .containsExactlyInAnyOrderEntriesOf(metadata);
   }
 
   @Test
@@ -163,9 +181,9 @@ class DefaultPluginLoggerTest {
     when(mockWriter.writeBatch(any(List.class))).thenReturn(Mono.empty());
 
     // When - access the adapter via reflection through the logger's writer field
-    java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
+    final java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
     writerField.setAccessible(true);
-    PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
+    final PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
 
     // Then - invoke writeBatch on the adapter
     adapter.writeBatch(entries).block();
@@ -181,10 +199,10 @@ class DefaultPluginLoggerTest {
     final Instant now = Instant.now();
     final PluginLogEntry entry =
         new PluginLogEntry(
-            "exec-123",
-            "session-456",
-            "process-executor",
-            "Process Executor",
+            EXEC_ID,
+            SESSION_ID,
+            PROCESS_EXECUTOR_ID,
+            PROCESS_EXECUTOR_NAME,
             LogStream.STDERR,
             "Test message",
             LogLevel.ERROR,
@@ -194,9 +212,9 @@ class DefaultPluginLoggerTest {
     when(mockWriter.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
 
     // When - access the adapter via reflection and invoke write
-    java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
+    final java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
     writerField.setAccessible(true);
-    PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
+    final PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
     adapter.write(entry).block();
 
     // Then
@@ -212,9 +230,9 @@ class DefaultPluginLoggerTest {
     when(mockWriter.close()).thenReturn(Mono.empty());
 
     // When - access the adapter via reflection and invoke close
-    java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
+    final java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
     writerField.setAccessible(true);
-    PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
+    final PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
     adapter.close().block();
 
     // Then
@@ -258,21 +276,21 @@ class DefaultPluginLoggerTest {
     final Instant timestamp = Instant.parse("2026-07-07T10:35:00Z");
     final PluginLogEntry entry =
         new PluginLogEntry(
-            "exec-123",
-            "session-456",
-            "docker-plugin",
-            "Docker Plugin",
+            EXEC_ID,
+            SESSION_ID,
+            DOCKER_PLUGIN,
+            DOCKER_PLUGIN_NAME,
             LogStream.CUSTOM,
             "Image built successfully",
             LogLevel.INFO,
             timestamp,
-            "docker-build",
+            DOCKER_BUILD,
             Map.of());
 
     final String formatted = entry.format();
 
     Assertions.assertThat(formatted)
-        .contains("docker-build")
+        .contains(DOCKER_BUILD)
         .contains("Image built successfully")
         .doesNotContain("CUSTOM");
   }
@@ -282,8 +300,8 @@ class DefaultPluginLoggerTest {
     final Instant timestamp = Instant.parse("2026-07-07T11:00:00Z");
     final PluginLogEntry entry =
         new PluginLogEntry(
-            "exec-123",
-            "session-456",
+            EXEC_ID,
+            SESSION_ID,
             "test-plugin",
             "Test Plugin",
             LogStream.STDOUT,
