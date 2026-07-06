@@ -79,8 +79,7 @@ class PluginLoggerFactoryTest {
     when(mockWriter.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
 
     final DefaultPluginLoggerFactory factory = new DefaultPluginLoggerFactory(mockWriter);
-    final PluginLogger logger =
-        factory.create("exec-1", "sess-1", "plugin-1", "Plugin Name");
+    final PluginLogger logger = factory.create("exec-1", "sess-1", "plugin-1", "Plugin Name");
 
     logger.logStdout("Test message").block();
 

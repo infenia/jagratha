@@ -70,11 +70,12 @@ public class InMemoryPluginLogStore implements PluginLogStore {
             () -> {
               final String executionId = entry.executionId();
               cache.asMap().computeIfAbsent(executionId, k -> new ArrayList<>()).add(entry);
-                log.atTrace().log(
-                    "Log written for execution {}: [{}] {}",
-                    executionId,
-                    entry.logLevel(),
-                    entry.message());
+              log.atTrace()
+                  .log(
+                      "Log written for execution {}: [{}] {}",
+                      executionId,
+                      entry.logLevel(),
+                      entry.message());
             })
         .subscribeOn(Schedulers.boundedElastic())
         .then();

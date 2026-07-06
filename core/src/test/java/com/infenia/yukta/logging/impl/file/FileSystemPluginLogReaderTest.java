@@ -22,6 +22,7 @@ import com.infenia.yukta.logging.api.PluginLogEntry;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
@@ -233,5 +234,139 @@ class FileSystemPluginLogReaderTest {
     final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
 
     assertThat(entries).hasSize(1);
+  }
+
+  @Test
+  void readExecution_baseDirIsRegularFile_returnsEmptyList() throws IOException {
+    final Path fileAsBaseDir = Files.createFile(tempDir.resolve("not-a-dir"));
+    final FileSystemPluginLogReader readerWithFileBaseDir =
+        new FileSystemPluginLogReader(fileAsBaseDir.toString());
+
+    final List<PluginLogEntry> entries =
+        readerWithFileBaseDir.readExecution("exec-123").collectList().block();
+
+    assertThat(entries).isEmpty();
+  }
+
+  @Test
+  void readSession_sessionDirIsRegularFile_returnsEmptyList() throws IOException {
+    Files.createFile(tempDir.resolve(SESSION_ID));
+
+    final List<PluginLogEntry> entries = reader.readSession(SESSION_ID).collectList().block();
+
+    assertThat(entries).isEmpty();
+  }
+
+  @Test
+  void listExecutions_sessionDirIsRegularFile_returnsEmptyList() throws IOException {
+    Files.createFile(tempDir.resolve(SESSION_ID));
+
+    final List<ExecutionSummary> summaries = reader.listExecutions(SESSION_ID).block();
+
+    assertThat(summaries).isEmpty();
+  }
+
+  @Test
+  void getRawContent_baseDirIsRegularFile_returnsEmptyString() throws IOException {
+    final Path fileAsBaseDir = Files.createFile(tempDir.resolve("not-a-dir"));
+    final FileSystemPluginLogReader readerWithFileBaseDir =
+        new FileSystemPluginLogReader(fileAsBaseDir.toString());
+
+    final String content = readerWithFileBaseDir.getRawContent("exec-123").block();
+
+    assertThat(content).isEmpty();
+  }
+
+  @Test
+  void readExecution_logFileIsDirectory_returnsEmptyList() throws IOException {
+    final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
+    Files.createDirectories(sessionDir.resolve("exec-123.log"));
+
+    final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
+
+    assertThat(entries).isEmpty();
+  }
+
+  @Test
+  void readExecution_invalidLogStreamValue_skipsUnparseableLine() throws IOException {
+    final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
+    Files.writeString(
+        sessionDir.resolve("exec-123.log"),
+        "2026-07-02T10:00:00 | NOT_A_STREAM | plugin-1 | Message\n");
+
+    final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
+
+    assertThat(entries).isEmpty();
+  }
+
+  @Test
+  void readExecution_unparseableTimestamp_fallsBackToCurrentInstant() throws IOException {
+    final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
+    Files.writeString(
+        sessionDir.resolve("exec-123.log"), "not-a-timestamp | STDOUT | plugin-1 | Message\n");
+    final Instant before = Instant.now();
+
+    final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
+
+    final Instant after = Instant.now();
+    assertThat(entries).hasSize(1);
+    assertThat(entries.get(0).timestamp()).isBetween(before, after);
+  }
+
+  @Test
+  void listExecutions_logFileWithNoParseableEntries_excludedFromSummaries() throws IOException {
+    final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
+    Files.writeString(sessionDir.resolve("exec-invalid.log"), "not a valid log line\n");
+    Files.writeString(
+        sessionDir.resolve("exec-valid.log"),
+        "2026-07-02T10:00:00+00:00 | STDOUT | plugin-1 | Message\n");
+
+    final List<ExecutionSummary> summaries = reader.listExecutions(SESSION_ID).block();
+
+    assertThat(summaries).hasSize(1);
+    assertThat(summaries.get(0).executionId()).isEqualTo("exec-valid");
+  }
+
+  @Test
+  void listExecutions_nonLogFilePresent_isIgnored() throws IOException {
+    final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
+    Files.writeString(
+        sessionDir.resolve("exec-001.log"),
+        "2026-07-02T10:00:00+00:00 | STDOUT | plugin-1 | Message\n");
+    Files.writeString(sessionDir.resolve("readme.txt"), "not a log file\n");
+
+    final List<ExecutionSummary> summaries = reader.listExecutions(SESSION_ID).block();
+
+    assertThat(summaries).hasSize(1);
+    assertThat(summaries.get(0).executionId()).isEqualTo("exec-001");
+  }
+
+  @Test
+  void getRawContent_logFileMissingInExistingSessionDir_returnsEmptyString() throws IOException {
+    Files.createDirectories(tempDir.resolve(SESSION_ID));
+
+    final String content = reader.getRawContent("exec-123").block();
+
+    assertThat(content).isEmpty();
+  }
+
+  @Test
+  void readExecution_logFileMissingInExistingSessionDir_returnsEmptyList() throws IOException {
+    Files.createDirectories(tempDir.resolve(SESSION_ID));
+
+    final List<PluginLogEntry> entries =
+        reader.readExecution("non-existent-exec").collectList().block();
+
+    assertThat(entries).isEmpty();
+  }
+
+  @Test
+  void getRawContent_logFileIsDirectory_returnsEmptyString() throws IOException {
+    final Path sessionDir = Files.createDirectories(tempDir.resolve(SESSION_ID));
+    Files.createDirectories(sessionDir.resolve("exec-123.log"));
+
+    final String content = reader.getRawContent("exec-123").block();
+
+    assertThat(content).isEmpty();
   }
 }

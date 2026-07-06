@@ -133,8 +133,10 @@ class InMemoryPluginLogReaderTest {
     final Instant oneSecondLater = now.plusSeconds(1);
     final Instant twoSecondsLater = now.plusSeconds(2);
     addEntry(EXECUTION_ID_001, SESSION_ID_456, PLUGIN_ID_1, PLUGIN_NAME_1, "First", now);
-    addEntry(EXECUTION_ID_001, SESSION_ID_456, PLUGIN_ID_2, PLUGIN_NAME_2, "Second", oneSecondLater);
-    addEntry(EXECUTION_ID_001, SESSION_ID_456, PLUGIN_ID_1, PLUGIN_NAME_1, "Third", twoSecondsLater);
+    addEntry(
+        EXECUTION_ID_001, SESSION_ID_456, PLUGIN_ID_2, PLUGIN_NAME_2, "Second", oneSecondLater);
+    addEntry(
+        EXECUTION_ID_001, SESSION_ID_456, PLUGIN_ID_1, PLUGIN_NAME_1, "Third", twoSecondsLater);
 
     // When
     final List<PluginLogEntry> actualEntries =
@@ -376,7 +378,8 @@ class InMemoryPluginLogReaderTest {
   void getRawContent_singleEntry_includesTimestampStreamPluginId() {
     // Given
     final Instant timestamp = Instant.parse("2026-01-01T10:30:45Z");
-    addEntry(EXECUTION_ID_001, SESSION_ID_456, PLUGIN_ID_1, PLUGIN_NAME_1, "Test message", timestamp);
+    addEntry(
+        EXECUTION_ID_001, SESSION_ID_456, PLUGIN_ID_1, PLUGIN_NAME_1, "Test message", timestamp);
 
     // When
     final String actualContent = reader.getRawContent(EXECUTION_ID_001).block();

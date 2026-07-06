@@ -104,8 +104,9 @@ class LogStoreSubscriberTest {
       subscriber.init();
 
       // Allow time for subscription to process on boundedElastic()
-      await().atMost(Duration.ofSeconds(2)).untilAsserted(
-          () -> verify(store).write(entryCaptor.capture()));
+      await()
+          .atMost(Duration.ofSeconds(2))
+          .untilAsserted(() -> verify(store).write(entryCaptor.capture()));
       assertThat(entryCaptor.getValue()).isNotNull();
       subscriber.dispose();
     }
@@ -151,8 +152,9 @@ class LogStoreSubscriberTest {
 
       subscriber.init();
 
-      await().atMost(Duration.ofSeconds(1)).untilAsserted(
-          () -> verify(store, times(3)).write(any(PluginLogEntry.class)));
+      await()
+          .atMost(Duration.ofSeconds(1))
+          .untilAsserted(() -> verify(store, times(3)).write(any(PluginLogEntry.class)));
       subscriber.dispose();
     }
 
@@ -163,11 +165,13 @@ class LogStoreSubscriberTest {
 
       subscriber.init();
 
-      await().atMost(Duration.ofSeconds(1)).until(
-          () -> {
-            verify(store, times(0)).write(any(PluginLogEntry.class));
-            return true;
-          });
+      await()
+          .atMost(Duration.ofSeconds(1))
+          .until(
+              () -> {
+                verify(store, times(0)).write(any(PluginLogEntry.class));
+                return true;
+              });
       assertThat(subscriber).isNotNull();
       subscriber.dispose();
     }
@@ -197,8 +201,9 @@ class LogStoreSubscriberTest {
 
       subscriber.init();
 
-      await().atMost(Duration.ofSeconds(1)).untilAsserted(
-          () -> verify(store).write(any(PluginLogEntry.class)));
+      await()
+          .atMost(Duration.ofSeconds(1))
+          .untilAsserted(() -> verify(store).write(any(PluginLogEntry.class)));
       subscriber.dispose();
     }
 
@@ -254,8 +259,7 @@ class LogStoreSubscriberTest {
       subscriber.init();
 
       // The subscription should be active even though the flux errors
-      await().atMost(Duration.ofSeconds(2)).until(
-          () -> subscriber != null);
+      await().atMost(Duration.ofSeconds(2)).until(() -> subscriber != null);
 
       // Should have attempted to subscribe and handled error gracefully
       subscriber.dispose();
@@ -319,11 +323,13 @@ class LogStoreSubscriberTest {
 
       subscriber.init();
 
-      await().atMost(Duration.ofSeconds(1)).until(
-          () -> {
-            subscriber.dispose();
-            return true;
-          });
+      await()
+          .atMost(Duration.ofSeconds(1))
+          .until(
+              () -> {
+                subscriber.dispose();
+                return true;
+              });
       assertThat(subscriber).isNotNull();
     }
 
@@ -357,8 +363,9 @@ class LogStoreSubscriberTest {
 
       subscriber.init();
 
-      await().atMost(Duration.ofSeconds(1)).untilAsserted(
-          () -> verify(store).write(any(PluginLogEntry.class)));
+      await()
+          .atMost(Duration.ofSeconds(1))
+          .untilAsserted(() -> verify(store).write(any(PluginLogEntry.class)));
 
       subscriber.dispose();
       // Calling dispose again should not throw
@@ -452,8 +459,9 @@ class LogStoreSubscriberTest {
       final Disposable disposable = subscriber.buildAndSubscribe();
 
       // Give time for async processing and completion signal
-      await().atMost(Duration.ofSeconds(3)).untilAsserted(
-          () -> verify(store).write(any(PluginLogEntry.class)));
+      await()
+          .atMost(Duration.ofSeconds(3))
+          .untilAsserted(() -> verify(store).write(any(PluginLogEntry.class)));
 
       disposable.dispose();
       assertThat(disposable.isDisposed()).isTrue();
@@ -469,11 +477,13 @@ class LogStoreSubscriberTest {
       final Disposable disposable = subscriber.buildAndSubscribe();
 
       // Give time for error signal processing
-      await().atMost(Duration.ofSeconds(2)).until(
-          () -> {
-            Thread.yield();
-            return true;
-          });
+      await()
+          .atMost(Duration.ofSeconds(2))
+          .until(
+              () -> {
+                Thread.yield();
+                return true;
+              });
 
       disposable.dispose();
       assertThat(disposable.isDisposed()).isTrue();
@@ -518,8 +528,9 @@ class LogStoreSubscriberTest {
 
       subscriber.init();
 
-      await().atMost(Duration.ofSeconds(1)).untilAsserted(
-          () -> verify(store).write(entryCaptor.capture()));
+      await()
+          .atMost(Duration.ofSeconds(1))
+          .untilAsserted(() -> verify(store).write(entryCaptor.capture()));
       final PluginLogEntry captured = entryCaptor.getValue();
       assertThat(captured.executionId()).isEqualTo("exec-123");
       assertThat(captured.sessionId()).isEqualTo("session-456");

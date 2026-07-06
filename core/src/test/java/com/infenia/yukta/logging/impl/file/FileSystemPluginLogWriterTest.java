@@ -28,10 +28,14 @@ import java.util.List;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
 /** Tests for FileSystemPluginLogWriter. */
 @NoArgsConstructor
+@ExtendWith(OutputCaptureExtension.class)
 class FileSystemPluginLogWriterTest {
 
   /** Temporary directory for test files. */
@@ -112,6 +116,12 @@ class FileSystemPluginLogWriterTest {
   }
 
   @Test
+  void close_subscribed_completesAndLogsClosedMessage() {
+    final var result = writer.close().block();
+    assertThat(result).isNull();
+  }
+
+  @Test
   void testWithDefaultDir() {
     final var defaultWriter = FileSystemPluginLogWriter.withDefaultDir();
     assertThat(defaultWriter).isNotNull();
@@ -151,5 +161,94 @@ class FileSystemPluginLogWriterTest {
 
     assertThat(tempDir.resolve(SESSION_ID).resolve("exec-001.log")).exists();
     assertThat(tempDir.resolve(SESSION_ID).resolve("exec-002.log")).exists();
+  }
+
+  @Test
+  void writeToFile_existingLogFile_appendsContent() throws IOException {
+    final PluginLogEntry firstEntry =
+        new PluginLogEntry(
+            "exec-123",
+            SESSION_ID,
+            PLUGIN_ID,
+            "Plugin",
+            LogStream.STDOUT,
+            "First message",
+            LogLevel.INFO,
+            Instant.now());
+    final PluginLogEntry secondEntry =
+        new PluginLogEntry(
+            "exec-123",
+            SESSION_ID,
+            PLUGIN_ID,
+            "Plugin",
+            LogStream.STDOUT,
+            "Second message",
+            LogLevel.INFO,
+            Instant.now());
+
+    writer.write(firstEntry).block();
+    writer.write(secondEntry).block();
+
+    final Path logFile = tempDir.resolve(SESSION_ID).resolve("exec-123.log");
+    final String content = Files.readString(logFile);
+    assertThat(content).contains("First message");
+    assertThat(content).contains("Second message");
+  }
+
+  @Test
+  void writeBatch_multipleExecutionIds_writesSeparateFiles() throws IOException {
+    final PluginLogEntry entry1 =
+        new PluginLogEntry(
+            "exec-001",
+            SESSION_ID,
+            PLUGIN_ID,
+            "Plugin",
+            LogStream.STDOUT,
+            "Exec 1 message",
+            LogLevel.INFO,
+            Instant.now());
+    final PluginLogEntry entry2 =
+        new PluginLogEntry(
+            "exec-002",
+            SESSION_ID,
+            PLUGIN_ID,
+            "Plugin",
+            LogStream.STDOUT,
+            "Exec 2 message",
+            LogLevel.INFO,
+            Instant.now());
+
+    writer.writeBatch(List.of(entry1, entry2)).block();
+
+    final Path logFile1 = tempDir.resolve(SESSION_ID).resolve("exec-001.log");
+    final Path logFile2 = tempDir.resolve(SESSION_ID).resolve("exec-002.log");
+    assertThat(logFile1).exists();
+    assertThat(logFile2).exists();
+    assertThat(Files.readString(logFile1)).contains("Exec 1 message").doesNotContain("Exec 2");
+    assertThat(Files.readString(logFile2)).contains("Exec 2 message").doesNotContain("Exec 1");
+  }
+
+  @Test
+  void writeToFile_ioExceptionOnCreateDirectories_logsErrorAndCompletes(final CapturedOutput output)
+      throws IOException {
+    final Path blockingFile = tempDir.resolve(SESSION_ID);
+    Files.writeString(blockingFile, "not a directory");
+    final FileSystemPluginLogWriter blockedWriter =
+        new FileSystemPluginLogWriter(tempDir.toString());
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            "exec-123",
+            SESSION_ID,
+            PLUGIN_ID,
+            "Plugin",
+            LogStream.STDOUT,
+            "Test message",
+            LogLevel.INFO,
+            Instant.now());
+
+    final var result = blockedWriter.write(entry).block();
+
+    assertThat(result).isNull();
+    assertThat(output.getErr()).contains("Failed to write plugin logs to file");
   }
 }

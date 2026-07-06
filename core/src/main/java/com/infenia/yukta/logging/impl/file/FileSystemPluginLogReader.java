@@ -30,6 +30,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -182,11 +183,13 @@ public class FileSystemPluginLogReader implements PluginLogReader {
                 return "";
               }
 
+              Path matchedLogFile = null;
               try (final var sessions = Files.list(baseDir)) {
                 for (final Path sessionDir : sessions.toArray(Path[]::new)) {
                   final Path logFile = sessionDir.resolve(executionId + LOG_FILE_EXTENSION);
                   if (Files.exists(logFile)) {
-                    return Files.readString(logFile, StandardCharsets.UTF_8);
+                    matchedLogFile = logFile;
+                    break;
                   }
                 }
               } catch (final IOException e) {
@@ -194,30 +197,41 @@ public class FileSystemPluginLogReader implements PluginLogReader {
                     .addKeyValue("executionId", executionId)
                     .setCause(e)
                     .log("Error reading raw log content");
+                return "";
               }
 
-              return "";
+              if (matchedLogFile == null) {
+                return "";
+              }
+
+              try {
+                return Files.readString(matchedLogFile, StandardCharsets.UTF_8);
+              } catch (final IOException e) {
+                log.atWarn()
+                    .addKeyValue("executionId", executionId)
+                    .setCause(e)
+                    .log("Error reading raw log content");
+                return "";
+              }
             })
         .subscribeOn(Schedulers.boundedElastic());
   }
 
   private List<PluginLogEntry> readLogFile(final Path logFile, final String sessionId) {
     final List<PluginLogEntry> entries = new ArrayList<>();
-    final Path fileName = logFile.getFileName();
-    if (fileName != null) {
-      final String executionId = fileName.toString().replace(LOG_FILE_EXTENSION, "");
+    final String executionId =
+        Objects.requireNonNull(logFile.getFileName()).toString().replace(LOG_FILE_EXTENSION, "");
 
-      try {
-        final List<String> lines = Files.readAllLines(logFile, StandardCharsets.UTF_8);
-        for (final String line : lines) {
-          final PluginLogEntry entry = parseLine(line, executionId, sessionId);
-          if (entry != null) {
-            entries.add(entry);
-          }
+    try {
+      final List<String> lines = Files.readAllLines(logFile, StandardCharsets.UTF_8);
+      for (final String line : lines) {
+        final PluginLogEntry entry = parseLine(line, executionId, sessionId);
+        if (entry != null) {
+          entries.add(entry);
         }
-      } catch (final IOException e) {
-        log.atWarn().addKeyValue("logFile", logFile).setCause(e).log("Error reading log file");
       }
+    } catch (final IOException e) {
+      log.atWarn().addKeyValue("logFile", logFile).setCause(e).log("Error reading log file");
     }
 
     return entries;

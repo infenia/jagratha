@@ -120,8 +120,7 @@ class DefaultPluginLoggerTest {
     when(mockWriter.writeBatch(any(List.class))).thenReturn(Mono.empty());
 
     // When - access the adapter via reflection through the logger's writer field
-    java.lang.reflect.Field writerField =
-        DefaultPluginLogger.class.getDeclaredField("writer");
+    java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
     writerField.setAccessible(true);
     PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
 
@@ -150,8 +149,7 @@ class DefaultPluginLoggerTest {
     when(mockWriter.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
 
     // When - access the adapter via reflection and invoke write
-    java.lang.reflect.Field writerField =
-        DefaultPluginLogger.class.getDeclaredField("writer");
+    java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
     writerField.setAccessible(true);
     PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
     adapter.write(entry).block();
@@ -169,8 +167,7 @@ class DefaultPluginLoggerTest {
     when(mockWriter.close()).thenReturn(Mono.empty());
 
     // When - access the adapter via reflection and invoke close
-    java.lang.reflect.Field writerField =
-        DefaultPluginLogger.class.getDeclaredField("writer");
+    java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
     writerField.setAccessible(true);
     PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
     adapter.close().block();

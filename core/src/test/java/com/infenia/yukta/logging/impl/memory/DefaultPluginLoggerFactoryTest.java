@@ -61,8 +61,7 @@ class DefaultPluginLoggerFactoryTest {
 
   @Test
   void testCreateLogger() {
-    final PluginLogger logger =
-        factory.create("exec-123", SESSION_ID, "plugin-id", "Plugin Name");
+    final PluginLogger logger = factory.create("exec-123", SESSION_ID, "plugin-id", "Plugin Name");
 
     assertThat(logger).isNotNull();
     assertThat(logger).isInstanceOf(DefaultPluginLogger.class);
@@ -180,7 +179,8 @@ class DefaultPluginLoggerFactoryTest {
   void create_withLoggerContext_delegatesWriterOperations() {
     // Given
     final PluginLoggerFactory.LoggerContext context =
-        new PluginLoggerFactory.LoggerContext("exec-456", "session-789", "plugin-123", "Test Plugin");
+        new PluginLoggerFactory.LoggerContext(
+            "exec-456", "session-789", "plugin-123", "Test Plugin");
     when(mockWriter.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
 
     // When

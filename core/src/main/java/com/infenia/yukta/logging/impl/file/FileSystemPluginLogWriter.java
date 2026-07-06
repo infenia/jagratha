@@ -82,11 +82,8 @@ public class FileSystemPluginLogWriter implements PluginLogWriter {
                     for (final var entry : entriesByExecution.entrySet()) {
                       final String executionId = entry.getKey();
                       final List<PluginLogEntry> execEntries = entry.getValue();
-
-                      if (!execEntries.isEmpty()) {
-                        final String sessionId = execEntries.getFirst().sessionId();
-                        writeToFile(sessionId, executionId, execEntries);
-                      }
+                      final String sessionId = execEntries.getFirst().sessionId();
+                      writeToFile(sessionId, executionId, execEntries);
                     }
                   })
               .subscribeOn(Schedulers.boundedElastic())
