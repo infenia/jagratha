@@ -206,7 +206,7 @@ class InMemoryPluginLogStoreTest {
         .assertNext(
             entries -> {
               assertThat(entries).hasSize(1);
-              assertThat(entries.get(0).message()).isEqualTo("Exec1 message");
+              assertThat(entries.getFirst().message()).isEqualTo("Exec1 message");
             })
         .verifyComplete();
 
@@ -214,7 +214,7 @@ class InMemoryPluginLogStoreTest {
         .assertNext(
             entries -> {
               assertThat(entries).hasSize(1);
-              assertThat(entries.get(0).message()).isEqualTo("Exec2 message");
+              assertThat(entries.getFirst().message()).isEqualTo("Exec2 message");
             })
         .verifyComplete();
   }

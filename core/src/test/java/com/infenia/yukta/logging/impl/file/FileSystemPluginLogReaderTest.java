@@ -114,7 +114,7 @@ class FileSystemPluginLogReaderTest {
     final List<ExecutionSummary> summaries = reader.listExecutions(SESSION_ID).block();
 
     assertThat(summaries).hasSize(2);
-    assertThat(summaries.get(0).executionId()).isIn("exec-001", "exec-002");
+    assertThat(summaries.getFirst().executionId()).isIn("exec-001", "exec-002");
   }
 
   @Test
@@ -158,7 +158,7 @@ class FileSystemPluginLogReaderTest {
     final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
 
     assertThat(entries).hasSize(1);
-    assertThat(entries.get(0).message()).isEqualTo("Message with | delimiter");
+    assertThat(entries.getFirst().message()).isEqualTo("Message with | delimiter");
   }
 
   @Test
@@ -174,7 +174,7 @@ class FileSystemPluginLogReaderTest {
     final List<PluginLogEntry> entries = reader.readExecution("exec-123").collectList().block();
 
     assertThat(entries).hasSize(1);
-    assertThat(entries.get(0).message()).isEqualTo("Valid message");
+    assertThat(entries.getFirst().message()).isEqualTo("Valid message");
   }
 
   @Test
@@ -310,7 +310,7 @@ class FileSystemPluginLogReaderTest {
 
     final Instant after = Instant.now();
     assertThat(entries).hasSize(1);
-    assertThat(entries.get(0).timestamp()).isBetween(before, after);
+    assertThat(entries.getFirst().timestamp()).isBetween(before, after);
   }
 
   @Test
@@ -324,7 +324,7 @@ class FileSystemPluginLogReaderTest {
     final List<ExecutionSummary> summaries = reader.listExecutions(SESSION_ID).block();
 
     assertThat(summaries).hasSize(1);
-    assertThat(summaries.get(0).executionId()).isEqualTo("exec-valid");
+    assertThat(summaries.getFirst().executionId()).isEqualTo("exec-valid");
   }
 
   @Test
@@ -338,7 +338,7 @@ class FileSystemPluginLogReaderTest {
     final List<ExecutionSummary> summaries = reader.listExecutions(SESSION_ID).block();
 
     assertThat(summaries).hasSize(1);
-    assertThat(summaries.get(0).executionId()).isEqualTo("exec-001");
+    assertThat(summaries.getFirst().executionId()).isEqualTo("exec-001");
   }
 
   @Test

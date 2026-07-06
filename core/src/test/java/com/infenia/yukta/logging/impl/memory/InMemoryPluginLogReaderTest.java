@@ -314,7 +314,7 @@ class InMemoryPluginLogReaderTest {
 
     // Then
     assertThat(actualSummaries).hasSize(1);
-    assertThat(actualSummaries.get(0).sessionId()).isEqualTo(SESSION_ID_456);
+    assertThat(actualSummaries.getFirst().sessionId()).isEqualTo(SESSION_ID_456);
   }
 
   @Test
@@ -332,7 +332,7 @@ class InMemoryPluginLogReaderTest {
     final LocalDateTime expectedStartTime =
         ZonedDateTime.ofInstant(firstTime, ZoneId.systemDefault()).toLocalDateTime();
     assertThat(actualSummaries).hasSize(1);
-    assertThat(actualSummaries.get(0).startTime()).isEqualTo(expectedStartTime);
+    assertThat(actualSummaries.getFirst().startTime()).isEqualTo(expectedStartTime);
   }
 
   @Test
@@ -350,7 +350,7 @@ class InMemoryPluginLogReaderTest {
     final LocalDateTime expectedEndTime =
         ZonedDateTime.ofInstant(secondTime, ZoneId.systemDefault()).toLocalDateTime();
     assertThat(actualSummaries).hasSize(1);
-    assertThat(actualSummaries.get(0).endTime()).isEqualTo(expectedEndTime);
+    assertThat(actualSummaries.getFirst().endTime()).isEqualTo(expectedEndTime);
   }
 
   // ===== getRawContent Tests =====

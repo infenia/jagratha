@@ -60,26 +60,4 @@ class LogStoreAutoConfigurationTest {
     assertThat(maxMinutes).isGreaterThanOrEqualTo(1440);
   }
 
-  static class DummyPluginLogStore implements PluginLogStore {
-
-    @Override
-    public Mono<Void> write(PluginLogEntry entry) {
-      return Mono.empty();
-    }
-
-    @Override
-    public Flux<PluginLogEntry> readExecution(String executionId) {
-      return Flux.empty();
-    }
-
-    @Override
-    public Mono<Void> cleanup(String executionId) {
-      return Mono.empty();
-    }
-
-    @Override
-    public Duration getEffectiveRetention() {
-      return Duration.ofMinutes(30);
-    }
-  }
 }
