@@ -46,16 +46,22 @@ class DefaultPluginLoggerTest {
 
   /** Execution ID for testing. */
   private static final String EXEC_ID = "exec-123";
+
   /** Session ID for testing. */
   private static final String SESSION_ID = "session-456";
+
   /** Process executor plugin ID for testing. */
   private static final String PROCESS_EXECUTOR_ID = "process-executor";
+
   /** Process executor plugin name for testing. */
   private static final String PROCESS_EXECUTOR_NAME = "Process Executor";
+
   /** Docker build custom stream name for testing. */
   private static final String DOCKER_BUILD = "docker-build";
+
   /** Docker plugin ID for testing. */
   private static final String DOCKER_PLUGIN = "docker-plugin";
+
   /** Docker plugin name for testing. */
   private static final String DOCKER_PLUGIN_NAME = "Docker Plugin";
 
@@ -100,8 +106,7 @@ class DefaultPluginLoggerTest {
 
     verify(mockWriter).write(captor.capture());
     final PluginLogEntry capturedEntry = captor.getValue();
-    Assertions.assertThat(capturedEntry.metadata())
-        .containsExactlyInAnyOrderEntriesOf(metadata);
+    Assertions.assertThat(capturedEntry.metadata()).containsExactlyInAnyOrderEntriesOf(metadata);
   }
 
   @Test
@@ -148,8 +153,7 @@ class DefaultPluginLoggerTest {
     verify(mockWriter).write(captor.capture());
     final PluginLogEntry capturedEntry = captor.getValue();
     Assertions.assertThat(capturedEntry.customStreamName()).isEqualTo(DOCKER_BUILD);
-    Assertions.assertThat(capturedEntry.metadata())
-        .containsExactlyInAnyOrderEntriesOf(metadata);
+    Assertions.assertThat(capturedEntry.metadata()).containsExactlyInAnyOrderEntriesOf(metadata);
   }
 
   @Test
@@ -181,7 +185,8 @@ class DefaultPluginLoggerTest {
     when(mockWriter.writeBatch(any(List.class))).thenReturn(Mono.empty());
 
     // When - access the adapter via reflection through the logger's writer field
-    final java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
+    final java.lang.reflect.Field writerField =
+        DefaultPluginLogger.class.getDeclaredField("writer");
     writerField.setAccessible(true);
     final PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
 
@@ -212,7 +217,8 @@ class DefaultPluginLoggerTest {
     when(mockWriter.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
 
     // When - access the adapter via reflection and invoke write
-    final java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
+    final java.lang.reflect.Field writerField =
+        DefaultPluginLogger.class.getDeclaredField("writer");
     writerField.setAccessible(true);
     final PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
     adapter.write(entry).block();
@@ -230,7 +236,8 @@ class DefaultPluginLoggerTest {
     when(mockWriter.close()).thenReturn(Mono.empty());
 
     // When - access the adapter via reflection and invoke close
-    final java.lang.reflect.Field writerField = DefaultPluginLogger.class.getDeclaredField("writer");
+    final java.lang.reflect.Field writerField =
+        DefaultPluginLogger.class.getDeclaredField("writer");
     writerField.setAccessible(true);
     final PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
     adapter.close().block();
