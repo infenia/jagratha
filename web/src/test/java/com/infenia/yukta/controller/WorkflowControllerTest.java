@@ -97,6 +97,9 @@ class WorkflowControllerTest {
   /** JSONPath expression for message field. */
   private static final String DOLLAR_MESSAGE = "$.message";
 
+  /** JSONPath expression for execution ID field. */
+  private static final String DOLLAR_DATA_EXECUTION_ID = "$.data.executionId";
+
   /** Execution ID prefix for log messages. */
   private static final String COMMA_EXEC_ID = ", executionId=";
 
@@ -172,7 +175,7 @@ class WorkflowControllerTest {
             .isEqualTo(202)
             .jsonPath(DOLLAR_MESSAGE)
             .isEqualTo(WORKFLOW_START_ACCEPTED)
-            .jsonPath("$.data.executionId")
+            .jsonPath(DOLLAR_DATA_EXECUTION_ID)
             .isEqualTo(executionId)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(202);
@@ -279,7 +282,7 @@ class WorkflowControllerTest {
             .expectStatus()
             .isOk()
             .expectBody()
-            .jsonPath("$.data.executionId")
+            .jsonPath(DOLLAR_DATA_EXECUTION_ID)
             .isEqualTo(EXEC_ID_1)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
@@ -628,7 +631,7 @@ class WorkflowControllerTest {
             .isEqualTo(200)
             .jsonPath(DOLLAR_MESSAGE)
             .isEqualTo("Execution stop signal accepted")
-            .jsonPath("$.data.executionId")
+            .jsonPath(DOLLAR_DATA_EXECUTION_ID)
             .isEqualTo(EXEC_ID_1)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
@@ -709,7 +712,7 @@ class WorkflowControllerTest {
             .isEqualTo(200)
             .jsonPath(DOLLAR_MESSAGE)
             .isEqualTo(PAUSE_ACCEPTED)
-            .jsonPath("$.data.executionId")
+            .jsonPath(DOLLAR_DATA_EXECUTION_ID)
             .isEqualTo(EXEC_ID_1)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
@@ -779,7 +782,7 @@ class WorkflowControllerTest {
             .isEqualTo(200)
             .jsonPath(DOLLAR_MESSAGE)
             .isEqualTo(RESUME_ACCEPTED)
-            .jsonPath("$.data.executionId")
+            .jsonPath(DOLLAR_DATA_EXECUTION_ID)
             .isEqualTo(EXEC_ID_1)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(200);
