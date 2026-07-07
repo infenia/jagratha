@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 
 /** Unit tests for {@link MapUtils}. */
 @NoArgsConstructor
+@SuppressWarnings("PMD.TooManyMethods")
 class MapUtilsTest {
 
   /** Nested path for testing. */
@@ -36,8 +37,11 @@ class MapUtilsTest {
   /** User name for testing. */
   private static final String USER_NAME = "John";
 
+  /** Suppression literal for unchecked cast warnings, shared to avoid duplicate literals. */
+  private static final String UNCHECKED = "unchecked";
+
   @Test
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings(UNCHECKED)
   void testSetNestedValue() {
     final Map<String, Object> map = new ConcurrentHashMap<>();
     MapUtils.setNestedValue(map, NESTED_PATH, TEST_VALUE);
@@ -70,7 +74,7 @@ class MapUtilsTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings(UNCHECKED)
   void testRemoveNestedValue() {
     final Map<String, Object> map = new ConcurrentHashMap<>();
     MapUtils.setNestedValue(map, NESTED_PATH, "value1");
@@ -141,7 +145,7 @@ class MapUtilsTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings(UNCHECKED)
   void testSetNestedValueWithTrailingDot() {
     final Map<String, Object> map = new ConcurrentHashMap<>();
     MapUtils.setNestedValue(map, "a.b.", TEST_VALUE);
@@ -152,7 +156,7 @@ class MapUtilsTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings(UNCHECKED)
   void testSetNestedValueWithConsecutiveDots() {
     final Map<String, Object> map = new ConcurrentHashMap<>();
     MapUtils.setNestedValue(map, "a..b", TEST_VALUE);
