@@ -85,17 +85,14 @@ public class FileSystemPluginLogReader implements PluginLogReader {
    */
   private Path findExecutionLogFile(final String executionId) {
     final Path baseDir = Path.of(baseLogDir);
-    Path matchedLogFile = null;
 
     if (Files.exists(baseDir)) {
       try (final var sessions = Files.list(baseDir)) {
-        for (final Path sessionDir : sessions.toArray(Path[]::new)) {
-          final Path logFile = sessionDir.resolve(executionId + LOG_FILE_EXTENSION);
-          if (Files.exists(logFile)) {
-            matchedLogFile = logFile;
-            break;
-          }
-        }
+        return sessions
+            .map(sessionDir -> sessionDir.resolve(executionId + LOG_FILE_EXTENSION))
+            .filter(Files::exists)
+            .findFirst()
+            .orElse(null);
       } catch (final IOException e) {
         log.atWarn()
             .addKeyValue("baseDir", baseLogDir)
@@ -103,7 +100,7 @@ public class FileSystemPluginLogReader implements PluginLogReader {
             .log("Error scanning sessions for execution log");
       }
     }
-    return matchedLogFile;
+    return null;
   }
 
   @Override
@@ -118,11 +115,8 @@ public class FileSystemPluginLogReader implements PluginLogReader {
               }
 
               try (final var files = Files.list(sessionDir)) {
-                for (final Path logFile : files.toArray(Path[]::new)) {
-                  if (logFile.toString().endsWith(LOG_FILE_EXTENSION)) {
-                    entries.addAll(readLogFile(logFile, sessionId));
-                  }
-                }
+                files.filter(logFile -> logFile.toString().endsWith(LOG_FILE_EXTENSION))
+                    .forEach(logFile -> entries.addAll(readLogFile(logFile, sessionId)));
               } catch (final IOException e) {
                 log.atWarn()
                     .addKeyValue("sessionId", sessionId)
@@ -130,6 +124,7 @@ public class FileSystemPluginLogReader implements PluginLogReader {
                     .log("Error reading session logs");
               }
 
+              entries.sort((a, b) -> a.timestamp().compareTo(b.timestamp()));
               return entries;
             })
         .subscribeOn(Schedulers.boundedElastic())
@@ -148,27 +143,27 @@ public class FileSystemPluginLogReader implements PluginLogReader {
               }
 
               try (final var files = Files.list(sessionDir)) {
-                for (final Path logFile : files.toArray(Path[]::new)) {
-                  if (logFile.toString().endsWith(LOG_FILE_EXTENSION)) {
-                    final String executionId =
-                        logFile.getFileName().toString().replace(LOG_FILE_EXTENSION, "");
-                    final List<PluginLogEntry> entries = readLogFile(logFile, sessionId);
+                files.filter(logFile -> logFile.toString().endsWith(LOG_FILE_EXTENSION))
+                    .forEach(
+                        logFile -> {
+                          final String executionId =
+                              logFile.getFileName().toString().replace(LOG_FILE_EXTENSION, "");
+                          final List<PluginLogEntry> entries = readLogFile(logFile, sessionId);
 
-                    if (!entries.isEmpty()) {
-                      final Instant startInstant = entries.getFirst().timestamp();
-                      final Instant endInstant = entries.getLast().timestamp();
-                      final var startTime =
-                          ZonedDateTime.ofInstant(startInstant, ZoneId.systemDefault())
-                              .toLocalDateTime();
-                      final var endTime =
-                          ZonedDateTime.ofInstant(endInstant, ZoneId.systemDefault())
-                              .toLocalDateTime();
-                      summaries.add(
-                          new ExecutionSummary(
-                              executionId, sessionId, startTime, endTime, entries.size()));
-                    }
-                  }
-                }
+                          if (!entries.isEmpty()) {
+                            final Instant startInstant = entries.getFirst().timestamp();
+                            final Instant endInstant = entries.getLast().timestamp();
+                            final var startTime =
+                                ZonedDateTime.ofInstant(startInstant, ZoneId.systemDefault())
+                                    .toLocalDateTime();
+                            final var endTime =
+                                ZonedDateTime.ofInstant(endInstant, ZoneId.systemDefault())
+                                    .toLocalDateTime();
+                            summaries.add(
+                                new ExecutionSummary(
+                                    executionId, sessionId, startTime, endTime, entries.size()));
+                          }
+                        });
               } catch (final IOException e) {
                 log.atWarn()
                     .addKeyValue("sessionId", sessionId)
@@ -274,19 +269,27 @@ public class FileSystemPluginLogReader implements PluginLogReader {
 
   private Instant parseTimestamp(final String timestampStr) {
     Instant result;
-    try {
-      final ZonedDateTime zonedDateTime = ZonedDateTime.parse(timestampStr, TIMESTAMP_FORMAT);
-      result = zonedDateTime.toInstant();
-    } catch (final java.time.format.DateTimeParseException e) {
+    if (timestampStr.contains("Z") || timestampStr.contains("+") || timestampStr.contains("-")) {
+      try {
+        final ZonedDateTime zonedDateTime = ZonedDateTime.parse(timestampStr, TIMESTAMP_FORMAT);
+        result = zonedDateTime.toInstant();
+      } catch (final java.time.format.DateTimeParseException e) {
+        log.atDebug()
+            .addKeyValue("timestampStr", timestampStr)
+            .setCause(e)
+            .log("Failed to parse timestamp with zone, using current time");
+        result = Instant.now();
+      }
+    } else {
       try {
         result =
             java.time.LocalDateTime.parse(timestampStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                 .atZone(ZoneId.systemDefault())
                 .toInstant();
-      } catch (final java.time.format.DateTimeParseException e2) {
+      } catch (final java.time.format.DateTimeParseException e) {
         log.atDebug()
             .addKeyValue("timestampStr", timestampStr)
-            .setCause(e2)
+            .setCause(e)
             .log("Failed to parse timestamp, using current time");
         result = Instant.now();
       }
