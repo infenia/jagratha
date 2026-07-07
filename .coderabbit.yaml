@@ -4,12 +4,9 @@
 
 language: en-US
 
-tone_instructions: |
-  Review this Yukta monorepo (Java/Spring Boot backend, Go CLI, JTE+Alpine.js+Tailwind frontend) with these standards in mind:
-  - Java/Spring Boot: Ensure Lombok annotations (@Slf4j, @RequiredArgsConstructor, @Builder, @With), Spring WebFlux reactive patterns, plugin-api compliance, Apache License 2.0 headers, JaCoCo coverage thresholds (80% new, 70% overall)
-  - Frontend: Verify JTE template XSS prevention, Tailwind best practices, Alpine.js patterns, form validation, accessibility (ARIA, semantic HTML)
-  - CLI (Go): Check error handling, goroutine safety, flag parsing, logging
-  - General: Maintain monorepo consistency, flag security issues, optimize performance, review test coverage
+tone_instructions: >
+  Review Yukta's Java/Spring Boot backend, Go CLI, and JTE+Alpine.js+Tailwind frontend with focus on
+  reactive patterns, plugin-api compliance, security, and test coverage. See path_instructions for detailed guidance.
 
 reviews:
   profile: assertive
