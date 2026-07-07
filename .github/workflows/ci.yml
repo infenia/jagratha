@@ -119,7 +119,7 @@ jobs:
           echo "▶ Latest OpenGrep version: $LATEST_VERSION"
 
       - name: Cache OpenGrep
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         id: cache-opengrep
         with:
           path: ~/.opengrep
@@ -243,7 +243,7 @@ jobs:
           echo "✓ SARIF report generated"
 
       - name: Upload Trivy SARIF report to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always() && hashFiles('trivy-fs-results.sarif') != ''
         with:
           sarif_file: 'trivy-fs-results.sarif'

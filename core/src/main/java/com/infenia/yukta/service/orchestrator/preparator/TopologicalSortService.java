@@ -31,7 +31,11 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @NoArgsConstructor
-@SuppressWarnings("PMD.AvoidDuplicateLiterals")
+@SuppressWarnings({
+  "PMD.AvoidDuplicateLiterals",
+  "checkstyle:AvoidStarImport",
+  "PMD.UseConcurrentHashMap"
+})
 public class TopologicalSortService {
 
   /**
@@ -52,7 +56,7 @@ public class TopologicalSortService {
         .addKeyValue("edgeCount", adj.size())
         .log("Starting topological sort of workflow DAG");
 
-    final Map<String, Integer> inDegree = new ConcurrentHashMap<>();
+    final Map<String, Integer> inDegree = new HashMap<>();
     final Map<String, WorkflowNode> nodeMap = new HashMap<>();
 
     for (final WorkflowNode node : nodes) {
