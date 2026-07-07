@@ -146,6 +146,32 @@ class SessionServiceTest {
   }
 
   @Test
+  void applyConfig_staleWorkflowRemovalFails_continuesWithCompilation() {
+    // Given: removing the stale workflow "w2" fails...
+    final String sessionId = "sess-stale-cleanup-error";
+    final WorkflowDefinition workflowA = new WorkflowDefinition("w1", DESC, List.of(), List.of());
+    final WorkflowDefinition workflowB = new WorkflowDefinition("w2", DESC, List.of(), List.of());
+    when(workflowDefinitionStore.findAll(sessionId))
+        .thenReturn(Mono.just(Map.of("w1", workflowA, "w2", workflowB)));
+    when(workflowDefinitionStore.remove(sessionId, "w2"))
+        .thenReturn(Mono.error(new IllegalStateException("boom")));
+
+    final SessionConfigData data =
+        new SessionConfigData(sessionId, DESC, INITIATOR, Map.of(), PATH, Map.of("w1", workflowA));
+    when(configService.applySessionConfig(any())).thenReturn(Mono.empty());
+    when(controlBus.compileAndCacheWorkflow(eq(sessionId), any())).thenReturn(Mono.empty());
+
+    // When: the removal failure is swallowed as best-effort, so the rest of the pipeline
+    // (cache invalidation, workflow compilation) still completes successfully.
+    StepVerifier.create(sessionService.applyConfig(data)).verifyComplete();
+
+    // Then
+    verify(workflowDefinitionStore).remove(sessionId, "w2");
+    verify(preparedWorkflowCache).invalidateAll(sessionId);
+    verify(controlBus).compileAndCacheWorkflow(eq(sessionId), any());
+  }
+
+  @Test
   void testGetSessionConfig_validSessionId_returnsConfigMap() {
     // Given
     final String sessionId = SESSION_ID_1;

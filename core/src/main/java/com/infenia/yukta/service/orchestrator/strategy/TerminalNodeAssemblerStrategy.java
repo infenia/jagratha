@@ -163,6 +163,10 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
       }
 
       completion =
+          StreamAssemblyHelper.withPluginLifecycle(
+              completion, context.workflowId(), node.nodeId(), plugin, activePluginRegistry);
+
+      completion =
           completion
               .doOnSubscribe(
                   s -> {
@@ -170,7 +174,6 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
                         .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
                         .addKeyValue("executionId", context.executionId())
                         .log("Terminal node execution started");
-                    activePluginRegistry.register(context.workflowId(), node.nodeId(), plugin);
                     tracker.emitTaskStatusEvent(
                         context.executionId(),
                         node.nodeId(),
@@ -178,8 +181,6 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
                         STATUS_RUNNING,
                         Collections.emptyMap());
                   })
-              .doFinally(
-                  signal -> activePluginRegistry.unregister(context.workflowId(), node.nodeId()))
               .doOnSuccess(
                   v -> {
                     log.atInfo()

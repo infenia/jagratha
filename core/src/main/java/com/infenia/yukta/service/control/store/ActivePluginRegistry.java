@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * Registry of plugin instances actively servicing a workflow node, keyed by {@code workflowId +
@@ -45,6 +46,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
+@Validated
 @RequiredArgsConstructor
 public class ActivePluginRegistry {
 

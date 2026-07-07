@@ -76,7 +76,18 @@ public class SessionService {
                                     "Removed stale workflow: {} no longer present in config for"
                                         + " session: {}",
                                     staleWorkflowId,
-                                    data.sessionId())))
+                                    data.sessionId()))
+                        .onErrorResume(
+                            err -> {
+                              log.atWarn()
+                                  .addArgument(staleWorkflowId)
+                                  .addArgument(data.sessionId())
+                                  .setCause(err)
+                                  .log(
+                                      "Failed to remove stale workflow: {} for session: {},"
+                                          + " continuing");
+                              return Mono.empty();
+                            }))
             .then();
     final Mono<Void> cacheInvalidation =
         Mono.fromRunnable(
