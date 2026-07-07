@@ -40,7 +40,6 @@ import reactor.test.StepVerifier;
 @SuppressWarnings({
   "PMD.TooManyMethods",
   "PMD.AvoidAccessibilityAlteration",
-  "PMD.LawOfDemeter",
   "PMD.UseConcurrentHashMap",
   "PMD.AvoidDuplicateLiterals"
 })
@@ -187,6 +186,13 @@ class DefaultPluginLoggerTest {
     verify(mockWriter).close();
   }
 
+  private PluginLogWriter getAdapter() throws Exception {
+    final java.lang.reflect.Field writerField =
+        DefaultPluginLogger.class.getDeclaredField("writer");
+    writerField.setAccessible(true);
+    return (PluginLogWriter) writerField.get(logger);
+  }
+
   @Test
   void adapter_writeBatch_delegatesToUnderlyingWriter() throws Exception {
     // The writeBatch method of ImmutablePluginLogWriterAdapter in DefaultPluginLogger
@@ -197,14 +203,11 @@ class DefaultPluginLoggerTest {
     final List<PluginLogEntry> entries = List.of();
     when(mockWriter.writeBatch(any(List.class))).thenReturn(Mono.empty());
 
-    // When - access the adapter via reflection through the logger's writer field
-    final java.lang.reflect.Field writerField =
-        DefaultPluginLogger.class.getDeclaredField("writer");
-    writerField.setAccessible(true);
-    final PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
+    // When
+    final PluginLogWriter adapter = getAdapter();
+    StepVerifier.create(adapter.writeBatch(entries)).verifyComplete();
 
-    // Then - invoke writeBatch on the adapter
-    adapter.writeBatch(entries).block();
+    // Then
     verify(mockWriter).writeBatch(entries);
   }
 
@@ -229,12 +232,9 @@ class DefaultPluginLoggerTest {
             null);
     when(mockWriter.write(any(PluginLogEntry.class))).thenReturn(Mono.empty());
 
-    // When - access the adapter via reflection and invoke write
-    final java.lang.reflect.Field writerField =
-        DefaultPluginLogger.class.getDeclaredField("writer");
-    writerField.setAccessible(true);
-    final PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
-    adapter.write(entry).block();
+    // When
+    final PluginLogWriter adapter = getAdapter();
+    StepVerifier.create(adapter.write(entry)).verifyComplete();
 
     // Then
     verify(mockWriter).write(entry);
@@ -248,12 +248,9 @@ class DefaultPluginLoggerTest {
     // Given
     when(mockWriter.close()).thenReturn(Mono.empty());
 
-    // When - access the adapter via reflection and invoke close
-    final java.lang.reflect.Field writerField =
-        DefaultPluginLogger.class.getDeclaredField("writer");
-    writerField.setAccessible(true);
-    final PluginLogWriter adapter = (PluginLogWriter) writerField.get(logger);
-    adapter.close().block();
+    // When
+    final PluginLogWriter adapter = getAdapter();
+    StepVerifier.create(adapter.close()).verifyComplete();
 
     // Then
     verify(mockWriter).close();
