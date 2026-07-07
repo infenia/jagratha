@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 # Code Rabbit Configuration
 # Documentation: https://docs.coderabbit.ai/
 
@@ -22,13 +23,18 @@ reviews:
 
   # Enable specific linters for code quality
   tools:
-    enabled: true
-    semgrep: true
-    trivy: true
-    yamllint: true
-    ruff: true
-    eslint: true
-    shellcheck: true
+    semgrep:
+      enabled: true
+    trivy:
+      enabled: true
+    yamllint:
+      enabled: true
+    ruff:
+      enabled: true
+    eslint:
+      enabled: true
+    shellcheck:
+      enabled: true
 
   # Include/exclude files from review
   path_filters:
