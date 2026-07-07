@@ -86,6 +86,11 @@ public record PluginLogEntry(
     return value;
   }
 
+  @Override
+  public Map<String, Object> metadata() {
+    return Map.copyOf(metadata);
+  }
+
   /**
    * Format this log entry as a human-readable string.
    *
