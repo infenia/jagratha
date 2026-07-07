@@ -112,6 +112,18 @@ class WorkflowControllerTest {
   /** Execution not found message. */
   private static final String EXECUTION_NOT_FOUND = "Execution not found";
 
+  /** Pause endpoint path. */
+  private static final String PAUSE_ENDPOINT = "/api/workflow/sess-1/exec-1/pause";
+
+  /** Resume endpoint path. */
+  private static final String RESUME_ENDPOINT = "/api/workflow/sess-1/exec-1/resume";
+
+  /** Pause accepted message. */
+  private static final String PAUSE_ACCEPTED = "Workflow pause signal accepted";
+
+  /** Resume accepted message. */
+  private static final String RESUME_ACCEPTED = "Workflow resume signal accepted";
+
   /** Web test client for testing controller endpoints. */
   private WebTestClient webClient;
 
@@ -676,6 +688,146 @@ class WorkflowControllerTest {
     assertThat(output.toString())
         .contains("stopExecution: executionId=" + EXEC_ID_1)
         .contains("stopExecution error occurred")
+        .contains(EXECUTION_NOT_FOUND);
+  }
+
+  // --- Pause Workflow Tests ---
+
+  @Test
+  void testPauseWorkflowSuccess() {
+    when(controlBusGateway.pauseWorkflow(EXEC_ID_1)).thenReturn(Mono.empty());
+
+    final var result =
+        webClient
+            .post()
+            .uri(PAUSE_ENDPOINT)
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath(DOLLAR_STATUS)
+            .isEqualTo(200)
+            .jsonPath(DOLLAR_MESSAGE)
+            .isEqualTo(PAUSE_ACCEPTED)
+            .jsonPath("$.data.executionId")
+            .isEqualTo(EXEC_ID_1)
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
+  }
+
+  @Test
+  void testPauseWorkflowSuccessLogging(final CapturedOutput output) {
+    when(controlBusGateway.pauseWorkflow(EXEC_ID_1)).thenReturn(Mono.empty());
+
+    webClient.post().uri(PAUSE_ENDPOINT).exchange().expectStatus().isOk();
+
+    assertThat(output.toString())
+        .contains("pauseWorkflow: executionId=" + EXEC_ID_1)
+        .contains("pauseWorkflow command accepted")
+        .contains("pauseWorkflow response sent successfully");
+  }
+
+  @Test
+  void testPauseWorkflowNotFound() {
+    when(controlBusGateway.pauseWorkflow(EXEC_ID_1))
+        .thenReturn(Mono.error(new IllegalArgumentException(EXECUTION_NOT_FOUND)));
+
+    final var result =
+        webClient
+            .post()
+            .uri(PAUSE_ENDPOINT)
+            .exchange()
+            .expectStatus()
+            .isNotFound()
+            .expectBody()
+            .jsonPath(DOLLAR_STATUS)
+            .isEqualTo(404)
+            .jsonPath(DOLLAR_MESSAGE)
+            .isEqualTo(EXECUTION_NOT_FOUND)
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(404);
+  }
+
+  @Test
+  void testPauseWorkflowNotFoundLogging(final CapturedOutput output) {
+    when(controlBusGateway.pauseWorkflow(EXEC_ID_1))
+        .thenReturn(Mono.error(new IllegalArgumentException(EXECUTION_NOT_FOUND)));
+
+    webClient.post().uri(PAUSE_ENDPOINT).exchange().expectStatus().isNotFound();
+
+    assertThat(output.toString())
+        .contains("pauseWorkflow: executionId=" + EXEC_ID_1)
+        .contains("pauseWorkflow error occurred")
+        .contains(EXECUTION_NOT_FOUND);
+  }
+
+  // --- Resume Workflow Tests ---
+
+  @Test
+  void testResumeWorkflowSuccess() {
+    when(controlBusGateway.resumeWorkflow(EXEC_ID_1)).thenReturn(Mono.empty());
+
+    final var result =
+        webClient
+            .post()
+            .uri(RESUME_ENDPOINT)
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectBody()
+            .jsonPath(DOLLAR_STATUS)
+            .isEqualTo(200)
+            .jsonPath(DOLLAR_MESSAGE)
+            .isEqualTo(RESUME_ACCEPTED)
+            .jsonPath("$.data.executionId")
+            .isEqualTo(EXEC_ID_1)
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(200);
+  }
+
+  @Test
+  void testResumeWorkflowSuccessLogging(final CapturedOutput output) {
+    when(controlBusGateway.resumeWorkflow(EXEC_ID_1)).thenReturn(Mono.empty());
+
+    webClient.post().uri(RESUME_ENDPOINT).exchange().expectStatus().isOk();
+
+    assertThat(output.toString())
+        .contains("resumeWorkflow: executionId=" + EXEC_ID_1)
+        .contains("resumeWorkflow command accepted")
+        .contains("resumeWorkflow response sent successfully");
+  }
+
+  @Test
+  void testResumeWorkflowNotFound() {
+    when(controlBusGateway.resumeWorkflow(EXEC_ID_1))
+        .thenReturn(Mono.error(new IllegalArgumentException(EXECUTION_NOT_FOUND)));
+
+    final var result =
+        webClient
+            .post()
+            .uri(RESUME_ENDPOINT)
+            .exchange()
+            .expectStatus()
+            .isNotFound()
+            .expectBody()
+            .jsonPath(DOLLAR_STATUS)
+            .isEqualTo(404)
+            .jsonPath(DOLLAR_MESSAGE)
+            .isEqualTo(EXECUTION_NOT_FOUND)
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(404);
+  }
+
+  @Test
+  void testResumeWorkflowNotFoundLogging(final CapturedOutput output) {
+    when(controlBusGateway.resumeWorkflow(EXEC_ID_1))
+        .thenReturn(Mono.error(new IllegalArgumentException(EXECUTION_NOT_FOUND)));
+
+    webClient.post().uri(RESUME_ENDPOINT).exchange().expectStatus().isNotFound();
+
+    assertThat(output.toString())
+        .contains("resumeWorkflow: executionId=" + EXEC_ID_1)
+        .contains("resumeWorkflow error occurred")
         .contains(EXECUTION_NOT_FOUND);
   }
 }
