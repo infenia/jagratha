@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -245,6 +246,7 @@ class DefaultControlBusGatewayTest {
                     && err.getMessage().contains("Execution not found")
                     && err.getMessage().contains(executionId))
         .verify();
+    verify(controlBusService, never()).emit(any());
   }
 
   @Test
@@ -264,6 +266,7 @@ class DefaultControlBusGatewayTest {
                     && err.getMessage().contains("Execution not found")
                     && err.getMessage().contains(executionId))
         .verify();
+    verify(controlBusService, never()).emit(any());
   }
 
   @Test
