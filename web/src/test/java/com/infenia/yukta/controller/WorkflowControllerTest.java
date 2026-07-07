@@ -764,6 +764,22 @@ class WorkflowControllerTest {
         .contains(EXECUTION_NOT_FOUND);
   }
 
+  @Test
+  void testPauseWorkflowNonNotFoundErrorPropagates() {
+    when(controlBusGateway.pauseWorkflow(EXEC_ID_1))
+        .thenReturn(Mono.error(new RuntimeException("Control bus failure")));
+
+    final var result =
+        webClient
+            .post()
+            .uri(PAUSE_ENDPOINT)
+            .exchange()
+            .expectStatus()
+            .is5xxServerError()
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(500);
+  }
+
   // --- Resume Workflow Tests ---
 
   @Test
@@ -832,5 +848,21 @@ class WorkflowControllerTest {
         .contains("resumeWorkflow: executionId=" + EXEC_ID_1)
         .contains("resumeWorkflow error occurred")
         .contains(EXECUTION_NOT_FOUND);
+  }
+
+  @Test
+  void testResumeWorkflowNonNotFoundErrorPropagates() {
+    when(controlBusGateway.resumeWorkflow(EXEC_ID_1))
+        .thenReturn(Mono.error(new RuntimeException("Control bus failure")));
+
+    final var result =
+        webClient
+            .post()
+            .uri(RESUME_ENDPOINT)
+            .exchange()
+            .expectStatus()
+            .is5xxServerError()
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(500);
   }
 }

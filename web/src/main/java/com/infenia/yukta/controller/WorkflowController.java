@@ -308,6 +308,7 @@ public class WorkflowController {
                 log.atInfo().log(
                     "pauseWorkflow response sent successfully: executionId={}", executionId))
         .onErrorResume(
+            IllegalArgumentException.class,
             e -> {
               log.atError()
                   .log(
@@ -365,6 +366,7 @@ public class WorkflowController {
                 log.atInfo().log(
                     "resumeWorkflow response sent successfully: executionId={}", executionId))
         .onErrorResume(
+            IllegalArgumentException.class,
             e -> {
               log.atError()
                   .log(
