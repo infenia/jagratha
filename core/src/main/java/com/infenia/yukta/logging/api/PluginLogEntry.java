@@ -16,6 +16,7 @@
 package com.infenia.yukta.logging.api;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,16 +59,29 @@ public record PluginLogEntry(
     return Collections.unmodifiableMap(frozen);
   }
 
-  @SuppressWarnings("PMD.OnlyOneReturn")
+  @SuppressWarnings({"PMD.OnlyOneReturn", "PMD.UseConcurrentHashMap"})
   private static Object freezeValue(final Object value) {
     if (value instanceof List) {
-      return List.copyOf((List<?>) value);
+      final List<?> list = (List<?>) value;
+      final List<Object> frozenList = new ArrayList<>();
+      for (final Object item : list) {
+        frozenList.add(freezeValue(item));
+      }
+      return List.copyOf(frozenList);
     }
     if (value instanceof Set) {
-      return Set.copyOf((Set<?>) value);
+      final Set<?> set = (Set<?>) value;
+      final List<Object> frozenList = new ArrayList<>();
+      for (final Object item : set) {
+        frozenList.add(freezeValue(item));
+      }
+      return Set.copyOf(frozenList);
     }
     if (value instanceof Map) {
-      return Map.copyOf((Map<?, ?>) value);
+      final Map<?, ?> map = (Map<?, ?>) value;
+      final Map<Object, Object> frozenMap = new LinkedHashMap<>();
+      map.forEach((k, v) -> frozenMap.put(k, freezeValue(v)));
+      return Collections.unmodifiableMap(frozenMap);
     }
     return value;
   }

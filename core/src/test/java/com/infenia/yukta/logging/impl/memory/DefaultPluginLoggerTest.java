@@ -405,9 +405,7 @@ class DefaultPluginLoggerTest {
 
     StepVerifier.create(logger.close())
         .expectErrorMatches(
-            error ->
-                error instanceof RuntimeException
-                    && "Test error".equals(error.getMessage()))
+            error -> error instanceof RuntimeException && "Test error".equals(error.getMessage()))
         .verify();
   }
 
@@ -437,8 +435,7 @@ class DefaultPluginLoggerTest {
   void testLogCustom_capturesStreamAndLogLevel() {
     final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
 
-    StepVerifier.create(logger.logCustom("custom-stream", "Custom message"))
-        .verifyComplete();
+    StepVerifier.create(logger.logCustom("custom-stream", "Custom message")).verifyComplete();
 
     verify(mockWriter).write(captor.capture());
     final PluginLogEntry capturedEntry = captor.getValue();
@@ -573,5 +570,40 @@ class DefaultPluginLoggerTest {
     @SuppressWarnings("unchecked")
     final java.util.Set<String> capturedSet = (java.util.Set<String>) entry.metadata().get("tags");
     Assertions.assertThat(capturedSet).hasSize(1).containsExactly("tag1").doesNotContain("tag2");
+  }
+
+  @Test
+  void pluginLogEntry_defensivelyFreezeDeepNestedMapWithListValues() {
+    final List<String> mutableInnerList = new java.util.ArrayList<>();
+    mutableInnerList.add("item1");
+    final Map<String, Object> mutableInnerMap = new java.util.HashMap<>();
+    mutableInnerMap.put("items", mutableInnerList);
+    final Map<String, Object> metadata = Map.of("config", mutableInnerMap);
+
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            EXEC_ID,
+            SESSION_ID,
+            TEST_PLUGIN,
+            TEST_PLUGIN_NAME,
+            LogStream.STDOUT,
+            "Message",
+            LogLevel.INFO,
+            Instant.now(),
+            null,
+            metadata);
+
+    mutableInnerList.add("item2");
+    mutableInnerMap.put("items", new java.util.ArrayList<>());
+
+    @SuppressWarnings("unchecked")
+    final Map<String, Object> capturedInnerMap =
+        (Map<String, Object>) entry.metadata().get("config");
+    @SuppressWarnings("unchecked")
+    final List<String> capturedInnerList = (List<String>) capturedInnerMap.get("items");
+    Assertions.assertThat(capturedInnerList)
+        .hasSize(1)
+        .containsExactly("item1")
+        .doesNotContain("item2");
   }
 }
