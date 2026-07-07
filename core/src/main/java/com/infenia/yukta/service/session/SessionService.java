@@ -62,6 +62,22 @@ public class SessionService {
    * @return Mono that completes when the configuration is successfully applied and persisted
    */
   public Mono<Void> applyConfig(@Valid final SessionConfigData data) {
+    final Mono<Void> staleWorkflowCleanup =
+        Mono.defer(() -> workflowDefinitionStore.findAll(data.sessionId()))
+            .flatMapMany(existing -> Flux.fromIterable(existing.keySet()))
+            .filter(existingWorkflowId -> !data.workflows().containsKey(existingWorkflowId))
+            .flatMap(
+                staleWorkflowId ->
+                    workflowDefinitionStore
+                        .remove(data.sessionId(), staleWorkflowId)
+                        .doOnSuccess(
+                            _ ->
+                                log.atInfo().log(
+                                    "Removed stale workflow: {} no longer present in config for"
+                                        + " session: {}",
+                                    staleWorkflowId,
+                                    data.sessionId())))
+            .then();
     final Mono<Void> cacheInvalidation =
         Mono.fromRunnable(
             () -> {
@@ -105,6 +121,7 @@ public class SessionService {
         .applySessionConfig(data)
         .doOnSubscribe(
             _ -> log.atInfo().log("Applying configuration for session: {}", data.sessionId()))
+        .then(staleWorkflowCleanup)
         .then(cacheInvalidation)
         .then(workflowCompilation)
         .doOnSuccess(

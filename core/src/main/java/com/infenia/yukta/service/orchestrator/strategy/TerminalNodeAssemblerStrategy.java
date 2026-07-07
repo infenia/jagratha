@@ -24,6 +24,7 @@ import com.infenia.yukta.model.workflow.WorkflowNode;
 import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.gateway.ResultCollector;
 import com.infenia.yukta.plugin.type.TerminalPlugin;
+import com.infenia.yukta.service.control.store.ActivePluginRegistry;
 import com.infenia.yukta.service.orchestrator.stream.StreamTopologyDecorator;
 import com.infenia.yukta.service.orchestrator.tracker.TaskTrackerService;
 import java.time.Duration;
@@ -77,6 +78,9 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
 
   /** The node message channel provider for creating message channels. */
   private final NodeMessageChannelProvider channelProvider;
+
+  /** The registry of plugin instances actively servicing workflow nodes. */
+  private final ActivePluginRegistry activePluginRegistry;
 
   @Override
   public boolean supports(final Plugin plugin, final boolean hasParents) {
@@ -166,6 +170,7 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
                         .addKeyValue(LOG_KEY_NODE_ID, node.nodeId())
                         .addKeyValue("executionId", context.executionId())
                         .log("Terminal node execution started");
+                    activePluginRegistry.register(context.workflowId(), node.nodeId(), plugin);
                     tracker.emitTaskStatusEvent(
                         context.executionId(),
                         node.nodeId(),
@@ -173,6 +178,8 @@ public class TerminalNodeAssemblerStrategy implements NodeAssemblerStrategy {
                         STATUS_RUNNING,
                         Collections.emptyMap());
                   })
+              .doFinally(
+                  signal -> activePluginRegistry.unregister(context.workflowId(), node.nodeId()))
               .doOnSuccess(
                   v -> {
                     log.atInfo()

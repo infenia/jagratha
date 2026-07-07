@@ -117,7 +117,8 @@ public class FileSystemPluginLogReader implements PluginLogReader {
               }
 
               try (final var files = Files.list(sessionDir)) {
-                files.filter(logFile -> logFile.toString().endsWith(LOG_FILE_EXTENSION))
+                files
+                    .filter(logFile -> logFile.toString().endsWith(LOG_FILE_EXTENSION))
                     .forEach(logFile -> entries.addAll(readLogFile(logFile, sessionId)));
               } catch (final IOException e) {
                 log.atWarn()
@@ -145,7 +146,8 @@ public class FileSystemPluginLogReader implements PluginLogReader {
               }
 
               try (final var files = Files.list(sessionDir)) {
-                files.filter(logFile -> logFile.toString().endsWith(LOG_FILE_EXTENSION))
+                files
+                    .filter(logFile -> logFile.toString().endsWith(LOG_FILE_EXTENSION))
                     .forEach(
                         logFile -> {
                           final String executionId =

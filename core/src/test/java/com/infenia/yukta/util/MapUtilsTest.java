@@ -164,16 +164,14 @@ class MapUtilsTest {
 
   @Test
   void testGetNestedValueWithTrailingDot() {
-    final Map<String, Object> map =
-        Map.of("a", Map.of("b", Map.of("", TEST_VALUE)));
+    final Map<String, Object> map = Map.of("a", Map.of("b", Map.of("", TEST_VALUE)));
 
     assertThat(MapUtils.getNestedValue(map, "a.b.")).isEqualTo(TEST_VALUE);
   }
 
   @Test
   void testGetNestedValueWithConsecutiveDots() {
-    final Map<String, Object> map =
-        Map.of("a", Map.of("", Map.of("b", TEST_VALUE)));
+    final Map<String, Object> map = Map.of("a", Map.of("", Map.of("b", TEST_VALUE)));
 
     assertThat(MapUtils.getNestedValue(map, "a..b")).isEqualTo(TEST_VALUE);
   }

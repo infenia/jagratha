@@ -17,7 +17,9 @@ package com.infenia.yukta.service.orchestrator.strategy;
 
 import com.infenia.yukta.message.Message;
 import com.infenia.yukta.model.workflow.WorkflowNode;
+import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.service.control.ExecutionControl;
+import com.infenia.yukta.service.control.store.ActivePluginRegistry;
 import com.infenia.yukta.service.orchestrator.assembly.AssemblyContext;
 import com.infenia.yukta.service.orchestrator.assembly.ExecutionContextBuilder;
 import com.infenia.yukta.service.orchestrator.stream.StreamBuilder;
@@ -37,7 +39,9 @@ class StreamAssemblyHelper {
       final Flux<Message<?>> stream,
       final Duration timeout,
       final TaskTrackerService tracker,
-      final AssemblyContext context) {
+      final AssemblyContext context,
+      final Plugin plugin,
+      final ActivePluginRegistry activePluginRegistry) {
 
     log.atDebug()
         .addKeyValue("nodeId", node.nodeId())
@@ -62,6 +66,13 @@ class StreamAssemblyHelper {
             .withTaskTracking(context.executionId())
             .withErrorHandling(context.executionId())
             .build();
+
+    built =
+        built
+            .doOnSubscribe(
+                s -> activePluginRegistry.register(context.workflowId(), node.nodeId(), plugin))
+            .doFinally(
+                signal -> activePluginRegistry.unregister(context.workflowId(), node.nodeId()));
 
     built = control.applyPostProcessingControls(node.nodeId(), built);
     return contextBuilder
