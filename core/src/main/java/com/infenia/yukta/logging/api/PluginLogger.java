@@ -62,21 +62,21 @@ public interface PluginLogger {
   /**
    * Log a message to a custom stream.
    *
-   * @param stream the custom stream name
+   * @param customStreamName the custom stream name
    * @param message the log message
    * @return a Mono that completes when the message is queued
    */
-  Mono<Void> logCustom(String stream, String message);
+  Mono<Void> logCustom(String customStreamName, String message);
 
   /**
    * Log a message to a custom stream with metadata.
    *
-   * @param stream the custom stream name
+   * @param customStreamName the custom stream name
    * @param message the log message
    * @param metadata optional context metadata
    * @return a Mono that completes when the message is queued
    */
-  Mono<Void> logCustom(String stream, String message, Map<String, Object> metadata);
+  Mono<Void> logCustom(String customStreamName, String message, Map<String, Object> metadata);
 
   /**
    * Close the logger and flush any pending messages.

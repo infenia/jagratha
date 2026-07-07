@@ -165,36 +165,38 @@ public class DefaultPluginLogger implements PluginLogger {
   }
 
   @Override
-  public Mono<Void> logCustom(final String stream, final String message) {
+  public Mono<Void> logCustom(final String customStreamName, final String message) {
     log.atDebug()
         .addKeyValue(EXECUTION_ID, executionId)
         .addKeyValue(SESSION_ID, sessionId)
         .addKeyValue(PLUGIN_ID, pluginId)
         .addKeyValue(PLUGIN_NAME, pluginName)
         .addKeyValue(STREAM, LogStream.CUSTOM)
-        .addKeyValue(CUSTOM_STREAM_NAME, stream)
+        .addKeyValue(CUSTOM_STREAM_NAME, customStreamName)
         .addKeyValue(MESSAGE, message)
         .addKeyValue(LOG_LEVEL, LogLevel.INFO)
         .addKeyValue(METADATA, null)
         .log("Logging to custom stream");
-    return logToStream(LogStream.CUSTOM, stream, message, LogLevel.INFO, null);
+    return logToStream(LogStream.CUSTOM, customStreamName, message, LogLevel.INFO, null);
   }
 
   @Override
   public Mono<Void> logCustom(
-      final String stream, final String message, final Map<String, Object> metadata) {
+      final String customStreamName,
+      final String message,
+      final Map<String, Object> metadata) {
     log.atDebug()
         .addKeyValue(EXECUTION_ID, executionId)
         .addKeyValue(SESSION_ID, sessionId)
         .addKeyValue(PLUGIN_ID, pluginId)
         .addKeyValue(PLUGIN_NAME, pluginName)
         .addKeyValue(STREAM, LogStream.CUSTOM)
-        .addKeyValue(CUSTOM_STREAM_NAME, stream)
+        .addKeyValue(CUSTOM_STREAM_NAME, customStreamName)
         .addKeyValue(MESSAGE, message)
         .addKeyValue(LOG_LEVEL, LogLevel.INFO)
         .addKeyValue(METADATA, metadata)
         .log("Logging to custom stream with metadata");
-    return logToStream(LogStream.CUSTOM, stream, message, LogLevel.INFO, metadata);
+    return logToStream(LogStream.CUSTOM, customStreamName, message, LogLevel.INFO, metadata);
   }
 
   @Override
@@ -247,17 +249,8 @@ public class DefaultPluginLogger implements PluginLogger {
   }
 
   /** Immutable adapter for PluginLogWriter to prevent EI2 exposure violations. */
-  private static final class ImmutablePluginLogWriterAdapter implements PluginLogWriter {
-    /** The underlying writer delegate. */
-    private final PluginLogWriter delegate;
-
-    /**
-     * Package-private constructor to prevent external instantiation outside this class hierarchy.
-     */
-    /* default */ ImmutablePluginLogWriterAdapter(final PluginLogWriter delegate) {
-      this.delegate = delegate;
-    }
-
+  private record ImmutablePluginLogWriterAdapter(PluginLogWriter delegate)
+      implements PluginLogWriter {
     @Override
     public Mono<Void> write(final PluginLogEntry entry) {
       return delegate.write(entry);
