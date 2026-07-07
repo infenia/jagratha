@@ -33,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 /** Tests for {@link DefaultPluginLogger}. */
 @NoArgsConstructor
@@ -93,7 +94,7 @@ class DefaultPluginLoggerTest {
 
   @Test
   void testLogStdout() {
-    logger.logStdout("Hello World").block();
+    StepVerifier.create(logger.logStdout("Hello World")).verifyComplete();
 
     verify(mockWriter).write(any(PluginLogEntry.class));
   }
@@ -102,7 +103,7 @@ class DefaultPluginLoggerTest {
   void testLogStdoutWithMetadata() {
     final Map<String, Object> metadata = Map.of("key", "value");
 
-    logger.logStdout("Message", metadata).block();
+    StepVerifier.create(logger.logStdout("Message", metadata)).verifyComplete();
 
     verify(mockWriter).write(any(PluginLogEntry.class));
   }
@@ -112,7 +113,7 @@ class DefaultPluginLoggerTest {
     final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
     final Map<String, Object> metadata = Map.of("userId", "user-123", "requestId", "req-456");
 
-    logger.logStdout("User action logged", metadata).block();
+    StepVerifier.create(logger.logStdout("User action logged", metadata)).verifyComplete();
 
     verify(mockWriter).write(captor.capture());
     final PluginLogEntry capturedEntry = captor.getValue();
@@ -121,14 +122,14 @@ class DefaultPluginLoggerTest {
 
   @Test
   void testLogStderr() {
-    logger.logStderr("Error message").block();
+    StepVerifier.create(logger.logStderr("Error message")).verifyComplete();
 
     verify(mockWriter).write(any(PluginLogEntry.class));
   }
 
   @Test
   void testLogCustom() {
-    logger.logCustom(DOCKER_BUILD, CUSTOM_MESSAGE).block();
+    StepVerifier.create(logger.logCustom(DOCKER_BUILD, CUSTOM_MESSAGE)).verifyComplete();
 
     verify(mockWriter).write(any(PluginLogEntry.class));
   }
@@ -137,7 +138,7 @@ class DefaultPluginLoggerTest {
   void testLogCustom_preservesCustomStreamName() {
     final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
 
-    logger.logCustom(DOCKER_BUILD, "Building image").block();
+    StepVerifier.create(logger.logCustom(DOCKER_BUILD, "Building image")).verifyComplete();
 
     verify(mockWriter).write(captor.capture());
     final PluginLogEntry capturedEntry = captor.getValue();
@@ -148,7 +149,8 @@ class DefaultPluginLoggerTest {
   void testLogCustomWithMetadata() {
     final Map<String, Object> metadata = Map.of("key", "value");
 
-    logger.logCustom("custom-stream", CUSTOM_MESSAGE, metadata).block();
+    StepVerifier.create(logger.logCustom("custom-stream", CUSTOM_MESSAGE, metadata))
+        .verifyComplete();
 
     verify(mockWriter).write(any(PluginLogEntry.class));
   }
@@ -158,7 +160,8 @@ class DefaultPluginLoggerTest {
     final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
     final Map<String, Object> metadata = Map.of("layer", "final", "size", "2GB");
 
-    logger.logCustom(DOCKER_BUILD, "Layer completed", metadata).block();
+    StepVerifier.create(logger.logCustom(DOCKER_BUILD, "Layer completed", metadata))
+        .verifyComplete();
 
     verify(mockWriter).write(captor.capture());
     final PluginLogEntry capturedEntry = captor.getValue();
@@ -170,7 +173,7 @@ class DefaultPluginLoggerTest {
   void testLogStderrWithMetadata() {
     final Map<String, Object> metadata = Map.of("error", "details");
 
-    logger.logStderr("Error with metadata", metadata).block();
+    StepVerifier.create(logger.logStderr("Error with metadata", metadata)).verifyComplete();
 
     verify(mockWriter).write(any(PluginLogEntry.class));
   }
@@ -179,7 +182,7 @@ class DefaultPluginLoggerTest {
   void testClose() {
     when(mockWriter.close()).thenReturn(Mono.empty());
 
-    logger.close().block();
+    StepVerifier.create(logger.close()).verifyComplete();
 
     verify(mockWriter).close();
   }
@@ -400,16 +403,19 @@ class DefaultPluginLoggerTest {
     final RuntimeException testException = new RuntimeException("Test error");
     when(mockWriter.close()).thenReturn(Mono.error(testException));
 
-    Assertions.assertThatThrownBy(() -> logger.close().block())
-        .isInstanceOf(RuntimeException.class)
-        .hasMessage("Test error");
+    StepVerifier.create(logger.close())
+        .expectErrorMatches(
+            error ->
+                error instanceof RuntimeException
+                    && "Test error".equals(error.getMessage()))
+        .verify();
   }
 
   @Test
   void testLogStderr_capturesLogLevel() {
     final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
 
-    logger.logStderr("Error message").block();
+    StepVerifier.create(logger.logStderr("Error message")).verifyComplete();
 
     verify(mockWriter).write(captor.capture());
     final PluginLogEntry capturedEntry = captor.getValue();
@@ -420,7 +426,7 @@ class DefaultPluginLoggerTest {
   void testLogStdout_capturesLogLevel() {
     final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
 
-    logger.logStdout("Info message").block();
+    StepVerifier.create(logger.logStdout("Info message")).verifyComplete();
 
     verify(mockWriter).write(captor.capture());
     final PluginLogEntry capturedEntry = captor.getValue();
@@ -431,7 +437,8 @@ class DefaultPluginLoggerTest {
   void testLogCustom_capturesStreamAndLogLevel() {
     final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
 
-    logger.logCustom("custom-stream", "Custom message").block();
+    StepVerifier.create(logger.logCustom("custom-stream", "Custom message"))
+        .verifyComplete();
 
     verify(mockWriter).write(captor.capture());
     final PluginLogEntry capturedEntry = captor.getValue();
@@ -443,7 +450,7 @@ class DefaultPluginLoggerTest {
   void testLogStderr_capturesStreamType() {
     final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
 
-    logger.logStderr("Error").block();
+    StepVerifier.create(logger.logStderr("Error")).verifyComplete();
 
     verify(mockWriter).write(captor.capture());
     final PluginLogEntry capturedEntry = captor.getValue();
@@ -454,7 +461,7 @@ class DefaultPluginLoggerTest {
   void testLogStdout_capturesStreamType() {
     final ArgumentCaptor<PluginLogEntry> captor = ArgumentCaptor.forClass(PluginLogEntry.class);
 
-    logger.logStdout("Output").block();
+    StepVerifier.create(logger.logStdout("Output")).verifyComplete();
 
     verify(mockWriter).write(captor.capture());
     final PluginLogEntry capturedEntry = captor.getValue();
