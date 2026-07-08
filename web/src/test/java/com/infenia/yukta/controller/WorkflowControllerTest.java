@@ -45,7 +45,7 @@ import reactor.core.publisher.Mono;
 /** Tests for WorkflowController. */
 @ExtendWith(OutputCaptureExtension.class)
 @NoArgsConstructor
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyMethods"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyMethods", "PMD.CyclomaticComplexity"})
 class WorkflowControllerTest {
 
   /** API endpoint for workflow start. */
