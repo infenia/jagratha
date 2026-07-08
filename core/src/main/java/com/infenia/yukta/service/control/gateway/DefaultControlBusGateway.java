@@ -36,6 +36,7 @@ import com.infenia.yukta.plugin.control.ExecutionControlCommand.StopNodeCommand;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand.StopWorkflowCommand;
 import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.service.control.ControlBusService;
+import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
 import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
@@ -376,8 +377,12 @@ public class DefaultControlBusGateway implements ControlBusGateway {
 
   @Override
   public Mono<Void> pauseNode(final String executionId, final String nodeId) {
-    return executeCommand(
-            buildCommand(new PauseNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
+    return Mono.fromSupplier(() -> requireNodeControl(executionId, nodeId))
+        .flatMap(
+            control ->
+                executeCommand(
+                    buildCommand(
+                        new PauseNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY)))
         .doOnSubscribe(
             _ ->
                 log.atInfo()
@@ -397,8 +402,12 @@ public class DefaultControlBusGateway implements ControlBusGateway {
 
   @Override
   public Mono<Void> resumeNode(final String executionId, final String nodeId) {
-    return executeCommand(
-            buildCommand(new ResumeNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY))
+    return Mono.fromSupplier(() -> requireNodeControl(executionId, nodeId))
+        .flatMap(
+            control ->
+                executeCommand(
+                    buildCommand(
+                        new ResumeNodeCommand(executionId, nodeId), CONTROL_COMMAND_PRIORITY)))
         .doOnSubscribe(
             _ ->
                 log.atInfo()
@@ -414,6 +423,17 @@ public class DefaultControlBusGateway implements ControlBusGateway {
                     .addKeyValue("executionId", executionId)
                     .addKeyValue("nodeId", nodeId)
                     .log("Failed to resume node"));
+  }
+
+  private ExecutionControl requireNodeControl(final String executionId, final String nodeId) {
+    final ExecutionControl control =
+        executionControlRegistry
+            .findByExecutionId(executionId)
+            .orElseThrow(() -> new IllegalArgumentException("Execution not found: " + executionId));
+    if (!control.nodePauseValves().containsKey(nodeId)) {
+      throw new IllegalArgumentException("Node not found: " + nodeId);
+    }
+    return control;
   }
 
   @Override
