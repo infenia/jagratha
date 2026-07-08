@@ -698,6 +698,16 @@ class WorkflowControllerTest {
 
   @Test
   void testPauseWorkflowSuccess() {
+    final WorkflowProgress progress =
+        new WorkflowProgress(
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
+            RUNNING,
+            List.of(),
+            LocalDateTime.now(ZoneId.systemDefault()),
+            null);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(progress);
     when(controlBusGateway.pauseWorkflow(EXEC_ID_1)).thenReturn(Mono.empty());
 
     final var result =
@@ -720,6 +730,16 @@ class WorkflowControllerTest {
 
   @Test
   void testPauseWorkflowSuccessLogging(final CapturedOutput output) {
+    final WorkflowProgress progress =
+        new WorkflowProgress(
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
+            RUNNING,
+            List.of(),
+            LocalDateTime.now(ZoneId.systemDefault()),
+            null);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(progress);
     when(controlBusGateway.pauseWorkflow(EXEC_ID_1)).thenReturn(Mono.empty());
 
     webClient.post().uri(PAUSE_ENDPOINT).exchange().expectStatus().isOk();
@@ -732,8 +752,7 @@ class WorkflowControllerTest {
 
   @Test
   void testPauseWorkflowNotFound() {
-    when(controlBusGateway.pauseWorkflow(EXEC_ID_1))
-        .thenReturn(Mono.error(new IllegalArgumentException(EXECUTION_NOT_FOUND)));
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(null);
 
     final var result =
         webClient
@@ -753,8 +772,7 @@ class WorkflowControllerTest {
 
   @Test
   void testPauseWorkflowNotFoundLogging(final CapturedOutput output) {
-    when(controlBusGateway.pauseWorkflow(EXEC_ID_1))
-        .thenReturn(Mono.error(new IllegalArgumentException(EXECUTION_NOT_FOUND)));
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(null);
 
     webClient.post().uri(PAUSE_ENDPOINT).exchange().expectStatus().isNotFound();
 
@@ -765,7 +783,46 @@ class WorkflowControllerTest {
   }
 
   @Test
+  void testPauseWorkflowSessionMismatch() {
+    final WorkflowProgress progress =
+        new WorkflowProgress(
+            EXEC_ID_1,
+            "other-session",
+            WF_ID_1,
+            RUNNING,
+            List.of(),
+            LocalDateTime.now(ZoneId.systemDefault()),
+            null);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(progress);
+
+    final var result =
+        webClient
+            .post()
+            .uri(PAUSE_ENDPOINT)
+            .exchange()
+            .expectStatus()
+            .isNotFound()
+            .expectBody()
+            .jsonPath(DOLLAR_STATUS)
+            .isEqualTo(404)
+            .jsonPath(DOLLAR_MESSAGE)
+            .isEqualTo(EXECUTION_NOT_FOUND)
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(404);
+  }
+
+  @Test
   void testPauseWorkflowNonNotFoundErrorPropagates() {
+    final WorkflowProgress progress =
+        new WorkflowProgress(
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
+            RUNNING,
+            List.of(),
+            LocalDateTime.now(ZoneId.systemDefault()),
+            null);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(progress);
     when(controlBusGateway.pauseWorkflow(EXEC_ID_1))
         .thenReturn(Mono.error(new RuntimeException("Control bus failure")));
 
@@ -784,6 +841,16 @@ class WorkflowControllerTest {
 
   @Test
   void testResumeWorkflowSuccess() {
+    final WorkflowProgress progress =
+        new WorkflowProgress(
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
+            RUNNING,
+            List.of(),
+            LocalDateTime.now(ZoneId.systemDefault()),
+            null);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(progress);
     when(controlBusGateway.resumeWorkflow(EXEC_ID_1)).thenReturn(Mono.empty());
 
     final var result =
@@ -806,6 +873,16 @@ class WorkflowControllerTest {
 
   @Test
   void testResumeWorkflowSuccessLogging(final CapturedOutput output) {
+    final WorkflowProgress progress =
+        new WorkflowProgress(
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
+            RUNNING,
+            List.of(),
+            LocalDateTime.now(ZoneId.systemDefault()),
+            null);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(progress);
     when(controlBusGateway.resumeWorkflow(EXEC_ID_1)).thenReturn(Mono.empty());
 
     webClient.post().uri(RESUME_ENDPOINT).exchange().expectStatus().isOk();
@@ -818,8 +895,7 @@ class WorkflowControllerTest {
 
   @Test
   void testResumeWorkflowNotFound() {
-    when(controlBusGateway.resumeWorkflow(EXEC_ID_1))
-        .thenReturn(Mono.error(new IllegalArgumentException(EXECUTION_NOT_FOUND)));
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(null);
 
     final var result =
         webClient
@@ -839,8 +915,7 @@ class WorkflowControllerTest {
 
   @Test
   void testResumeWorkflowNotFoundLogging(final CapturedOutput output) {
-    when(controlBusGateway.resumeWorkflow(EXEC_ID_1))
-        .thenReturn(Mono.error(new IllegalArgumentException(EXECUTION_NOT_FOUND)));
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(null);
 
     webClient.post().uri(RESUME_ENDPOINT).exchange().expectStatus().isNotFound();
 
@@ -851,7 +926,46 @@ class WorkflowControllerTest {
   }
 
   @Test
+  void testResumeWorkflowSessionMismatch() {
+    final WorkflowProgress progress =
+        new WorkflowProgress(
+            EXEC_ID_1,
+            "other-session",
+            WF_ID_1,
+            RUNNING,
+            List.of(),
+            LocalDateTime.now(ZoneId.systemDefault()),
+            null);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(progress);
+
+    final var result =
+        webClient
+            .post()
+            .uri(RESUME_ENDPOINT)
+            .exchange()
+            .expectStatus()
+            .isNotFound()
+            .expectBody()
+            .jsonPath(DOLLAR_STATUS)
+            .isEqualTo(404)
+            .jsonPath(DOLLAR_MESSAGE)
+            .isEqualTo(EXECUTION_NOT_FOUND)
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(404);
+  }
+
+  @Test
   void testResumeWorkflowNonNotFoundErrorPropagates() {
+    final WorkflowProgress progress =
+        new WorkflowProgress(
+            EXEC_ID_1,
+            SESS_ID_1,
+            WF_ID_1,
+            RUNNING,
+            List.of(),
+            LocalDateTime.now(ZoneId.systemDefault()),
+            null);
+    when(controlBusGateway.getCurrentProgress(EXEC_ID_1)).thenReturn(progress);
     when(controlBusGateway.resumeWorkflow(EXEC_ID_1))
         .thenReturn(Mono.error(new RuntimeException("Control bus failure")));
 

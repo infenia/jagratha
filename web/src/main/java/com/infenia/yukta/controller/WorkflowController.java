@@ -295,8 +295,15 @@ public class WorkflowController {
       @Parameter(description = "Execution ID") @PathVariable final String executionId,
       final ServerWebExchange exchange) {
     log.atInfo().log("pauseWorkflow: executionId={}, sessionId={}", executionId, sessionId);
-    return controlBus
-        .pauseWorkflow(executionId)
+    return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
+        .switchIfEmpty(
+            Mono.error(new IllegalArgumentException("Execution not found: " + executionId)))
+        .flatMap(
+            progress ->
+                progress.sessionId().equals(sessionId)
+                    ? controlBus.pauseWorkflow(executionId)
+                    : Mono.<Void>error(
+                        new IllegalArgumentException("Execution not found: " + executionId)))
         .doOnSuccess(
             _ -> log.atInfo().log("pauseWorkflow command accepted: executionId={}", executionId))
         .thenReturn(
@@ -351,8 +358,15 @@ public class WorkflowController {
       @Parameter(description = "Execution ID") @PathVariable final String executionId,
       final ServerWebExchange exchange) {
     log.atInfo().log("resumeWorkflow: executionId={}, sessionId={}", executionId, sessionId);
-    return controlBus
-        .resumeWorkflow(executionId)
+    return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
+        .switchIfEmpty(
+            Mono.error(new IllegalArgumentException("Execution not found: " + executionId)))
+        .flatMap(
+            progress ->
+                progress.sessionId().equals(sessionId)
+                    ? controlBus.resumeWorkflow(executionId)
+                    : Mono.<Void>error(
+                        new IllegalArgumentException("Execution not found: " + executionId)))
         .doOnSuccess(
             _ -> log.atInfo().log("resumeWorkflow command accepted: executionId={}", executionId))
         .thenReturn(
