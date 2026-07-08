@@ -6,6 +6,7 @@ plugins {
     pmd
     id("com.github.spotbugs")
     id("net.ltgt.errorprone")
+    id("com.github.jk1.dependency-license-report")
 }
 
 val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
@@ -33,6 +34,12 @@ spotless {
         targetExclude("**/build/**", "**/bin/**", "**/out/**", "**/.gradle/**", "**/node_modules/**")
         licenseHeaderFile(rootProject.file("config/license/header-xml.txt"), "(<[^!?])")
     }
+}
+
+licenseReport {
+    outputDir = "$buildDir/reports/licenses"
+    configurations = arrayOf("runtimeClasspath")
+    rendererTemplates = arrayOf("json.ftl", "csv.ftl", "html.ftl")
 }
 
 checkstyle {

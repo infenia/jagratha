@@ -18,4 +18,5 @@ dependencies {
     implementation("com.github.node-gradle:gradle-node-plugin:${libs.versions.nodeGradle.get()}")
     implementation("io.spring.dependency-management:io.spring.dependency-management.gradle.plugin:${libs.versions.springDependencyManagement.get()}")
     implementation("net.ltgt.gradle:gradle-errorprone-plugin:${libs.versions.errorpronePlugin.get()}")
+    implementation("com.github.jk1:gradle-license-report:2.8")
 }
