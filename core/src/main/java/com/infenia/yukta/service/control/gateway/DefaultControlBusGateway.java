@@ -321,14 +321,15 @@ public class DefaultControlBusGateway implements ControlBusGateway {
     return emit(command);
   }
 
+  private ExecutionControl findExecutionOrThrow(final String executionId) {
+    return executionControlRegistry
+        .findByExecutionId(executionId)
+        .orElseThrow(() -> new IllegalArgumentException("Execution not found: " + executionId));
+  }
+
   @Override
   public Mono<Void> pauseWorkflow(final String executionId) {
-    return Mono.fromSupplier(
-            () ->
-                executionControlRegistry
-                    .findByExecutionId(executionId)
-                    .orElseThrow(
-                        () -> new IllegalArgumentException("Execution not found: " + executionId)))
+    return Mono.fromSupplier(() -> findExecutionOrThrow(executionId))
         .flatMap(
             control ->
                 executeCommand(
@@ -350,12 +351,7 @@ public class DefaultControlBusGateway implements ControlBusGateway {
 
   @Override
   public Mono<Void> resumeWorkflow(final String executionId) {
-    return Mono.fromSupplier(
-            () ->
-                executionControlRegistry
-                    .findByExecutionId(executionId)
-                    .orElseThrow(
-                        () -> new IllegalArgumentException("Execution not found: " + executionId)))
+    return Mono.fromSupplier(() -> findExecutionOrThrow(executionId))
         .flatMap(
             control ->
                 executeCommand(
@@ -426,10 +422,7 @@ public class DefaultControlBusGateway implements ControlBusGateway {
   }
 
   private ExecutionControl requireNodeControl(final String executionId, final String nodeId) {
-    final ExecutionControl control =
-        executionControlRegistry
-            .findByExecutionId(executionId)
-            .orElseThrow(() -> new IllegalArgumentException("Execution not found: " + executionId));
+    final ExecutionControl control = findExecutionOrThrow(executionId);
     if (!control.nodePauseValves().containsKey(nodeId)) {
       throw new IllegalArgumentException("Node not found: " + nodeId);
     }
@@ -514,12 +507,7 @@ public class DefaultControlBusGateway implements ControlBusGateway {
 
   @Override
   public Mono<String> stopExecution(final String executionId, final String reason) {
-    return Mono.fromSupplier(
-            () ->
-                executionControlRegistry
-                    .findByExecutionId(executionId)
-                    .orElseThrow(
-                        () -> new IllegalArgumentException("Execution not found: " + executionId)))
+    return Mono.fromSupplier(() -> findExecutionOrThrow(executionId))
         .flatMap(
             control ->
                 executeCommand(
