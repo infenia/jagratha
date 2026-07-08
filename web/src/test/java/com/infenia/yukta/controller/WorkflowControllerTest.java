@@ -115,6 +115,9 @@ class WorkflowControllerTest {
   /** Execution not found message. */
   private static final String EXECUTION_NOT_FOUND = "Execution not found";
 
+  /** Error message when node not found. */
+  private static final String NODE_NOT_FOUND = "Node not found";
+
   /** Pause endpoint path. */
   private static final String PAUSE_ENDPOINT = "/api/workflow/sess-1/exec-1/pause";
 
@@ -1116,7 +1119,7 @@ class WorkflowControllerTest {
             .jsonPath(DOLLAR_STATUS)
             .isEqualTo(404)
             .jsonPath(DOLLAR_MESSAGE)
-            .isEqualTo(EXECUTION_NOT_FOUND)
+            .isEqualTo(NODE_NOT_FOUND)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(404);
   }
@@ -1290,7 +1293,7 @@ class WorkflowControllerTest {
             .jsonPath(DOLLAR_STATUS)
             .isEqualTo(404)
             .jsonPath(DOLLAR_MESSAGE)
-            .isEqualTo(EXECUTION_NOT_FOUND)
+            .isEqualTo(NODE_NOT_FOUND)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(404);
   }

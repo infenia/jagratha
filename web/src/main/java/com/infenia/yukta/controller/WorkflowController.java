@@ -321,12 +321,14 @@ public class WorkflowController {
               @SuppressWarnings("PMD.LawOfDemeter")
               final var req = exchange.getRequest();
               final String path = req.getPath().value();
+              final boolean nodeNotFound = e.getMessage().startsWith("Node not found");
+              final String field = nodeNotFound ? "node" : "execution";
+              final String topMessage = nodeNotFound ? "Node not found" : "Execution not found";
               final List<ApiResponse.FieldError> errors =
-                  List.of(new ApiResponse.FieldError("execution", e.getMessage()));
+                  List.of(new ApiResponse.FieldError(field, e.getMessage()));
               return Mono.just(
                   ResponseEntity.status(HttpStatus.NOT_FOUND)
-                      .body(
-                          ApiResponse.error(404, NOT_FOUND, "Execution not found", path, errors)));
+                      .body(ApiResponse.error(404, NOT_FOUND, topMessage, path, errors)));
             });
   }
 
