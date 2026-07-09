@@ -31,6 +31,6 @@ License: <skip>
 
 Files: .reuse/dep5 .mcp.json skills-lock.json
  cli/go.mod cli/go.sum cli/.gitignore
- ui/.gitignore ui/package-lock.json ui/pnpm-lock.yaml
+ ui/.gitignore ui/package.json ui/package-lock.json ui/pnpm-lock.yaml
 Copyright: <skip>
 License: <skip>
