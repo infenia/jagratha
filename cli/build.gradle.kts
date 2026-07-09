@@ -8,7 +8,7 @@ plugins {
 tasks.register("goFormat") {
   group = "formatting"
   description = "Format Go source code using gofmt"
-  notCompatibleWithConfigurationCache("Requires external Go tool execution")
+  doNotTrackState("Requires external Go tool execution")
 
   doLast {
     val projectDirectory = projectDir
@@ -38,7 +38,7 @@ tasks.register("goFormat") {
 tasks.register("goFormatCheck") {
   group = "verification"
   description = "Validate Go source code formatting using gofmt"
-  notCompatibleWithConfigurationCache("Requires external Go tool execution")
+  doNotTrackState("Requires external Go tool execution")
 
   doLast {
     val projectDirectory = projectDir
@@ -78,7 +78,7 @@ tasks.register("goFormatCheck") {
 tasks.register("goModTidy") {
   group = "go"
   description = "Tidy Go module dependencies (go mod tidy)"
-  notCompatibleWithConfigurationCache("Requires external Go tool execution")
+  doNotTrackState("Requires external Go tool execution")
 
   doLast {
     val processBuilder = ProcessBuilder("go", "mod", "tidy")
@@ -97,7 +97,7 @@ tasks.register("goModTidy") {
 tasks.register("goModVerify") {
   group = "verification"
   description = "Verify Go module checksums (go mod verify)"
-  notCompatibleWithConfigurationCache("Requires external Go tool execution")
+  doNotTrackState("Requires external Go tool execution")
 
   doLast {
     val processBuilder = ProcessBuilder("go", "mod", "verify")
@@ -125,7 +125,7 @@ tasks.register("goModVerify") {
 tasks.register("goVet") {
   group = "verification"
   description = "Run Go vet for code analysis"
-  notCompatibleWithConfigurationCache("Requires external Go tool execution")
+  doNotTrackState("Requires external Go tool execution")
 
   doLast {
     val processBuilder = ProcessBuilder("go", "vet", "./...")
@@ -144,7 +144,7 @@ tasks.register("goVet") {
 tasks.register("goLint") {
   group = "verification"
   description = "Run golangci-lint for comprehensive static analysis"
-  notCompatibleWithConfigurationCache("Requires external Go tool execution")
+  doNotTrackState("Requires external Go tool execution")
 
   doLast {
     println("Running golangci-lint for comprehensive static analysis...")
@@ -180,7 +180,7 @@ tasks.register("goLint") {
 tasks.register("goSecurityScan") {
   group = "verification"
   description = "Run gosec for security vulnerability scanning"
-  notCompatibleWithConfigurationCache("Requires external Go tool execution")
+  doNotTrackState("Requires external Go tool execution")
 
   doLast {
     println("Running security vulnerability scan with gosec...")
@@ -217,7 +217,7 @@ tasks.register("goSecurityScan") {
 tasks.register("goVulnCheck") {
   group = "verification"
   description = "Check for known vulnerabilities in Go dependencies (govulncheck)"
-  notCompatibleWithConfigurationCache("Requires external Go tool execution")
+  doNotTrackState("Requires external Go tool execution")
 
   doLast {
     println("Checking for known vulnerabilities in dependencies...")
@@ -343,7 +343,7 @@ tasks.register("goBuildAll") {
 tasks.register("goTest") {
   group = "verification"
   description = "Run Go tests"
-  notCompatibleWithConfigurationCache("Requires external Go tool execution")
+  doNotTrackState("Requires external Go tool execution")
 
   doLast {
     println("Running Go tests...")
@@ -372,7 +372,7 @@ tasks.register("goTest") {
 tasks.register("goTestCoverage") {
   group = "verification"
   description = "Generate test coverage report"
-  notCompatibleWithConfigurationCache("Requires external Go tool execution")
+  doNotTrackState("Requires external Go tool execution")
 
   doLast {
     println("Running tests with coverage...")
@@ -405,7 +405,7 @@ tasks.register("goTestCoverage") {
 tasks.register("goCoverageCheck") {
   group = "verification"
   description = "Verify test coverage meets 100% requirement (with per-file overrides)"
-  notCompatibleWithConfigurationCache("Requires external Go tool execution")
+  doNotTrackState("Requires external Go tool execution")
 
   doLast {
     val projectDirectory = projectDir

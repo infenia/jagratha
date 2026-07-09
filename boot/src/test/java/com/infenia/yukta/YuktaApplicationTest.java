@@ -14,7 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.parallel.Isolated;
-import org.springframework.context.ConfigurableApplicationContext;
 
 @Isolated
 @SuppressWarnings({
@@ -23,7 +22,6 @@ import org.springframework.context.ConfigurableApplicationContext;
   "PMD.AvoidAccessibilityAlteration",
   "PMD.CommentRequired",
   "PMD.TooManyMethods",
-  "PMD.JUnit5TestShouldBePackagePrivate",
   "SpotBugs.UwF_UNWRITTEN_FIELD"
 })
 @NoArgsConstructor
@@ -32,7 +30,6 @@ class YuktaApplicationTest {
   private static final String NATIVE_IMAGE_PROPERTY = "org.graalvm.nativeimage.imagecode";
 
   private String originalNativeImageProperty;
-  private ConfigurableApplicationContext applicationContext = null;
 
   @BeforeEach
   void setUp() {
@@ -41,9 +38,6 @@ class YuktaApplicationTest {
 
   @AfterEach
   void tearDown() {
-    if (applicationContext != null) {
-      applicationContext.close();
-    }
     if (originalNativeImageProperty != null) {
       System.setProperty(NATIVE_IMAGE_PROPERTY, originalNativeImageProperty);
     } else {
@@ -57,12 +51,12 @@ class YuktaApplicationTest {
     assertThatNoException()
         .isThrownBy(
             () -> {
-              ExecutorService executor = Executors.newSingleThreadExecutor();
+              final ExecutorService executor = Executors.newSingleThreadExecutor();
               @SuppressWarnings("unused")
               Future<?> startTask =
                   executor.submit(() -> YuktaApplication.main(new String[] {"--server.port=0"}));
               executor.shutdown();
-              boolean completed = executor.awaitTermination(10, TimeUnit.SECONDS);
+              final boolean completed = executor.awaitTermination(10, TimeUnit.SECONDS);
               if (!completed) {
                 executor.shutdownNow();
               }

@@ -38,11 +38,6 @@ tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
     args("--spring.profiles.active=dev")
 }
 
-// Disable PMD for test code (different quality standards for tests)
-tasks.named("pmdTest") {
-    enabled = false
-}
-
 coverageConfig {
     exceptions.put("com.infenia.yukta.YuktaApplication", mapOf(
         "LINE" to 0.80,

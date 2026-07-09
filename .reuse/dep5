@@ -23,6 +23,7 @@ License: <skip>
 Files: META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
  boot/src/main/resources/META-INF/native-image/*
  plugins/*/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+ boot/src/main/resources/banner.txt
 Copyright: <skip>
 License: <skip>
 
