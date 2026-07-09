@@ -31,7 +31,7 @@ class YuktaApplicationTest {
   private static final String NATIVE_IMAGE_PROPERTY = "org.graalvm.nativeimage.imagecode";
 
   private String originalNativeImageProperty;
-  private ConfigurableApplicationContext applicationContext;
+  private ConfigurableApplicationContext applicationContext = null;
 
   @BeforeEach
   void setUp() {
