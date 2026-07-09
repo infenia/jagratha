@@ -72,8 +72,10 @@ licensee {
     allowUrl("https://raw.githubusercontent.com/unicode-org/icu/main/LICENSE")
     allowUrl("https://repository.jboss.org/licenses/apache-2.0.txt")
     allowUrl("http://www.eclipse.org/org/documents/edl-v10.php")
+    allowUrl("https://www.eclipse.org/org/documents/edl-v10.php")
     allowUrl("https://opensource.org/license/mit")
     allowUrl("http://opensource.org/licenses/UPL")
+    allowUrl("https://opensource.org/licenses/UPL")
 }
 
 
