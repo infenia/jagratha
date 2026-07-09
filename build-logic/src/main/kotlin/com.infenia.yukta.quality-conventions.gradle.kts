@@ -42,8 +42,10 @@ licenseReport {
 }
 
 // License report tasks are incompatible with configuration cache
-tasks.withType<com.github.jk1.license.task.ReportTask>().configureEach {
-    notCompatibleWithConfigurationCache("dependency-license-report plugin not compatible with config cache")
+tasks.configureEach {
+    if (name.contains("generateLicenseReport")) {
+        notCompatibleWithConfigurationCache("dependency-license-report plugin not compatible with config cache")
+    }
 }
 
 checkstyle {
