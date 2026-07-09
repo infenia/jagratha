@@ -99,7 +99,7 @@ public class FileSystemPluginLogReader implements PluginLogReader {
     return Mono.fromCallable(
             () -> {
               final List<PluginLogEntry> entries = new ArrayList<>();
-              final Path sessionDir = Path.of(baseLogDir).resolve(sessionId);
+              final Path sessionDir = getValidatedSessionDir(sessionId);
 
               if (!Files.exists(sessionDir)) {
                 return entries;
@@ -128,7 +128,7 @@ public class FileSystemPluginLogReader implements PluginLogReader {
     return Mono.fromCallable(
             () -> {
               final List<ExecutionSummary> summaries = new ArrayList<>();
-              final Path sessionDir = Path.of(baseLogDir).resolve(sessionId);
+              final Path sessionDir = getValidatedSessionDir(sessionId);
 
               if (!Files.exists(sessionDir)) {
                 return summaries;
@@ -192,6 +192,24 @@ public class FileSystemPluginLogReader implements PluginLogReader {
               }
             })
         .subscribeOn(Schedulers.boundedElastic());
+  }
+
+  /**
+   * Get the validated session directory path.
+   *
+   * @param sessionId the session ID
+   * @return the validated session directory path
+   * @throws IllegalArgumentException if the resolved path escapes the base log directory
+   */
+  private Path getValidatedSessionDir(final String sessionId) {
+    final Path baseDir = Path.of(baseLogDir).normalize().toAbsolutePath();
+    final Path sessionDir = baseDir.resolve(sessionId).normalize().toAbsolutePath();
+
+    if (!sessionDir.startsWith(baseDir)) {
+      throw new IllegalArgumentException("Invalid session ID: path traversal detected");
+    }
+
+    return sessionDir;
   }
 
   private List<PluginLogEntry> readLogFile(final Path logFile, final String sessionId) {

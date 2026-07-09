@@ -86,10 +86,10 @@ public class FileSystemPluginLogWriter implements PluginLogWriter {
   private void writeToFile(
       final String sessionId, final String executionId, final List<PluginLogEntry> entries) {
     try {
-      final Path logDir = Path.of(baseLogDir).resolve(sessionId);
+      final Path logDir = getValidatedSessionDir(sessionId);
       Files.createDirectories(logDir);
 
-      final Path logFile = logDir.resolve(executionId + LOG_FILE_EXTENSION);
+      final Path logFile = getValidatedLogFile(logDir, executionId);
       final String content =
           entries.stream()
               .map(
@@ -123,6 +123,44 @@ public class FileSystemPluginLogWriter implements PluginLogWriter {
           .setCause(e)
           .log("Failed to write plugin logs to file");
     }
+  }
+
+  /**
+   * Get the validated session directory path.
+   *
+   * @param sessionId the session ID
+   * @return the validated session directory path
+   * @throws IllegalArgumentException if the resolved path escapes the base log directory
+   */
+  private Path getValidatedSessionDir(final String sessionId) {
+    final Path baseDir = Path.of(baseLogDir).normalize().toAbsolutePath();
+    final Path sessionDir = baseDir.resolve(sessionId).normalize().toAbsolutePath();
+
+    if (!sessionDir.startsWith(baseDir)) {
+      throw new IllegalArgumentException("Invalid session ID: path traversal detected");
+    }
+
+    return sessionDir;
+  }
+
+  /**
+   * Get the validated log file path.
+   *
+   * @param sessionDir the session directory
+   * @param executionId the execution ID
+   * @return the validated log file path
+   * @throws IllegalArgumentException if the resolved path escapes the session directory
+   */
+  private Path getValidatedLogFile(final Path sessionDir, final String executionId) {
+    final Path normalizedSessionDir = sessionDir.normalize().toAbsolutePath();
+    final Path logFile =
+        normalizedSessionDir.resolve(executionId + LOG_FILE_EXTENSION).normalize().toAbsolutePath();
+
+    if (!logFile.startsWith(normalizedSessionDir)) {
+      throw new IllegalArgumentException("Invalid execution ID: path traversal detected");
+    }
+
+    return logFile;
   }
 
   /**
