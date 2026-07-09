@@ -39,7 +39,6 @@ spotless {
 licenseReport {
     outputDir = "$buildDir/reports/licenses"
     configurations = arrayOf("runtimeClasspath")
-    rendererTemplates = arrayOf("json.ftl", "csv.ftl", "html.ftl")
 }
 
 checkstyle {
