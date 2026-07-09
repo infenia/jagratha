@@ -44,6 +44,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Validate dependency licenses (Licensee)
+        id: validate
         run: |
           echo "▶ Validating all dependency licenses against Apache-2.0 policy..."
           ./gradlew licensee
@@ -64,23 +65,20 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
-            const path = require('path');
+            const licenseeOutcome = '${{ steps.validate.outcome }}';
+            const statusIcon = licenseeOutcome === 'success' ? '✅' : '❌';
 
             const comment = `## 📋 License Compliance Report
 
             ### Checks Performed:
-            - ✓ REUSE License Headers (files must have SPDX headers)
-            - ✓ Licensee Dependency Validation (Apache-2.0 compatible licenses)
-            - ✓ Trivy License Scanning (filesystem and dependencies)
+            - ${statusIcon} Licensee Dependency Validation (Apache-2.0 compatible licenses)
+            - ℹ️ REUSE License Headers (separate job)
+            - ℹ️ Trivy License Scanning (separate job)
 
             ### Details:
-            All dependency licenses are validated to be Apache 2.0 compatible using **Licensee**.
-
-            Allowed license families:
-            - Apache-2.0 and compatible (MIT, BSD variants, ISC)
-            - Java ecosystem (EPL, CDDL, GPL with classpath exception)
-            - Other permissive licenses (MPL-2.0, WTFPL)
+            ${licenseeOutcome === 'success'
+              ? 'All dependency licenses are validated to be Apache 2.0 compatible using **Licensee**.\n\nAllowed license families:\n- Apache-2.0 and compatible (MIT, BSD variants, ISC)\n- Java ecosystem (EPL, CDDL, GPL with classpath exception)\n- Other permissive licenses (MPL-2.0, WTFPL)'
+              : '⚠️ License validation failed. Check the workflow run for details.'}
 
             For detailed reports, see the artifacts attached to this workflow run.
 
