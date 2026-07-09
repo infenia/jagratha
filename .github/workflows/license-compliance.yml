@@ -103,8 +103,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Trivy license scanning
-        # Pinned to v0.24.0 for reproducibility; check https://github.com/aquasecurity/trivy-action/releases for updates
-        uses: aquasecurity/trivy-action@0.24.0
+        # Using master for latest stable; check https://github.com/aquasecurity/trivy-action/releases for updates
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
