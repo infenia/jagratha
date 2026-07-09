@@ -41,6 +41,11 @@ licenseReport {
     configurations = arrayOf("runtimeClasspath")
 }
 
+// License report tasks are incompatible with configuration cache
+tasks.withType<com.github.jk1.license.task.ReportTask>().configureEach {
+    notCompatibleWithConfigurationCache("dependency-license-report plugin not compatible with config cache")
+}
+
 checkstyle {
     toolVersion = libs.findVersion("checkstyle").get().requiredVersion
     configFile = rootProject.file("config/checkstyle/checkstyle.xml")
