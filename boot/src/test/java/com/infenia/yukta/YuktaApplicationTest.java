@@ -23,6 +23,7 @@ import org.springframework.context.ConfigurableApplicationContext;
   "PMD.AvoidAccessibilityAlteration",
   "PMD.CommentRequired",
   "PMD.TooManyMethods",
+  "PMD.JUnit5TestShouldBePackagePrivate",
   "SpotBugs.UwF_UNWRITTEN_FIELD"
 })
 @NoArgsConstructor
