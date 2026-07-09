@@ -394,9 +394,18 @@ public class FileSessionConfigStore implements SessionConfigStore {
    *
    * @param sessionId the session ID
    * @return the path to the session config file
+   * @throws IllegalArgumentException if the resolved path escapes the sessions directory
    */
   private Path getSessionConfigPath(final String sessionId) {
-    return Path.of(props.getBaseDir()).resolve("sessions").resolve(sessionId + ".json");
+    final Path baseDir =
+        Path.of(props.getBaseDir()).resolve("sessions").normalize().toAbsolutePath();
+    final Path configPath = baseDir.resolve(sessionId + ".json").normalize().toAbsolutePath();
+
+    if (!configPath.startsWith(baseDir)) {
+      throw new IllegalArgumentException("Invalid session ID: path traversal detected");
+    }
+
+    return configPath;
   }
 
   /**
