@@ -20,11 +20,8 @@ public class YuktaApplication {
    * @param args command line arguments
    */
   public static void main(final String[] args) {
-    // Enable automatic context propagation for Reactor to preserve context across thread
-    // boundaries and async operations
     Hooks.enableAutomaticContextPropagation();
 
-    // Force prod profile in native images to ensure precompiled JTE templates are used
     if (isNativeImage() && !hasProfileArgument(args)) {
       System.setProperty("spring.profiles.active", "prod");
     }

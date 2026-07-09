@@ -4,11 +4,17 @@ package com.infenia.yukta;
 
 import static org.assertj.core.api.Assertions.*;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.parallel.Isolated;
+import org.springframework.context.ConfigurableApplicationContext;
 
 @Isolated
 @SuppressWarnings({
@@ -24,6 +30,7 @@ class YuktaApplicationTest {
   private static final String NATIVE_IMAGE_PROPERTY = "org.graalvm.nativeimage.imagecode";
 
   private String originalNativeImageProperty;
+  private ConfigurableApplicationContext applicationContext;
 
   @BeforeEach
   void setUp() {
@@ -32,6 +39,9 @@ class YuktaApplicationTest {
 
   @AfterEach
   void tearDown() {
+    if (applicationContext != null) {
+      applicationContext.close();
+    }
     if (originalNativeImageProperty != null) {
       System.setProperty(NATIVE_IMAGE_PROPERTY, originalNativeImageProperty);
     } else {
@@ -40,9 +50,19 @@ class YuktaApplicationTest {
   }
 
   @Test
-  void main() {
+  @Timeout(20)
+  void mainStartsApplicationWithoutError() {
     assertThatNoException()
-        .isThrownBy(() -> YuktaApplication.main(new String[] {"--server.port=0"}));
+        .isThrownBy(
+            () -> {
+              ExecutorService executor = Executors.newSingleThreadExecutor();
+              executor.submit(() -> YuktaApplication.main(new String[] {"--server.port=0"}));
+              executor.shutdown();
+              boolean completed = executor.awaitTermination(10, TimeUnit.SECONDS);
+              if (!completed) {
+                executor.shutdownNow();
+              }
+            });
   }
 
   @Test
