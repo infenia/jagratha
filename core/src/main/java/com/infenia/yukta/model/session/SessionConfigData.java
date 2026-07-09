@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// SPDX-License-Identifier: Apache-2.0
 package com.infenia.yukta.model.session;
 
 import com.infenia.yukta.model.workflow.WorkflowDefinition;

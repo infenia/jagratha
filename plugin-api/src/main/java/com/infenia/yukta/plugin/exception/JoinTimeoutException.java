@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// SPDX-License-Identifier: Apache-2.0
 package com.infenia.yukta.plugin.exception;
 
 /** Exception thrown when a join operation times out and strict mode is enabled. */

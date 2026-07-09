@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Infenia Private Limited -->
+
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
   <!-- AssemblyContext intentionally exposes mutable collections for modification during assembly -->

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// SPDX-License-Identifier: Apache-2.0
 import gg.jte.gradle.JteExtension
 import com.github.gradle.node.pnpm.task.PnpmTask
 import org.gradle.testing.jacoco.tasks.JacocoReport

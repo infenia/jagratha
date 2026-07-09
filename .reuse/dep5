@@ -1,0 +1,53 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Yukta
+Upstream-Contact: Infenia Private Limited
+Source: https://github.com/infenia/yukta
+
+# Build artifacts and generated files
+Files: build/ .gradle/ dist/ target/ node_modules/
+Copyright: <skip>
+License: <skip>
+
+# Gradle wrapper JAR (binary)
+Files: gradle/wrapper/gradle-wrapper.jar
+Copyright: <skip>
+License: <skip>
+
+# Lock files (generated)
+Files: *.lockfile gradle.lockfile settings-gradle.lockfile
+Files: package-lock.json pnpm-lock.yaml
+Files: cli/go.sum
+Copyright: <skip>
+License: <skip>
+
+# Binary/Media files
+Files: *.ico *.svg *.webmanifest *.png *.jpg *.jpeg *.gif *.ttf *.woff *.woff2
+Copyright: <skip>
+License: <skip>
+
+# Generated Spring/GraalVM configuration
+Files: META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+Files: boot/src/main/resources/META-INF/native-image/
+Files: plugins/*/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+Copyright: <skip>
+License: <skip>
+
+# IDE/Editor configuration (personal)
+Files: .claude/ .codegraph/.gitignore .serena/ .idea/ .vscode/
+Copyright: <skip>
+License: <skip>
+
+# Build tool configuration (auto-generated or vendor-specific)
+Files: gradle/wrapper/gradle-wrapper.properties .gradletasknamecache
+Copyright: <skip>
+License: <skip>
+
+# API testing files (demo/dev tooling)
+Files: bruno/
+Copyright: <skip>
+License: <skip>
+
+# This file itself
+Files: .reuse/dep5
+Copyright: <skip>
+License: <skip>
