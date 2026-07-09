@@ -8,6 +8,7 @@ Copyright: <skip>
 License: <skip>
 
 Files: *.lockfile *.lock go.mod go.sum .gitignore
+ config/**/*.xml config/**/*.txt
 Copyright: <skip>
 License: <skip>
 
