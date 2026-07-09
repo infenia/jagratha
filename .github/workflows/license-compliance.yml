@@ -19,8 +19,8 @@ jobs:
       - name: Check REUSE compliance
         uses: fsfe/reuse-action@v4
 
-  gradle-license-report:
-    name: Dependency License Report
+  gradle-license-validation:
+    name: Dependency License Validation (Licensee)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -42,55 +42,23 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Generate license report
-        continue-on-error: true
+      - name: Validate dependency licenses (Licensee)
         run: |
-          echo "▶ Generating dependency license reports..."
-          ./gradlew generateLicenseReport
-          echo "✓ License report generated"
+          echo "▶ Validating all dependency licenses against Apache-2.0 policy..."
+          ./gradlew licensee
+          echo "✓ All dependencies passed license validation"
 
-      - name: Check for incompatible licenses
-        continue-on-error: true
-        run: |
-          echo "▶ Checking for Apache-2.0 incompatible licenses..."
-
-          # List of Apache 2.0 compatible licenses
-          COMPATIBLE_LICENSES=(
-            "Apache License 2.0"
-            "Apache License, Version 2.0"
-            "Apache 2.0"
-            "MIT"
-            "BSD"
-            "ISC"
-            "LGPL"
-            "MPL"
-            "CDDL"
-            "EPL"
-            "WTFPL"
-          )
-
-          # Find all license.json files and check for issues
-          find . -path "*/build/reports/licenses/license-*.json" -type f | while read report; do
-            if grep -qi "GPL" "$report"; then
-              echo "⚠ WARNING: GPL license detected in $report"
-              echo "   GPL is NOT compatible with Apache 2.0"
-              echo "   Please review: $report"
-            fi
-          done
-
-          echo "✓ License compatibility check complete"
-
-      - name: Upload license reports
+      - name: Upload Licensee reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: license-reports
+          name: licensee-reports
           path: |
-            **/build/reports/licenses/
+            **/build/reports/licensee/
           retention-days: 30
           if-no-files-found: warn
 
-      - name: Comment license report (if PR)
+      - name: Comment license validation result (if PR)
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
         with:
@@ -102,10 +70,16 @@ jobs:
 
             ### Checks Performed:
             - ✓ REUSE License Headers (files must have SPDX headers)
-            - ✓ Gradle Dependency License Report (check for incompatible licenses)
+            - ✓ Licensee Dependency Validation (Apache-2.0 compatible licenses)
+            - ✓ Trivy License Scanning (filesystem and dependencies)
 
             ### Details:
-            All dependency licenses are checked for Apache 2.0 compatibility.
+            All dependency licenses are validated to be Apache 2.0 compatible using **Licensee**.
+
+            Allowed license families:
+            - Apache-2.0 and compatible (MIT, BSD variants, ISC)
+            - Java ecosystem (EPL, CDDL, GPL with classpath exception)
+            - Other permissive licenses (MPL-2.0, WTFPL)
 
             For detailed reports, see the artifacts attached to this workflow run.
 
