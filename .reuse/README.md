@@ -55,8 +55,8 @@ Files must declare their license using SPDX format:
 
 Check compliance locally:
 ```bash
-# Install REUSE (requires Python)
-pip install fsfe-reuse
+# Install REUSE (requires Python 3.7+)
+pip install reuse
 
 # Verify compliance
 reuse lint
