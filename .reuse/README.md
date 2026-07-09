@@ -5,11 +5,13 @@ This directory contains the REUSE Software license compliance configuration for 
 ## Structure
 
 ```
+LICENSES/                # Top-level directory with REUSE license files (SPDX standard)
+  Apache-2.0.txt         # Apache License 2.0 (primary license for Yukta)
+  MIT.txt                # (if used by dependencies)
+  (other SPDX licenses)
+
 .reuse/
-  licenses/          # Full text of license files referenced by SPDX identifiers
-    Apache-2.0.txt   # Apache License 2.0 (primary license for Yukta)
-    MIT.txt          # (if used by dependencies)
-    (other licenses)
+  README.md              # This file - REUSE compliance documentation
 ```
 
 ## About REUSE
@@ -24,10 +26,10 @@ For more info: https://reuse.software/
 
 ## License Files
 
-Each file in `licenses/` must match an SPDX license identifier and contain the full text of that license.
+Each file in the top-level `LICENSES/` directory must match an SPDX license identifier and contain the full text of that license.
 
 Current licenses:
-- **Apache-2.0.txt** - Apache License 2.0 (used by Yukta project itself)
+- **LICENSES/Apache-2.0.txt** - Apache License 2.0 (used by Yukta project itself)
 
 ## SPDX Headers
 
@@ -70,7 +72,7 @@ Compliance is verified automatically in CI (see `.github/workflows/license-compl
 If a new license type is discovered in dependencies:
 
 1. Download the license text from SPDX: https://spdx.org/licenses/
-2. Save as `licenses/{SPDX_ID}.txt`
+2. Save as `LICENSES/{SPDX_ID}.txt` (top-level directory)
 3. Update any files that reference it
 4. Commit and verify in CI
 
