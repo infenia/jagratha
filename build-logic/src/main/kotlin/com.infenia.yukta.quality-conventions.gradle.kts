@@ -37,7 +37,7 @@ spotless {
 }
 
 licenseReport {
-    outputDir = "$buildDir/reports/licenses"
+    outputDir = layout.buildDirectory.dir("reports/licenses").get().asFile.absolutePath
     configurations = arrayOf("runtimeClasspath")
 }
 
