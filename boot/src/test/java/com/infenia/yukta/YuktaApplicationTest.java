@@ -6,12 +6,12 @@ import static org.assertj.core.api.Assertions.*;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -22,7 +22,8 @@ import org.springframework.context.ConfigurableApplicationContext;
   "PMD.AvoidCatchingGenericException",
   "PMD.AvoidAccessibilityAlteration",
   "PMD.CommentRequired",
-  "PMD.TooManyMethods"
+  "PMD.TooManyMethods",
+  "SpotBugs.UwF_UNWRITTEN_FIELD"
 })
 @NoArgsConstructor
 class YuktaApplicationTest {
@@ -56,7 +57,9 @@ class YuktaApplicationTest {
         .isThrownBy(
             () -> {
               ExecutorService executor = Executors.newSingleThreadExecutor();
-              executor.submit(() -> YuktaApplication.main(new String[] {"--server.port=0"}));
+              @SuppressWarnings("unused")
+              Future<?> startTask =
+                  executor.submit(() -> YuktaApplication.main(new String[] {"--server.port=0"}));
               executor.shutdown();
               boolean completed = executor.awaitTermination(10, TimeUnit.SECONDS);
               if (!completed) {
