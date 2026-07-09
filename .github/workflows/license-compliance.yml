@@ -117,6 +117,13 @@ jobs:
           sarif_file: 'trivy-license-results.sarif'
           category: 'Trivy License Scan'
 
+      - name: Install Trivy
+        continue-on-error: true
+        run: |
+          echo "▶ Installing Trivy..."
+          curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          trivy --version
+
       - name: Generate Trivy license report (human-readable)
         continue-on-error: true
         run: |
