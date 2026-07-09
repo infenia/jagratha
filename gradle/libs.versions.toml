@@ -23,6 +23,7 @@ node = "24.13.1"
 pnpm = "10.30.1"
 picocli = "4.7.7"
 caffeine = "3.2.4"
+licensee = "1.10.0"
 
 [libraries]
 spring-boot-starter = { group = "org.springframework.boot", name = "spring-boot-starter" }
@@ -75,3 +76,4 @@ jte = { id = "gg.jte.gradle", version.ref = "jte" }
 cyclonedx = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }
 node-gradle = { id = "com.github.node-gradle.node", version.ref = "nodeGradle" }
 errorprone-gradle = { id = "net.ltgt.errorprone", version.ref = "errorpronePlugin" }
+licensee = { id = "app.cash.licensee", version.ref = "licensee" }
