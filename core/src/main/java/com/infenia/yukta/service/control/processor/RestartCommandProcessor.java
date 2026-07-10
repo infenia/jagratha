@@ -63,6 +63,7 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
     return serializeRestart(restart);
   }
 
+  @SuppressWarnings("PMD.OnlyOneReturn")
   private Mono<WorkflowDirective> serializeRestart(final RestartCommand restart) {
     final Object lock = new Object();
     final boolean acquired = restartInProgress.putIfAbsent(restart.executionId(), lock) == null;

@@ -4,6 +4,7 @@ package com.infenia.yukta.service.control.processor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -169,15 +170,47 @@ class RestartCommandProcessorTest {
 
   @Test
   void process_duplicateRestartWhileFirstInProgress_rejectsSecondRestart() {
-    // Given
+    // Given: the per-execution lock (restartInProgress) is acquired eagerly and synchronously
+    // the moment process() is called — before subscription — so leaving command1's Mono
+    // unsubscribed is sufficient to simulate "first restart still in progress": the lock is
+    // taken and never released, since doFinally only fires on subscription.
     final String executionId = "exec-duplicate";
     final String newExecutionId1 = "new-exec-1";
     final String newExecutionId2 = "new-exec-2";
-    final String sessionId = "session-1";
-    final String workflowId = "workflow-1";
-    final Sinks.One<Void> safeStopSink = Sinks.one();
     final RestartCommand command1 = new RestartCommand(executionId, newExecutionId1);
     final RestartCommand command2 = new RestartCommand(executionId, newExecutionId2);
+
+    // When — first restart call acquires the lock but is never subscribed, so it never completes
+    processor.process(command1);
+    // Second restart attempt while first is still in progress
+    final var result2 = processor.process(command2);
+
+    // Then — second restart is rejected immediately with the duplicate-in-progress error
+    StepVerifier.create(result2).verifyComplete();
+    verify(completionSink)
+        .completeRestartFailure(
+            eq(newExecutionId2),
+            argThat(
+                e ->
+                    e instanceof IllegalStateException
+                        && "Restart already in progress for this execution"
+                            .equals(e.getMessage())));
+    verify(completionSink, never()).completeRestartSuccess(newExecutionId1);
+    verify(registry, never()).findByExecutionId(executionId);
+  }
+
+  @Test
+  void process_secondRestartAfterFirstCompletes_releasesLockAndSucceeds() {
+    // Given: a first restart for executionId runs to completion, which should release the
+    // per-execution lock via doFinally — proving the lock does not leak and permanently block
+    // subsequent restarts of the same execution ID once the in-flight one has finished.
+    final String executionId = "exec-sequential";
+    final String firstNewExecutionId = "new-exec-first";
+    final String secondNewExecutionId = "new-exec-second";
+    final String sessionId = "session-1";
+    final String workflowId = "workflow-1";
+    final RestartCommand firstCommand = new RestartCommand(executionId, firstNewExecutionId);
+    final RestartCommand secondCommand = new RestartCommand(executionId, secondNewExecutionId);
 
     when(registry.findByExecutionId(executionId)).thenReturn(Optional.of(executionControl));
     when(executionControl.executionId()).thenReturn(executionId);
@@ -185,22 +218,21 @@ class RestartCommandProcessorTest {
     when(executionControl.workflowId()).thenReturn(workflowId);
     when(executionControl.prepared()).thenReturn(preparedWorkflow);
     when(executionControl.payload()).thenReturn(Map.of());
-    when(executionControl.safeStopSink()).thenReturn(safeStopSink);
-    // First restart never completes, keeping the lock held
+    // Each restart attempt supplies its own fresh stop sink, matching a fresh in-flight execution.
+    when(executionControl.safeStopSink()).thenReturn(Sinks.one(), Sinks.one());
     when(orchestrator.execute(
-            eq(sessionId), eq(workflowId), eq(newExecutionId1), eq(preparedWorkflow), eq(Map.of())))
-        .thenReturn(Mono.never());
+            eq(sessionId), eq(workflowId), any(), eq(preparedWorkflow), eq(Map.of())))
+        .thenReturn(Mono.empty());
 
-    // When — first restart starts
-    processor.process(command1).subscribe();
-    // Second restart attempt while first is still in progress
-    final var result2 = processor.process(command2);
+    // When: the first restart is driven to completion before the second is issued.
+    StepVerifier.create(processor.process(firstCommand)).verifyComplete();
+    final var secondResult = processor.process(secondCommand);
 
-    // Then — second restart is rejected immediately
-    StepVerifier.create(result2).verifyComplete();
-    verify(completionSink)
-        .completeRestartFailure(eq(newExecutionId2), any(IllegalStateException.class));
-    verify(completionSink).completeRestartSuccess(newExecutionId1);
+    // Then: the second restart for the same execution ID is accepted, not rejected as a duplicate.
+    StepVerifier.create(secondResult).verifyComplete();
+    verify(completionSink).completeRestartSuccess(firstNewExecutionId);
+    verify(completionSink).completeRestartSuccess(secondNewExecutionId);
+    verify(completionSink, never()).completeRestartFailure(eq(secondNewExecutionId), any());
   }
 
   @Test
