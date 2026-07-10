@@ -334,6 +334,7 @@ class RestartFromNodeCommandProcessorTest {
 
     // Then — the outer onErrorResume catches the sink emit failure and reports it
     StepVerifier.create(result).verifyComplete();
+    verify(registry, never()).unregister(executionId);
     verify(orchestrator, never()).restartFromNode(any(), any(), any(), any(), any(), any(), any());
     verify(completionSink).completeRestartFailure(eq(newExecutionId), any(RuntimeException.class));
   }

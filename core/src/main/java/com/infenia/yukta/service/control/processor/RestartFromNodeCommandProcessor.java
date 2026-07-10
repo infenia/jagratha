@@ -95,12 +95,12 @@ public class RestartFromNodeCommandProcessor implements ControlSignalProcessor {
                   .collectMap(Message::getSourceNodeId, m -> m)
                   .doOnNext(
                       parentCheckpoints -> {
-                        registry.unregister(control.executionId());
                         final Sinks.EmitResult stopResult = control.safeStopSink().tryEmitEmpty();
                         if (stopResult.isFailure()) {
                           throw new IllegalStateException(
                               "Failed to emit stop signal: " + stopResult);
                         }
+                        registry.unregister(control.executionId());
                         checkpointStore.clear(control.executionId());
 
                         @SuppressWarnings("unchecked")

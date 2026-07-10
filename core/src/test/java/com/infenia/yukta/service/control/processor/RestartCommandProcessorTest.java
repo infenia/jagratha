@@ -140,8 +140,8 @@ class RestartCommandProcessorTest {
   @Test
   void process_safeStopSinkEmitFails_reportsFailure() {
     // Given: safeStopSink already completed, so emitting the stop signal fails synchronously
-    // inside the doOnNext block — proving that path converts to onError and reports
-    // completeRestartFailure, not completeRestartSuccess.
+    // inside the defer block — proving that unregister never happens when the sink emit fails,
+    // ensuring registry remains consistent on error.
     final String executionId = "exec-sink-emit-fail";
     final String newExecutionId = "new-exec-sink-emit-fail";
     final Sinks.One<Void> failingSink = Sinks.one();
@@ -149,7 +149,6 @@ class RestartCommandProcessorTest {
     final RestartCommand command = new RestartCommand(executionId, newExecutionId);
 
     when(registry.findByExecutionId(executionId)).thenReturn(Optional.of(executionControl));
-    when(executionControl.executionId()).thenReturn(executionId);
     when(executionControl.safeStopSink()).thenReturn(failingSink);
 
     // When
@@ -157,6 +156,7 @@ class RestartCommandProcessorTest {
 
     // Then
     StepVerifier.create(result).verifyComplete();
+    verify(registry, never()).unregister(executionId);
     verify(completionSink).completeRestartFailure(eq(newExecutionId), any(RuntimeException.class));
     verify(completionSink, never()).completeRestartSuccess(newExecutionId);
     verify(orchestrator, never()).execute(any(), any(), any(), any(), any());

@@ -107,11 +107,11 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
       final ExecutionControl control, final RestartCommand restart) {
     return Mono.defer(
             () -> {
-              registry.unregister(control.executionId());
               final Sinks.EmitResult stopResult = control.safeStopSink().tryEmitEmpty();
               if (stopResult.isFailure()) {
                 throw new IllegalStateException("Failed to emit stop signal: " + stopResult);
               }
+              registry.unregister(control.executionId());
 
               final Mono<Void> newExecution =
                   orchestrator.execute(
