@@ -457,4 +457,28 @@ class FileSystemPluginLogReaderTest {
       Files.setPosixFilePermissions(sessionDir, original);
     }
   }
+
+  @Test
+  void readSession_pathTraversalSessionId_throwsIllegalArgumentException() {
+    final FileSystemPluginLogReader readerForTest =
+        new FileSystemPluginLogReader(tempDir.toString());
+    final IllegalArgumentException exception =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> readerForTest.readSession("../../../etc/passwd").collectList().block());
+
+    assertThat(exception).hasMessageContaining("path traversal detected");
+  }
+
+  @Test
+  void listExecutions_pathTraversalSessionId_throwsIllegalArgumentException() {
+    final FileSystemPluginLogReader readerForTest =
+        new FileSystemPluginLogReader(tempDir.toString());
+    final IllegalArgumentException exception =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> readerForTest.listExecutions("../../../etc/passwd").block());
+
+    assertThat(exception).hasMessageContaining("path traversal detected");
+  }
 }

@@ -290,4 +290,48 @@ class FileSystemPluginLogWriterTest {
     assertThat(result).isNull();
     assertThat(output.getErr()).contains("Failed to write plugin logs to file");
   }
+
+  @Test
+  void writeToFile_pathTraversalInSessionId_throwsIllegalArgumentException() {
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            "exec-123",
+            "../../../etc/passwd",
+            PLUGIN_ID,
+            "Plugin",
+            LogStream.STDOUT,
+            "Test message",
+            LogLevel.INFO,
+            Instant.now(),
+            null,
+            null);
+
+    final IllegalArgumentException exception =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            IllegalArgumentException.class, () -> writer.write(entry).block());
+
+    assertThat(exception).hasMessageContaining("path traversal detected");
+  }
+
+  @Test
+  void writeToFile_pathTraversalInExecutionId_throwsIllegalArgumentException() {
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            "../../../etc/passwd",
+            SESSION_ID,
+            PLUGIN_ID,
+            "Plugin",
+            LogStream.STDOUT,
+            "Test message",
+            LogLevel.INFO,
+            Instant.now(),
+            null,
+            null);
+
+    final IllegalArgumentException exception =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            IllegalArgumentException.class, () -> writer.write(entry).block());
+
+    assertThat(exception).hasMessageContaining("path traversal detected");
+  }
 }
