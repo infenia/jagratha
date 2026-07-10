@@ -6,9 +6,12 @@ import com.infenia.yukta.plugin.control.ControlSignalProcessor;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand.RestartCommand;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
+import com.infenia.yukta.service.control.ExecutionControl;
 import com.infenia.yukta.service.control.gateway.RestartCompletionSink;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -24,6 +27,12 @@ import reactor.core.scheduler.Schedulers;
  * subscribeOn(boundedElastic()).subscribe()}) so this processor reports completion as soon as the
  * new execution is subscribed, not once it finishes — matching how {@code
  * DefaultControlBusGateway.prepareAndExecute} starts a normal (non-restart) execution.
+ *
+ * <p>Restarts are serialized per execution ID: only one restart can proceed at a time for a given
+ * execution. The handoff is atomic: unregister and stop signals are emitted synchronously within
+ * the Mono.defer block before the new execution Mono is even created, ensuring these operations
+ * complete before the replacement begins. If unregister/stop fails, the exception propagates
+ * immediately and prevents the new execution from being subscribed.
  */
 @Slf4j
 @Component
@@ -39,6 +48,9 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
   /** Reports the outcome of a restart back to the awaiting gateway caller. */
   private final RestartCompletionSink completionSink;
 
+  /** Per-execution restart serialization: tracks which executions are currently being restarted. */
+  private final Map<String, Object> restartInProgress = new ConcurrentHashMap<>();
+
   @Override
   public boolean canProcess(final ExecutionControlCommand command) {
     return command instanceof RestartCommand;
@@ -48,6 +60,28 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
   public Mono<WorkflowDirective> process(final ExecutionControlCommand command) {
     final RestartCommand restart = (RestartCommand) command;
 
+    return serializeRestart(restart);
+  }
+
+  private Mono<WorkflowDirective> serializeRestart(final RestartCommand restart) {
+    final Object lock = new Object();
+    final boolean acquired = restartInProgress.putIfAbsent(restart.executionId(), lock) == null;
+
+    if (!acquired) {
+      log.atWarn()
+          .addKeyValue("executionId", restart.executionId())
+          .log("Restart already in progress, rejecting duplicate");
+      completionSink.completeRestartFailure(
+          restart.newExecutionId(),
+          new IllegalStateException("Restart already in progress for this execution"));
+      return Mono.empty();
+    }
+
+    return executeAtomicRestart(restart)
+        .doFinally(_ -> restartInProgress.remove(restart.executionId()));
+  }
+
+  private Mono<WorkflowDirective> executeAtomicRestart(final RestartCommand restart) {
     return Mono.fromSupplier(
             () ->
                 registry
@@ -56,21 +90,38 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
                         () ->
                             new IllegalArgumentException(
                                 "Execution not found: " + restart.executionId())))
-        .doOnNext(
-            control -> {
+        .flatMap(control -> performAtomicHandoff(control, restart))
+        .then(Mono.<WorkflowDirective>empty())
+        .onErrorResume(
+            e -> {
+              log.atError()
+                  .addKeyValue("executionId", restart.executionId())
+                  .setCause(e)
+                  .log("Restart failed");
+              completionSink.completeRestartFailure(restart.newExecutionId(), e);
+              return Mono.empty();
+            });
+  }
+
+  private Mono<Void> performAtomicHandoff(
+      final ExecutionControl control, final RestartCommand restart) {
+    return Mono.defer(
+            () -> {
               registry.unregister(control.executionId());
               final Sinks.EmitResult stopResult = control.safeStopSink().tryEmitEmpty();
               if (stopResult.isFailure()) {
                 throw new IllegalStateException("Failed to emit stop signal: " + stopResult);
               }
 
-              orchestrator
-                  .execute(
+              final Mono<Void> newExecution =
+                  orchestrator.execute(
                       control.sessionId(),
                       control.workflowId(),
                       restart.newExecutionId(),
                       control.prepared(),
-                      control.payload())
+                      control.payload());
+
+              newExecution
                   .subscribeOn(Schedulers.boundedElastic())
                   .doOnError(
                       err ->
@@ -87,17 +138,9 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
                   .addKeyValue("workflowId", control.workflowId())
                   .log("Restarted execution");
               completionSink.completeRestartSuccess(restart.newExecutionId());
-            })
-        .then(Mono.<WorkflowDirective>empty())
-        .onErrorResume(
-            e -> {
-              log.atError()
-                  .addKeyValue("executionId", restart.executionId())
-                  .setCause(e)
-                  .log("Restart failed");
-              completionSink.completeRestartFailure(restart.newExecutionId(), e);
               return Mono.empty();
-            });
+            })
+        .then();
   }
 
   @Override
