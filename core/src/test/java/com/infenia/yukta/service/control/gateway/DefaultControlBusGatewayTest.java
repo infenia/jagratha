@@ -3,6 +3,7 @@
 package com.infenia.yukta.service.control.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -915,7 +916,7 @@ class DefaultControlBusGatewayTest {
               final RestartCommand cmd = (RestartCommand) captor.getValue().getPayload();
               gateway.completeRestartFailure(cmd.newExecutionId(), notFound);
             })
-        .expectErrorMatches(err -> err == notFound)
+        .expectErrorMatches(err -> err.equals(notFound))
         .verify();
   }
 
@@ -938,13 +939,16 @@ class DefaultControlBusGatewayTest {
   @Test
   void completeRestartSuccess_unknownNewExecutionId_isNoOp() {
     // No pending sink registered for this ID — must not throw
-    gateway.completeRestartSuccess("never-registered");
+    assertThatCode(() -> gateway.completeRestartSuccess("never-registered"))
+        .doesNotThrowAnyException();
   }
 
   @Test
   void completeRestartFailure_unknownNewExecutionId_isNoOp() {
     // No pending sink registered for this ID — must not throw
-    gateway.completeRestartFailure("never-registered", new RuntimeException("late"));
+    assertThatCode(
+            () -> gateway.completeRestartFailure("never-registered", new RuntimeException("late")))
+        .doesNotThrowAnyException();
   }
 
   // --- Observability Tests ---
@@ -1475,7 +1479,7 @@ class DefaultControlBusGatewayTest {
     final Mono<String> result = gateway.restartWorkflow(executionId);
 
     // Then
-    StepVerifier.create(result).expectErrorMatches(err -> err == testError).verify();
+    StepVerifier.create(result).expectErrorMatches(err -> err.equals(testError)).verify();
   }
 
   @Test
@@ -1490,7 +1494,7 @@ class DefaultControlBusGatewayTest {
     final Mono<String> result = gateway.restartFromNode(executionId, fromNodeId);
 
     // Then
-    StepVerifier.create(result).expectErrorMatches(err -> err == testError).verify();
+    StepVerifier.create(result).expectErrorMatches(err -> err.equals(testError)).verify();
   }
 
   @Test

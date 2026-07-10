@@ -6,21 +6,24 @@ import com.infenia.yukta.plugin.control.ControlSignalProcessor;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand.RestartCommand;
 import com.infenia.yukta.plugin.control.WorkflowDirective;
+import com.infenia.yukta.service.control.gateway.RestartCompletionSink;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
-import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * Processor for restart commands.
  *
  * <p>Stops the current execution and restarts the entire workflow from the beginning with the
- * original payload. Emits an observability event for the new execution.
+ * original payload. The new execution is detached ({@code
+ * subscribeOn(boundedElastic()).subscribe()}) so this processor reports completion as soon as the
+ * new execution is subscribed, not once it finishes — matching how {@code
+ * DefaultControlBusGateway.prepareAndExecute} starts a normal (non-restart) execution.
  */
 @Slf4j
 @Component
@@ -33,8 +36,8 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
   /** The workflow orchestrator for restarting workflows. */
   private final WorkflowOrchestrator orchestrator;
 
-  /** The task tracker service for tracking task execution. */
-  private final DefaultTaskTrackerService taskTracker;
+  /** Reports the outcome of a restart back to the awaiting gateway caller. */
+  private final RestartCompletionSink completionSink;
 
   @Override
   public boolean canProcess(final ExecutionControlCommand command) {
@@ -53,37 +56,46 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
                         () ->
                             new IllegalArgumentException(
                                 "Execution not found: " + restart.executionId())))
-        .flatMap(
+        .doOnNext(
             control -> {
               registry.unregister(control.executionId());
-              control.safeStopSink().emitEmpty(Sinks.EmitFailureHandler.FAIL_FAST);
+              final Sinks.EmitResult stopResult = control.safeStopSink().tryEmitEmpty();
+              if (stopResult.isFailure()) {
+                throw new IllegalStateException("Failed to emit stop signal: " + stopResult);
+              }
 
-              final String newExecutionId = UUID.randomUUID().toString();
-              return orchestrator
+              orchestrator
                   .execute(
                       control.sessionId(),
                       control.workflowId(),
-                      newExecutionId,
+                      restart.newExecutionId(),
                       control.prepared(),
                       control.payload())
-                  .doOnSuccess(
-                      ignored -> {
-                        taskTracker.emitWorkflowStatusEvent(newExecutionId, "RUNNING");
-                        log.atInfo()
-                            .addKeyValue("oldExecutionId", restart.executionId())
-                            .addKeyValue("newExecutionId", newExecutionId)
-                            .addKeyValue("workflowId", control.workflowId())
-                            .addKeyValue("status", "RUNNING")
-                            .log("Restarted execution");
-                      })
-                  .then(Mono.<WorkflowDirective>empty());
+                  .subscribeOn(Schedulers.boundedElastic())
+                  .doOnError(
+                      err ->
+                          log.atError()
+                              .setCause(err)
+                              .addKeyValue("oldExecutionId", restart.executionId())
+                              .addKeyValue("newExecutionId", restart.newExecutionId())
+                              .log("Restarted execution failed"))
+                  .subscribe();
+
+              log.atInfo()
+                  .addKeyValue("oldExecutionId", restart.executionId())
+                  .addKeyValue("newExecutionId", restart.newExecutionId())
+                  .addKeyValue("workflowId", control.workflowId())
+                  .log("Restarted execution");
+              completionSink.completeRestartSuccess(restart.newExecutionId());
             })
+        .then(Mono.<WorkflowDirective>empty())
         .onErrorResume(
             e -> {
               log.atError()
                   .addKeyValue("executionId", restart.executionId())
                   .setCause(e)
                   .log("Restart failed");
+              completionSink.completeRestartFailure(restart.newExecutionId(), e);
               return Mono.empty();
             });
   }

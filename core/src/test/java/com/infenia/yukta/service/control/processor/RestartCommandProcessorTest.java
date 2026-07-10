@@ -5,6 +5,8 @@ package com.infenia.yukta.service.control.processor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,15 +15,14 @@ import com.infenia.yukta.plugin.control.ExecutionControlCommand;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand.PauseWorkflowCommand;
 import com.infenia.yukta.plugin.control.ExecutionControlCommand.RestartCommand;
 import com.infenia.yukta.service.control.ExecutionControl;
+import com.infenia.yukta.service.control.gateway.RestartCompletionSink;
 import com.infenia.yukta.service.control.store.ExecutionControlRegistry;
 import com.infenia.yukta.service.orchestrator.WorkflowOrchestrator;
-import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import java.util.Map;
 import java.util.Optional;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,56 +35,36 @@ import reactor.test.StepVerifier;
 @SuppressWarnings({"PMD.TooManyStaticImports", "PMD.CommentRequired", "PMD.LinguisticNaming"})
 class RestartCommandProcessorTest {
 
-  /** Registry for execution control. */
   @Mock private ExecutionControlRegistry registry;
-
-  /** Workflow orchestrator. */
   @Mock private WorkflowOrchestrator orchestrator;
-
-  /** Task tracker service. */
-  @Mock private DefaultTaskTrackerService taskTracker;
-
-  /** Execution control instance. */
+  @Mock private RestartCompletionSink completionSink;
   @Mock private ExecutionControl executionControl;
-
-  /** Prepared workflow. */
   @Mock private PreparedWorkflow preparedWorkflow;
 
   @InjectMocks private RestartCommandProcessor processor;
 
   @Test
   void canProcess_restartCommand_returnsTrue() {
-    // Given
-    final ExecutionControlCommand command = new RestartCommand("exec-1");
-
-    // When
-    final boolean actualResult = processor.canProcess(command);
-
-    // Then
-    assertThat(actualResult).isTrue();
+    final ExecutionControlCommand command = new RestartCommand("exec-1", "new-1");
+    assertThat(processor.canProcess(command)).isTrue();
   }
 
   @Test
   void canProcess_otherCommand_returnsFalse() {
-    // Given
     final ExecutionControlCommand command = new PauseWorkflowCommand("exec-1");
-
-    // When
-    final boolean actualResult = processor.canProcess(command);
-
-    // Then
-    assertThat(actualResult).isFalse();
+    assertThat(processor.canProcess(command)).isFalse();
   }
 
   @Test
-  void process_executionFound_unregistersAndRestartsWorkflow() {
+  void process_executionFound_detachesExecutionAndReportsSuccessImmediately() {
     // Given
     final String executionId = "exec-restart";
+    final String newExecutionId = "new-exec-restart";
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
     final Map<String, Object> payload = Map.of("key", "value");
     final Sinks.One<Void> safeStopSink = Sinks.one();
-    final RestartCommand command = new RestartCommand(executionId);
+    final RestartCommand command = new RestartCommand(executionId, newExecutionId);
 
     when(registry.findByExecutionId(executionId)).thenReturn(Optional.of(executionControl));
     when(executionControl.executionId()).thenReturn(executionId);
@@ -92,52 +73,49 @@ class RestartCommandProcessorTest {
     when(executionControl.prepared()).thenReturn(preparedWorkflow);
     when(executionControl.payload()).thenReturn(payload);
     when(executionControl.safeStopSink()).thenReturn(safeStopSink);
+    // Never completes — proves the processor does not wait for it.
     when(orchestrator.execute(
-            eq(sessionId), eq(workflowId), any(String.class), eq(preparedWorkflow), eq(payload)))
-        .thenReturn(Mono.empty());
+            eq(sessionId), eq(workflowId), eq(newExecutionId), eq(preparedWorkflow), eq(payload)))
+        .thenReturn(Mono.never());
+
+    // When
+    final var result = processor.process(command);
+
+    // Then — process() completes without waiting for orchestrator.execute()
+    StepVerifier.create(result).verifyComplete();
+    verify(registry).unregister(executionId);
+    verify(completionSink).completeRestartSuccess(newExecutionId);
+  }
+
+  @Test
+  void process_executionNotFound_reportsFailureAndCompletesEmpty() {
+    // Given
+    final String executionId = "exec-not-found";
+    final String newExecutionId = "new-exec-not-found";
+    final RestartCommand command = new RestartCommand(executionId, newExecutionId);
+    when(registry.findByExecutionId(executionId)).thenReturn(Optional.empty());
 
     // When
     final var result = processor.process(command);
 
     // Then
     StepVerifier.create(result).verifyComplete();
-    verify(registry).unregister(executionId);
-
-    final ArgumentCaptor<String> newExecIdCaptor = ArgumentCaptor.forClass(String.class);
-    verify(orchestrator)
-        .execute(
-            eq(sessionId),
-            eq(workflowId),
-            newExecIdCaptor.capture(),
-            eq(preparedWorkflow),
-            eq(payload));
-    final String actualNewExecutionId = newExecIdCaptor.getValue();
-    assertThat(actualNewExecutionId).isNotEqualTo(executionId).isNotBlank();
-    verify(taskTracker).emitWorkflowStatusEvent(actualNewExecutionId, "RUNNING");
+    verify(completionSink)
+        .completeRestartFailure(eq(newExecutionId), any(IllegalArgumentException.class));
+    verify(orchestrator, never()).execute(any(), any(), any(), any(), any());
   }
 
   @Test
-  void process_executionNotFound_completesEmptyWithoutError() {
-    // Given
-    final String executionId = "exec-not-found";
-    final RestartCommand command = new RestartCommand(executionId);
-    when(registry.findByExecutionId(executionId)).thenReturn(Optional.empty());
-
-    // When
-    final var result = processor.process(command);
-
-    // Then — error is swallowed by onErrorResume, Mono completes empty
-    StepVerifier.create(result).verifyComplete();
-  }
-
-  @Test
-  void process_orchestratorFails_completesEmptyWithoutError() {
-    // Given
+  void process_orchestratorFailsAsynchronously_doesNotReportFailureViaCompletionSink() {
+    // Given: detachment means an async orchestrator failure is not observable by process()'s
+    // own Mono — it surfaces via normal task-tracker/watchExecution channels instead, same as
+    // any other execution failure. completeRestartSuccess was already called at subscribe time.
     final String executionId = "exec-orch-fail";
+    final String newExecutionId = "new-exec-orch-fail";
     final String sessionId = "session-1";
     final String workflowId = "workflow-1";
     final Sinks.One<Void> safeStopSink = Sinks.one();
-    final RestartCommand command = new RestartCommand(executionId);
+    final RestartCommand command = new RestartCommand(executionId, newExecutionId);
 
     when(registry.findByExecutionId(executionId)).thenReturn(Optional.of(executionControl));
     when(executionControl.executionId()).thenReturn(executionId);
@@ -147,22 +125,45 @@ class RestartCommandProcessorTest {
     when(executionControl.payload()).thenReturn(Map.of());
     when(executionControl.safeStopSink()).thenReturn(safeStopSink);
     when(orchestrator.execute(
-            eq(sessionId), eq(workflowId), any(String.class), eq(preparedWorkflow), eq(Map.of())))
+            eq(sessionId), eq(workflowId), eq(newExecutionId), eq(preparedWorkflow), eq(Map.of())))
         .thenReturn(Mono.error(new RuntimeException("Orchestrator failure")));
 
     // When
     final var result = processor.process(command);
 
-    // Then — inner onErrorResume swallows the error
+    // Then
     StepVerifier.create(result).verifyComplete();
+    verify(completionSink, timeout(1000)).completeRestartSuccess(newExecutionId);
+    verify(completionSink, never()).completeRestartFailure(eq(newExecutionId), any());
+  }
+
+  @Test
+  void process_safeStopSinkEmitFails_reportsFailure() {
+    // Given: safeStopSink already completed, so emitting the stop signal fails synchronously
+    // inside the doOnNext block — proving that path converts to onError and reports
+    // completeRestartFailure, not completeRestartSuccess.
+    final String executionId = "exec-sink-emit-fail";
+    final String newExecutionId = "new-exec-sink-emit-fail";
+    final Sinks.One<Void> failingSink = Sinks.one();
+    failingSink.emitEmpty(Sinks.EmitFailureHandler.FAIL_FAST);
+    final RestartCommand command = new RestartCommand(executionId, newExecutionId);
+
+    when(registry.findByExecutionId(executionId)).thenReturn(Optional.of(executionControl));
+    when(executionControl.executionId()).thenReturn(executionId);
+    when(executionControl.safeStopSink()).thenReturn(failingSink);
+
+    // When
+    final var result = processor.process(command);
+
+    // Then
+    StepVerifier.create(result).verifyComplete();
+    verify(completionSink).completeRestartFailure(eq(newExecutionId), any(RuntimeException.class));
+    verify(completionSink, never()).completeRestartSuccess(newExecutionId);
+    verify(orchestrator, never()).execute(any(), any(), any(), any(), any());
   }
 
   @Test
   void getPriority_returnsCorrectValue() {
-    // When
-    final int actualPriority = processor.getPriority();
-
-    // Then
-    assertThat(actualPriority).isEqualTo(20);
+    assertThat(processor.getPriority()).isEqualTo(20);
   }
 }
