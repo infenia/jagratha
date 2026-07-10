@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import reactor.test.StepVerifier;
 
 /** Tests for FileSystemPluginLogWriter. */
 @NoArgsConstructor
@@ -306,11 +307,37 @@ class FileSystemPluginLogWriterTest {
             null,
             null);
 
-    final IllegalArgumentException exception =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            IllegalArgumentException.class, () -> writer.write(entry).block());
+    StepVerifier.create(writer.write(entry))
+        .expectErrorSatisfies(
+            exception -> {
+              assertThat(exception).isInstanceOf(IllegalArgumentException.class);
+              assertThat(exception).hasMessageContaining("path traversal detected");
+            })
+        .verify();
+  }
 
-    assertThat(exception).hasMessageContaining("path traversal detected");
+  @Test
+  void writeToFile_absolutePathInSessionId_throwsIllegalArgumentException() {
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            "exec-123",
+            "/etc/passwd",
+            PLUGIN_ID,
+            "Plugin",
+            LogStream.STDOUT,
+            "Test message",
+            LogLevel.INFO,
+            Instant.now(),
+            null,
+            null);
+
+    StepVerifier.create(writer.write(entry))
+        .expectErrorSatisfies(
+            exception -> {
+              assertThat(exception).isInstanceOf(IllegalArgumentException.class);
+              assertThat(exception).hasMessageContaining("path traversal detected");
+            })
+        .verify();
   }
 
   @Test
@@ -328,10 +355,36 @@ class FileSystemPluginLogWriterTest {
             null,
             null);
 
-    final IllegalArgumentException exception =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            IllegalArgumentException.class, () -> writer.write(entry).block());
+    StepVerifier.create(writer.write(entry))
+        .expectErrorSatisfies(
+            exception -> {
+              assertThat(exception).isInstanceOf(IllegalArgumentException.class);
+              assertThat(exception).hasMessageContaining("path traversal detected");
+            })
+        .verify();
+  }
 
-    assertThat(exception).hasMessageContaining("path traversal detected");
+  @Test
+  void writeToFile_absolutePathInExecutionId_throwsIllegalArgumentException() {
+    final PluginLogEntry entry =
+        new PluginLogEntry(
+            "/etc/passwd",
+            SESSION_ID,
+            PLUGIN_ID,
+            "Plugin",
+            LogStream.STDOUT,
+            "Test message",
+            LogLevel.INFO,
+            Instant.now(),
+            null,
+            null);
+
+    StepVerifier.create(writer.write(entry))
+        .expectErrorSatisfies(
+            exception -> {
+              assertThat(exception).isInstanceOf(IllegalArgumentException.class);
+              assertThat(exception).hasMessageContaining("path traversal detected");
+            })
+        .verify();
   }
 }
