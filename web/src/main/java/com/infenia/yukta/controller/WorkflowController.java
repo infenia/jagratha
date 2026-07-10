@@ -299,6 +299,7 @@ public class WorkflowController {
                 log.atInfo().log(
                     "restartWorkflow response sent successfully: executionId={}", executionId))
         .onErrorResume(
+            IllegalArgumentException.class,
             e -> {
               log.atError()
                   .log(
@@ -366,6 +367,7 @@ public class WorkflowController {
                     executionId,
                     fromNodeId))
         .onErrorResume(
+            IllegalArgumentException.class,
             e -> {
               log.atError()
                   .log(

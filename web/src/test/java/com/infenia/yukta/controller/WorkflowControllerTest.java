@@ -796,6 +796,22 @@ class WorkflowControllerTest {
   }
 
   @Test
+  void testRestartWorkflowNonNotFoundErrorPropagates() {
+    when(controlBusGateway.restartWorkflow(EXEC_ID_1))
+        .thenReturn(Mono.error(new RuntimeException(CONTROL_BUS_FAILURE)));
+
+    final var result =
+        webClient
+            .post()
+            .uri(API_WORKFLOW_EXECUTIONS + EXEC_ID_1 + RESTART)
+            .exchange()
+            .expectStatus()
+            .is5xxServerError()
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(500);
+  }
+
+  @Test
   void testRestartFromNodeSuccess() {
     final String newExecId = "new-exec-2";
     when(controlBusGateway.restartFromNode(EXEC_ID_1, NODE_ID_1)).thenReturn(Mono.just(newExecId));
@@ -837,6 +853,22 @@ class WorkflowControllerTest {
             .isEqualTo(EXECUTION_NOT_FOUND)
             .returnResult();
     assertThat(result.getStatus().value()).isEqualTo(404);
+  }
+
+  @Test
+  void testRestartFromNodeNonNotFoundErrorPropagates() {
+    when(controlBusGateway.restartFromNode(EXEC_ID_1, NODE_ID_1))
+        .thenReturn(Mono.error(new RuntimeException(CONTROL_BUS_FAILURE)));
+
+    final var result =
+        webClient
+            .post()
+            .uri(API_WORKFLOW_EXECUTIONS + EXEC_ID_1 + RESTART + "/" + NODE_ID_1)
+            .exchange()
+            .expectStatus()
+            .is5xxServerError()
+            .returnResult();
+    assertThat(result.getStatus().value()).isEqualTo(500);
   }
 
   // --- Pause Workflow Tests ---
