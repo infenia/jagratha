@@ -639,21 +639,26 @@ public class DefaultControlBusGateway implements ControlBusGateway, RestartCompl
 
   @Override
   public Mono<String> restartWorkflow(final String executionId) {
-    final String newExecutionId = UUID.randomUUID().toString();
-    final Sinks.One<String> sink = Sinks.one();
-    pendingRestarts.put(newExecutionId, sink);
-    return executeCommand(
-            buildCommand(
-                new RestartCommand(executionId, newExecutionId), CONTROL_COMMAND_PRIORITY + 20))
-        .doOnSubscribe(
-            _ ->
-                log.atInfo()
-                    .addKeyValue("executionId", executionId)
-                    .addKeyValue("newExecutionId", newExecutionId)
-                    .log("Restarting workflow"))
-        .then(sink.asMono())
-        .timeout(RESTART_TIMEOUT)
-        .doFinally(_ -> pendingRestarts.remove(newExecutionId))
+    return Mono.defer(
+            () -> {
+              findExecutionOrThrow(executionId);
+              final String newExecutionId = UUID.randomUUID().toString();
+              final Sinks.One<String> sink = Sinks.one();
+              pendingRestarts.put(newExecutionId, sink);
+              return executeCommand(
+                      buildCommand(
+                          new RestartCommand(executionId, newExecutionId),
+                          CONTROL_COMMAND_PRIORITY + 20))
+                  .doOnSubscribe(
+                      _ ->
+                          log.atInfo()
+                              .addKeyValue("executionId", executionId)
+                              .addKeyValue("newExecutionId", newExecutionId)
+                              .log("Restarting workflow"))
+                  .then(sink.asMono())
+                  .timeout(RESTART_TIMEOUT)
+                  .doFinally(_ -> pendingRestarts.remove(newExecutionId));
+            })
         .doOnSuccess(
             newId ->
                 log.atInfo()
@@ -670,23 +675,27 @@ public class DefaultControlBusGateway implements ControlBusGateway, RestartCompl
 
   @Override
   public Mono<String> restartFromNode(final String executionId, final String fromNodeId) {
-    final String newExecutionId = UUID.randomUUID().toString();
-    final Sinks.One<String> sink = Sinks.one();
-    pendingRestarts.put(newExecutionId, sink);
-    return executeCommand(
-            buildCommand(
-                new RestartFromNodeCommand(executionId, fromNodeId, newExecutionId),
-                CONTROL_COMMAND_PRIORITY + 20))
-        .doOnSubscribe(
-            _ ->
-                log.atInfo()
-                    .addKeyValue("executionId", executionId)
-                    .addKeyValue("fromNodeId", fromNodeId)
-                    .addKeyValue("newExecutionId", newExecutionId)
-                    .log("Restarting workflow from node"))
-        .then(sink.asMono())
-        .timeout(RESTART_TIMEOUT)
-        .doFinally(_ -> pendingRestarts.remove(newExecutionId))
+    return Mono.defer(
+            () -> {
+              findExecutionOrThrow(executionId);
+              final String newExecutionId = UUID.randomUUID().toString();
+              final Sinks.One<String> sink = Sinks.one();
+              pendingRestarts.put(newExecutionId, sink);
+              return executeCommand(
+                      buildCommand(
+                          new RestartFromNodeCommand(executionId, fromNodeId, newExecutionId),
+                          CONTROL_COMMAND_PRIORITY + 20))
+                  .doOnSubscribe(
+                      _ ->
+                          log.atInfo()
+                              .addKeyValue("executionId", executionId)
+                              .addKeyValue("fromNodeId", fromNodeId)
+                              .addKeyValue("newExecutionId", newExecutionId)
+                              .log("Restarting workflow from node"))
+                  .then(sink.asMono())
+                  .timeout(RESTART_TIMEOUT)
+                  .doFinally(_ -> pendingRestarts.remove(newExecutionId));
+            })
         .doOnSuccess(
             newId ->
                 log.atInfo()

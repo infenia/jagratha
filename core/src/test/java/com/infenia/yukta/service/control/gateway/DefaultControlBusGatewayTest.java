@@ -844,6 +844,8 @@ class DefaultControlBusGatewayTest {
   void restartWorkflow_processorCompletesSuccess_returnsRealNewExecutionId() {
     // Given
     final String executionId = "exec-12";
+    when(executionControlRegistry.findByExecutionId(executionId))
+        .thenReturn(Optional.of(mock(ExecutionControl.class)));
     when(controlBusService.emit(any())).thenReturn(Mono.empty());
 
     // When
@@ -872,6 +874,8 @@ class DefaultControlBusGatewayTest {
     // Given
     final String executionId = "exec-13";
     final String fromNodeId = "node-11";
+    when(executionControlRegistry.findByExecutionId(executionId))
+        .thenReturn(Optional.of(mock(ExecutionControl.class)));
     when(controlBusService.emit(any())).thenReturn(Mono.empty());
 
     // When
@@ -898,10 +902,15 @@ class DefaultControlBusGatewayTest {
 
   @Test
   void restartWorkflow_processorCompletesFailure_propagatesRealError() {
-    // Given
-    final String executionId = "exec-not-found";
+    // Given: execution exists at gateway-check time, but the async processor later reports a
+    // failure (e.g. it disappeared from the registry between the gateway's check and the
+    // processor's own lookup) — a distinct scenario from restartWorkflow_executionNotFound_*
+    // below, which fails fast at the gateway without ever emitting a command.
+    final String executionId = "exec-processor-fails";
     final RuntimeException notFound =
         new IllegalArgumentException("Execution not found: " + executionId);
+    when(executionControlRegistry.findByExecutionId(executionId))
+        .thenReturn(Optional.of(mock(ExecutionControl.class)));
     when(controlBusService.emit(any())).thenReturn(Mono.empty());
 
     // When
@@ -924,6 +933,8 @@ class DefaultControlBusGatewayTest {
   void restartWorkflow_processorNeverCompletes_timesOut() {
     // Given
     final String executionId = "exec-timeout";
+    when(executionControlRegistry.findByExecutionId(executionId))
+        .thenReturn(Optional.of(mock(ExecutionControl.class)));
     when(controlBusService.emit(any())).thenReturn(Mono.empty());
 
     // When
@@ -934,6 +945,49 @@ class DefaultControlBusGatewayTest {
         .thenAwait(java.time.Duration.ofSeconds(31))
         .expectError(java.util.concurrent.TimeoutException.class)
         .verify();
+  }
+
+  @Test
+  void restartWorkflow_executionNotFound_failsImmediatelyWithoutEmittingOrWaiting() {
+    // Given: no active execution registered — the gateway must fail fast with the real
+    // "Execution not found" error instead of emitting a command and waiting up to
+    // RESTART_TIMEOUT for a completion that DirectiveDispatcher will never produce (it
+    // short-circuits to Mono.empty() before ever invoking the restart processor when the
+    // execution isn't found).
+    final String executionId = "exec-not-found";
+    when(executionControlRegistry.findByExecutionId(executionId)).thenReturn(Optional.empty());
+
+    // When
+    final Mono<String> result = gateway.restartWorkflow(executionId);
+
+    // Then
+    StepVerifier.create(result)
+        .expectErrorMatches(
+            err ->
+                err instanceof IllegalArgumentException
+                    && err.getMessage().equals("Execution not found: " + executionId))
+        .verify();
+    verify(controlBusService, never()).emit(any());
+  }
+
+  @Test
+  void restartFromNode_executionNotFound_failsImmediatelyWithoutEmittingOrWaiting() {
+    // Given
+    final String executionId = "exec-not-found";
+    final String fromNodeId = "node-1";
+    when(executionControlRegistry.findByExecutionId(executionId)).thenReturn(Optional.empty());
+
+    // When
+    final Mono<String> result = gateway.restartFromNode(executionId, fromNodeId);
+
+    // Then
+    StepVerifier.create(result)
+        .expectErrorMatches(
+            err ->
+                err instanceof IllegalArgumentException
+                    && err.getMessage().equals("Execution not found: " + executionId))
+        .verify();
+    verify(controlBusService, never()).emit(any());
   }
 
   @Test
@@ -1473,6 +1527,8 @@ class DefaultControlBusGatewayTest {
     // Given
     final String executionId = "exec-error";
     final RuntimeException testError = new RuntimeException("Emit failed");
+    when(executionControlRegistry.findByExecutionId(executionId))
+        .thenReturn(Optional.of(mock(ExecutionControl.class)));
     when(controlBusService.emit(any())).thenReturn(Mono.error(testError));
 
     // When
@@ -1488,6 +1544,8 @@ class DefaultControlBusGatewayTest {
     final String executionId = "exec-error";
     final String fromNodeId = "node-error";
     final RuntimeException testError = new RuntimeException("Emit failed");
+    when(executionControlRegistry.findByExecutionId(executionId))
+        .thenReturn(Optional.of(mock(ExecutionControl.class)));
     when(controlBusService.emit(any())).thenReturn(Mono.error(testError));
 
     // When
