@@ -259,8 +259,8 @@ public class WorkflowController {
   }
 
   /**
-   * Safely stop the current execution and restart the entire workflow from the beginning using
-   * the original trigger payload.
+   * Safely stop the current execution and restart the entire workflow from the beginning using the
+   * original trigger payload.
    *
    * @param executionId the execution to restart
    * @return response entity with the new execution ID
@@ -318,8 +318,8 @@ public class WorkflowController {
   }
 
   /**
-   * Safely stop the current execution and restart the workflow from a specific node, replaying
-   * the last known checkpoints for its parent nodes.
+   * Safely stop the current execution and restart the workflow from a specific node, replaying the
+   * last known checkpoints for its parent nodes.
    *
    * @param executionId the execution to restart
    * @param fromNodeId the node from which to resume execution
@@ -341,8 +341,7 @@ public class WorkflowController {
       @Parameter(description = "Execution ID") @PathVariable final String executionId,
       @Parameter(description = "Node ID to restart from") @PathVariable final String fromNodeId,
       final ServerWebExchange exchange) {
-    log.atInfo().log(
-        "restartFromNode: executionId={}, fromNodeId={}", executionId, fromNodeId);
+    log.atInfo().log("restartFromNode: executionId={}, fromNodeId={}", executionId, fromNodeId);
     return controlBus
         .restartFromNode(executionId, fromNodeId)
         .doOnNext(

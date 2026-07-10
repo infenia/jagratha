@@ -3,8 +3,8 @@
 package com.infenia.yukta.service.control.gateway;
 
 /**
- * Callback used by restart command processors to report the outcome of an in-flight restart back
- * to the {@link ControlBusGateway} caller awaiting it.
+ * Callback used by restart command processors to report the outcome of an in-flight restart back to
+ * the {@link ControlBusGateway} caller awaiting it.
  *
  * <p>{@link #completeRestartSuccess} and {@link #completeRestartFailure} are best-effort: if the
  * caller has already timed out and the pending entry was removed, both are no-ops.
