@@ -639,42 +639,57 @@ public class DefaultControlBusGateway implements ControlBusGateway, RestartCompl
 
   @Override
   public Mono<String> restartWorkflow(final String executionId) {
-    return Mono.defer(
-            () -> {
-              findExecutionOrThrow(executionId);
-              final String newExecutionId = UUID.randomUUID().toString();
-              final Sinks.One<String> sink = Sinks.one();
-              pendingRestarts.put(newExecutionId, sink);
-              return executeCommand(
-                      buildCommand(
-                          new RestartCommand(executionId, newExecutionId),
-                          CONTROL_COMMAND_PRIORITY + 20))
-                  .doOnSubscribe(
-                      _ ->
-                          log.atInfo()
-                              .addKeyValue("executionId", executionId)
-                              .addKeyValue("newExecutionId", newExecutionId)
-                              .log("Restarting workflow"))
-                  .then(sink.asMono())
-                  .timeout(RESTART_TIMEOUT)
-                  .doFinally(_ -> pendingRestarts.remove(newExecutionId));
-            })
-        .doOnSuccess(
-            newId ->
-                log.atInfo()
-                    .addKeyValue("oldExecutionId", executionId)
-                    .addKeyValue("newExecutionId", newId)
-                    .log("Workflow restarted successfully"))
-        .doOnError(
-            err ->
-                log.atError()
-                    .setCause(err)
-                    .addKeyValue("executionId", executionId)
-                    .log("Failed to restart workflow"));
+    return awaitRestart(
+        executionId,
+        newId -> new RestartCommand(executionId, newId),
+        newExecutionId ->
+            log.atInfo()
+                .addKeyValue("executionId", executionId)
+                .addKeyValue("newExecutionId", newExecutionId)
+                .log("Restarting workflow"),
+        newId ->
+            log.atInfo()
+                .addKeyValue("oldExecutionId", executionId)
+                .addKeyValue("newExecutionId", newId)
+                .log("Workflow restarted successfully"),
+        err ->
+            log.atError()
+                .setCause(err)
+                .addKeyValue("executionId", executionId)
+                .log("Failed to restart workflow"));
   }
 
   @Override
   public Mono<String> restartFromNode(final String executionId, final String fromNodeId) {
+    return awaitRestart(
+        executionId,
+        newId -> new RestartFromNodeCommand(executionId, fromNodeId, newId),
+        newExecutionId ->
+            log.atInfo()
+                .addKeyValue("executionId", executionId)
+                .addKeyValue("fromNodeId", fromNodeId)
+                .addKeyValue("newExecutionId", newExecutionId)
+                .log("Restarting workflow from node"),
+        newId ->
+            log.atInfo()
+                .addKeyValue("oldExecutionId", executionId)
+                .addKeyValue("fromNodeId", fromNodeId)
+                .addKeyValue("newExecutionId", newId)
+                .log("Workflow restarted from node successfully"),
+        err ->
+            log.atError()
+                .setCause(err)
+                .addKeyValue("executionId", executionId)
+                .addKeyValue("fromNodeId", fromNodeId)
+                .log("Failed to restart workflow from node"));
+  }
+
+  private Mono<String> awaitRestart(
+      final String executionId,
+      final java.util.function.Function<String, ExecutionControlCommand> commandFactory,
+      final java.util.function.Consumer<String> onSubscribeLogger,
+      final java.util.function.Consumer<String> onSuccessLogger,
+      final java.util.function.Consumer<Throwable> onErrorLogger) {
     return Mono.defer(
             () -> {
               findExecutionOrThrow(executionId);
@@ -683,33 +698,14 @@ public class DefaultControlBusGateway implements ControlBusGateway, RestartCompl
               pendingRestarts.put(newExecutionId, sink);
               return executeCommand(
                       buildCommand(
-                          new RestartFromNodeCommand(executionId, fromNodeId, newExecutionId),
-                          CONTROL_COMMAND_PRIORITY + 20))
-                  .doOnSubscribe(
-                      _ ->
-                          log.atInfo()
-                              .addKeyValue("executionId", executionId)
-                              .addKeyValue("fromNodeId", fromNodeId)
-                              .addKeyValue("newExecutionId", newExecutionId)
-                              .log("Restarting workflow from node"))
+                          commandFactory.apply(newExecutionId), CONTROL_COMMAND_PRIORITY + 20))
+                  .doOnSubscribe(_ -> onSubscribeLogger.accept(newExecutionId))
                   .then(sink.asMono())
                   .timeout(RESTART_TIMEOUT)
                   .doFinally(_ -> pendingRestarts.remove(newExecutionId));
             })
-        .doOnSuccess(
-            newId ->
-                log.atInfo()
-                    .addKeyValue("oldExecutionId", executionId)
-                    .addKeyValue("fromNodeId", fromNodeId)
-                    .addKeyValue("newExecutionId", newId)
-                    .log("Workflow restarted from node successfully"))
-        .doOnError(
-            err ->
-                log.atError()
-                    .setCause(err)
-                    .addKeyValue("executionId", executionId)
-                    .addKeyValue("fromNodeId", fromNodeId)
-                    .log("Failed to restart workflow from node"));
+        .doOnSuccess(onSuccessLogger)
+        .doOnError(onErrorLogger);
   }
 
   @Override
