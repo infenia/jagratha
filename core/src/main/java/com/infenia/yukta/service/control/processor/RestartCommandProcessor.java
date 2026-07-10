@@ -105,14 +105,17 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
 
   private Mono<Void> performAtomicHandoff(
       final ExecutionControl control, final RestartCommand restart) {
-    return Mono.defer(
+    return Mono.fromCallable(
             () -> {
               final Sinks.EmitResult stopResult = control.safeStopSink().tryEmitEmpty();
               if (stopResult.isFailure()) {
                 throw new IllegalStateException("Failed to emit stop signal: " + stopResult);
               }
-              registry.unregister(control.executionId());
-
+              return stopResult;
+            })
+        .doOnNext(_ -> registry.unregister(control.executionId()))
+        .flatMap(
+            _ -> {
               final Mono<Void> newExecution =
                   orchestrator.execute(
                       control.sessionId(),
@@ -139,8 +142,7 @@ public class RestartCommandProcessor implements ControlSignalProcessor {
                   .log("Restarted execution");
               completionSink.completeRestartSuccess(restart.newExecutionId());
               return Mono.empty();
-            })
-        .then();
+            });
   }
 
   @Override

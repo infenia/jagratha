@@ -82,9 +82,14 @@ class RestartCommandProcessorTest {
     final var result = processor.process(command);
 
     // Then — process() completes without waiting for orchestrator.execute()
+    // Verify the atomic handoff: sink emit succeeds, then unregister happens
     StepVerifier.create(result).verifyComplete();
+    assertThat(safeStopSink.currentSubscriberCount()).isZero();
     verify(registry).unregister(executionId);
     verify(completionSink).completeRestartSuccess(newExecutionId);
+    verify(orchestrator)
+        .execute(
+            eq(sessionId), eq(workflowId), eq(newExecutionId), eq(preparedWorkflow), eq(payload));
   }
 
   @Test

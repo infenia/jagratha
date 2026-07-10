@@ -100,11 +100,21 @@ class RestartFromNodeCommandProcessorTest {
     // When
     final var result = processor.process(command);
 
-    // Then
+    // Then — verify atomic handoff and detached execution
     StepVerifier.create(result).verifyComplete();
+    assertThat(safeStopSink.currentSubscriberCount()).isZero();
     verify(registry).unregister(executionId);
     verify(checkpointStore).clear(executionId);
     verify(completionSink).completeRestartSuccess(newExecutionId);
+    verify(orchestrator)
+        .restartFromNode(
+            eq(sessionId),
+            eq(workflowId),
+            eq(executionId),
+            eq(newExecutionId),
+            eq(preparedWorkflow),
+            eq(fromNodeId),
+            eq(Map.of()));
   }
 
   @Test
@@ -143,8 +153,9 @@ class RestartFromNodeCommandProcessorTest {
     // When
     final var result = processor.process(command);
 
-    // Then
+    // Then — verify checkpoint loading and atomic handoff
     StepVerifier.create(result).verifyComplete();
+    assertThat(safeStopSink.currentSubscriberCount()).isZero();
     verify(checkpointStore).get(executionId, parentNodeId);
     verify(registry).unregister(executionId);
     verify(checkpointStore).clear(executionId);
