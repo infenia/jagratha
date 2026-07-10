@@ -840,7 +840,7 @@ class DefaultControlBusGatewayTest {
   }
 
   @Test
-  void restartWorkflow_validExecutionId_generatesNewExecutionId() {
+  void restartWorkflow_processorCompletesSuccess_returnsRealNewExecutionId() {
     // Given
     final String executionId = "exec-12";
     when(controlBusService.emit(any())).thenReturn(Mono.empty());
@@ -848,32 +848,26 @@ class DefaultControlBusGatewayTest {
     // When
     final Mono<String> result = gateway.restartWorkflow(executionId);
 
-    // Then
+    // Then — the Mono does not complete until the processor reports success
+    final ArgumentCaptor<Message<?>> captor = ArgumentCaptor.forClass(Message.class);
     StepVerifier.create(result)
+        .then(
+            () -> {
+              verify(controlBusService).emit(captor.capture());
+              final RestartCommand cmd = (RestartCommand) captor.getValue().getPayload();
+              assertThat(cmd.executionId()).isEqualTo(executionId);
+              gateway.completeRestartSuccess(cmd.newExecutionId());
+            })
         .assertNext(
             newExecId -> {
-              assertThat(newExecId).isNotNull();
-              assertThat(newExecId).isNotEqualTo(executionId);
-              // Verify it's a valid UUID format - should not throw exception
-              try {
-                UUID.fromString(newExecId);
-              } catch (final IllegalArgumentException e) {
-                throw new AssertionError("Not a valid UUID: " + newExecId, e);
-              }
+              assertThat(newExecId).isNotNull().isNotEqualTo(executionId);
+              UUID.fromString(newExecId);
             })
         .verifyComplete();
-
-    final ArgumentCaptor<Message<?>> captor = ArgumentCaptor.forClass(Message.class);
-    verify(controlBusService).emit(captor.capture());
-    final Message<?> emittedMessage = captor.getValue();
-    assertThat(emittedMessage.getPayload()).isInstanceOf(RestartCommand.class);
-    final RestartCommand cmd = (RestartCommand) emittedMessage.getPayload();
-    assertThat(cmd.executionId()).isEqualTo(executionId);
-    assertThat(emittedMessage.getPriority()).isEqualTo(120); // CONTROL_COMMAND_PRIORITY + 20
   }
 
   @Test
-  void restartFromNode_validInputs_generatesNewExecutionId() {
+  void restartFromNode_processorCompletesSuccess_returnsRealNewExecutionId() {
     // Given
     final String executionId = "exec-13";
     final String fromNodeId = "node-11";
@@ -883,28 +877,74 @@ class DefaultControlBusGatewayTest {
     final Mono<String> result = gateway.restartFromNode(executionId, fromNodeId);
 
     // Then
-    StepVerifier.create(result)
-        .assertNext(
-            newExecId -> {
-              assertThat(newExecId).isNotNull();
-              assertThat(newExecId).isNotEqualTo(executionId);
-              // Verify it's a valid UUID format - should not throw exception
-              try {
-                UUID.fromString(newExecId);
-              } catch (final IllegalArgumentException e) {
-                throw new AssertionError("Not a valid UUID: " + newExecId, e);
-              }
-            })
-        .verifyComplete();
-
     final ArgumentCaptor<Message<?>> captor = ArgumentCaptor.forClass(Message.class);
-    verify(controlBusService).emit(captor.capture());
-    final Message<?> emittedMessage = captor.getValue();
-    assertThat(emittedMessage.getPayload()).isInstanceOf(RestartFromNodeCommand.class);
-    final RestartFromNodeCommand cmd = (RestartFromNodeCommand) emittedMessage.getPayload();
-    assertThat(cmd.executionId()).isEqualTo(executionId);
-    assertThat(cmd.fromNodeId()).isEqualTo(fromNodeId);
-    assertThat(emittedMessage.getPriority()).isEqualTo(120); // CONTROL_COMMAND_PRIORITY + 20
+    final java.util.concurrent.atomic.AtomicReference<String> expectedNewExecutionId =
+        new java.util.concurrent.atomic.AtomicReference<>();
+    StepVerifier.create(result)
+        .then(
+            () -> {
+              verify(controlBusService).emit(captor.capture());
+              final RestartFromNodeCommand cmd =
+                  (RestartFromNodeCommand) captor.getValue().getPayload();
+              assertThat(cmd.executionId()).isEqualTo(executionId);
+              assertThat(cmd.fromNodeId()).isEqualTo(fromNodeId);
+              expectedNewExecutionId.set(cmd.newExecutionId());
+              gateway.completeRestartSuccess(cmd.newExecutionId());
+            })
+        .assertNext(newExecId -> assertThat(newExecId).isEqualTo(expectedNewExecutionId.get()))
+        .verifyComplete();
+  }
+
+  @Test
+  void restartWorkflow_processorCompletesFailure_propagatesRealError() {
+    // Given
+    final String executionId = "exec-not-found";
+    final RuntimeException notFound =
+        new IllegalArgumentException("Execution not found: " + executionId);
+    when(controlBusService.emit(any())).thenReturn(Mono.empty());
+
+    // When
+    final Mono<String> result = gateway.restartWorkflow(executionId);
+
+    // Then
+    final ArgumentCaptor<Message<?>> captor = ArgumentCaptor.forClass(Message.class);
+    StepVerifier.create(result)
+        .then(
+            () -> {
+              verify(controlBusService).emit(captor.capture());
+              final RestartCommand cmd = (RestartCommand) captor.getValue().getPayload();
+              gateway.completeRestartFailure(cmd.newExecutionId(), notFound);
+            })
+        .expectErrorMatches(err -> err == notFound)
+        .verify();
+  }
+
+  @Test
+  void restartWorkflow_processorNeverCompletes_timesOut() {
+    // Given
+    final String executionId = "exec-timeout";
+    when(controlBusService.emit(any())).thenReturn(Mono.empty());
+
+    // When
+    final Mono<String> result = gateway.restartWorkflow(executionId);
+
+    // Then — nothing ever calls completeRestartSuccess/Failure
+    StepVerifier.withVirtualTime(() -> result)
+        .thenAwait(java.time.Duration.ofSeconds(31))
+        .expectError(java.util.concurrent.TimeoutException.class)
+        .verify();
+  }
+
+  @Test
+  void completeRestartSuccess_unknownNewExecutionId_isNoOp() {
+    // No pending sink registered for this ID — must not throw
+    gateway.completeRestartSuccess("never-registered");
+  }
+
+  @Test
+  void completeRestartFailure_unknownNewExecutionId_isNoOp() {
+    // No pending sink registered for this ID — must not throw
+    gateway.completeRestartFailure("never-registered", new RuntimeException("late"));
   }
 
   // --- Observability Tests ---
@@ -1425,7 +1465,7 @@ class DefaultControlBusGatewayTest {
   }
 
   @Test
-  void restartWorkflow_emitError_logsErrorAndPropagates() {
+  void restartWorkflow_emitError_propagatesImmediately() {
     // Given
     final String executionId = "exec-error";
     final RuntimeException testError = new RuntimeException("Emit failed");
@@ -1435,11 +1475,11 @@ class DefaultControlBusGatewayTest {
     final Mono<String> result = gateway.restartWorkflow(executionId);
 
     // Then
-    StepVerifier.create(result).expectError(RuntimeException.class).verify();
+    StepVerifier.create(result).expectErrorMatches(err -> err == testError).verify();
   }
 
   @Test
-  void restartFromNode_emitError_logsErrorAndPropagates() {
+  void restartFromNode_emitError_propagatesImmediately() {
     // Given
     final String executionId = "exec-error";
     final String fromNodeId = "node-error";
@@ -1450,7 +1490,7 @@ class DefaultControlBusGatewayTest {
     final Mono<String> result = gateway.restartFromNode(executionId, fromNodeId);
 
     // Then
-    StepVerifier.create(result).expectError(RuntimeException.class).verify();
+    StepVerifier.create(result).expectErrorMatches(err -> err == testError).verify();
   }
 
   @Test
