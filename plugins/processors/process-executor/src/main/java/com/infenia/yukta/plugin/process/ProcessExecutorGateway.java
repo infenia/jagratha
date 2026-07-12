@@ -144,29 +144,32 @@ public class ProcessExecutorGateway {
             },
             process ->
                 Mono.fromRunnable(
-                    () -> {
-                      if (process.isAlive()) {
-                        process.destroy();
-                      }
-                    }),
+                        () -> {
+                          if (process.isAlive()) {
+                            process.destroy();
+                          }
+                        })
+                    .subscribeOn(Schedulers.boundedElastic()),
             (process, _) ->
                 Mono.fromRunnable(
-                    () -> {
-                      if (process.isAlive()) {
-                        log.atWarn()
-                            .setMessage("Forcibly destroying process due to error: {}")
-                            .addArgument(actualCommand)
-                            .log();
-                        process.destroyForcibly();
-                      }
-                    }),
+                        () -> {
+                          if (process.isAlive()) {
+                            log.atWarn()
+                                .setMessage("Forcibly destroying process due to error: {}")
+                                .addArgument(actualCommand)
+                                .log();
+                            process.destroyForcibly();
+                          }
+                        })
+                    .subscribeOn(Schedulers.boundedElastic()),
             process ->
                 Mono.fromRunnable(
-                    () -> {
-                      if (process.isAlive()) {
-                        process.destroy();
-                      }
-                    }))
+                        () -> {
+                          if (process.isAlive()) {
+                            process.destroy();
+                          }
+                        })
+                    .subscribeOn(Schedulers.boundedElastic()))
         .timeout(Duration.ofSeconds(timeoutSeconds))
         .onErrorMap(
             e -> {
