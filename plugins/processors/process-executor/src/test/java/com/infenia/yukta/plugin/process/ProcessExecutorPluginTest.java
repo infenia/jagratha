@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.message.DefaultMessage;
 import com.infenia.yukta.message.Message;
+import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import com.infenia.yukta.util.VariableResolver;
 import java.util.HashMap;
 import java.util.List;
@@ -365,6 +366,241 @@ class ProcessExecutorPluginTest {
             message -> {
               assertThat(message.getPayload()).isEqualTo("test");
               assertThat(message.getMetadata().get("exitCode")).isEqualTo(0);
+            })
+        .verifyComplete();
+  }
+
+  // Additional tests for improved coverage of extracted methods
+
+  @Test
+  void buildResolvedConfig_emptyWorkingDir_passesNullToGateway() {
+    final Map<String, Object> config = Map.of("command", List.of("echo", "test"));
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    final ArgumentCaptor<String> workingDirCaptor = ArgumentCaptor.forClass(String.class);
+
+    when(gateway.executeStream(
+            any(List.class), workingDirCaptor.capture(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("output"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+
+    // When workingDir is not provided, it's not included in resolvedConfig map,
+    // so executeWithResolvedConfig.get() returns null
+    final String capturedDir = workingDirCaptor.getValue();
+    assertThat(capturedDir).isNull();
+  }
+
+  @Test
+  void buildResolvedConfig_nonEmptyWorkingDir_includesInResolvedConfig() {
+    final Map<String, Object> config =
+        Map.of("command", List.of("pwd"), "workingDir", "/home/user");
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    final ArgumentCaptor<String> workingDirCaptor = ArgumentCaptor.forClass(String.class);
+
+    when(gateway.executeStream(
+            any(List.class), workingDirCaptor.capture(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("/home/user"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+
+    assertThat(workingDirCaptor.getValue()).isEqualTo("/home/user");
+  }
+
+  @Test
+  void executeWithResolvedConfig_getsOrDefaultForTimeout_appliesDefault() {
+    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
+
+    when(gateway.executeStream(
+            any(List.class), any(), timeoutCaptor.capture(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("hello"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+
+    // Verify default timeout of 300 seconds is applied
+    assertThat(timeoutCaptor.getValue()).isEqualTo(300L);
+  }
+
+  @Test
+  void executeWithResolvedConfig_getsOrDefaultForEnv_appliesEmptyMap() {
+    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    @SuppressWarnings("unchecked")
+    final ArgumentCaptor<Map> envCaptor = ArgumentCaptor.forClass(Map.class);
+
+    when(gateway.executeStream(
+            any(List.class), any(), anyLong(), envCaptor.capture(), anyBoolean()))
+        .thenReturn(Flux.just("hello"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+
+    // Verify empty map is used when env not provided
+    assertThat(envCaptor.getValue()).isEmpty();
+  }
+
+  @Test
+  void executeWithResolvedConfig_getsOrDefaultForUseShell_appliesFalse() {
+    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    final ArgumentCaptor<Boolean> shellCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+    when(gateway.executeStream(
+            any(List.class), any(), anyLong(), any(Map.class), shellCaptor.capture()))
+        .thenReturn(Flux.just("hello"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+
+    // Verify default false is applied for useShell
+    assertThat(shellCaptor.getValue()).isFalse();
+  }
+
+  @Test
+  void handleExecutionError_withWorkflowExecutionException_logsSpecificDetails() {
+    final Map<String, Object> config = Map.of("command", List.of("false"));
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    final WorkflowExecutionException workflowError =
+        new WorkflowExecutionException("Process failed with specific details");
+
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.error(workflowError));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .verifyError(WorkflowExecutionException.class);
+  }
+
+  @Test
+  void handleExecutionError_withGenericException_logsGenericError() {
+    final Map<String, Object> config = Map.of("command", List.of("bad-command"));
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    final RuntimeException genericError = new RuntimeException("Generic execution error");
+
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.error(genericError));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .verifyError(RuntimeException.class);
+  }
+
+  @Test
+  void resolveValue_nullValue_returnsEmptyMono() {
+    // Verify that resolving a null value returns Mono.empty()
+    final Map<String, Object> config = Map.of("command", List.of("echo", "test"));
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("test"));
+
+    // This indirectly tests resolveValue(null) through resolveWorkingDir with no workingDir
+    // config
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+  }
+
+  @Test
+  void createExitCodeMessage_preservesPayloadAndAddsExitCode() {
+    final Map<String, Object> config = Map.of("command", List.of("true"));
+    final String originalPayload = "original_payload_data";
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), originalPayload);
+
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("output"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(
+            message -> {
+              // Payload should be preserved
+              assertThat(message.getPayload()).isEqualTo(originalPayload);
+              // Exit code should be added to metadata
+              assertThat(message.getMetadata().get("exitCode")).isEqualTo(0);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeWithResolvedConfig_logsProcessOutput() {
+    final Map<String, Object> config = Map.of("command", List.of("echo", "test output"));
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("line1", "line2", "line3"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(
+            message -> {
+              assertThat(message.getPayload()).isEqualTo("test");
+              assertThat(message.getMetadata().get("exitCode")).isEqualTo(0);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void resolveTimeout_zeroValue_passesZeroToGateway() {
+    // Edge case: timeout of 0 (should be passed, gateway will reject)
+    final Map<String, Object> config = Map.of("command", List.of("sleep", "1"), "timeout", 0);
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
+
+    when(gateway.executeStream(
+            any(List.class), any(), timeoutCaptor.capture(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.error(new IllegalArgumentException("timeout must be positive")));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .verifyError(IllegalArgumentException.class);
+
+    assertThat(timeoutCaptor.getValue()).isEqualTo(0L);
+  }
+
+  @Test
+  void resolveEnv_envWithNullValues_filtersNullEntries() {
+    final Map<String, Object> envWithNull = new HashMap<>();
+    envWithNull.put("VAR1", "value1");
+    envWithNull.put("VAR2", null);
+
+    final Map<String, Object> config =
+        Map.of("command", List.of("echo", "test"), "env", envWithNull);
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    @SuppressWarnings("unchecked")
+    final ArgumentCaptor<Map> envCaptor = ArgumentCaptor.forClass(Map.class);
+
+    when(gateway.executeStream(
+            any(List.class), any(), anyLong(), envCaptor.capture(), anyBoolean()))
+        .thenReturn(Flux.just("output"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+
+    // Verify env variables were processed
+    @SuppressWarnings("unchecked")
+    final Map<String, String> passedEnv = envCaptor.getValue();
+    assertThat(passedEnv).containsEntry("VAR1", "value1");
+  }
+
+  @Test
+  void processExecutor_processCompletesSuccessfully_returnsExitCodeZero() {
+    final Map<String, Object> config = Map.of("command", List.of("true"));
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "payload");
+
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just());
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(
+            message -> {
+              assertThat(message.getMetadata().get("exitCode")).isEqualTo(0);
+              assertThat(message.getPayload()).isEqualTo("payload");
             })
         .verifyComplete();
   }

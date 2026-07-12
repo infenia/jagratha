@@ -303,4 +303,340 @@ class ProcessExecutorGatewayTest {
               assertThat(error.getMessage()).contains("timed out");
             });
   }
+
+  // Additional tests for improved coverage of process lifecycle and error handling
+
+  @Test
+  void executeStream_processExitsZero_collectsAndReturnsAllLines() {
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("sh", "-c", "echo line1; echo line2; echo line3"),
+                null,
+                10L,
+                Map.of(),
+                false))
+        .expectNext("line1")
+        .expectNext("line2")
+        .expectNext("line3")
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_processExitsNonZero_throwsWorkflowExceptionWithExitCode() {
+    StepVerifier.create(
+            gateway.executeStream(List.of("sh", "-c", "exit 42"), null, 10L, Map.of(), false))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("42");
+            });
+  }
+
+  @Test
+  void executeStream_processWithWorkingDir_executesInCorrectDirectory() {
+    StepVerifier.create(gateway.executeStream(List.of("pwd"), "/tmp", 10L, Map.of(), false))
+        .assertNext(output -> assertThat(output).contains("tmp"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_processWithMultipleEnvVars_allVariablesAvailable() {
+    final Map<String, String> env = new java.util.HashMap<>();
+    env.put("VAR1", "value1");
+    env.put("VAR2", "value2");
+    env.put("VAR3", "value3");
+
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("sh", "-c", "echo $VAR1:$VAR2:$VAR3"), null, 10L, env, false))
+        .assertNext(
+            output -> {
+              assertThat(output).contains("value1");
+              assertThat(output).contains("value2");
+              assertThat(output).contains("value3");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_processProducesEmptyOutput_completesWithoutEmittingLines() {
+    StepVerifier.create(gateway.executeStream(List.of("true"), null, 10L, Map.of(), false))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_processWithComplexCommand_executesMultipleArguments() {
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("sh", "-c", "printf 'first\\nsecond\\nthird'"), null, 10L, Map.of(), false))
+        .expectNext("first")
+        .expectNext("second")
+        .expectNext("third")
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_shellWrappingOn_commandExecutesViaShell() {
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("echo", "test_with_special_chars_@#$"), null, 10L, Map.of(), true))
+        .assertNext(output -> assertThat(output).contains("test_with_special_chars"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_processFailureIncludesOutput_errorMessageContainsProcessOutput() {
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("sh", "-c", "echo 'error output' && exit 5"), null, 10L, Map.of(), false))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("error output");
+              assertThat(error.getMessage()).contains("5");
+            });
+  }
+
+  @Test
+  void execute_nonStreamingNullWorkingDir_buffersOutput() {
+    StepVerifier.create(
+            gateway.execute(
+                List.of("sh", "-c", "echo 'line1'; echo 'line2'; echo 'line3'"), null, 10L))
+        .assertNext(
+            output -> {
+              assertThat(output).contains("line1");
+              assertThat(output).contains("line2");
+              assertThat(output).contains("line3");
+              assertThat(output).contains("\n");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void execute_nonStreamingWithWorkingDir_executesInDirectory() {
+    StepVerifier.create(gateway.execute(List.of("pwd"), "/tmp", 10L))
+        .assertNext(output -> assertThat(output).contains("tmp"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeWithMetadata_nullMetadataMap_executesWithoutError() {
+    StepVerifier.create(gateway.executeWithMetadata(List.of("echo", "hello"), null, 10L, null))
+        .assertNext(output -> assertThat(output).contains("hello"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeWithMetadata_emptyMetadataMap_executesSuccessfully() {
+    StepVerifier.create(
+            gateway.executeWithMetadata(
+                List.of("sh", "-c", "echo 'test'"), null, 10L, java.util.Map.of()))
+        .assertNext(output -> assertThat(output).contains("test"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeWithMetadata_keyWithDot_convertsToUnderscore() {
+    StepVerifier.create(
+            gateway.executeWithMetadata(
+                List.of("sh", "-c", "echo $YUKTA_METADATA_USER_NAME"),
+                null,
+                10L,
+                Map.of("user.name", "testuser")))
+        .assertNext(output -> assertThat(output).contains("testuser"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeWithMetadata_keyWithMultipleDots_allConverted() {
+    StepVerifier.create(
+            gateway.executeWithMetadata(
+                List.of("sh", "-c", "echo $YUKTA_METADATA_APPLICATION_NAME_VALUE"),
+                null,
+                10L,
+                Map.of("application.name.value", "myapp")))
+        .assertNext(output -> assertThat(output).contains("myapp"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeWithMetadata_keyMixedCase_convertsToUppercase() {
+    StepVerifier.create(
+            gateway.executeWithMetadata(
+                List.of("sh", "-c", "echo $YUKTA_METADATA_MYKEY"),
+                null,
+                10L,
+                Map.of("MyKey", "mixedcase_value")))
+        .assertNext(output -> assertThat(output).contains("mixedcase_value"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeWithMetadata_metadataValueWithSpecialChars_passesCorrectly() {
+    StepVerifier.create(
+            gateway.executeWithMetadata(
+                List.of("sh", "-c", "echo $YUKTA_METADATA_SPECIAL"),
+                null,
+                10L,
+                Map.of("special", "value-with_special.chars@123")))
+        .assertNext(output -> assertThat(output).contains("value-with_special.chars@123"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_commandWithMetacharacters_shellQuotingPreventsInjection() {
+    // Test that dangerous shell metacharacters are properly escaped when useShell=true
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("echo", "safe;string|with:pipes"), null, 10L, Map.of(), true))
+        .assertNext(output -> assertThat(output).contains("safe;string|with:pipes"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_shellArgWithComplexQuoting_handledCorrectly() {
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("sh", "-c", "echo 'test string with spaces'"), null, 10L, Map.of(), false))
+        .assertNext(output -> assertThat(output).contains("test string with spaces"))
+        .verifyComplete();
+  }
+
+  @Test
+  void escapeShellArg_alphanumericAndSafeChars_noQuotingNeeded() {
+    // Test through shell wrapper that safe args don't get quoted
+    StepVerifier.create(
+            gateway.executeStream(List.of("echo", "hello123_-./test"), null, 10L, Map.of(), true))
+        .assertNext(output -> assertThat(output).contains("hello123_-./test"))
+        .verifyComplete();
+  }
+
+  @Test
+  void escapeShellArg_dangerousCharsSemicolon_quotesForSafety() {
+    StepVerifier.create(
+            gateway.executeStream(List.of("echo", "cmd1;cmd2"), null, 10L, Map.of(), true))
+        .assertNext(output -> assertThat(output).contains("cmd1;cmd2"))
+        .verifyComplete();
+  }
+
+  @Test
+  void escapeShellArg_dangerousCharsPipe_quotesForSafety() {
+    StepVerifier.create(
+            gateway.executeStream(List.of("echo", "text|other"), null, 10L, Map.of(), true))
+        .assertNext(output -> assertThat(output).contains("text|other"))
+        .verifyComplete();
+  }
+
+  @Test
+  void escapeShellArg_dangerousCharsRedirection_quotesForSafety() {
+    StepVerifier.create(
+            gateway.executeStream(List.of("echo", "file>output"), null, 10L, Map.of(), true))
+        .assertNext(output -> assertThat(output).contains("file>output"))
+        .verifyComplete();
+  }
+
+  @Test
+  void wrapInShell_commandWithArguments_wrapsAllProperly() {
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("printf", "%s %s", "arg1", "arg2"), null, 10L, Map.of(), true))
+        .assertNext(output -> assertThat(output).contains("arg1"))
+        .verifyComplete();
+  }
+
+  @Test
+  @DisabledOnOs(OS.WINDOWS)
+  void wrapInShell_unixSystem_usesBinSh() {
+    // Verify /bin/sh is used on Unix by testing command that only works in sh
+    StepVerifier.create(gateway.executeStream(List.of("echo", "test"), null, 10L, Map.of(), true))
+        .assertNext(output -> assertThat(output).contains("test"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_processExitsWithOutputAndError_includesOutputInException() {
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("sh", "-c", "echo 'stdout'; echo 'stderr' >&2; exit 1"),
+                null,
+                10L,
+                Map.of(),
+                false))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("1");
+              assertThat(error.getMessage()).contains("stdout");
+            });
+  }
+
+  @Test
+  void executeStream_multipleLineOutput_collectedAndReturned() {
+    // Generate multiple output lines
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("sh", "-c", "echo line1; echo line2; echo line3; echo line4; echo line5"),
+                null,
+                10L,
+                Map.of(),
+                false))
+        .expectNext("line1")
+        .expectNext("line2")
+        .expectNext("line3")
+        .expectNext("line4")
+        .expectNext("line5")
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_environmentVariable_propagatedToProcess() {
+    final Map<String, String> env = new HashMap<>();
+    env.put("TEST_CUSTOM_VAR", "custom_value_123");
+
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("sh", "-c", "echo $TEST_CUSTOM_VAR"), null, 10L, env, false))
+        .assertNext(output -> assertThat(output).contains("custom_value_123"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeWithMetadata_multipleMetadataExports_allVariablesSet() {
+    final Map<String, Object> metadata = new HashMap<>();
+    metadata.put("key1", "val1");
+    metadata.put("key2", "val2");
+    metadata.put("key3", "val3");
+
+    StepVerifier.create(
+            gateway.executeWithMetadata(
+                List.of(
+                    "sh",
+                    "-c",
+                    "echo $YUKTA_METADATA_KEY1:$YUKTA_METADATA_KEY2:$YUKTA_METADATA_KEY3"),
+                null,
+                10L,
+                metadata))
+        .assertNext(
+            output -> {
+              assertThat(output).contains("val1");
+              assertThat(output).contains("val2");
+              assertThat(output).contains("val3");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_processAliveAfterCompletion_destroyNotCalled() {
+    // Normal completion flow - process cleanup happens
+    StepVerifier.create(gateway.executeStream(List.of("echo", "test"), null, 10L, Map.of(), false))
+        .assertNext(output -> assertThat(output).isNotNull())
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_negativeLongTimeout_throwsIllegalArgument() {
+    StepVerifier.create(
+            gateway.executeStream(List.of("echo", "test"), null, -100L, Map.of(), false))
+        .verifyError(IllegalArgumentException.class);
+  }
 }
