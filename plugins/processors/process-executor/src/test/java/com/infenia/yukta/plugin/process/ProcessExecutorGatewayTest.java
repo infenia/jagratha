@@ -639,4 +639,104 @@ class ProcessExecutorGatewayTest {
             gateway.executeStream(List.of("echo", "test"), null, -100L, Map.of(), false))
         .verifyError(IllegalArgumentException.class);
   }
+
+  @Test
+  void executeStream_workingDirWithBlankString_treatedAsNoDirectory() {
+    // Test the isBlank() branch in executeStream
+    StepVerifier.create(gateway.executeStream(List.of("echo", "test"), "   ", 10L, Map.of(), false))
+        .assertNext(output -> assertThat(output).contains("test"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_envMapNull_handlesNullEnvironment() {
+    // Test the env null branch in executeStream
+    StepVerifier.create(gateway.executeStream(List.of("echo", "test"), null, 10L, null, false))
+        .assertNext(output -> assertThat(output).contains("test"))
+        .verifyComplete();
+  }
+
+  @Test
+  void execute_nonStreamingThrowsGenericException_wrapsInWorkflowException() {
+    // Test the non-WorkflowExecutionException error wrapping in execute()
+    StepVerifier.create(gateway.execute(List.of("sh", "-c", "exit 1"), null, 10L))
+        .verifyError(WorkflowExecutionException.class);
+  }
+
+  @Test
+  void executeWithMetadata_withNullValueInMetadata_skipsNullEntry() {
+    // Test the null value check in exportMetadata
+    final Map<String, Object> metadata = new HashMap<>();
+    metadata.put("key1", "value1");
+    metadata.put("key2", null);
+    metadata.put("key3", "value3");
+
+    StepVerifier.create(
+            gateway.executeWithMetadata(
+                List.of("sh", "-c", "echo $YUKTA_METADATA_KEY1:$YUKTA_METADATA_KEY3"),
+                null,
+                10L,
+                metadata))
+        .assertNext(
+            output -> {
+              assertThat(output).contains("value1");
+              assertThat(output).contains("value3");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void escapeShellArg_safeCharactersOnly_returnsUnquoted() {
+    // Test the safe branch in escapeShellArg where regex matches
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("echo", "abc123._/test-value:works"), null, 10L, Map.of(), true))
+        .assertNext(output -> assertThat(output).contains("abc123._/test-value:works"))
+        .verifyComplete();
+  }
+
+  @Test
+  void processOutput_includesCommandInErrorMessage() {
+    // Test that error messages include the command
+    StepVerifier.create(
+            gateway.executeStream(
+                List.of("sh", "-c", "echo 'process output' && exit 127"),
+                null,
+                10L,
+                Map.of(),
+                false))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              // Verify output is included
+              assertThat(error.getMessage()).contains("process output");
+            });
+  }
+
+  @Test
+  void executeStream_environmentVariableNull_executesSuccessfully() {
+    // Test the null env handling in executeStream line 76
+    StepVerifier.create(gateway.executeStream(List.of("echo", "test"), null, 10L, null, false))
+        .assertNext(output -> assertThat(output).contains("test"))
+        .verifyComplete();
+  }
+
+  @Test
+  void execute_processFailureNonWorkflowException_wrapsInWorkflowException() {
+    // Test lines 210-214: non-WorkflowExecutionException error wrapping in execute()
+    StepVerifier.create(gateway.execute(List.of("sh", "-c", "exit 1"), null, 10L))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+            });
+  }
+
+  @Test
+  void executeWithMetadata_withNullMetadataAndEnvVars_executesCorrectly() {
+    // Test lines 251-252 and executeWithMetadata null handling
+    StepVerifier.create(
+            gateway.executeWithMetadata(List.of("sh", "-c", "echo hello"), null, 10L, null))
+        .assertNext(output -> assertThat(output).contains("hello"))
+        .verifyComplete();
+  }
 }

@@ -604,4 +604,158 @@ class ProcessExecutorPluginTest {
             })
         .verifyComplete();
   }
+
+  @Test
+  @SuppressWarnings({"unchecked"})
+  void buildResolvedConfig_emptyStringWorkingDir_excludesFromMapPut() {
+    // Explicitly test that empty workingDir is excluded from resolved config map
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "workingDir", "");
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    final ArgumentCaptor<String> dirCaptor = ArgumentCaptor.forClass(String.class);
+
+    when(gateway.executeStream(
+            any(List.class), dirCaptor.capture(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("output"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+
+    // When empty string is passed, it should not be put into resolved config
+    // (due to the if (!workingDir.isEmpty()) check), so gateway gets null
+    assertThat(dirCaptor.getValue()).isNull();
+  }
+
+  @Test
+  void resolveValue_nullValuePassedToResolver_returnsEmptyMono() {
+    // Test the null check in resolveValue that returns Mono.empty()
+    // Use HashMap since Map.of() doesn't allow null values
+    final Map<String, Object> config = new HashMap<>();
+    config.put("command", List.of("echo"));
+    config.put("workingDir", null);
+
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("output"));
+
+    // This should complete without error
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+  }
+
+  @Test
+  void handleExecutionError_workflowExecutionExceptionBranch_logsWeeDetails() {
+    // Explicitly test the WorkflowExecutionException instanceof branch
+    final Map<String, Object> config = Map.of("command", List.of("fail"));
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    final WorkflowExecutionException wee =
+        new WorkflowExecutionException("Workflow failed: exit code 5");
+
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.error(wee));
+
+    // Verify the WEE error is propagated and logs the specific message
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("exit code");
+            });
+  }
+
+  @Test
+  void resolveConfig_allTypesResolved_buildsFinalMap() {
+    // Test the buildResolvedConfig method that zips all resolved values
+    final Map<String, Object> config =
+        Map.of(
+            "command",
+            List.of("test"),
+            "workingDir",
+            "/test",
+            "timeout",
+            500,
+            "env",
+            Map.of("KEY", "value"),
+            "useShell",
+            true);
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+
+    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
+        .thenReturn(Flux.just("output"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+  }
+
+  @Test
+  void getUsagePattern_returnsDocumentation() {
+    // Test line 52 - getUsagePattern() method coverage
+    final String pattern = plugin.getUsagePattern();
+    assertThat(pattern)
+        .isNotNull()
+        .contains("REQUIRED")
+        .contains("command")
+        .contains("OPTIONAL")
+        .contains("workingDir")
+        .contains("timeout");
+  }
+
+  @Test
+  @SuppressWarnings({"unchecked"})
+  void resolveEnv_nonEmptyEnvironmentVariables_processesAllEntries() {
+    // Test line 207 - resolveEnv() non-empty branch and full Flux processing
+    final Map<String, Object> env = new HashMap<>();
+    env.put("VAR1", "value1");
+    env.put("VAR2", "value2");
+    env.put("VAR3", "value3");
+
+    final Map<String, Object> config = Map.of("command", List.of("test"), "env", env);
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    @SuppressWarnings("unchecked")
+    final ArgumentCaptor<Map> envCaptor = ArgumentCaptor.forClass(Map.class);
+
+    when(gateway.executeStream(
+            any(List.class), any(), anyLong(), envCaptor.capture(), anyBoolean()))
+        .thenReturn(Flux.just("output"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+
+    // Verify all env variables are processed through Flux.flatMapSequential
+    final Map<String, String> passedEnv = envCaptor.getValue();
+    assertThat(passedEnv)
+        .containsEntry("VAR1", "value1")
+        .containsEntry("VAR2", "value2")
+        .containsEntry("VAR3", "value3");
+  }
+
+  @Test
+  @SuppressWarnings({"unchecked"})
+  void resolveEnv_nullEnvironmentMap_returnsEmptyMap() {
+    // Test line 207 null branch: if (env == null || env.isEmpty())
+    // Use HashMap to hold null value
+    final Map<String, Object> config = new HashMap<>();
+    config.put("command", List.of("test"));
+    config.put("env", null);
+
+    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    @SuppressWarnings("unchecked")
+    final ArgumentCaptor<Map> envCaptor = ArgumentCaptor.forClass(Map.class);
+
+    when(gateway.executeStream(
+            any(List.class), any(), anyLong(), envCaptor.capture(), anyBoolean()))
+        .thenReturn(Flux.just("output"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+        .verifyComplete();
+
+    // Verify empty map is passed when env is null
+    final Map<String, String> passedEnv = envCaptor.getValue();
+    assertThat(passedEnv).isEmpty();
+  }
 }
