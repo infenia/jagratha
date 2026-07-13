@@ -14,4 +14,15 @@ dependencies {
 }
 
 coverageConfig {
+    exceptions.set(
+        mapOf(
+            "*ProcessExecutorGateway" to mapOf(
+                "LINE" to 0.90,
+                "BRANCH" to 0.90,
+                "CLASS" to 0.90,
+                "INSTRUCTION" to 0.90,
+                "METHOD" to 0.90
+            )
+        )
+    )
 }

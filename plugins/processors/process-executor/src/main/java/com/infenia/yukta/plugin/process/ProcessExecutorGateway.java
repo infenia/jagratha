@@ -23,12 +23,7 @@ import reactor.core.scheduler.Schedulers;
 /** Gateway for executing external processes with reactive streaming output. */
 @Slf4j
 @Service
-@SuppressWarnings({
-  "PMD.OnlyOneReturn",
-  "PMD.UseConcurrentHashMap",
-  "PMD.CognitiveComplexity",
-  "PMD.AtLeastOneConstructor"
-})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.UseConcurrentHashMap", "PMD.AtLeastOneConstructor"})
 @SuppressFBWarnings(
     value = "OS_OPEN_STREAM",
     justification = "Streams are properly closed via Flux.usingWhen lifecycle management")

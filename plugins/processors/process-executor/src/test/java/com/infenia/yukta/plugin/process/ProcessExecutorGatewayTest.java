@@ -16,10 +16,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import reactor.test.StepVerifier;
 
 @SuppressWarnings("PMD")
 @NoArgsConstructor
+@ExtendWith(OutputCaptureExtension.class)
 class ProcessExecutorGatewayTest {
 
   private ProcessExecutorGateway gateway;
@@ -945,6 +949,89 @@ class ProcessExecutorGatewayTest {
             error -> {
               assertThat(error).isInstanceOf(WorkflowExecutionException.class);
               assertThat(error.getMessage()).contains("exit code 3");
+            });
+  }
+
+  @Test
+  void closeReaderQuietly_ioExceptionOnClose_logsWarning(final CapturedOutput output)
+      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    // Test line 307-308 catch block - IOException handling in closeReaderQuietly
+    final Method method =
+        ProcessExecutorGateway.class.getDeclaredMethod(
+            "closeReaderQuietly", java.io.BufferedReader.class);
+    method.setAccessible(true);
+
+    // Create a reader that throws IOException on close()
+    final java.io.BufferedReader throwingReader =
+        new java.io.BufferedReader(
+            new java.io.InputStreamReader(System.in, java.nio.charset.StandardCharsets.UTF_8)) {
+          @Override
+          public void close() throws java.io.IOException {
+            throw new java.io.IOException("Simulated close failure");
+          }
+        };
+
+    // Call the method - should catch and log the exception without throwing
+    method.invoke(gateway, throwingReader);
+
+    // Verify that the warning was logged
+    assertThat(output.getOut() + output.getErr()).contains("Failed to close process output reader");
+  }
+
+  @Test
+  void execute_invalidTimeoutZero_wrapsIllegalArgumentExceptionInWorkflowException() {
+    // Test lines 174-181: onErrorMap wrapping branch for non-WFE exceptions in execute()
+    // When executeStream receives timeoutSeconds=0, it returns Flux.error(IllegalArgumentException)
+    // This raw IllegalArgumentException propagates to execute()'s onErrorMap where it's wrapped
+    StepVerifier.create(gateway.execute(List.of("echo", "test"), null, 0L))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("Process execution failed");
+              assertThat(error.getCause()).isInstanceOf(IllegalArgumentException.class);
+            });
+  }
+
+  @Test
+  void execute_invalidTimeoutNegative_wrapsIllegalArgumentExceptionInWorkflowException() {
+    // Test lines 174-181: onErrorMap wrapping branch for non-WFE exceptions in execute()
+    // Similar to above but with negative timeout
+    StepVerifier.create(gateway.execute(List.of("echo", "test"), null, -10L))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("Process execution failed");
+              assertThat(error.getCause()).isInstanceOf(IllegalArgumentException.class);
+            });
+  }
+
+  @Test
+  void executeWithMetadata_invalidTimeoutZero_wrapsIllegalArgumentExceptionInWorkflowException() {
+    // Test lines 225-231: onErrorMap wrapping branch for non-WFE exceptions in
+    // executeWithMetadata()
+    // When executeStream receives timeoutSeconds=0, it returns Flux.error(IllegalArgumentException)
+    // This raw IllegalArgumentException propagates to executeWithMetadata()'s onErrorMap where it's
+    // wrapped
+    StepVerifier.create(gateway.executeWithMetadata(List.of("echo", "test"), null, 0L, Map.of()))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("Process execution failed");
+              assertThat(error.getCause()).isInstanceOf(IllegalArgumentException.class);
+            });
+  }
+
+  @Test
+  void executeWithMetadata_negativeTimeout_wrapsIllegalArgumentException() {
+    // Test lines 225-231: onErrorMap wrapping branch for non-WFE exceptions in
+    // executeWithMetadata()
+    // With negative timeout
+    StepVerifier.create(gateway.executeWithMetadata(List.of("echo", "test"), null, -10L, Map.of()))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("Process execution failed");
+              assertThat(error.getCause()).isInstanceOf(IllegalArgumentException.class);
             });
   }
 }
