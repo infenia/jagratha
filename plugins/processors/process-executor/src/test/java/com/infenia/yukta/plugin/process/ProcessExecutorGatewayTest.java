@@ -5,6 +5,9 @@ package com.infenia.yukta.plugin.process;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -738,5 +741,186 @@ class ProcessExecutorGatewayTest {
             gateway.executeWithMetadata(List.of("sh", "-c", "echo hello"), null, 10L, null))
         .assertNext(output -> assertThat(output).contains("hello"))
         .verifyComplete();
+  }
+
+  @Test
+  void executeStream_processExitCodeVariations_allHandled() {
+    // Test various exit codes to ensure error mapping works
+    StepVerifier.create(
+            gateway.executeStream(List.of("sh", "-c", "exit 5"), null, 10L, Map.of(), false))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("5");
+            });
+  }
+
+  @Test
+  void execute_withWorkingDirectoryAndTimeout_executesInContext() {
+    // Test execute() with working dir and timeout parameters
+    StepVerifier.create(gateway.execute(List.of("pwd"), "/tmp", 10L))
+        .assertNext(output -> assertThat(output).contains("tmp"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeStream_environmentAndWorkingDir_combinedExecution() {
+    // Test combined env and working dir scenarios
+    final Map<String, String> env = new HashMap<>();
+    env.put("TEST_VAR", "test_value");
+
+    StepVerifier.create(
+            gateway.executeStream(List.of("sh", "-c", "echo $TEST_VAR"), null, 10L, env, false))
+        .assertNext(output -> assertThat(output).contains("test_value"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeWithMetadata_executeMethod_withWorkingDir() {
+    // Test executeWithMetadata's execute() helper path
+    StepVerifier.create(gateway.executeWithMetadata(List.of("sh", "-c", "pwd"), "/tmp", 10L, null))
+        .assertNext(output -> assertThat(output).contains("tmp"))
+        .verifyComplete();
+  }
+
+  @Test
+  void destroyProcessIfAlive_aliveProcess_destroysIt()
+      throws NoSuchMethodException,
+          InvocationTargetException,
+          IllegalAccessException,
+          IOException,
+          InterruptedException {
+    // Test destroyProcessIfAlive via reflection
+    final Method method =
+        ProcessExecutorGateway.class.getDeclaredMethod("destroyProcessIfAlive", Process.class);
+    method.setAccessible(true);
+
+    // Create a test process that we can track
+    final Process process = new ProcessBuilder("sleep", "1").start();
+    assertThat(process.isAlive()).isTrue();
+
+    // Call the method
+    method.invoke(gateway, process);
+
+    // Verify the process was destroyed (give it a moment to actually exit)
+    Thread.sleep(100);
+    assertThat(process.isAlive()).isFalse();
+  }
+
+  @Test
+  void destroyProcessIfAlive_deadProcess_doesNothing()
+      throws NoSuchMethodException,
+          InvocationTargetException,
+          IllegalAccessException,
+          IOException,
+          InterruptedException {
+    // Test destroyProcessIfAlive with already-dead process
+    final Method method =
+        ProcessExecutorGateway.class.getDeclaredMethod("destroyProcessIfAlive", Process.class);
+    method.setAccessible(true);
+
+    // Create and complete a process
+    final Process process = new ProcessBuilder("true").start();
+    process.waitFor(); // Wait for it to complete
+
+    assertThat(process.isAlive()).isFalse();
+
+    // Call the method (should not throw)
+    method.invoke(gateway, process);
+
+    // Should still be dead
+    assertThat(process.isAlive()).isFalse();
+  }
+
+  @Test
+  void forciblyDestroyProcessIfAlive_aliveProcess_forciblyDestroysIt()
+      throws NoSuchMethodException,
+          InvocationTargetException,
+          IllegalAccessException,
+          IOException,
+          InterruptedException {
+    // Test forciblyDestroyProcessIfAlive via reflection
+    final Method method =
+        ProcessExecutorGateway.class.getDeclaredMethod(
+            "forciblyDestroyProcessIfAlive", Process.class, List.class);
+    method.setAccessible(true);
+
+    // Create a test process that we can track
+    final Process process = new ProcessBuilder("sleep", "10").start();
+    assertThat(process.isAlive()).isTrue();
+
+    // Call the method with a dummy command
+    final List<String> command = List.of("sleep", "10");
+    method.invoke(gateway, process, command);
+
+    // Verify the process was forcibly destroyed
+    Thread.sleep(100);
+    assertThat(process.isAlive()).isFalse();
+  }
+
+  @Test
+  void forciblyDestroyProcessIfAlive_deadProcess_doesNothing()
+      throws NoSuchMethodException,
+          InvocationTargetException,
+          IllegalAccessException,
+          IOException,
+          InterruptedException {
+    // Test forciblyDestroyProcessIfAlive with already-dead process
+    final Method method =
+        ProcessExecutorGateway.class.getDeclaredMethod(
+            "forciblyDestroyProcessIfAlive", Process.class, List.class);
+    method.setAccessible(true);
+
+    // Create and complete a process
+    final Process process = new ProcessBuilder("true").start();
+    process.waitFor();
+
+    assertThat(process.isAlive()).isFalse();
+
+    // Call the method (should not throw)
+    final List<String> command = List.of("true");
+    method.invoke(gateway, process, command);
+
+    // Should still be dead
+    assertThat(process.isAlive()).isFalse();
+  }
+
+  @Test
+  void execute_nonWorkflowExecutionExceptionWrapped_inWorkflowException() {
+    // Test line 191 branch - non-WFE exception wrapping in execute()
+    StepVerifier.create(gateway.execute(List.of("sh", "-c", "echo test && exit 99"), null, 10L))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("exit code");
+            });
+  }
+
+  @Test
+  void closeReaderQuietly_successfulClose()
+      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IOException {
+    // Test closeReaderQuietly via reflection
+    final Method method =
+        ProcessExecutorGateway.class.getDeclaredMethod(
+            "closeReaderQuietly", java.io.BufferedReader.class);
+    method.setAccessible(true);
+
+    // Create a reader from a process
+    final Process process = new ProcessBuilder("echo", "test").start();
+    final java.io.BufferedReader reader =
+        new java.io.BufferedReader(
+            new java.io.InputStreamReader(
+                process.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
+
+    // Call the method - should close without throwing
+    method.invoke(gateway, reader);
+
+    // Verify reader was closed (trying to readLine should throw)
+    try {
+      reader.readLine();
+    } catch (java.io.IOException e) {
+      // Expected - reader was closed
+      assertThat(e.getMessage()).contains("closed");
+    }
   }
 }

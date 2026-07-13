@@ -91,17 +91,7 @@ public class ProcessExecutorGateway {
                           process.getInputStream(), StandardCharsets.UTF_8));
               final Flux<String> lines =
                   Flux.fromStream(reader.lines())
-                      .doFinally(
-                          _ -> {
-                            try {
-                              reader.close();
-                            } catch (java.io.IOException e) {
-                              log.atWarn()
-                                  .setMessage("Failed to close process output reader")
-                                  .setCause(e)
-                                  .log();
-                            }
-                          })
+                      .doFinally(_ -> closeReaderQuietly(reader))
                       .subscribeOn(Schedulers.boundedElastic());
 
               // Collect all output before checking exit code so we can include it in error messages
@@ -143,32 +133,13 @@ public class ProcessExecutorGateway {
                               .subscribeOn(Schedulers.boundedElastic()));
             },
             process ->
-                Mono.fromRunnable(
-                        () -> {
-                          if (process.isAlive()) {
-                            process.destroy();
-                          }
-                        })
+                Mono.fromRunnable(() -> destroyProcessIfAlive(process))
                     .subscribeOn(Schedulers.boundedElastic()),
             (process, _) ->
-                Mono.fromRunnable(
-                        () -> {
-                          if (process.isAlive()) {
-                            log.atWarn()
-                                .setMessage("Forcibly destroying process due to error: {}")
-                                .addArgument(actualCommand)
-                                .log();
-                            process.destroyForcibly();
-                          }
-                        })
+                Mono.fromRunnable(() -> forciblyDestroyProcessIfAlive(process, actualCommand))
                     .subscribeOn(Schedulers.boundedElastic()),
             process ->
-                Mono.fromRunnable(
-                        () -> {
-                          if (process.isAlive()) {
-                            process.destroy();
-                          }
-                        })
+                Mono.fromRunnable(() -> destroyProcessIfAlive(process))
                     .subscribeOn(Schedulers.boundedElastic()))
         .timeout(Duration.ofSeconds(timeoutSeconds))
         .onErrorMap(
@@ -328,5 +299,45 @@ public class ProcessExecutorGateway {
             env.put(envKey, metadataValue);
           }
         });
+  }
+
+  /**
+   * Close a BufferedReader quietly, logging warnings if it fails.
+   *
+   * @param reader the reader to close
+   */
+  private void closeReaderQuietly(final java.io.BufferedReader reader) {
+    try {
+      reader.close();
+    } catch (java.io.IOException e) {
+      log.atWarn().setMessage("Failed to close process output reader").setCause(e).log();
+    }
+  }
+
+  /**
+   * Gracefully destroy a process if it is still alive.
+   *
+   * @param process the process to destroy
+   */
+  private void destroyProcessIfAlive(final Process process) {
+    if (process.isAlive()) {
+      process.destroy();
+    }
+  }
+
+  /**
+   * Forcibly destroy a process if it is still alive after an error.
+   *
+   * @param process the process to forcibly destroy
+   * @param command the command that was executed (for logging)
+   */
+  private void forciblyDestroyProcessIfAlive(final Process process, final List<String> command) {
+    if (process.isAlive()) {
+      log.atWarn()
+          .setMessage("Forcibly destroying process due to error: {}")
+          .addArgument(command)
+          .log();
+      process.destroyForcibly();
+    }
   }
 }
