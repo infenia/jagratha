@@ -923,4 +923,28 @@ class ProcessExecutorGatewayTest {
       assertThat(e.getMessage()).contains("closed");
     }
   }
+
+  @Test
+  void executeStream_workflowExecutionExceptionPassedThrough_notWrapped() {
+    // Test line 181 true branch - WorkflowExecutionException already is WFE
+    StepVerifier.create(
+            gateway.executeStream(List.of("sh", "-c", "exit 1"), null, 10L, Map.of(), false))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("exit code 1");
+            });
+  }
+
+  @Test
+  void executeWithMetadata_workflowExecutionExceptionPassedThrough_notWrapped() {
+    // Test line 235 true branch - WorkflowExecutionException in executeWithMetadata
+    StepVerifier.create(
+            gateway.executeWithMetadata(List.of("sh", "-c", "exit 3"), null, 10L, Map.of()))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("exit code 3");
+            });
+  }
 }
