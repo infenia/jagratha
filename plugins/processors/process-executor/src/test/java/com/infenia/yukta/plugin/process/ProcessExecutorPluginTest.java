@@ -30,7 +30,17 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-@SuppressWarnings({"PMD", "unchecked"})
+@SuppressWarnings({
+  "PMD.TooManyMethods",
+  "PMD.CommentRequired",
+  "PMD.TooManyStaticImports",
+  "PMD.AtLeastOneConstructor",
+  "PMD.LinguisticNaming",
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.LawOfDemeter",
+  "PMD.UseConcurrentHashMap",
+  "unchecked"
+})
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ProcessExecutorPluginTest {
@@ -937,6 +947,7 @@ class ProcessExecutorPluginTest {
   }
 
   /** Payload whose serialization deterministically fails. */
+  @SuppressWarnings({"PMD.CommentDefaultAccessModifier", "PMD.PublicMemberInNonPublicType"})
   static final class Unserializable {
     public String getValue() {
       throw new IllegalStateException("boom");

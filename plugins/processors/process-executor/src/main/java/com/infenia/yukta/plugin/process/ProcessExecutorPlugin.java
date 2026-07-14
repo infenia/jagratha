@@ -30,7 +30,17 @@ import tools.jackson.databind.ObjectMapper;
  * JSON, or legacy passthrough) and failure handling via {@code failureMode} (fail the node or emit
  * the result with the real exit code so downstream nodes can route on it).
  */
-@SuppressWarnings("PMD")
+@SuppressWarnings({
+  "PMD.CouplingBetweenObjects",
+  "PMD.GodClass",
+  "PMD.TooManyMethods",
+  "PMD.CommentRequired",
+  "PMD.OnlyOneReturn",
+  "PMD.LawOfDemeter",
+  "PMD.UseConcurrentHashMap",
+  "PMD.InsufficientStringBufferDeclaration",
+  "PMD.ExceptionAsFlowControl"
+})
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -181,8 +191,7 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
             .build();
 
     log.atInfo().log(
-        "Starting process execution: command={}, timeout={}s, workingDir={}",
-        config.command(),
+        "Starting process execution: timeout={}s, workingDir={}",
         config.timeout(),
         config.workingDir());
 
@@ -348,20 +357,11 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
   private Throwable handleExecutionError(
       final ProcessExecutorConfig config, final Throwable error) {
     log.atError()
-        .setMessage(
-            "Process execution failed: command={}, workingDir={}, error type={}, error message={}")
-        .addArgument(config.command())
+        .setMessage("Process execution failed: workingDir={}, error type={}")
         .addArgument(config.workingDir())
         .addArgument(error.getClass().getSimpleName())
-        .addArgument(error.getMessage())
         .setCause(error)
         .log();
-    if (error instanceof final WorkflowExecutionException wee) {
-      log.atError()
-          .setMessage("WorkflowExecutionException details: {}")
-          .addArgument(wee.getMessage())
-          .log();
-    }
     return error;
   }
 

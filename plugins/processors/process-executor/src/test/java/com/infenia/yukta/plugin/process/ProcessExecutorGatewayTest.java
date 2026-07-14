@@ -965,6 +965,20 @@ class ProcessExecutorGatewayTest {
     assertThat(output.getOut() + output.getErr()).contains("Failed to read process output");
   }
 
+  @Test
+  void readOutput_byteCap_stopsAppendingOnceExceeded_drainsRemainingStream() {
+    // Large first line (10 bytes incl. newline) exceeds the 8-byte cap;
+    // followed by a smaller third line that would fit if appending continued.
+    // Should return only the contiguous prefix and mark truncated.
+    final InputStream stream =
+        new java.io.ByteArrayInputStream("verylarge\nsmall\n".getBytes(StandardCharsets.UTF_8));
+
+    final ProcessExecutorGateway.OutputCapture capture = gateway.readOutput(stream, 0, 8L);
+
+    assertThat(capture.lines()).isEmpty();
+    assertThat(capture.truncated()).isTrue();
+  }
+
   // --- writeStdin: stdin piping ---
 
   @Test

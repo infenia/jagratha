@@ -44,4 +44,12 @@ import lombok.Builder;
     boolean includeInput,
     boolean captureStderr,
     int maxOutputLines,
-    long maxOutputBytes) {}
+    long maxOutputBytes) {
+
+  /** Defensively copies mutable collections to prevent external mutations. */
+  @SuppressWarnings("PMD.PublicMemberInNonPublicType")
+  public ProcessExecutorConfig {
+    command = command == null ? List.of() : List.copyOf(command);
+    env = env == null ? Map.of() : Map.copyOf(env);
+  }
+}

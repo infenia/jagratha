@@ -340,15 +340,17 @@ public class ProcessExecutorGateway {
         new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
       String line = reader.readLine();
       while (line != null) {
-        // +1 accounts for the newline separator stripped by readLine()
-        final long lineBytes = line.getBytes(StandardCharsets.UTF_8).length + 1L;
-        final boolean withinLineCap = maxLines <= 0 || lines.size() < maxLines;
-        final boolean withinByteCap = maxBytes <= 0 || bytes + lineBytes <= maxBytes;
-        if (withinLineCap && withinByteCap) {
-          lines.add(line);
-          bytes += lineBytes;
-        } else {
-          truncated = true;
+        if (!truncated) {
+          // +1 accounts for the newline separator stripped by readLine()
+          final long lineBytes = line.getBytes(StandardCharsets.UTF_8).length + 1L;
+          final boolean withinLineCap = maxLines <= 0 || lines.size() < maxLines;
+          final boolean withinByteCap = maxBytes <= 0 || bytes + lineBytes <= maxBytes;
+          if (withinLineCap && withinByteCap) {
+            lines.add(line);
+            bytes += lineBytes;
+          } else {
+            truncated = true;
+          }
         }
         line = reader.readLine();
       }
