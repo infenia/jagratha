@@ -108,7 +108,8 @@ class ProcessExecutorPluginTest {
         .contains("includeOutput")
         .contains("includeInput")
         .contains("maxOutputLines")
-        .contains("maxOutputBytes");
+        .contains("maxOutputBytes")
+        .contains("routeByExitCode");
   }
 
   @Test
@@ -836,6 +837,103 @@ class ProcessExecutorPluginTest {
               assertThat(error).isInstanceOf(IllegalArgumentException.class);
               assertThat(error.getMessage()).contains("Unknown inputMode");
             });
+  }
+
+  // --- routeByExitCode: success/failure output ports ---
+
+  @Test
+  void getOutputPorts_defaultConfig_singleDefaultPort() {
+    assertThat(plugin.getOutputPorts(Map.of("command", List.of("echo"))))
+        .containsExactly("default");
+  }
+
+  @Test
+  void getOutputPorts_routeByExitCode_successAndFailurePorts() {
+    assertThat(plugin.getOutputPorts(Map.of("routeByExitCode", true)))
+        .containsExactly("success", "failure");
+  }
+
+  @Test
+  void process_routeByExitCodeSuccess_stampsSuccessPort() {
+    final Map<String, Object> config =
+        Map.of("command", List.of("echo"), "failureMode", "CONTINUE", "routeByExitCode", true);
+    gatewayReturns(successResult("ok"));
+
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .assertNext(msg -> assertThat(msg.getSourcePort()).isEqualTo("success"))
+        .verifyComplete();
+  }
+
+  @Test
+  void process_routeByExitCodeNonZeroExit_stampsFailurePort() {
+    final Map<String, Object> config =
+        Map.of("command", List.of("false"), "failureMode", "CONTINUE", "routeByExitCode", true);
+    gatewayReturns(failedResult(3, "boom"));
+
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .assertNext(
+            msg -> {
+              assertThat(msg.getSourcePort()).isEqualTo("failure");
+              assertThat(msg.getMetadata().get("exitCode")).isEqualTo(3);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void process_routeByExitCodeTimeout_stampsFailurePort() {
+    final Map<String, Object> config =
+        Map.of(
+            "command", List.of("sleep", "99"), "failureMode", "CONTINUE", "routeByExitCode", true);
+    gatewayReturns(timedOutResult());
+
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .assertNext(msg -> assertThat(msg.getSourcePort()).isEqualTo("failure"))
+        .verifyComplete();
+  }
+
+  @Test
+  void process_routeByExitCodeWithoutContinueMode_errorsWithIllegalArgument() {
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "routeByExitCode", true);
+    gatewayReturns(successResult("ok"));
+
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(IllegalArgumentException.class);
+              assertThat(error.getMessage()).contains("requires failureMode: CONTINUE");
+            });
+  }
+
+  @Test
+  void process_withoutRouting_leavesSourcePortUntouched() {
+    final Map<String, Object> config = Map.of("command", List.of("echo"));
+    gatewayReturns(successResult("ok"));
+
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .assertNext(msg -> assertThat(msg.getSourcePort()).isNull())
+        .verifyComplete();
+  }
+
+  @Test
+  void validateConfig_routeByExitCodeWithoutContinue_errors() {
+    StepVerifier.create(
+            plugin.validateConfig(Map.of("command", List.of("echo"), "routeByExitCode", true)))
+        .verifyErrorSatisfies(
+            error -> assertThat(error.getMessage()).contains("requires failureMode: CONTINUE"));
+  }
+
+  @Test
+  void validateConfig_routeByExitCodeWithContinue_completes() {
+    StepVerifier.create(
+            plugin.validateConfig(
+                Map.of(
+                    "command",
+                    List.of("echo"),
+                    "failureMode",
+                    "CONTINUE",
+                    "routeByExitCode",
+                    true)))
+        .verifyComplete();
   }
 
   /** Payload whose serialization deterministically fails. */

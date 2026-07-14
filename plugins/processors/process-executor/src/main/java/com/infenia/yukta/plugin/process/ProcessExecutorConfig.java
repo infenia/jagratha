@@ -21,6 +21,8 @@ import lombok.Builder;
  * @param outputFormat the shape of the output message payload
  * @param failureMode how to react to a non-zero exit code or timeout
  * @param inputMode how the input message is handed to the process
+ * @param routeByExitCode whether output messages are stamped with the "success"/"failure" source
+ *     port based on the process outcome (requires failureMode CONTINUE)
  * @param includeOutput whether structured payloads embed stdout/stderr text
  * @param includeInput whether structured payloads embed the original input payload
  * @param captureStderr whether stderr is captured separately instead of merged into stdout
@@ -37,6 +39,7 @@ import lombok.Builder;
     OutputFormat outputFormat,
     FailureMode failureMode,
     InputMode inputMode,
+    boolean routeByExitCode,
     boolean includeOutput,
     boolean includeInput,
     boolean captureStderr,

@@ -43,8 +43,12 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
   private static final String OUTPUT_FORMAT = "outputFormat";
   private static final String FAILURE_MODE = "failureMode";
   private static final String INPUT_MODE = "inputMode";
+  private static final String ROUTE_BY_EXIT_CODE = "routeByExitCode";
   private static final String METADATA_ENV_PREFIX = "YUKTA_METADATA_";
   private static final String PAYLOAD_ENV_KEY = "YUKTA_PAYLOAD";
+
+  private static final String PORT_SUCCESS = "success";
+  private static final String PORT_FAILURE = "failure";
 
   private static final String EXIT_CODE_KEY = "exitCode";
   private static final String OUTPUT_KEY = "output";
@@ -120,6 +124,10 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
       ERROR: non-zero exit code or timeout fails the workflow node
       CONTINUE: the result message is emitted with the real exit code so downstream
                 nodes can route on it (e.g. payload.exitCode == 0)
+    - routeByExitCode: Boolean (default: false, requires failureMode: CONTINUE)
+      Stamps output messages with source port "success" (exit code 0) or "failure"
+      (non-zero exit or timeout). Wire edges with sourcePort success/failure to route
+      without a separate BRANCH node; edges without a sourcePort receive all messages.
     - includeOutput: Boolean (default: true)
       Include stdout/stderr text in STRUCTURED/JSON payloads
     - includeInput: Boolean (default: false)
@@ -129,6 +137,14 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
     - Message metadata always contains "exitCode" (real exit code; -1 on timeout)
     - JSON parse failures follow failureMode (ERROR: node fails; CONTINUE: "parseError" is set)
     """;
+  }
+
+  @Override
+  public List<String> getOutputPorts(final Map<String, Object> config) {
+    if (MapUtils.convert(config.getOrDefault(ROUTE_BY_EXIT_CODE, false), Boolean.class)) {
+      return List.of(PORT_SUCCESS, PORT_FAILURE);
+    }
+    return getOutputPorts();
   }
 
   @Override
@@ -189,7 +205,9 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
         result.timedOut(),
         result.durationMillis());
     return Flux.defer(
-        () -> Flux.just(outputMessage(message, result, buildPayload(message, config, result))));
+        () ->
+            Flux.just(
+                outputMessage(message, config, result, buildPayload(message, config, result))));
   }
 
   private Object buildPayload(
@@ -295,11 +313,20 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
   }
 
   private Message<?> outputMessage(
-      final Message<?> original, final ProcessExecutionResult result, final Object payload) {
+      final Message<?> original,
+      final ProcessExecutorConfig config,
+      final ProcessExecutionResult result,
+      final Object payload) {
     final Map<String, Object> newMetadata = new HashMap<>(original.getMetadata());
     newMetadata.put(EXIT_CODE_KEY, result.exitCode());
     log.atDebug().log("Exit code stored in metadata: {}", result.exitCode());
-    return DefaultMessage.from(original, payload).withMetadata(newMetadata);
+    final Message<?> output = DefaultMessage.from(original, payload).withMetadata(newMetadata);
+    if (config.routeByExitCode()) {
+      final String port = result.isSuccess() ? PORT_SUCCESS : PORT_FAILURE;
+      log.atDebug().log("Routing message to output port: {}", port);
+      return output.withSourcePort(port);
+    }
+    return output;
   }
 
   private WorkflowExecutionException executionFailure(
@@ -357,6 +384,13 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
     if (timeout <= 0) {
       throw new IllegalArgumentException("timeout must be positive, got: " + timeout);
     }
+    final FailureMode failureMode = FailureMode.from(config.get(FAILURE_MODE));
+    final boolean routeByExitCode = booleanOption(config, ROUTE_BY_EXIT_CODE, false);
+    if (routeByExitCode && failureMode != FailureMode.CONTINUE) {
+      throw new IllegalArgumentException(
+          "routeByExitCode requires failureMode: CONTINUE (failed processes error out otherwise,"
+              + " so the failure port would never emit)");
+    }
     final String workingDir = tuple.getT2();
     return ProcessExecutorConfig.builder()
         .command(tuple.getT1())
@@ -365,8 +399,9 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
         .env(tuple.getT4())
         .useShell(tuple.getT5())
         .outputFormat(OutputFormat.from(config.get(OUTPUT_FORMAT)))
-        .failureMode(FailureMode.from(config.get(FAILURE_MODE)))
+        .failureMode(failureMode)
         .inputMode(InputMode.from(config.get(INPUT_MODE)))
+        .routeByExitCode(routeByExitCode)
         .includeOutput(booleanOption(config, "includeOutput", true))
         .includeInput(booleanOption(config, "includeInput", false))
         .captureStderr(booleanOption(config, "captureStderr", false))
@@ -451,8 +486,11 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
     }
     try {
       OutputFormat.from(config.get(OUTPUT_FORMAT));
-      FailureMode.from(config.get(FAILURE_MODE));
       InputMode.from(config.get(INPUT_MODE));
+      final FailureMode failureMode = FailureMode.from(config.get(FAILURE_MODE));
+      if (booleanOption(config, ROUTE_BY_EXIT_CODE, false) && failureMode != FailureMode.CONTINUE) {
+        throw new IllegalArgumentException("routeByExitCode requires failureMode: CONTINUE");
+      }
     } catch (IllegalArgumentException e) {
       log.atWarn().log("Process executor configuration validation failed: {}", e.getMessage());
       return Mono.error(e);
