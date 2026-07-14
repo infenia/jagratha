@@ -11,6 +11,7 @@ import com.infenia.yukta.util.VariableResolver;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +42,9 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
   private static final String TIMEOUT = "timeout";
   private static final String OUTPUT_FORMAT = "outputFormat";
   private static final String FAILURE_MODE = "failureMode";
+  private static final String INPUT_MODE = "inputMode";
+  private static final String METADATA_ENV_PREFIX = "YUKTA_METADATA_";
+  private static final String PAYLOAD_ENV_KEY = "YUKTA_PAYLOAD";
 
   private static final String EXIT_CODE_KEY = "exitCode";
   private static final String OUTPUT_KEY = "output";
@@ -74,9 +78,24 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
     Configuration Parameters:
 
     REQUIRED:
-    - command: List<String> (SpEL supported)
+    - command: List<String> (variable expressions supported)
       Command and arguments to execute
-      Example: ["mvn", "clean", "test"] or ["./gradlew", "build"]
+      Example: ["mvn", "clean", "test"] or ["deploy", "${payload.version}"]
+
+    VARIABLE EXPRESSIONS (in command, workingDir, timeout, env):
+    - ${env.NAME}, ${sys.prop}, ${context.var}: environment/system/reactor-context values
+    - ${payload}, ${payload.some.field}: the input message payload (nested map access)
+    - ${metadata.someKey}: an input message metadata entry
+      Keys containing PASSWORD/SECRET/KEY are blocked for safety
+
+    OPTIONAL (input):
+    - inputMode: NONE | ENV | STDIN (default: NONE)
+      ENV: metadata exported as YUKTA_METADATA_* env vars and payload as YUKTA_PAYLOAD
+           (String payloads as-is, other payloads JSON-serialized); explicit env wins.
+           SECURITY: env vars are visible to child processes and process listings -
+           do not use with messages carrying secrets
+      STDIN: payload written to the process standard input
+             (String payloads as-is, other payloads JSON-serialized)
 
     OPTIONAL (execution):
     - workingDir: String (SpEL supported, default: current directory)
@@ -121,7 +140,7 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
   private Flux<Message<?>> executeProcess(
       final Message<?> message, final Map<String, Object> config) {
     log.atDebug().log("Starting executeProcess for message");
-    return resolveConfig(config)
+    return resolveConfig(config, message)
         .flatMapMany(resolvedConfig -> executeWithConfig(message, resolvedConfig))
         .doOnError(
             error ->
@@ -137,8 +156,9 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
             .command(config.command())
             .workingDir(config.workingDir())
             .timeoutSeconds(config.timeout())
-            .env(config.env())
+            .env(buildEnv(message, config))
             .useShell(config.useShell())
+            .stdin(buildStdin(message, config))
             .captureStderr(config.captureStderr())
             .maxOutputLines(config.maxOutputLines())
             .maxOutputBytes(config.maxOutputBytes())
@@ -230,6 +250,50 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
     return payload;
   }
 
+  private Map<String, String> buildEnv(
+      final Message<?> message, final ProcessExecutorConfig config) {
+    if (config.inputMode() != InputMode.ENV) {
+      return config.env();
+    }
+    final Map<String, String> env = new HashMap<>();
+    message
+        .getMetadata()
+        .forEach(
+            (key, value) -> {
+              if (value != null) {
+                final String envKey =
+                    METADATA_ENV_PREFIX + key.toUpperCase(Locale.ROOT).replace('.', '_');
+                env.put(envKey, value.toString());
+              }
+            });
+    if (message.getPayload() != null) {
+      env.put(PAYLOAD_ENV_KEY, payloadAsString(message.getPayload()));
+    }
+    // Explicitly configured env entries take precedence over exported message values
+    env.putAll(config.env());
+    log.atDebug().log("Input message exported as environment: {} variable(s)", env.size());
+    return env;
+  }
+
+  private String buildStdin(final Message<?> message, final ProcessExecutorConfig config) {
+    if (config.inputMode() != InputMode.STDIN || message.getPayload() == null) {
+      return null;
+    }
+    return payloadAsString(message.getPayload());
+  }
+
+  private String payloadAsString(final Object payload) {
+    if (payload instanceof final String text) {
+      return text;
+    }
+    try {
+      return JSON_MAPPER.writeValueAsString(payload);
+    } catch (JacksonException e) {
+      throw new WorkflowExecutionException(
+          "Failed to serialize input payload for inputMode: " + e.getMessage(), e);
+    }
+  }
+
   private Message<?> outputMessage(
       final Message<?> original, final ProcessExecutionResult result, final Object payload) {
     final Map<String, Object> newMetadata = new HashMap<>(original.getMetadata());
@@ -275,13 +339,14 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
   }
 
   @SuppressWarnings("unchecked")
-  private Mono<ProcessExecutorConfig> resolveConfig(final Map<String, Object> config) {
+  private Mono<ProcessExecutorConfig> resolveConfig(
+      final Map<String, Object> config, final Message<?> message) {
     return Mono.zip(
-            resolveCommand((List<Object>) config.get(COMMAND)),
-            resolveWorkingDir(config),
-            resolveTimeout(config),
-            resolveEnv((Map<String, Object>) config.getOrDefault("env", Map.of())),
-            resolveUseShell(config))
+            resolveCommand((List<Object>) config.get(COMMAND), message),
+            resolveWorkingDir(config, message),
+            resolveTimeout(config, message),
+            resolveEnv((Map<String, Object>) config.getOrDefault("env", Map.of()), message),
+            resolveUseShell(config, message))
         .map(tuple -> buildConfig(tuple, config));
   }
 
@@ -301,6 +366,7 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
         .useShell(tuple.getT5())
         .outputFormat(OutputFormat.from(config.get(OUTPUT_FORMAT)))
         .failureMode(FailureMode.from(config.get(FAILURE_MODE)))
+        .inputMode(InputMode.from(config.get(INPUT_MODE)))
         .includeOutput(booleanOption(config, "includeOutput", true))
         .includeInput(booleanOption(config, "includeInput", false))
         .captureStderr(booleanOption(config, "captureStderr", false))
@@ -318,41 +384,44 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
     return MapUtils.convert(config.getOrDefault(key, defaultValue), Boolean.class);
   }
 
-  private Mono<String> resolveWorkingDir(final Map<String, Object> config) {
-    return resolveValue(config.get("workingDir")).map(Object::toString).defaultIfEmpty("");
+  private Mono<String> resolveWorkingDir(
+      final Map<String, Object> config, final Message<?> message) {
+    return resolveValue(config.get("workingDir"), message).map(Object::toString).defaultIfEmpty("");
   }
 
-  private Mono<Long> resolveTimeout(final Map<String, Object> config) {
-    return resolveValue(config.getOrDefault(TIMEOUT, DEFAULT_TIMEOUT_SECONDS))
+  private Mono<Long> resolveTimeout(final Map<String, Object> config, final Message<?> message) {
+    return resolveValue(config.getOrDefault(TIMEOUT, DEFAULT_TIMEOUT_SECONDS), message)
         .map(v -> MapUtils.convert(v, Long.class))
         .defaultIfEmpty(DEFAULT_TIMEOUT_SECONDS);
   }
 
-  private Mono<Boolean> resolveUseShell(final Map<String, Object> config) {
-    return resolveValue(config.getOrDefault("useShell", false))
+  private Mono<Boolean> resolveUseShell(
+      final Map<String, Object> config, final Message<?> message) {
+    return resolveValue(config.getOrDefault("useShell", false), message)
         .map(v -> MapUtils.convert(v, Boolean.class))
         .defaultIfEmpty(false);
   }
 
-  private Mono<List<String>> resolveCommand(final List<Object> command) {
+  private Mono<List<String>> resolveCommand(final List<Object> command, final Message<?> message) {
     if (command == null || command.isEmpty()) {
       log.atWarn().log("Command resolution failed: command is mandatory");
       return Mono.error(new IllegalArgumentException("command is mandatory"));
     }
     return Flux.fromIterable(command)
-        .flatMapSequential(this::resolveValue)
+        .flatMapSequential(value -> resolveValue(value, message))
         .map(Object::toString)
         .collectList();
   }
 
-  private Mono<Map<String, String>> resolveEnv(final Map<String, Object> env) {
+  private Mono<Map<String, String>> resolveEnv(
+      final Map<String, Object> env, final Message<?> message) {
     if (env == null || env.isEmpty()) {
       return Mono.just(Map.of());
     }
     return Flux.fromIterable(env.entrySet())
         .flatMapSequential(
             entry ->
-                resolveValue(entry.getValue())
+                resolveValue(entry.getValue(), message)
                     .map(val -> Map.entry(entry.getKey(), val.toString())))
         .collectMap(Map.Entry::getKey, Map.Entry::getValue)
         .doOnNext(
@@ -362,11 +431,11 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
                     resolved.size()));
   }
 
-  private Mono<Object> resolveValue(final Object value) {
+  private Mono<Object> resolveValue(final Object value, final Message<?> message) {
     if (value == null) {
       return Mono.empty();
     }
-    return resolver.resolve(value);
+    return resolver.resolve(value, message);
   }
 
   @Override
@@ -383,6 +452,7 @@ public class ProcessExecutorPlugin implements ProcessorPlugin {
     try {
       OutputFormat.from(config.get(OUTPUT_FORMAT));
       FailureMode.from(config.get(FAILURE_MODE));
+      InputMode.from(config.get(INPUT_MODE));
     } catch (IllegalArgumentException e) {
       log.atWarn().log("Process executor configuration validation failed: {}", e.getMessage());
       return Mono.error(e);

@@ -73,15 +73,6 @@ class ProcessExecutorGatewayTest {
   }
 
   @Test
-  void testExecuteWithMetadata() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_FOO"), null, 10L, Map.of("foo", "bar")))
-        .assertNext(output -> assertThat(output).contains("bar"))
-        .verifyComplete();
-  }
-
-  @Test
   void testExecuteStreamWithInvalidTimeout() {
     StepVerifier.create(gateway.executeStream(List.of("echo", "hello"), null, 0L, Map.of(), false))
         .verifyError(IllegalArgumentException.class);
@@ -97,15 +88,6 @@ class ProcessExecutorGatewayTest {
   void testExecuteNonStreaming() {
     StepVerifier.create(gateway.execute(List.of("echo", "hello"), null, 10L))
         .expectNext("hello")
-        .verifyComplete();
-  }
-
-  @Test
-  void testExecuteMetadataExport() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_KEY"), null, 10L, Map.of("key", "value")))
-        .assertNext(output -> assertThat(output).contains("value"))
         .verifyComplete();
   }
 
@@ -152,73 +134,6 @@ class ProcessExecutorGatewayTest {
     StepVerifier.create(
             gateway.executeStream(List.of("echo", "test_shell_binary"), null, 10L, Map.of(), true))
         .assertNext(line -> assertThat(line).contains("test_shell_binary"))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_nullMetadata_executesSuccessfully() {
-    StepVerifier.create(gateway.executeWithMetadata(List.of("echo", "hello"), null, 10L, null))
-        .assertNext(output -> assertThat(output).contains("hello"))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_emptyMetadata_executesSuccessfully() {
-    StepVerifier.create(gateway.executeWithMetadata(List.of("echo", "hello"), null, 10L, Map.of()))
-        .assertNext(output -> assertThat(output).contains("hello"))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_multipleMetadataEntries_exportsAllVariables() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_FOO:$YUKTA_METADATA_BAR"),
-                null,
-                10L,
-                Map.of("foo", "value1", "bar", "value2")))
-        .assertNext(
-            output -> {
-              assertThat(output).contains("value1");
-              assertThat(output).contains("value2");
-            })
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_metadataWithNullValue_skipsNullEntry() {
-    final Map<String, Object> metadata = new HashMap<>();
-    metadata.put("key1", "value1");
-    metadata.put("key2", null);
-
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_KEY1"), null, 10L, metadata))
-        .assertNext(output -> assertThat(output).contains("value1"))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_metadataKeyWithDot_replacesWithUnderscore() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_USER_NAME"),
-                null,
-                10L,
-                Map.of("user.name", "john")))
-        .assertNext(output -> assertThat(output).contains("john"))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_metadataKeyMixedCase_convertedToUppercase() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_MYKEY"),
-                null,
-                10L,
-                Map.of("MyKey", "testValue")))
-        .assertNext(output -> assertThat(output).contains("testValue"))
         .verifyComplete();
   }
 
@@ -287,18 +202,6 @@ class ProcessExecutorGatewayTest {
   @Test
   void executeStream_emptyCommandOutput_completesSuccessfully() {
     StepVerifier.create(gateway.executeStream(List.of("true"), null, 10L, Map.of(), false))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_metadataWithSpecialCharacters_handlesCorrectly() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_SPECIAL"),
-                null,
-                10L,
-                Map.of("special", "value@123")))
-        .assertNext(output -> assertThat(output).contains("value@123"))
         .verifyComplete();
   }
 
@@ -428,70 +331,6 @@ class ProcessExecutorGatewayTest {
   }
 
   @Test
-  void executeWithMetadata_nullMetadataMap_executesWithoutError() {
-    StepVerifier.create(gateway.executeWithMetadata(List.of("echo", "hello"), null, 10L, null))
-        .assertNext(output -> assertThat(output).contains("hello"))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_emptyMetadataMap_executesSuccessfully() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo 'test'"), null, 10L, java.util.Map.of()))
-        .assertNext(output -> assertThat(output).contains("test"))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_keyWithDot_convertsToUnderscore() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_USER_NAME"),
-                null,
-                10L,
-                Map.of("user.name", "testuser")))
-        .assertNext(output -> assertThat(output).contains("testuser"))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_keyWithMultipleDots_allConverted() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_APPLICATION_NAME_VALUE"),
-                null,
-                10L,
-                Map.of("application.name.value", "myapp")))
-        .assertNext(output -> assertThat(output).contains("myapp"))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_keyMixedCase_convertsToUppercase() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_MYKEY"),
-                null,
-                10L,
-                Map.of("MyKey", "mixedcase_value")))
-        .assertNext(output -> assertThat(output).contains("mixedcase_value"))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_metadataValueWithSpecialChars_passesCorrectly() {
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_SPECIAL"),
-                null,
-                10L,
-                Map.of("special", "value-with_special.chars@123")))
-        .assertNext(output -> assertThat(output).contains("value-with_special.chars@123"))
-        .verifyComplete();
-  }
-
-  @Test
   void executeStream_commandWithMetacharacters_shellQuotingPreventsInjection() {
     // Test that dangerous shell metacharacters are properly escaped when useShell=true
     StepVerifier.create(
@@ -609,31 +448,6 @@ class ProcessExecutorGatewayTest {
   }
 
   @Test
-  void executeWithMetadata_multipleMetadataExports_allVariablesSet() {
-    final Map<String, Object> metadata = new HashMap<>();
-    metadata.put("key1", "val1");
-    metadata.put("key2", "val2");
-    metadata.put("key3", "val3");
-
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of(
-                    "sh",
-                    "-c",
-                    "echo $YUKTA_METADATA_KEY1:$YUKTA_METADATA_KEY2:$YUKTA_METADATA_KEY3"),
-                null,
-                10L,
-                metadata))
-        .assertNext(
-            output -> {
-              assertThat(output).contains("val1");
-              assertThat(output).contains("val2");
-              assertThat(output).contains("val3");
-            })
-        .verifyComplete();
-  }
-
-  @Test
   void executeStream_processAliveAfterCompletion_destroyNotCalled() {
     // Normal completion flow - process cleanup happens
     StepVerifier.create(gateway.executeStream(List.of("echo", "test"), null, 10L, Map.of(), false))
@@ -669,28 +483,6 @@ class ProcessExecutorGatewayTest {
     // Test the non-WorkflowExecutionException error wrapping in execute()
     StepVerifier.create(gateway.execute(List.of("sh", "-c", "exit 1"), null, 10L))
         .verifyError(WorkflowExecutionException.class);
-  }
-
-  @Test
-  void executeWithMetadata_withNullValueInMetadata_skipsNullEntry() {
-    // Test the null value check in exportMetadata
-    final Map<String, Object> metadata = new HashMap<>();
-    metadata.put("key1", "value1");
-    metadata.put("key2", null);
-    metadata.put("key3", "value3");
-
-    StepVerifier.create(
-            gateway.executeWithMetadata(
-                List.of("sh", "-c", "echo $YUKTA_METADATA_KEY1:$YUKTA_METADATA_KEY3"),
-                null,
-                10L,
-                metadata))
-        .assertNext(
-            output -> {
-              assertThat(output).contains("value1");
-              assertThat(output).contains("value3");
-            })
-        .verifyComplete();
   }
 
   @Test
@@ -740,15 +532,6 @@ class ProcessExecutorGatewayTest {
   }
 
   @Test
-  void executeWithMetadata_withNullMetadataAndEnvVars_executesCorrectly() {
-    // Test lines 251-252 and executeWithMetadata null handling
-    StepVerifier.create(
-            gateway.executeWithMetadata(List.of("sh", "-c", "echo hello"), null, 10L, null))
-        .assertNext(output -> assertThat(output).contains("hello"))
-        .verifyComplete();
-  }
-
-  @Test
   void executeStream_processExitCodeVariations_allHandled() {
     // Test various exit codes to ensure error mapping works
     StepVerifier.create(
@@ -777,14 +560,6 @@ class ProcessExecutorGatewayTest {
     StepVerifier.create(
             gateway.executeStream(List.of("sh", "-c", "echo $TEST_VAR"), null, 10L, env, false))
         .assertNext(output -> assertThat(output).contains("test_value"))
-        .verifyComplete();
-  }
-
-  @Test
-  void executeWithMetadata_executeMethod_withWorkingDir() {
-    // Test executeWithMetadata's execute() helper path
-    StepVerifier.create(gateway.executeWithMetadata(List.of("sh", "-c", "pwd"), "/tmp", 10L, null))
-        .assertNext(output -> assertThat(output).contains("tmp"))
         .verifyComplete();
   }
 
@@ -848,18 +623,6 @@ class ProcessExecutorGatewayTest {
   }
 
   @Test
-  void executeWithMetadata_workflowExecutionExceptionPassedThrough_notWrapped() {
-    // Test line 235 true branch - WorkflowExecutionException in executeWithMetadata
-    StepVerifier.create(
-            gateway.executeWithMetadata(List.of("sh", "-c", "exit 3"), null, 10L, Map.of()))
-        .verifyErrorSatisfies(
-            error -> {
-              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
-              assertThat(error.getMessage()).contains("exit code 3");
-            });
-  }
-
-  @Test
   void execute_invalidTimeoutZero_wrapsIllegalArgumentExceptionInWorkflowException() {
     // Test lines 174-181: onErrorMap wrapping branch for non-WFE exceptions in execute()
     // When executeStream receives timeoutSeconds=0, it returns Flux.error(IllegalArgumentException)
@@ -887,22 +650,6 @@ class ProcessExecutorGatewayTest {
   }
 
   @Test
-  void executeWithMetadata_invalidTimeoutZero_wrapsIllegalArgumentExceptionInWorkflowException() {
-    // Test lines 225-231: onErrorMap wrapping branch for non-WFE exceptions in
-    // executeWithMetadata()
-    // When executeStream receives timeoutSeconds=0, it returns Flux.error(IllegalArgumentException)
-    // This raw IllegalArgumentException propagates to executeWithMetadata()'s onErrorMap where it's
-    // wrapped
-    StepVerifier.create(gateway.executeWithMetadata(List.of("echo", "test"), null, 0L, Map.of()))
-        .verifyErrorSatisfies(
-            error -> {
-              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
-              assertThat(error.getMessage()).contains("Process execution failed");
-              assertThat(error.getCause()).isInstanceOf(IllegalArgumentException.class);
-            });
-  }
-
-  @Test
   void wrapInShell_windowsOsName_usesCmdExe() {
     final List<String> wrapped = gateway.wrapInShell(List.of("echo", "hello"), "Windows 10");
 
@@ -914,20 +661,6 @@ class ProcessExecutorGatewayTest {
     final List<String> wrapped = gateway.wrapInShell(List.of("echo", "hello"), "Linux");
 
     assertThat(wrapped).startsWith("/bin/sh", "-c");
-  }
-
-  @Test
-  void executeWithMetadata_negativeTimeout_wrapsIllegalArgumentException() {
-    // Test lines 225-231: onErrorMap wrapping branch for non-WFE exceptions in
-    // executeWithMetadata()
-    // With negative timeout
-    StepVerifier.create(gateway.executeWithMetadata(List.of("echo", "test"), null, -10L, Map.of()))
-        .verifyErrorSatisfies(
-            error -> {
-              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
-              assertThat(error.getMessage()).contains("Process execution failed");
-              assertThat(error.getCause()).isInstanceOf(IllegalArgumentException.class);
-            });
   }
 
   // --- executeForResult: non-throwing result-based API ---

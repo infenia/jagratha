@@ -12,7 +12,6 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -27,12 +26,7 @@ import reactor.core.scheduler.Schedulers;
 /** Gateway for executing external processes with reactive streaming output. */
 @Slf4j
 @Service
-@SuppressWarnings({
-  "PMD.OnlyOneReturn",
-  "PMD.UseConcurrentHashMap",
-  "PMD.AtLeastOneConstructor",
-  "PMD.TooManyMethods"
-})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.AtLeastOneConstructor", "PMD.TooManyMethods"})
 public class ProcessExecutorGateway {
 
   /** Conversion factor from nanoseconds to milliseconds. */
@@ -123,58 +117,6 @@ public class ProcessExecutorGateway {
   public Mono<String> execute(
       final List<String> command, final String workingDir, final long timeoutSeconds) {
     return executeStream(command, workingDir, timeoutSeconds, Map.of(), false)
-        .collectList()
-        // Restore newlines between lines that were stripped by BufferedReader.lines()
-        .map(list -> String.join("\n", list))
-        .onErrorMap(
-            e -> {
-              if (e instanceof WorkflowExecutionException) {
-                return e;
-              }
-              return new WorkflowExecutionException(
-                  "Process execution failed: " + e.getMessage(), e);
-            });
-  }
-
-  /**
-   * Execute a process with metadata exported as environment variables.
-   *
-   * <p><strong>SECURITY WARNING:</strong> All metadata values are exported as YUKTA_METADATA_*
-   * environment variables, which are:
-   *
-   * <ul>
-   *   <li>Visible to all child processes spawned by the command
-   *   <li>May appear in process listings and logs
-   *   <li>Potentially visible in stack traces and error messages
-   * </ul>
-   *
-   * <p><strong>Do NOT export sensitive data such as:</strong> passwords, API keys, tokens, private
-   * keys, or other credentials.
-   *
-   * <p><strong>MEMORY WARNING:</strong> This method buffers the entire process output in memory.
-   * For processes generating large outputs (>100MB), consider using {@link
-   * #executeForResult(ProcessExecutionSpec)} with output caps instead to avoid Out-of-Memory
-   * errors.
-   *
-   * @param command the command and arguments to execute
-   * @param workingDir the working directory (null defaults to current directory)
-   * @param timeoutSeconds the timeout in seconds
-   * @param metadata the metadata map to export as environment variables (must not contain sensitive
-   *     data)
-   * @return a Mono containing the process output with newlines preserved between lines
-   */
-  public Mono<String> executeWithMetadata(
-      final List<String> command,
-      final String workingDir,
-      final long timeoutSeconds,
-      final Map<String, Object> metadata) {
-
-    final Map<String, String> env = new HashMap<>();
-    if (metadata != null) {
-      exportMetadata(metadata, env);
-    }
-
-    return executeStream(command, workingDir, timeoutSeconds, env, false)
         .collectList()
         // Restore newlines between lines that were stripped by BufferedReader.lines()
         .map(list -> String.join("\n", list))
@@ -506,25 +448,6 @@ public class ProcessExecutorGateway {
     // Unsafe argument - wrap in single quotes and escape any single quotes within
     // by closing the quote, adding an escaped quote, and reopening
     return "'" + arg.replace("'", "'\"'\"'") + "'";
-  }
-
-  /**
-   * Export metadata as environment variables with YUKTA_METADATA_ prefix. Useful for passing
-   * workflow context to spawned processes.
-   *
-   * @param metadata the metadata map
-   * @param env the environment map to populate
-   */
-  private void exportMetadata(final Map<String, Object> metadata, final Map<String, String> env) {
-    metadata.forEach(
-        (key, value) -> {
-          if (value != null) {
-            final String metadataValue = value.toString();
-            final String keyUpper = key.toUpperCase(Locale.ROOT);
-            final String envKey = "YUKTA_METADATA_" + keyUpper.replace('.', '_');
-            env.put(envKey, metadataValue);
-          }
-        });
   }
 
   /**

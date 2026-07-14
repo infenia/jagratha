@@ -4,6 +4,10 @@ package com.infenia.yukta.plugin.process;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.message.DefaultMessage;
@@ -38,8 +42,8 @@ class ProcessExecutorPluginTest {
   @BeforeEach
   void setUp() {
     plugin = new ProcessExecutorPlugin(gateway, resolver);
-    // Generic resolver mock to handle all SpEL resolutions by returning the input
-    when(resolver.resolve(any()))
+    // Generic resolver mock to handle all variable resolutions by returning the input
+    when(resolver.resolve(any(), any()))
         .thenAnswer(
             invocation -> {
               final Object arg = invocation.getArgument(0);
@@ -630,7 +634,214 @@ class ProcessExecutorPluginTest {
                 Map.of(
                     "command", List.of("echo"),
                     "outputFormat", "json",
-                    "failureMode", "continue")))
+                    "failureMode", "continue",
+                    "inputMode", "stdin")))
         .verifyComplete();
+  }
+
+  @Test
+  void validateConfig_invalidInputMode_errors() {
+    StepVerifier.create(
+            plugin.validateConfig(Map.of("command", List.of("echo"), "inputMode", "SOCKET")))
+        .verifyErrorSatisfies(
+            error -> assertThat(error.getMessage()).contains("Unknown inputMode"));
+  }
+
+  // --- message-aware variable resolution ---
+
+  @Test
+  void process_templatedCommand_resolvedAgainstInputMessage() {
+    final Message<?> input = message(Map.of("version", "1.2.3"));
+    when(resolver.resolve(eq("${payload.version}"), any())).thenReturn(Mono.just("1.2.3"));
+    final Map<String, Object> config = Map.of("command", List.of("deploy", "${payload.version}"));
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture())).thenReturn(Mono.just(successResult("ok")));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertThat(specCaptor.getValue().command()).containsExactly("deploy", "1.2.3");
+    final ArgumentCaptor<Message<?>> messageCaptor = ArgumentCaptor.forClass(Message.class);
+    verify(resolver, atLeastOnce()).resolve(any(), messageCaptor.capture());
+    assertThat(messageCaptor.getAllValues()).contains(input);
+  }
+
+  // --- inputMode: ENV ---
+
+  @Test
+  void process_inputModeEnv_exportsMetadataAndPayload() {
+    final Message<?> input =
+        message("data-payload").withMetadata(Map.of("buildId", "42", "user.name", "jo"));
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "inputMode", "ENV");
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture())).thenReturn(Mono.just(successResult("ok")));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertThat(specCaptor.getValue().env())
+        .containsEntry("YUKTA_METADATA_BUILDID", "42")
+        .containsEntry("YUKTA_METADATA_USER_NAME", "jo")
+        .containsEntry("YUKTA_PAYLOAD", "data-payload");
+  }
+
+  @Test
+  void process_inputModeEnvWithMapPayload_exportsPayloadAsJson() {
+    final Message<?> input = message(Map.of("key", "value"));
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "inputMode", "env");
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture())).thenReturn(Mono.just(successResult("ok")));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertThat(specCaptor.getValue().env()).containsEntry("YUKTA_PAYLOAD", "{\"key\":\"value\"}");
+  }
+
+  @Test
+  void process_inputModeEnv_explicitEnvWinsOverExportedValues() {
+    final Message<?> input = message("payload-value");
+    final Map<String, Object> config =
+        Map.of(
+            "command", List.of("echo"),
+            "inputMode", "ENV",
+            "env", Map.of("YUKTA_PAYLOAD", "explicit-override"));
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture())).thenReturn(Mono.just(successResult("ok")));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertThat(specCaptor.getValue().env()).containsEntry("YUKTA_PAYLOAD", "explicit-override");
+  }
+
+  @Test
+  void process_inputModeEnvWithNullPayloadAndNullMetadataValue_skipsThem() {
+    // DefaultMessage forbids null metadata values, so use a mock to cover the defensive branches
+    final Map<String, Object> metadata = new HashMap<>();
+    metadata.put("present", "yes");
+    metadata.put("absent", null);
+    final Message<?> input = mock(Message.class);
+    // First call (env export) sees the null value; later calls (output message construction)
+    // get a null-free view since DefaultMessage rejects null metadata values
+    when(input.getMetadata()).thenReturn(metadata, Map.of("present", "yes"));
+    when(input.getPayload()).thenReturn(null);
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "inputMode", "ENV");
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture())).thenReturn(Mono.just(successResult("ok")));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertThat(specCaptor.getValue().env())
+        .containsEntry("YUKTA_METADATA_PRESENT", "yes")
+        .doesNotContainKey("YUKTA_METADATA_ABSENT")
+        .doesNotContainKey("YUKTA_PAYLOAD");
+  }
+
+  // --- inputMode: STDIN ---
+
+  @Test
+  void process_inputModeStdinWithStringPayload_writesPayloadAsIs() {
+    final Message<?> input = message("line1\nline2");
+    final Map<String, Object> config = Map.of("command", List.of("cat"), "inputMode", "STDIN");
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture())).thenReturn(Mono.just(successResult("ok")));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertThat(specCaptor.getValue().stdin()).isEqualTo("line1\nline2");
+  }
+
+  @Test
+  void process_inputModeStdinWithMapPayload_writesPayloadAsJson() {
+    final Message<?> input = message(Map.of("key", "value"));
+    final Map<String, Object> config = Map.of("command", List.of("cat"), "inputMode", "stdin");
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture())).thenReturn(Mono.just(successResult("ok")));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertThat(specCaptor.getValue().stdin()).isEqualTo("{\"key\":\"value\"}");
+  }
+
+  @Test
+  void process_inputModeStdinWithNullPayload_writesNothing() {
+    final Message<?> input = message(null);
+    final Map<String, Object> config = Map.of("command", List.of("cat"), "inputMode", "STDIN");
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture())).thenReturn(Mono.just(successResult("ok")));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertThat(specCaptor.getValue().stdin()).isNull();
+  }
+
+  @Test
+  void process_inputModeNoneExplicit_doesNotTouchEnvOrStdin() {
+    final Message<?> input = message("payload").withMetadata(Map.of("buildId", "42"));
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "inputMode", "NONE");
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture())).thenReturn(Mono.just(successResult("ok")));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertThat(specCaptor.getValue().env()).isEmpty();
+    assertThat(specCaptor.getValue().stdin()).isNull();
+  }
+
+  @Test
+  void process_inputModeStdinWithUnserializablePayload_failsWithWorkflowException() {
+    final Message<?> input = message(new Unserializable());
+    final Map<String, Object> config = Map.of("command", List.of("cat"), "inputMode", "STDIN");
+    gatewayReturns(successResult("ok"));
+
+    StepVerifier.create(plugin.process(Flux.just(input), config))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("serialize input payload");
+            });
+  }
+
+  @Test
+  void process_invalidInputMode_errorsWithIllegalArgument() {
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "inputMode", "PIPE");
+
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(IllegalArgumentException.class);
+              assertThat(error.getMessage()).contains("Unknown inputMode");
+            });
+  }
+
+  /** Payload whose serialization deterministically fails. */
+  static final class Unserializable {
+    public String getValue() {
+      throw new IllegalStateException("boom");
+    }
   }
 }

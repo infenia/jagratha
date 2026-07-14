@@ -20,6 +20,7 @@ import lombok.Builder;
  * @param useShell whether to execute the command via an OS shell
  * @param outputFormat the shape of the output message payload
  * @param failureMode how to react to a non-zero exit code or timeout
+ * @param inputMode how the input message is handed to the process
  * @param includeOutput whether structured payloads embed stdout/stderr text
  * @param includeInput whether structured payloads embed the original input payload
  * @param captureStderr whether stderr is captured separately instead of merged into stdout
@@ -35,6 +36,7 @@ import lombok.Builder;
     boolean useShell,
     OutputFormat outputFormat,
     FailureMode failureMode,
+    InputMode inputMode,
     boolean includeOutput,
     boolean includeInput,
     boolean captureStderr,
