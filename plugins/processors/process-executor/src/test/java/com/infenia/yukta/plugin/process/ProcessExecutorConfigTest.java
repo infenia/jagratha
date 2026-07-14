@@ -9,9 +9,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings({"PMD.CommentRequired", "PMD.AtLeastOneConstructor", "PMD.UseConcurrentHashMap"})
+@SuppressWarnings({"PMD.CommentRequired", "PMD.UseConcurrentHashMap"})
+@NoArgsConstructor
 class ProcessExecutorConfigTest {
 
   @Test

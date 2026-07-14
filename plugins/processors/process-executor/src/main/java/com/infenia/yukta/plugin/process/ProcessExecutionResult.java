@@ -12,19 +12,20 @@ import lombok.Builder;
  * a regular result, not an error. Callers decide how to react to failures.
  *
  * <p>Record components:
+ *
  * <ul>
- *   <li><code>exitCode</code> — the process exit code, or {@link #TIMEOUT_EXIT_CODE} if the
- *       process timed out
+ *   <li><code>exitCode</code> — the process exit code, or {@link #TIMEOUT_EXIT_CODE} if the process
+ *       timed out
  *   <li><code>stdoutLines</code> — the captured standard output lines (never null after
  *       construction); contains merged stderr output when the execution did not capture stderr
  *       separately
  *   <li><code>stderrLines</code> — the captured standard error lines (never null after
  *       construction); empty when stderr was merged into stdout
  *   <li><code>durationMillis</code> — the wall-clock execution duration in milliseconds
- *   <li><code>timedOut</code> — whether the process was terminated because it exceeded the
- *       timeout; captured output is not available for timed-out executions
- *   <li><code>outputTruncated</code> — whether any captured output was truncated due to
- *       configured caps
+ *   <li><code>timedOut</code> — whether the process was terminated because it exceeded the timeout;
+ *       captured output is not available for timed-out executions
+ *   <li><code>outputTruncated</code> — whether any captured output was truncated due to configured
+ *       caps
  * </ul>
  */
 @Builder

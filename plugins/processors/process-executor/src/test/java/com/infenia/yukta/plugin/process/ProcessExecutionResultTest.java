@@ -9,7 +9,7 @@ import java.util.List;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("PMD")
+/** Tests for ProcessExecutionResult ensuring proper handling of output lines and normalization. */
 @NoArgsConstructor
 class ProcessExecutionResultTest {
 

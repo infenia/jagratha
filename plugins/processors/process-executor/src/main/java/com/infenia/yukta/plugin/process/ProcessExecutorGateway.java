@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -26,7 +27,8 @@ import reactor.core.scheduler.Schedulers;
 /** Gateway for executing external processes with reactive streaming output. */
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.AtLeastOneConstructor", "PMD.TooManyMethods"})
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.TooManyMethods"})
+@NoArgsConstructor
 public class ProcessExecutorGateway {
 
   /** Conversion factor from nanoseconds to milliseconds. */
@@ -331,12 +333,13 @@ public class ProcessExecutorGateway {
    * @param maxBytes maximum UTF-8 bytes to retain (non-positive for unlimited)
    * @return the captured output with a truncation flag
    */
+  @SuppressWarnings("PMD.UnnecessaryModifier")
   /* package */ OutputCapture readOutput(
       final InputStream stream, final int maxLines, final long maxBytes) {
     final List<String> lines = new ArrayList<>();
     boolean truncated = false;
     long bytes = 0;
-    try (BufferedReader reader =
+    try (final BufferedReader reader =
         new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
       String line = reader.readLine();
       while (line != null) {
@@ -354,7 +357,7 @@ public class ProcessExecutorGateway {
         }
         line = reader.readLine();
       }
-    } catch (IOException e) {
+    } catch (final IOException e) {
       log.atWarn()
           .setMessage("Failed to read process output; returning partial capture")
           .setCause(e)
@@ -378,7 +381,7 @@ public class ProcessExecutorGateway {
       if (stdin != null && !stdin.isEmpty()) {
         stream.write(stdin.getBytes(StandardCharsets.UTF_8));
       }
-    } catch (IOException e) {
+    } catch (final IOException e) {
       log.atDebug()
           .setMessage("Failed to write stdin to process (it may have exited early)")
           .setCause(e)
@@ -466,7 +469,7 @@ public class ProcessExecutorGateway {
     return Mono.defer(
             () -> {
               if (!process.isAlive()) {
-                return Mono.<Void>empty();
+                return Mono.empty();
               }
               process.destroy();
               return Mono.fromFuture(process.onExit())

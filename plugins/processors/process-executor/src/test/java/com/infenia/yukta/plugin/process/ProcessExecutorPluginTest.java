@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,13 +35,13 @@ import reactor.test.StepVerifier;
   "PMD.TooManyMethods",
   "PMD.CommentRequired",
   "PMD.TooManyStaticImports",
-  "PMD.AtLeastOneConstructor",
   "PMD.LinguisticNaming",
   "PMD.AvoidDuplicateLiterals",
   "PMD.LawOfDemeter",
   "PMD.UseConcurrentHashMap",
   "unchecked"
 })
+@NoArgsConstructor
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ProcessExecutorPluginTest {

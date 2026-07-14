@@ -14,6 +14,7 @@ import lombok.Builder;
  * #DEFAULT_TIMEOUT_SECONDS}, and non-positive output caps mean {@link #UNLIMITED}.
  *
  * <p>Record components:
+ *
  * <ul>
  *   <li><code>command</code> — the command and its arguments to execute (never null after
  *       construction)
@@ -27,10 +28,10 @@ import lombok.Builder;
  *       deterministically
  *   <li><code>captureStderr</code> — whether to capture stderr separately; when false, stderr is
  *       merged into stdout
- *   <li><code>maxOutputLines</code> — maximum number of output lines to retain per stream
- *       ({@link #UNLIMITED} for no cap); excess output is drained but discarded
- *   <li><code>maxOutputBytes</code> — maximum number of output bytes to retain per stream
- *       ({@link #UNLIMITED} for no cap); excess output is drained but discarded
+ *   <li><code>maxOutputLines</code> — maximum number of output lines to retain per stream ({@link
+ *       #UNLIMITED} for no cap); excess output is drained but discarded
+ *   <li><code>maxOutputBytes</code> — maximum number of output bytes to retain per stream ({@link
+ *       #UNLIMITED} for no cap); excess output is drained but discarded
  * </ul>
  */
 @Builder
