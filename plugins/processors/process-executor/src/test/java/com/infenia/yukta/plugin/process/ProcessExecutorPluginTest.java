@@ -4,8 +4,6 @@ package com.infenia.yukta.plugin.process;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.message.DefaultMessage;
@@ -28,7 +26,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-@SuppressWarnings("PMD")
+@SuppressWarnings({"PMD", "unchecked"})
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ProcessExecutorPluginTest {
@@ -49,6 +47,40 @@ class ProcessExecutorPluginTest {
             });
   }
 
+  private static ProcessExecutionResult successResult(final String... stdoutLines) {
+    return ProcessExecutionResult.builder()
+        .exitCode(0)
+        .stdoutLines(List.of(stdoutLines))
+        .durationMillis(5L)
+        .build();
+  }
+
+  private static ProcessExecutionResult failedResult(final int exitCode, final String... stdout) {
+    return ProcessExecutionResult.builder()
+        .exitCode(exitCode)
+        .stdoutLines(List.of(stdout))
+        .durationMillis(5L)
+        .build();
+  }
+
+  private static ProcessExecutionResult timedOutResult() {
+    return ProcessExecutionResult.builder()
+        .exitCode(ProcessExecutionResult.TIMEOUT_EXIT_CODE)
+        .timedOut(true)
+        .durationMillis(1000L)
+        .build();
+  }
+
+  private void gatewayReturns(final ProcessExecutionResult result) {
+    when(gateway.executeForResult(any())).thenReturn(Mono.just(result));
+  }
+
+  private static Message<?> message(final Object payload) {
+    return DefaultMessage.create(UUID.randomUUID(), payload);
+  }
+
+  // --- plugin identity ---
+
   @Test
   void testGetType() {
     assertThat(plugin.getType()).isEqualTo("PROCESS_EXECUTOR");
@@ -56,62 +88,23 @@ class ProcessExecutorPluginTest {
 
   @Test
   void testGetDescription() {
-    assertThat(plugin.getDescription()).isNotNull();
+    assertThat(plugin.getDescription()).isNotEmpty();
   }
 
   @Test
-  @SuppressWarnings({"unchecked"})
-  void testProcessExitCodeSuccess() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "input");
-
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(
-            message -> {
-              assertThat(message.getPayload()).isEqualTo("input");
-              assertThat(message.getMetadata().get("exitCode")).isEqualTo(0);
-            })
-        .verifyComplete();
-  }
-
-  @Test
-  @SuppressWarnings({"unchecked"})
-  void testProcessExitCodeFailure() {
-    final Map<String, Object> config = Map.of("command", List.of("false"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "input");
-
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.error(new RuntimeException("Process failed")));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .verifyError(RuntimeException.class);
-  }
-
-  @Test
-  @SuppressWarnings({"unchecked"})
-  void testProcessWithMultilineOutput() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "line1\nline2"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "input");
-
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("line1", "line2"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(
-            message -> {
-              assertThat(message.getPayload()).isEqualTo("input");
-              assertThat(message.getMetadata().get("exitCode")).isEqualTo(0);
-            })
-        .verifyComplete();
-  }
-
-  @Test
-  void testValidateConfigMissingCommand() {
-    StepVerifier.create(plugin.validateConfig(Map.of()))
-        .verifyError(IllegalArgumentException.class);
+  void getUsagePattern_documentsAllConfigurationKeys() {
+    assertThat(plugin.getUsagePattern())
+        .contains("REQUIRED")
+        .contains("command")
+        .contains("workingDir")
+        .contains("timeout")
+        .contains("outputFormat")
+        .contains("failureMode")
+        .contains("captureStderr")
+        .contains("includeOutput")
+        .contains("includeInput")
+        .contains("maxOutputLines")
+        .contains("maxOutputBytes");
   }
 
   @Test
@@ -120,544 +113,445 @@ class ProcessExecutorPluginTest {
     assertThat(autoConfig.processExecutorPlugin(gateway, resolver)).isNotNull();
   }
 
-  // New tests for improved coverage
+  // --- structured output (default) ---
 
   @Test
-  void resolveCommand_nullCommand_throwsIllegalArgumentException() {
-    final Map<String, Object> config = Map.of();
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("output"));
-
-    StepVerifier.create(
-            plugin.process(Flux.just(DefaultMessage.create(UUID.randomUUID(), "test")), config))
-        .verifyError(IllegalArgumentException.class);
-  }
-
-  @Test
-  void resolveCommand_emptyCommandList_throwsIllegalArgumentException() {
-    final Map<String, Object> config = Map.of("command", List.of());
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("output"));
-
-    StepVerifier.create(
-            plugin.process(Flux.just(DefaultMessage.create(UUID.randomUUID(), "test")), config))
-        .verifyError(IllegalArgumentException.class);
-  }
-
-  @Test
-  void resolveWorkingDir_nullValue_defaultsToEmpty() {
+  void process_success_emitsStructuredPayloadWithRealExitCode() {
     final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+    gatewayReturns(successResult("hello"));
 
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .assertNext(
+            msg -> {
+              final Map<String, Object> payload = (Map<String, Object>) msg.getPayload();
+              assertThat(payload)
+                  .containsEntry("exitCode", 0)
+                  .containsEntry("success", true)
+                  .containsEntry("timedOut", false)
+                  .containsEntry("durationMillis", 5L)
+                  .containsEntry("outputTruncated", false)
+                  .containsEntry("stdout", "hello")
+                  .containsEntry("stderr", "")
+                  .doesNotContainKey("input");
+              assertThat(msg.getMetadata().get("exitCode")).isEqualTo(0);
+            })
         .verifyComplete();
   }
 
   @Test
-  @SuppressWarnings({"unchecked"})
-  void resolveWorkingDir_providedValue_passedToGateway() {
-    final Map<String, Object> config = Map.of("command", List.of("pwd"), "workingDir", "/tmp");
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<String> dirCaptor = ArgumentCaptor.forClass(String.class);
-
-    when(gateway.executeStream(
-            any(List.class), dirCaptor.capture(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("/tmp"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
-        .verifyComplete();
-
-    assertThat(dirCaptor.getValue()).isEqualTo("/tmp");
-  }
-
-  @Test
-  void resolveTimeout_useDefaultTimeout_passes300Seconds() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
-
-    when(gateway.executeStream(
-            any(List.class), any(), timeoutCaptor.capture(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
-        .verifyComplete();
-
-    assertThat(timeoutCaptor.getValue()).isEqualTo(300L);
-  }
-
-  @Test
-  void resolveTimeout_customValue_passedToGateway() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"), "timeout", 600);
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
-
-    when(gateway.executeStream(
-            any(List.class), any(), timeoutCaptor.capture(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
-        .verifyComplete();
-
-    assertThat(timeoutCaptor.getValue()).isEqualTo(600L);
-  }
-
-  @Test
-  void resolveUseShell_default_falseByDefault() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<Boolean> shellCaptor = ArgumentCaptor.forClass(Boolean.class);
-
-    when(gateway.executeStream(
-            any(List.class), any(), anyLong(), any(Map.class), shellCaptor.capture()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
-        .verifyComplete();
-
-    assertThat(shellCaptor.getValue()).isFalse();
-  }
-
-  @Test
-  void resolveUseShell_trueValue_passedToGateway() {
+  void process_explicitStructuredFormatWithoutOutput_omitsStdoutKeys() {
     final Map<String, Object> config =
-        Map.of("command", List.of("echo", "hello"), "useShell", true);
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<Boolean> shellCaptor = ArgumentCaptor.forClass(Boolean.class);
+        Map.of("command", List.of("echo"), "outputFormat", "STRUCTURED", "includeOutput", false);
+    gatewayReturns(successResult("hello"));
 
-    when(gateway.executeStream(
-            any(List.class), any(), anyLong(), any(Map.class), shellCaptor.capture()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .assertNext(
+            msg -> {
+              final Map<String, Object> payload = (Map<String, Object>) msg.getPayload();
+              assertThat(payload).doesNotContainKey("stdout").doesNotContainKey("stderr");
+            })
         .verifyComplete();
-
-    assertThat(shellCaptor.getValue()).isTrue();
   }
 
   @Test
-  @SuppressWarnings({"unchecked"})
-  void resolveEnv_nullEnv_passesEmptyMap() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<Map> envCaptor = ArgumentCaptor.forClass(Map.class);
+  void process_includeInput_embedsOriginalPayload() {
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "includeInput", true);
+    gatewayReturns(successResult("out"));
 
-    when(gateway.executeStream(
-            any(List.class), any(), anyLong(), envCaptor.capture(), anyBoolean()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+    StepVerifier.create(plugin.process(Flux.just(message("original-data")), config))
+        .assertNext(
+            msg -> {
+              final Map<String, Object> payload = (Map<String, Object>) msg.getPayload();
+              assertThat(payload).containsEntry("input", "original-data");
+            })
         .verifyComplete();
-
-    assertThat(envCaptor.getValue()).isEmpty();
   }
 
   @Test
-  @SuppressWarnings({"unchecked"})
-  void resolveEnv_populatedEnv_passesResolvedVariables() {
-    final Map<String, Object> config =
-        Map.of(
-            "command", List.of("echo", "test"),
-            "env", Map.of("VAR1", "value1", "VAR2", "value2"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<Map> envCaptor = ArgumentCaptor.forClass(Map.class);
-
-    when(gateway.executeStream(
-            any(List.class), any(), anyLong(), envCaptor.capture(), anyBoolean()))
-        .thenReturn(Flux.just("output"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
-        .verifyComplete();
-
-    assertThat(envCaptor.getValue())
-        .containsEntry("VAR1", "value1")
-        .containsEntry("VAR2", "value2");
-  }
-
-  @Test
-  void createExitCodeMessage_preservesOriginalMetadata() {
+  void process_success_preservesOriginalMetadataAndAddsExitCode() {
     final Map<String, Object> originalMetadata = new HashMap<>();
     originalMetadata.put("traceId", "123");
     originalMetadata.put("sessionId", "456");
+    final Message<?> input = message("payload").withMetadata(originalMetadata);
+    gatewayReturns(successResult("hello"));
 
-    final Message<?> input =
-        DefaultMessage.create(UUID.randomUUID(), "payload").withMetadata(originalMetadata);
-    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
-
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
+    StepVerifier.create(
+            plugin.process(Flux.just(input), Map.of("command", List.of("echo", "hello"))))
         .assertNext(
-            message -> {
-              assertThat(message.getMetadata().get("exitCode")).isEqualTo(0);
-              assertThat(message.getMetadata().get("traceId")).isEqualTo("123");
-              assertThat(message.getMetadata().get("sessionId")).isEqualTo("456");
+            msg -> {
+              assertThat(msg.getMetadata().get("exitCode")).isEqualTo(0);
+              assertThat(msg.getMetadata().get("traceId")).isEqualTo("123");
+              assertThat(msg.getMetadata().get("sessionId")).isEqualTo("456");
+            })
+        .verifyComplete();
+  }
+
+  // --- failure modes ---
+
+  @Test
+  void process_nonZeroExitWithDefaultErrorMode_failsWithExitCodeAndOutput() {
+    final Map<String, Object> config = Map.of("command", List.of("false"));
+    gatewayReturns(failedResult(3, "boom"));
+
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("exit code 3").contains("boom");
+            });
+  }
+
+  @Test
+  void process_nonZeroExitWithCapturedStderr_errorMessageIncludesStderr() {
+    final Map<String, Object> config =
+        Map.of("command", List.of("false"), "failureMode", "ERROR", "captureStderr", true);
+    when(gateway.executeForResult(any()))
+        .thenReturn(
+            Mono.just(
+                ProcessExecutionResult.builder()
+                    .exitCode(2)
+                    .stdoutLines(List.of("out"))
+                    .stderrLines(List.of("something went wrong"))
+                    .build()));
+
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .verifyErrorSatisfies(
+            error ->
+                assertThat(error.getMessage())
+                    .contains("exit code 2")
+                    .contains("--- Stderr ---")
+                    .contains("something went wrong"));
+  }
+
+  @Test
+  void process_timeoutWithErrorMode_failsWithTimeoutMessage() {
+    final Map<String, Object> config = Map.of("command", List.of("sleep", "99"), "timeout", 1);
+    gatewayReturns(timedOutResult());
+
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("timed out after 1s");
+            });
+  }
+
+  @Test
+  void process_nonZeroExitWithContinueMode_emitsResultWithRealExitCode() {
+    final Map<String, Object> config =
+        Map.of("command", List.of("false"), "failureMode", "continue");
+    gatewayReturns(failedResult(3, "boom"));
+
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .assertNext(
+            msg -> {
+              final Map<String, Object> payload = (Map<String, Object>) msg.getPayload();
+              assertThat(payload)
+                  .containsEntry("exitCode", 3)
+                  .containsEntry("success", false)
+                  .containsEntry("stdout", "boom");
+              assertThat(msg.getMetadata().get("exitCode")).isEqualTo(3);
             })
         .verifyComplete();
   }
 
   @Test
-  void processExecutor_multipleMessagesInStream_processesSequentially() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
-    final Message<?> message1 = DefaultMessage.create(UUID.randomUUID(), "msg1");
-    final Message<?> message2 = DefaultMessage.create(UUID.randomUUID(), "msg2");
+  void process_timeoutWithContinueMode_emitsTimedOutResult() {
+    final Map<String, Object> config =
+        Map.of("command", List.of("sleep", "99"), "failureMode", "CONTINUE");
+    gatewayReturns(timedOutResult());
 
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("hello"));
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .assertNext(
+            msg -> {
+              final Map<String, Object> payload = (Map<String, Object>) msg.getPayload();
+              assertThat(payload).containsEntry("timedOut", true).containsEntry("success", false);
+              assertThat(msg.getMetadata().get("exitCode"))
+                  .isEqualTo(ProcessExecutionResult.TIMEOUT_EXIT_CODE);
+            })
+        .verifyComplete();
+  }
 
-    StepVerifier.create(plugin.process(Flux.just(message1, message2), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("msg1"))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("msg2"))
+  // --- raw and passthrough formats ---
+
+  @Test
+  void process_rawFormat_payloadIsStdoutString() {
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "outputFormat", "RAW");
+    gatewayReturns(successResult("line1", "line2"));
+
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .assertNext(msg -> assertThat(msg.getPayload()).isEqualTo("line1\nline2"))
         .verifyComplete();
   }
 
   @Test
-  void validateConfig_commandPresent_returnsEmpty() {
-    StepVerifier.create(plugin.validateConfig(Map.of("command", List.of("echo", "test"))))
+  void process_passthroughFormat_forwardsOriginalPayload() {
+    final Map<String, Object> config =
+        Map.of("command", List.of("echo"), "outputFormat", "passthrough");
+    gatewayReturns(successResult("ignored"));
+
+    StepVerifier.create(plugin.process(Flux.just(message("original")), config))
+        .assertNext(
+            msg -> {
+              assertThat(msg.getPayload()).isEqualTo("original");
+              assertThat(msg.getMetadata().get("exitCode")).isEqualTo(0);
+            })
+        .verifyComplete();
+  }
+
+  // --- json format ---
+
+  @Test
+  void process_jsonFormat_parsesStdoutIntoOutputField() {
+    final Map<String, Object> config = Map.of("command", List.of("report"), "outputFormat", "JSON");
+    gatewayReturns(successResult("{\"passed\": 10, \"failed\": 0}"));
+
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .assertNext(
+            msg -> {
+              final Map<String, Object> payload = (Map<String, Object>) msg.getPayload();
+              final Map<String, Object> output = (Map<String, Object>) payload.get("output");
+              assertThat(output).containsEntry("passed", 10).containsEntry("failed", 0);
+              assertThat(payload).containsEntry("exitCode", 0);
+            })
         .verifyComplete();
   }
 
   @Test
-  void handleExecutionError_genericException_returnsSameException() {
-    final Map<String, Object> config = Map.of("command", List.of("false"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final RuntimeException error = new RuntimeException("Test error");
+  void process_jsonFormatInvalidOutputWithErrorMode_failsWithParseError() {
+    final Map<String, Object> config = Map.of("command", List.of("report"), "outputFormat", "json");
+    gatewayReturns(successResult("not json at all"));
 
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.error(error));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .verifyError(RuntimeException.class);
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(WorkflowExecutionException.class);
+              assertThat(error.getMessage()).contains("parse process output as JSON");
+            });
   }
 
   @Test
-  void configResolution_allParametersPresent_buildsCompleteConfig() {
+  void process_jsonFormatInvalidOutputWithContinueMode_setsParseError() {
     final Map<String, Object> config =
         Map.of(
-            "command",
-            List.of("sh", "-c", "echo hello"),
-            "workingDir",
-            "/home",
-            "timeout",
-            120,
-            "env",
-            Map.of("PATH", "/usr/bin"),
-            "useShell",
-            true);
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+            "command", List.of("report"),
+            "outputFormat", "JSON",
+            "failureMode", "CONTINUE");
+    gatewayReturns(successResult("not json at all"));
 
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
         .assertNext(
-            message -> {
-              assertThat(message.getPayload()).isEqualTo("test");
-              assertThat(message.getMetadata().get("exitCode")).isEqualTo(0);
+            msg -> {
+              final Map<String, Object> payload = (Map<String, Object>) msg.getPayload();
+              assertThat(payload.get("output")).isNull();
+              assertThat(payload.get("parseError")).asString().isNotEmpty();
             })
         .verifyComplete();
   }
 
-  // Additional tests for improved coverage of extracted methods
-
   @Test
-  void buildResolvedConfig_emptyWorkingDir_passesNullToGateway() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "test"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<String> workingDirCaptor = ArgumentCaptor.forClass(String.class);
-
-    when(gateway.executeStream(
-            any(List.class), workingDirCaptor.capture(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("output"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
-        .verifyComplete();
-
-    // When workingDir is not provided, it's not included in resolvedConfig map,
-    // so executeWithResolvedConfig.get() returns null
-    final String capturedDir = workingDirCaptor.getValue();
-    assertThat(capturedDir).isNull();
-  }
-
-  @Test
-  void buildResolvedConfig_nonEmptyWorkingDir_includesInResolvedConfig() {
+  void process_jsonFormatFailedProcessWithContinueMode_skipsParsing() {
     final Map<String, Object> config =
-        Map.of("command", List.of("pwd"), "workingDir", "/home/user");
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<String> workingDirCaptor = ArgumentCaptor.forClass(String.class);
+        Map.of(
+            "command", List.of("report"),
+            "outputFormat", "JSON",
+            "failureMode", "CONTINUE");
+    gatewayReturns(failedResult(1, "not json"));
 
-    when(gateway.executeStream(
-            any(List.class), workingDirCaptor.capture(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("/home/user"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
-        .verifyComplete();
-
-    assertThat(workingDirCaptor.getValue()).isEqualTo("/home/user");
-  }
-
-  @Test
-  void executeWithResolvedConfig_getsOrDefaultForTimeout_appliesDefault() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
-
-    when(gateway.executeStream(
-            any(List.class), any(), timeoutCaptor.capture(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
-        .verifyComplete();
-
-    // Verify default timeout of 300 seconds is applied
-    assertThat(timeoutCaptor.getValue()).isEqualTo(300L);
-  }
-
-  @Test
-  void executeWithResolvedConfig_getsOrDefaultForEnv_appliesEmptyMap() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    @SuppressWarnings("unchecked")
-    final ArgumentCaptor<Map> envCaptor = ArgumentCaptor.forClass(Map.class);
-
-    when(gateway.executeStream(
-            any(List.class), any(), anyLong(), envCaptor.capture(), anyBoolean()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
-        .verifyComplete();
-
-    // Verify empty map is used when env not provided
-    assertThat(envCaptor.getValue()).isEmpty();
-  }
-
-  @Test
-  void executeWithResolvedConfig_getsOrDefaultForUseShell_appliesFalse() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<Boolean> shellCaptor = ArgumentCaptor.forClass(Boolean.class);
-
-    when(gateway.executeStream(
-            any(List.class), any(), anyLong(), any(Map.class), shellCaptor.capture()))
-        .thenReturn(Flux.just("hello"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
-        .verifyComplete();
-
-    // Verify default false is applied for useShell
-    assertThat(shellCaptor.getValue()).isFalse();
-  }
-
-  @Test
-  void handleExecutionError_withWorkflowExecutionException_logsSpecificDetails() {
-    final Map<String, Object> config = Map.of("command", List.of("false"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final WorkflowExecutionException workflowError =
-        new WorkflowExecutionException("Process failed with specific details");
-
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.error(workflowError));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .verifyError(WorkflowExecutionException.class);
-  }
-
-  @Test
-  void handleExecutionError_withGenericException_logsGenericError() {
-    final Map<String, Object> config = Map.of("command", List.of("bad-command"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final RuntimeException genericError = new RuntimeException("Generic execution error");
-
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.error(genericError));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .verifyError(RuntimeException.class);
-  }
-
-  @Test
-  void resolveValue_nullValue_returnsEmptyMono() {
-    // Verify that resolving a null value returns Mono.empty()
-    final Map<String, Object> config = Map.of("command", List.of("echo", "test"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("test"));
-
-    // This indirectly tests resolveValue(null) through resolveWorkingDir with no workingDir
-    // config
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
-        .verifyComplete();
-  }
-
-  @Test
-  void createExitCodeMessage_preservesPayloadAndAddsExitCode() {
-    final Map<String, Object> config = Map.of("command", List.of("true"));
-    final String originalPayload = "original_payload_data";
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), originalPayload);
-
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("output"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
+    StepVerifier.create(plugin.process(Flux.just(message("input")), config))
         .assertNext(
-            message -> {
-              // Payload should be preserved
-              assertThat(message.getPayload()).isEqualTo(originalPayload);
-              // Exit code should be added to metadata
-              assertThat(message.getMetadata().get("exitCode")).isEqualTo(0);
+            msg -> {
+              final Map<String, Object> payload = (Map<String, Object>) msg.getPayload();
+              assertThat(payload).containsKey("output").doesNotContainKey("parseError");
+              assertThat(payload.get("output")).isNull();
+              assertThat(payload).containsEntry("exitCode", 1);
             })
         .verifyComplete();
   }
 
-  @Test
-  void executeWithResolvedConfig_logsProcessOutput() {
-    final Map<String, Object> config = Map.of("command", List.of("echo", "test output"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("line1", "line2", "line3"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(
-            message -> {
-              assertThat(message.getPayload()).isEqualTo("test");
-              assertThat(message.getMetadata().get("exitCode")).isEqualTo(0);
-            })
-        .verifyComplete();
-  }
+  // --- config resolution and spec building ---
 
   @Test
-  void resolveTimeout_zeroValue_passesZeroToGateway() {
-    // Edge case: timeout of 0 (should be passed, gateway will reject)
-    final Map<String, Object> config = Map.of("command", List.of("sleep", "1"), "timeout", 0);
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
-
-    when(gateway.executeStream(
-            any(List.class), any(), timeoutCaptor.capture(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.error(new IllegalArgumentException("timeout must be positive")));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
+  void process_missingCommand_errorsWithIllegalArgument() {
+    StepVerifier.create(plugin.process(Flux.just(message("test")), Map.of()))
         .verifyError(IllegalArgumentException.class);
-
-    assertThat(timeoutCaptor.getValue()).isEqualTo(0L);
   }
 
   @Test
-  void resolveEnv_envWithNullValues_filtersNullEntries() {
-    final Map<String, Object> envWithNull = new HashMap<>();
-    envWithNull.put("VAR1", "value1");
-    envWithNull.put("VAR2", null);
+  void process_emptyCommandList_errorsWithIllegalArgument() {
+    StepVerifier.create(plugin.process(Flux.just(message("test")), Map.of("command", List.of())))
+        .verifyError(IllegalArgumentException.class);
+  }
 
-    final Map<String, Object> config =
-        Map.of("command", List.of("echo", "test"), "env", envWithNull);
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    @SuppressWarnings("unchecked")
-    final ArgumentCaptor<Map> envCaptor = ArgumentCaptor.forClass(Map.class);
+  @Test
+  void process_zeroTimeout_errorsWithIllegalArgument() {
+    final Map<String, Object> config = Map.of("command", List.of("sleep", "1"), "timeout", 0);
 
-    when(gateway.executeStream(
-            any(List.class), any(), anyLong(), envCaptor.capture(), anyBoolean()))
-        .thenReturn(Flux.just("output"));
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
+        .verifyError(IllegalArgumentException.class);
+  }
 
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+  @Test
+  void process_defaultExecutionOptions_buildsSpecWithDefaults() {
+    final Map<String, Object> config = Map.of("command", List.of("echo", "hello"));
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture()))
+        .thenReturn(Mono.just(successResult("hello")));
+
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
+        .expectNextCount(1)
         .verifyComplete();
 
-    // Verify env variables were processed
-    @SuppressWarnings("unchecked")
-    final Map<String, String> passedEnv = envCaptor.getValue();
-    assertThat(passedEnv).containsEntry("VAR1", "value1");
+    final ProcessExecutionSpec spec = specCaptor.getValue();
+    assertThat(spec.command()).containsExactly("echo", "hello");
+    assertThat(spec.workingDir()).isNull();
+    assertThat(spec.timeoutSeconds()).isEqualTo(300L);
+    assertThat(spec.env()).isEmpty();
+    assertThat(spec.useShell()).isFalse();
+    assertThat(spec.captureStderr()).isFalse();
+    assertThat(spec.maxOutputLines()).isEqualTo(10_000);
+    assertThat(spec.maxOutputBytes()).isEqualTo(10L * 1024 * 1024);
   }
 
   @Test
-  void processExecutor_processCompletesSuccessfully_returnsExitCodeZero() {
-    final Map<String, Object> config = Map.of("command", List.of("true"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "payload");
+  void process_allExecutionOptionsProvided_buildsCompleteSpec() {
+    final Map<String, Object> config = new HashMap<>();
+    config.put("command", List.of("sh", "-c", "echo hello"));
+    config.put("workingDir", "/home");
+    config.put("timeout", 120);
+    config.put("env", Map.of("PATH", "/usr/bin"));
+    config.put("useShell", true);
+    config.put("captureStderr", true);
+    config.put("maxOutputLines", 50);
+    config.put("maxOutputBytes", 2048);
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture()))
+        .thenReturn(Mono.just(successResult("hello")));
 
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just());
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(
-            message -> {
-              assertThat(message.getMetadata().get("exitCode")).isEqualTo(0);
-              assertThat(message.getPayload()).isEqualTo("payload");
-            })
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
+        .expectNextCount(1)
         .verifyComplete();
+
+    final ProcessExecutionSpec spec = specCaptor.getValue();
+    assertThat(spec.command()).containsExactly("sh", "-c", "echo hello");
+    assertThat(spec.workingDir()).isEqualTo("/home");
+    assertThat(spec.timeoutSeconds()).isEqualTo(120L);
+    assertThat(spec.env()).containsEntry("PATH", "/usr/bin");
+    assertThat(spec.useShell()).isTrue();
+    assertThat(spec.captureStderr()).isTrue();
+    assertThat(spec.maxOutputLines()).isEqualTo(50);
+    assertThat(spec.maxOutputBytes()).isEqualTo(2048L);
   }
 
   @Test
-  @SuppressWarnings({"unchecked"})
-  void buildResolvedConfig_emptyStringWorkingDir_excludesFromMapPut() {
-    // Explicitly test that empty workingDir is excluded from resolved config map
+  void process_emptyStringWorkingDir_specGetsNull() {
     final Map<String, Object> config = Map.of("command", List.of("echo"), "workingDir", "");
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final ArgumentCaptor<String> dirCaptor = ArgumentCaptor.forClass(String.class);
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture()))
+        .thenReturn(Mono.just(successResult("out")));
 
-    when(gateway.executeStream(
-            any(List.class), dirCaptor.capture(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("output"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
+        .expectNextCount(1)
         .verifyComplete();
 
-    // When empty string is passed, it should not be put into resolved config
-    // (due to the if (!workingDir.isEmpty()) check), so gateway gets null
-    assertThat(dirCaptor.getValue()).isNull();
+    assertThat(specCaptor.getValue().workingDir()).isNull();
   }
 
   @Test
-  void resolveValue_nullValuePassedToResolver_returnsEmptyMono() {
-    // Test the null check in resolveValue that returns Mono.empty()
-    // Use HashMap since Map.of() doesn't allow null values
+  void process_nullWorkingDirValue_resolvesToDefault() {
     final Map<String, Object> config = new HashMap<>();
     config.put("command", List.of("echo"));
     config.put("workingDir", null);
+    gatewayReturns(successResult("out"));
 
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("output"));
-
-    // This should complete without error
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
+        .expectNextCount(1)
         .verifyComplete();
   }
 
   @Test
-  void handleExecutionError_workflowExecutionExceptionBranch_logsWeeDetails() {
-    // Explicitly test the WorkflowExecutionException instanceof branch
+  void process_envWithNullValues_filtersNullEntries() {
+    final Map<String, Object> envWithNull = new HashMap<>();
+    envWithNull.put("VAR1", "value1");
+    envWithNull.put("VAR2", null);
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "env", envWithNull);
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture()))
+        .thenReturn(Mono.just(successResult("out")));
+
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertThat(specCaptor.getValue().env())
+        .containsEntry("VAR1", "value1")
+        .doesNotContainKey("VAR2");
+  }
+
+  @Test
+  void process_explicitNullEnv_resolvesToEmptyMap() {
+    final Map<String, Object> config = new HashMap<>();
+    config.put("command", List.of("echo"));
+    config.put("env", null);
+    final ArgumentCaptor<ProcessExecutionSpec> specCaptor =
+        ArgumentCaptor.forClass(ProcessExecutionSpec.class);
+    when(gateway.executeForResult(specCaptor.capture()))
+        .thenReturn(Mono.just(successResult("out")));
+
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertThat(specCaptor.getValue().env()).isEmpty();
+  }
+
+  @Test
+  void process_invalidOutputFormat_errorsWithIllegalArgument() {
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "outputFormat", "XML");
+
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(IllegalArgumentException.class);
+              assertThat(error.getMessage()).contains("Unknown outputFormat");
+            });
+  }
+
+  @Test
+  void process_invalidFailureMode_errorsWithIllegalArgument() {
+    final Map<String, Object> config = Map.of("command", List.of("echo"), "failureMode", "RETRY");
+
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(IllegalArgumentException.class);
+              assertThat(error.getMessage()).contains("Unknown failureMode");
+            });
+  }
+
+  // --- error propagation ---
+
+  @Test
+  void process_gatewayGenericError_propagates() {
+    final Map<String, Object> config = Map.of("command", List.of("bad-command"));
+    when(gateway.executeForResult(any()))
+        .thenReturn(Mono.error(new RuntimeException("Generic execution error")));
+
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
+        .verifyError(RuntimeException.class);
+  }
+
+  @Test
+  void process_gatewayWorkflowExecutionException_propagatesWithDetails() {
     final Map<String, Object> config = Map.of("command", List.of("fail"));
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    final WorkflowExecutionException wee =
-        new WorkflowExecutionException("Workflow failed: exit code 5");
+    when(gateway.executeForResult(any()))
+        .thenReturn(Mono.error(new WorkflowExecutionException("Workflow failed: exit code 5")));
 
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.error(wee));
-
-    // Verify the WEE error is propagated and logs the specific message
-    StepVerifier.create(plugin.process(Flux.just(input), config))
+    StepVerifier.create(plugin.process(Flux.just(message("test")), config))
         .verifyErrorSatisfies(
             error -> {
               assertThat(error).isInstanceOf(WorkflowExecutionException.class);
@@ -665,97 +559,78 @@ class ProcessExecutorPluginTest {
             });
   }
 
+  // --- stream behavior ---
+
   @Test
-  void resolveConfig_allTypesResolved_buildsFinalMap() {
-    // Test the buildResolvedConfig method that zips all resolved values
+  void process_multipleMessagesInStream_processesSequentially() {
     final Map<String, Object> config =
-        Map.of(
-            "command",
-            List.of("test"),
-            "workingDir",
-            "/test",
-            "timeout",
-            500,
-            "env",
-            Map.of("KEY", "value"),
-            "useShell",
-            true);
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
+        Map.of("command", List.of("echo", "hello"), "outputFormat", "PASSTHROUGH");
+    gatewayReturns(successResult("hello"));
 
-    when(gateway.executeStream(any(List.class), any(), anyLong(), any(Map.class), anyBoolean()))
-        .thenReturn(Flux.just("output"));
+    StepVerifier.create(plugin.process(Flux.just(message("msg1"), message("msg2")), config))
+        .assertNext(msg -> assertThat(msg.getPayload()).isEqualTo("msg1"))
+        .assertNext(msg -> assertThat(msg.getPayload()).isEqualTo("msg2"))
+        .verifyComplete();
+  }
 
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+  // --- validateConfig ---
+
+  @Test
+  void validateConfig_missingCommand_errors() {
+    StepVerifier.create(plugin.validateConfig(Map.of()))
+        .verifyError(IllegalArgumentException.class);
+  }
+
+  @Test
+  void validateConfig_commandPresent_completes() {
+    StepVerifier.create(plugin.validateConfig(Map.of("command", List.of("echo", "test"))))
         .verifyComplete();
   }
 
   @Test
-  void getUsagePattern_returnsDocumentation() {
-    // Test line 52 - getUsagePattern() method coverage
-    final String pattern = plugin.getUsagePattern();
-    assertThat(pattern)
-        .isNotNull()
-        .contains("REQUIRED")
-        .contains("command")
-        .contains("OPTIONAL")
-        .contains("workingDir")
-        .contains("timeout");
+  void validateConfig_nonPositiveNumericTimeout_errors() {
+    StepVerifier.create(plugin.validateConfig(Map.of("command", List.of("echo"), "timeout", 0)))
+        .verifyErrorSatisfies(
+            error -> assertThat(error.getMessage()).contains("timeout must be positive"));
   }
 
   @Test
-  @SuppressWarnings({"unchecked"})
-  void resolveEnv_nonEmptyEnvironmentVariables_processesAllEntries() {
-    // Test line 207 - resolveEnv() non-empty branch and full Flux processing
-    final Map<String, Object> env = new HashMap<>();
-    env.put("VAR1", "value1");
-    env.put("VAR2", "value2");
-    env.put("VAR3", "value3");
-
-    final Map<String, Object> config = Map.of("command", List.of("test"), "env", env);
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    @SuppressWarnings("unchecked")
-    final ArgumentCaptor<Map> envCaptor = ArgumentCaptor.forClass(Map.class);
-
-    when(gateway.executeStream(
-            any(List.class), any(), anyLong(), envCaptor.capture(), anyBoolean()))
-        .thenReturn(Flux.just("output"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+  void validateConfig_positiveNumericTimeout_completes() {
+    StepVerifier.create(plugin.validateConfig(Map.of("command", List.of("echo"), "timeout", 60)))
         .verifyComplete();
-
-    // Verify all env variables are processed through Flux.flatMapSequential
-    final Map<String, String> passedEnv = envCaptor.getValue();
-    assertThat(passedEnv)
-        .containsEntry("VAR1", "value1")
-        .containsEntry("VAR2", "value2")
-        .containsEntry("VAR3", "value3");
   }
 
   @Test
-  @SuppressWarnings({"unchecked"})
-  void resolveEnv_nullEnvironmentMap_returnsEmptyMap() {
-    // Test line 207 null branch: if (env == null || env.isEmpty())
-    // Use HashMap to hold null value
-    final Map<String, Object> config = new HashMap<>();
-    config.put("command", List.of("test"));
-    config.put("env", null);
-
-    final Message<?> input = DefaultMessage.create(UUID.randomUUID(), "test");
-    @SuppressWarnings("unchecked")
-    final ArgumentCaptor<Map> envCaptor = ArgumentCaptor.forClass(Map.class);
-
-    when(gateway.executeStream(
-            any(List.class), any(), anyLong(), envCaptor.capture(), anyBoolean()))
-        .thenReturn(Flux.just("output"));
-
-    StepVerifier.create(plugin.process(Flux.just(input), config))
-        .assertNext(message -> assertThat(message.getPayload()).isEqualTo("test"))
+  void validateConfig_expressionTimeout_skipsNumericValidation() {
+    StepVerifier.create(
+            plugin.validateConfig(Map.of("command", List.of("echo"), "timeout", "${env.TIMEOUT}")))
         .verifyComplete();
+  }
 
-    // Verify empty map is passed when env is null
-    final Map<String, String> passedEnv = envCaptor.getValue();
-    assertThat(passedEnv).isEmpty();
+  @Test
+  void validateConfig_invalidOutputFormat_errors() {
+    StepVerifier.create(
+            plugin.validateConfig(Map.of("command", List.of("echo"), "outputFormat", "YAML")))
+        .verifyErrorSatisfies(
+            error -> assertThat(error.getMessage()).contains("Unknown outputFormat"));
+  }
+
+  @Test
+  void validateConfig_invalidFailureMode_errors() {
+    StepVerifier.create(
+            plugin.validateConfig(Map.of("command", List.of("echo"), "failureMode", "IGNORE")))
+        .verifyErrorSatisfies(
+            error -> assertThat(error.getMessage()).contains("Unknown failureMode"));
+  }
+
+  @Test
+  void validateConfig_validFormatsAndModes_completes() {
+    StepVerifier.create(
+            plugin.validateConfig(
+                Map.of(
+                    "command", List.of("echo"),
+                    "outputFormat", "json",
+                    "failureMode", "continue")))
+        .verifyComplete();
   }
 }
