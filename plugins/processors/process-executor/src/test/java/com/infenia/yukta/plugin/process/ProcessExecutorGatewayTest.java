@@ -6,8 +6,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.infenia.yukta.plugin.exception.WorkflowExecutionException;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -788,104 +789,38 @@ class ProcessExecutorGatewayTest {
   }
 
   @Test
-  void destroyProcessIfAlive_aliveProcess_destroysIt()
-      throws NoSuchMethodException,
-          InvocationTargetException,
-          IllegalAccessException,
-          IOException,
-          InterruptedException {
-    // Test destroyProcessIfAlive via reflection
-    final Method method =
-        ProcessExecutorGateway.class.getDeclaredMethod("destroyProcessIfAlive", Process.class);
-    method.setAccessible(true);
-
-    // Create a test process that we can track
-    final Process process = new ProcessBuilder("sleep", "1").start();
-    assertThat(process.isAlive()).isTrue();
-
-    // Call the method
-    method.invoke(gateway, process);
-
-    // Verify the process was destroyed (give it a moment to actually exit)
-    Thread.sleep(100);
-    assertThat(process.isAlive()).isFalse();
-  }
-
-  @Test
-  void destroyProcessIfAlive_deadProcess_doesNothing()
-      throws NoSuchMethodException,
-          InvocationTargetException,
-          IllegalAccessException,
-          IOException,
-          InterruptedException {
-    // Test destroyProcessIfAlive with already-dead process
-    final Method method =
-        ProcessExecutorGateway.class.getDeclaredMethod("destroyProcessIfAlive", Process.class);
-    method.setAccessible(true);
-
-    // Create and complete a process
-    final Process process = new ProcessBuilder("true").start();
-    process.waitFor(); // Wait for it to complete
-
-    assertThat(process.isAlive()).isFalse();
-
-    // Call the method (should not throw)
-    method.invoke(gateway, process);
-
-    // Should still be dead
-    assertThat(process.isAlive()).isFalse();
-  }
-
-  @Test
-  void forciblyDestroyProcessIfAlive_aliveProcess_forciblyDestroysIt()
-      throws NoSuchMethodException,
-          InvocationTargetException,
-          IllegalAccessException,
-          IOException,
-          InterruptedException {
-    // Test forciblyDestroyProcessIfAlive via reflection
-    final Method method =
-        ProcessExecutorGateway.class.getDeclaredMethod(
-            "forciblyDestroyProcessIfAlive", Process.class, List.class);
-    method.setAccessible(true);
-
-    // Create a test process that we can track
+  void cleanupProcess_aliveProcess_destroysItGracefully() throws IOException {
     final Process process = new ProcessBuilder("sleep", "10").start();
     assertThat(process.isAlive()).isTrue();
 
-    // Call the method with a dummy command
-    final List<String> command = List.of("sleep", "10");
-    method.invoke(gateway, process, command);
+    StepVerifier.create(gateway.cleanupProcess(process)).verifyComplete();
 
-    // Verify the process was forcibly destroyed
-    Thread.sleep(100);
     assertThat(process.isAlive()).isFalse();
   }
 
   @Test
-  void forciblyDestroyProcessIfAlive_deadProcess_doesNothing()
-      throws NoSuchMethodException,
-          InvocationTargetException,
-          IllegalAccessException,
-          IOException,
-          InterruptedException {
-    // Test forciblyDestroyProcessIfAlive with already-dead process
-    final Method method =
-        ProcessExecutorGateway.class.getDeclaredMethod(
-            "forciblyDestroyProcessIfAlive", Process.class, List.class);
-    method.setAccessible(true);
-
-    // Create and complete a process
+  void cleanupProcess_deadProcess_doesNothing() throws IOException, InterruptedException {
     final Process process = new ProcessBuilder("true").start();
     process.waitFor();
-
     assertThat(process.isAlive()).isFalse();
 
-    // Call the method (should not throw)
-    final List<String> command = List.of("true");
-    method.invoke(gateway, process, command);
+    StepVerifier.create(gateway.cleanupProcess(process)).verifyComplete();
 
-    // Should still be dead
+    assertThat(process.isAlive()).isFalse();
+  }
+
+  @Test
+  void cleanupProcess_processIgnoresSigterm_forciblyDestroyed()
+      throws IOException, InterruptedException {
+    final Process process = new ProcessBuilder("sh", "-c", "trap '' TERM; sleep 30").start();
+    // Give the shell a moment to install the TERM trap before we try to destroy it
+    Thread.sleep(300);
+    assertThat(process.isAlive()).isTrue();
+
+    StepVerifier.create(gateway.cleanupProcess(process)).verifyComplete();
+
+    // destroyForcibly() is asynchronous; wait briefly for the kill to take effect
+    process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
     assertThat(process.isAlive()).isFalse();
   }
 
@@ -898,34 +833,6 @@ class ProcessExecutorGatewayTest {
               assertThat(error).isInstanceOf(WorkflowExecutionException.class);
               assertThat(error.getMessage()).contains("exit code");
             });
-  }
-
-  @Test
-  void closeReaderQuietly_successfulClose()
-      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IOException {
-    // Test closeReaderQuietly via reflection
-    final Method method =
-        ProcessExecutorGateway.class.getDeclaredMethod(
-            "closeReaderQuietly", java.io.BufferedReader.class);
-    method.setAccessible(true);
-
-    // Create a reader from a process
-    final Process process = new ProcessBuilder("echo", "test").start();
-    final java.io.BufferedReader reader =
-        new java.io.BufferedReader(
-            new java.io.InputStreamReader(
-                process.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
-
-    // Call the method - should close without throwing
-    method.invoke(gateway, reader);
-
-    // Verify reader was closed (trying to readLine should throw)
-    try {
-      reader.readLine();
-    } catch (java.io.IOException e) {
-      // Expected - reader was closed
-      assertThat(e.getMessage()).contains("closed");
-    }
   }
 
   @Test
@@ -950,32 +857,6 @@ class ProcessExecutorGatewayTest {
               assertThat(error).isInstanceOf(WorkflowExecutionException.class);
               assertThat(error.getMessage()).contains("exit code 3");
             });
-  }
-
-  @Test
-  void closeReaderQuietly_ioExceptionOnClose_logsWarning(final CapturedOutput output)
-      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-    // Test line 307-308 catch block - IOException handling in closeReaderQuietly
-    final Method method =
-        ProcessExecutorGateway.class.getDeclaredMethod(
-            "closeReaderQuietly", java.io.BufferedReader.class);
-    method.setAccessible(true);
-
-    // Create a reader that throws IOException on close()
-    final java.io.BufferedReader throwingReader =
-        new java.io.BufferedReader(
-            new java.io.InputStreamReader(System.in, java.nio.charset.StandardCharsets.UTF_8)) {
-          @Override
-          public void close() throws java.io.IOException {
-            throw new java.io.IOException("Simulated close failure");
-          }
-        };
-
-    // Call the method - should catch and log the exception without throwing
-    method.invoke(gateway, throwingReader);
-
-    // Verify that the warning was logged
-    assertThat(output.getOut() + output.getErr()).contains("Failed to close process output reader");
   }
 
   @Test
@@ -1022,6 +903,20 @@ class ProcessExecutorGatewayTest {
   }
 
   @Test
+  void wrapInShell_windowsOsName_usesCmdExe() {
+    final List<String> wrapped = gateway.wrapInShell(List.of("echo", "hello"), "Windows 10");
+
+    assertThat(wrapped).startsWith("cmd.exe", "/c");
+  }
+
+  @Test
+  void wrapInShell_nonWindowsOsName_usesBinSh() {
+    final List<String> wrapped = gateway.wrapInShell(List.of("echo", "hello"), "Linux");
+
+    assertThat(wrapped).startsWith("/bin/sh", "-c");
+  }
+
+  @Test
   void executeWithMetadata_negativeTimeout_wrapsIllegalArgumentException() {
     // Test lines 225-231: onErrorMap wrapping branch for non-WFE exceptions in
     // executeWithMetadata()
@@ -1033,5 +928,364 @@ class ProcessExecutorGatewayTest {
               assertThat(error.getMessage()).contains("Process execution failed");
               assertThat(error.getCause()).isInstanceOf(IllegalArgumentException.class);
             });
+  }
+
+  // --- executeForResult: non-throwing result-based API ---
+
+  @Test
+  void executeForResult_successfulProcess_returnsZeroExitCodeAndOutput() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder()
+            .command(List.of("sh", "-c", "echo line1; echo line2"))
+            .timeoutSeconds(10L)
+            .build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(
+            result -> {
+              assertThat(result.exitCode()).isZero();
+              assertThat(result.isSuccess()).isTrue();
+              assertThat(result.stdoutLines()).containsExactly("line1", "line2");
+              assertThat(result.stdout()).isEqualTo("line1\nline2");
+              assertThat(result.stderrLines()).isEmpty();
+              assertThat(result.timedOut()).isFalse();
+              assertThat(result.outputTruncated()).isFalse();
+              assertThat(result.durationMillis()).isNotNegative();
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_nonZeroExit_returnsResultInsteadOfError() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder()
+            .command(List.of("sh", "-c", "echo boom; exit 42"))
+            .timeoutSeconds(10L)
+            .build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(
+            result -> {
+              assertThat(result.exitCode()).isEqualTo(42);
+              assertThat(result.isSuccess()).isFalse();
+              assertThat(result.timedOut()).isFalse();
+              assertThat(result.stdoutLines()).containsExactly("boom");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_mergedStderrByDefault_stderrAppearsInStdout() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder()
+            .command(List.of("sh", "-c", "echo out; echo err >&2"))
+            .timeoutSeconds(10L)
+            .build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(
+            result -> {
+              assertThat(result.stdoutLines()).containsExactlyInAnyOrder("out", "err");
+              assertThat(result.stderrLines()).isEmpty();
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_captureStderrSeparately_splitsStreams() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder()
+            .command(List.of("sh", "-c", "echo out; echo err >&2"))
+            .timeoutSeconds(10L)
+            .captureStderr(true)
+            .build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(
+            result -> {
+              assertThat(result.stdoutLines()).containsExactly("out");
+              assertThat(result.stderrLines()).containsExactly("err");
+              assertThat(result.stderr()).isEqualTo("err");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_timeout_returnsTimedOutResultInsteadOfError() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder().command(List.of("sleep", "10")).timeoutSeconds(1L).build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(
+            result -> {
+              assertThat(result.timedOut()).isTrue();
+              assertThat(result.exitCode()).isEqualTo(ProcessExecutionResult.TIMEOUT_EXIT_CODE);
+              assertThat(result.isSuccess()).isFalse();
+              assertThat(result.stdoutLines()).isEmpty();
+              assertThat(result.durationMillis()).isGreaterThanOrEqualTo(500L);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_stdinProvided_pipedToProcess() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder()
+            .command(List.of("cat"))
+            .timeoutSeconds(10L)
+            .stdin("hello\nworld")
+            .build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(
+            result -> {
+              assertThat(result.exitCode()).isZero();
+              assertThat(result.stdoutLines()).containsExactly("hello", "world");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_noStdin_stdinClosedSoReadingProcessTerminates() {
+    // Without an explicit close of the child's stdin, `cat` would hang until the timeout
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder().command(List.of("cat")).timeoutSeconds(5L).build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(
+            result -> {
+              assertThat(result.exitCode()).isZero();
+              assertThat(result.timedOut()).isFalse();
+              assertThat(result.stdoutLines()).isEmpty();
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_maxOutputLines_truncatesAndFlags() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder()
+            .command(List.of("sh", "-c", "echo 1; echo 2; echo 3"))
+            .timeoutSeconds(10L)
+            .maxOutputLines(2)
+            .build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(
+            result -> {
+              assertThat(result.exitCode()).isZero();
+              assertThat(result.stdoutLines()).containsExactly("1", "2");
+              assertThat(result.outputTruncated()).isTrue();
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_maxOutputBytes_truncatesAndFlags() {
+    // First line is 6 bytes including the newline and fits exactly; the second exceeds the cap
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder()
+            .command(List.of("sh", "-c", "echo aaaaa; echo bbbbb"))
+            .timeoutSeconds(10L)
+            .maxOutputBytes(6L)
+            .build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(
+            result -> {
+              assertThat(result.stdoutLines()).containsExactly("aaaaa");
+              assertThat(result.outputTruncated()).isTrue();
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_stderrOnlyTruncation_flagsResult() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder()
+            .command(List.of("sh", "-c", "echo e1 >&2; echo e2 >&2"))
+            .timeoutSeconds(10L)
+            .captureStderr(true)
+            .maxOutputLines(1)
+            .build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(
+            result -> {
+              assertThat(result.stdoutLines()).isEmpty();
+              assertThat(result.stderrLines()).containsExactly("e1");
+              assertThat(result.outputTruncated()).isTrue();
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_useShell_wrapsCommand() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder()
+            .command(List.of("echo hello"))
+            .timeoutSeconds(10L)
+            .useShell(true)
+            .build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(result -> assertThat(result.stdout()).contains("hello"))
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_workingDirectoryAndEnv_applied() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder()
+            .command(List.of("sh", "-c", "pwd; echo $MY_TEST_VAR"))
+            .workingDir("/tmp")
+            .timeoutSeconds(10L)
+            .env(Map.of("MY_TEST_VAR", "abc"))
+            .build();
+
+    StepVerifier.create(gateway.executeForResult(spec))
+        .assertNext(
+            result -> {
+              assertThat(result.stdoutLines().get(0)).contains("tmp");
+              assertThat(result.stdoutLines().get(1)).isEqualTo("abc");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void executeForResult_nullSpec_errorsWithIllegalArgument() {
+    StepVerifier.create(gateway.executeForResult(null)).verifyError(IllegalArgumentException.class);
+  }
+
+  @Test
+  void executeForResult_emptyCommand_errorsWithIllegalArgument() {
+    StepVerifier.create(gateway.executeForResult(ProcessExecutionSpec.builder().build()))
+        .verifyError(IllegalArgumentException.class);
+  }
+
+  @Test
+  void executeForResult_unknownCommand_errorsWithIoException() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder()
+            .command(List.of("/nonexistent-binary-yukta-test"))
+            .timeoutSeconds(10L)
+            .build();
+
+    StepVerifier.create(gateway.executeForResult(spec)).verifyError(IOException.class);
+  }
+
+  // --- readOutput: capped stream capture ---
+
+  @Test
+  void readOutput_unlimitedCaps_capturesEverything() {
+    final InputStream stream =
+        new java.io.ByteArrayInputStream("a\nb\n".getBytes(StandardCharsets.UTF_8));
+
+    final ProcessExecutorGateway.OutputCapture capture = gateway.readOutput(stream, 0, 0L);
+
+    assertThat(capture.lines()).containsExactly("a", "b");
+    assertThat(capture.truncated()).isFalse();
+  }
+
+  @Test
+  void readOutput_negativeCaps_treatedAsUnlimited() {
+    final InputStream stream =
+        new java.io.ByteArrayInputStream("a\nb\n".getBytes(StandardCharsets.UTF_8));
+
+    final ProcessExecutorGateway.OutputCapture capture = gateway.readOutput(stream, -1, -1L);
+
+    assertThat(capture.lines()).containsExactly("a", "b");
+    assertThat(capture.truncated()).isFalse();
+  }
+
+  @Test
+  void readOutput_byteCapBoundary_lineExactlyAtCapRetained() {
+    // "abc" + newline = 4 bytes, exactly at the cap; "d" + newline would exceed it
+    final InputStream stream =
+        new java.io.ByteArrayInputStream("abc\nd\n".getBytes(StandardCharsets.UTF_8));
+
+    final ProcessExecutorGateway.OutputCapture capture = gateway.readOutput(stream, 0, 4L);
+
+    assertThat(capture.lines()).containsExactly("abc");
+    assertThat(capture.truncated()).isTrue();
+  }
+
+  @Test
+  void readOutput_ioException_logsWarningAndReturnsPartialCapture(final CapturedOutput output) {
+    final InputStream throwingStream =
+        new InputStream() {
+          @Override
+          public int read() throws IOException {
+            throw new IOException("Simulated read failure");
+          }
+
+          @Override
+          public int read(final byte[] buffer, final int off, final int len) throws IOException {
+            throw new IOException("Simulated read failure");
+          }
+        };
+
+    final ProcessExecutorGateway.OutputCapture capture = gateway.readOutput(throwingStream, 0, 0L);
+
+    assertThat(capture.lines()).isEmpty();
+    assertThat(capture.truncated()).isFalse();
+    assertThat(output.getOut() + output.getErr()).contains("Failed to read process output");
+  }
+
+  // --- writeStdin: stdin piping ---
+
+  @Test
+  void writeStdin_nullText_closesStreamWithoutWriting() throws IOException {
+    final CloseTrackingOutputStream stream = new CloseTrackingOutputStream();
+
+    gateway.writeStdin(stream, null);
+
+    assertThat(stream.closed).isTrue();
+    assertThat(stream.toByteArray()).isEmpty();
+  }
+
+  @Test
+  void writeStdin_emptyText_closesStreamWithoutWriting() throws IOException {
+    final CloseTrackingOutputStream stream = new CloseTrackingOutputStream();
+
+    gateway.writeStdin(stream, "");
+
+    assertThat(stream.closed).isTrue();
+    assertThat(stream.toByteArray()).isEmpty();
+  }
+
+  @Test
+  void writeStdin_text_writesUtf8BytesAndClosesStream() throws IOException {
+    final CloseTrackingOutputStream stream = new CloseTrackingOutputStream();
+
+    gateway.writeStdin(stream, "hello");
+
+    assertThat(stream.closed).isTrue();
+    assertThat(stream.toByteArray()).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
+  }
+
+  @Test
+  void writeStdin_ioException_swallowedWithoutThrowing() throws IOException {
+    try (OutputStream throwingStream =
+        new OutputStream() {
+          @Override
+          public void write(final int b) throws IOException {
+            throw new IOException("Simulated broken pipe");
+          }
+        }) {
+      org.assertj.core.api.Assertions.assertThatCode(() -> gateway.writeStdin(throwingStream, "x"))
+          .doesNotThrowAnyException();
+    }
+  }
+
+  /** ByteArrayOutputStream that records whether it was closed. */
+  private static final class CloseTrackingOutputStream extends java.io.ByteArrayOutputStream {
+    private boolean closed;
+
+    @Override
+    public void close() throws IOException {
+      closed = true;
+      super.close();
+    }
   }
 }

@@ -14,13 +14,4 @@ dependencies {
 }
 
 coverageConfig {
-    exceptions.put(
-        "com.infenia.yukta.plugin.process.ProcessExecutorGateway",
-        mapOf(
-            "LINE" to 0.90,
-            "BRANCH" to 0.90,
-            "INSTRUCTION" to 0.90,
-            "METHOD" to 0.90
-        )
-    )
 }
