@@ -252,6 +252,9 @@ jobs:
                 TASKS="$TASKS :cli:build" ;;
               "ui")
                 TASKS="$TASKS :ui:build" ;;
+              *)
+                echo "❌ Unrecognized module '$module' — add a task mapping for it in this step"
+                exit 1 ;;
             esac
           done
 
