@@ -125,6 +125,16 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
 
+      # The cli module shells out to `go` directly (goBuild, goTest,
+      # goCoverageCheck, goVet, goLint, ...); without this the runner's
+      # ambient/unpinned Go was hitting "go: no such tool covdata" during
+      # coverage generation for the cmd/yukta package.
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: 'cli/go.mod'
+          cache-dependency-path: 'cli/go.sum'
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
         with:
