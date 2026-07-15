@@ -72,6 +72,8 @@ Access artifacts by:
 ## Workflow Triggers
 
 ### On Pull Request
+
+
 - All three workflows trigger automatically
 - `compliance-summary.yml` waits for license and quality workflows to complete
 - Unified comment posted once all data is available

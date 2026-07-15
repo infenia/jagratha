@@ -54,6 +54,7 @@ Your PR
 ---
 
 ### `license-compliance.yml` — License Compliance
+
 **Purpose**: Validate dependency licenses and REUSE compliance
 
 | Component | Check | Purpose |
@@ -76,6 +77,7 @@ Your PR
 ---
 
 ### `code-quality.yml` — Code Quality Checks
+
 **Purpose**: Enforce code quality, coverage, and static analysis
 
 **Jobs**:
@@ -94,6 +96,7 @@ Your PR
 ---
 
 ### `compliance-summary.yml` — Compliance & Quality Aggregator
+
 **Purpose**: Consolidate license compliance and code quality results into a single PR comment
 
 **Jobs**:
@@ -110,7 +113,7 @@ Your PR
 - Links to detailed reports
 
 **Example output**:
-```
+```text
 📋 Compliance & Quality Summary
 
 ✅ License Compliance
