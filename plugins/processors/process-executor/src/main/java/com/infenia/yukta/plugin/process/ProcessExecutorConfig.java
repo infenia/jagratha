@@ -5,6 +5,7 @@ package com.infenia.yukta.plugin.process;
 import java.util.List;
 import java.util.Map;
 import lombok.Builder;
+import lombok.Builder.ObtainVia;
 
 /**
  * Fully resolved and validated configuration of a single process executor invocation.
@@ -34,10 +35,10 @@ import lombok.Builder;
  */
 @Builder
 /* package */ record ProcessExecutorConfig(
-    List<String> command,
+    @ObtainVia(method = "copyCommand") List<String> command,
     String workingDir,
     long timeout,
-    Map<String, String> env,
+    @ObtainVia(method = "copyEnv") Map<String, String> env,
     boolean useShell,
     OutputFormat outputFormat,
     FailureMode failureMode,
@@ -49,10 +50,18 @@ import lombok.Builder;
     int maxOutputLines,
     long maxOutputBytes) {
 
+  private static List<String> copyCommand(List<String> command) {
+    return command == null ? List.of() : List.copyOf(command);
+  }
+
+  private static Map<String, String> copyEnv(Map<String, String> env) {
+    return env == null ? Map.of() : Map.copyOf(env);
+  }
+
   /** Defensively copies mutable collections to prevent external mutations. */
   @SuppressWarnings("PMD.PublicMemberInNonPublicType")
   public ProcessExecutorConfig {
-    command = command == null ? List.of() : List.copyOf(command);
-    env = env == null ? Map.of() : Map.copyOf(env);
+    command = copyCommand(command);
+    env = copyEnv(env);
   }
 }
