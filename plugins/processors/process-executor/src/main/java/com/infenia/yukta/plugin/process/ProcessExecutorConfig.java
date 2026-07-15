@@ -13,22 +13,23 @@ import java.util.Map;
  * message.
  *
  * <p>Fields:
+ *
  * <ul>
- *   <li>command: resolved command and arguments</li>
- *   <li>workingDir: resolved working directory, or null for the current directory</li>
- *   <li>timeout: resolved timeout in seconds (positive)</li>
- *   <li>env: resolved environment variables</li>
- *   <li>useShell: whether to execute the command via an OS shell</li>
- *   <li>outputFormat: shape of the output message payload</li>
- *   <li>failureMode: how to react to a non-zero exit code or timeout</li>
- *   <li>inputMode: how the input message is handed to the process</li>
+ *   <li>command: resolved command and arguments
+ *   <li>workingDir: resolved working directory, or null for the current directory
+ *   <li>timeout: resolved timeout in seconds (positive)
+ *   <li>env: resolved environment variables
+ *   <li>useShell: whether to execute the command via an OS shell
+ *   <li>outputFormat: shape of the output message payload
+ *   <li>failureMode: how to react to a non-zero exit code or timeout
+ *   <li>inputMode: how the input message is handed to the process
  *   <li>routeByExitCode: whether output messages are stamped with the "success"/"failure" source
- *       port based on the process outcome (requires failureMode CONTINUE)</li>
- *   <li>includeOutput: whether structured payloads embed stdout/stderr text</li>
- *   <li>includeInput: whether structured payloads embed the original input payload</li>
- *   <li>captureStderr: whether stderr is captured separately instead of merged into stdout</li>
- *   <li>maxOutputLines: maximum output lines retained per stream (0 = unlimited)</li>
- *   <li>maxOutputBytes: maximum output bytes retained per stream (0 = unlimited)</li>
+ *       port based on the process outcome (requires failureMode CONTINUE)
+ *   <li>includeOutput: whether structured payloads embed stdout/stderr text
+ *   <li>includeInput: whether structured payloads embed the original input payload
+ *   <li>captureStderr: whether stderr is captured separately instead of merged into stdout
+ *   <li>maxOutputLines: maximum output lines retained per stream (0 = unlimited)
+ *   <li>maxOutputBytes: maximum output bytes retained per stream (0 = unlimited)
  * </ul>
  */
 /* package */ record ProcessExecutorConfig(

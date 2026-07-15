@@ -63,27 +63,16 @@ class ProcessExecutorPluginTest {
   }
 
   private static ProcessExecutionResult successResult(final String... stdoutLines) {
-    return ProcessExecutionResult.builder()
-        .exitCode(0)
-        .stdoutLines(List.of(stdoutLines))
-        .durationMillis(5L)
-        .build();
+    return ProcessExecutionResult.of(0, List.of(stdoutLines), null, 5L, false, false);
   }
 
   private static ProcessExecutionResult failedResult(final int exitCode, final String... stdout) {
-    return ProcessExecutionResult.builder()
-        .exitCode(exitCode)
-        .stdoutLines(List.of(stdout))
-        .durationMillis(5L)
-        .build();
+    return ProcessExecutionResult.of(exitCode, List.of(stdout), null, 5L, false, false);
   }
 
   private static ProcessExecutionResult timedOutResult() {
-    return ProcessExecutionResult.builder()
-        .exitCode(ProcessExecutionResult.TIMEOUT_EXIT_CODE)
-        .timedOut(true)
-        .durationMillis(1000L)
-        .build();
+    return ProcessExecutionResult.of(
+        ProcessExecutionResult.TIMEOUT_EXIT_CODE, null, null, 1000L, true, false);
   }
 
   private void gatewayReturns(final ProcessExecutionResult result) {
@@ -224,11 +213,8 @@ class ProcessExecutorPluginTest {
     when(gateway.executeForResult(any()))
         .thenReturn(
             Mono.just(
-                ProcessExecutionResult.builder()
-                    .exitCode(2)
-                    .stdoutLines(List.of("out"))
-                    .stderrLines(List.of("something went wrong"))
-                    .build()));
+                ProcessExecutionResult.of(
+                    2, List.of("out"), List.of("something went wrong"), 0L, false, false)));
 
     StepVerifier.create(plugin.process(Flux.just(message("input")), config))
         .verifyErrorSatisfies(

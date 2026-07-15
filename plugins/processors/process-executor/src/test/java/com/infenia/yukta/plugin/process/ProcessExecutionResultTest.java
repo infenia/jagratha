@@ -15,7 +15,8 @@ class ProcessExecutionResultTest {
 
   @Test
   void builder_nullLineLists_normalizedToEmpty() {
-    final ProcessExecutionResult result = ProcessExecutionResult.builder().build();
+    final ProcessExecutionResult result =
+        ProcessExecutionResult.of(0, null, null, 0L, false, false);
 
     assertThat(result.stdoutLines()).isEmpty();
     assertThat(result.stderrLines()).isEmpty();
@@ -29,7 +30,7 @@ class ProcessExecutionResultTest {
     final List<String> stderr = new ArrayList<>(List.of("err"));
 
     final ProcessExecutionResult result =
-        ProcessExecutionResult.builder().stdoutLines(stdout).stderrLines(stderr).build();
+        ProcessExecutionResult.of(0, stdout, stderr, 0L, false, false);
     stdout.add("mutated");
     stderr.add("mutated");
 
@@ -39,14 +40,16 @@ class ProcessExecutionResultTest {
 
   @Test
   void isSuccess_zeroExitWithinTimeout_true() {
-    final ProcessExecutionResult result = ProcessExecutionResult.builder().exitCode(0).build();
+    final ProcessExecutionResult result =
+        ProcessExecutionResult.of(0, null, null, 0L, false, false);
 
     assertThat(result.isSuccess()).isTrue();
   }
 
   @Test
   void isSuccess_nonZeroExit_false() {
-    final ProcessExecutionResult result = ProcessExecutionResult.builder().exitCode(7).build();
+    final ProcessExecutionResult result =
+        ProcessExecutionResult.of(7, null, null, 0L, false, false);
 
     assertThat(result.isSuccess()).isFalse();
   }
@@ -54,10 +57,8 @@ class ProcessExecutionResultTest {
   @Test
   void isSuccess_timedOut_false() {
     final ProcessExecutionResult result =
-        ProcessExecutionResult.builder()
-            .exitCode(ProcessExecutionResult.TIMEOUT_EXIT_CODE)
-            .timedOut(true)
-            .build();
+        ProcessExecutionResult.of(
+            ProcessExecutionResult.TIMEOUT_EXIT_CODE, null, null, 0L, true, false);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.exitCode()).isEqualTo(-1);
@@ -66,12 +67,7 @@ class ProcessExecutionResultTest {
   @Test
   void stdoutAndStderr_joinLinesWithNewlines() {
     final ProcessExecutionResult result =
-        ProcessExecutionResult.builder()
-            .stdoutLines(List.of("a", "b"))
-            .stderrLines(List.of("x", "y"))
-            .durationMillis(12L)
-            .outputTruncated(true)
-            .build();
+        ProcessExecutionResult.of(0, List.of("a", "b"), List.of("x", "y"), 12L, false, true);
 
     assertThat(result.stdout()).isEqualTo("a\nb");
     assertThat(result.stderr()).isEqualTo("x\ny");

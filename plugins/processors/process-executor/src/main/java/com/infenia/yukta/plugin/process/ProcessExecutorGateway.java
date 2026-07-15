@@ -241,14 +241,13 @@ public class ProcessExecutorGateway {
       final long startNanos) {
     final int exitCode = exited.exitValue();
     log.atDebug().setMessage("Process completed with exit code {}").addArgument(exitCode).log();
-    return ProcessExecutionResult.builder()
-        .exitCode(exitCode)
-        .stdoutLines(stdout.lines())
-        .stderrLines(stderr.lines())
-        .durationMillis(elapsedMillis(startNanos))
-        .timedOut(false)
-        .outputTruncated(stdout.truncated() || stderr.truncated())
-        .build();
+    return ProcessExecutionResult.of(
+        exitCode,
+        stdout.lines(),
+        stderr.lines(),
+        elapsedMillis(startNanos),
+        false,
+        stdout.truncated() || stderr.truncated());
   }
 
   /**
@@ -267,14 +266,13 @@ public class ProcessExecutorGateway {
         .addArgument(actualCommand)
         .log();
     return Mono.just(
-        ProcessExecutionResult.builder()
-            .exitCode(ProcessExecutionResult.TIMEOUT_EXIT_CODE)
-            .stdoutLines(List.of())
-            .stderrLines(List.of())
-            .durationMillis(elapsedMillis(startNanos))
-            .timedOut(true)
-            .outputTruncated(false)
-            .build());
+        ProcessExecutionResult.of(
+            ProcessExecutionResult.TIMEOUT_EXIT_CODE,
+            List.of(),
+            List.of(),
+            elapsedMillis(startNanos),
+            true,
+            false));
   }
 
   /**
