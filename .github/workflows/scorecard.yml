@@ -26,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
+      contents: read           # Checkout (explicit; required if repo goes private)
       security-events: write   # Upload results to code scanning
       id-token: write          # Publish results to the OpenSSF REST API
 
