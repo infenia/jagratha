@@ -3,7 +3,6 @@
 package com.infenia.yukta.plugin.process;
 
 import java.util.List;
-import lombok.Builder;
 
 /**
  * Immutable outcome of an external process execution.
@@ -28,7 +27,6 @@ import lombok.Builder;
  *       caps
  * </ul>
  */
-@Builder
 public record ProcessExecutionResult(
     int exitCode,
     List<String> stdoutLines,
@@ -39,6 +37,22 @@ public record ProcessExecutionResult(
 
   /** Synthetic exit code reported when the process was terminated due to timeout. */
   public static final int TIMEOUT_EXIT_CODE = -1;
+
+  /**
+   * Factory method for creating immutable process execution results.
+   *
+   * <p>All list inputs are normalized and defensively copied by the canonical constructor.
+   */
+  public static ProcessExecutionResult of(
+      int exitCode,
+      List<String> stdoutLines,
+      List<String> stderrLines,
+      long durationMillis,
+      boolean timedOut,
+      boolean outputTruncated) {
+    return new ProcessExecutionResult(
+        exitCode, stdoutLines, stderrLines, durationMillis, timedOut, outputTruncated);
+  }
 
   /** Normalizes null line lists to empty immutable lists. */
   public ProcessExecutionResult {
