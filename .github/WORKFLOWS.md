@@ -113,6 +113,7 @@ Your PR
 - Links to detailed reports
 
 **Example output**:
+
 ```text
 📋 Compliance & Quality Summary
 
