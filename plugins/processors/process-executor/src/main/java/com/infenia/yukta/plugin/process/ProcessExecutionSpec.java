@@ -4,7 +4,6 @@ package com.infenia.yukta.plugin.process;
 
 import java.util.List;
 import java.util.Map;
-import lombok.Builder;
 
 /**
  * Immutable specification describing how an external process should be executed.
@@ -34,7 +33,6 @@ import lombok.Builder;
  *       #UNLIMITED} for no cap); excess output is drained but discarded
  * </ul>
  */
-@Builder
 public record ProcessExecutionSpec(
     List<String> command,
     String workingDir,
@@ -52,6 +50,10 @@ public record ProcessExecutionSpec(
   /** Cap value indicating that output should not be limited. */
   public static final int UNLIMITED = 0;
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   /** Normalizes nulls and non-positive numeric fields to their documented defaults. */
   public ProcessExecutionSpec {
     command = command == null ? List.of() : List.copyOf(command);
@@ -61,5 +63,77 @@ public record ProcessExecutionSpec(
     }
     maxOutputLines = Math.max(UNLIMITED, maxOutputLines);
     maxOutputBytes = Math.max(UNLIMITED, maxOutputBytes);
+  }
+
+  public static final class Builder {
+    private List<String> command;
+    private String workingDir;
+    private long timeoutSeconds;
+    private Map<String, String> env;
+    private boolean useShell;
+    private String stdin;
+    private boolean captureStderr;
+    private int maxOutputLines;
+    private long maxOutputBytes;
+
+    private Builder() {}
+
+    public Builder command(List<String> command) {
+      this.command = command;
+      return this;
+    }
+
+    public Builder workingDir(String workingDir) {
+      this.workingDir = workingDir;
+      return this;
+    }
+
+    public Builder timeoutSeconds(long timeoutSeconds) {
+      this.timeoutSeconds = timeoutSeconds;
+      return this;
+    }
+
+    public Builder env(Map<String, String> env) {
+      this.env = env;
+      return this;
+    }
+
+    public Builder useShell(boolean useShell) {
+      this.useShell = useShell;
+      return this;
+    }
+
+    public Builder stdin(String stdin) {
+      this.stdin = stdin;
+      return this;
+    }
+
+    public Builder captureStderr(boolean captureStderr) {
+      this.captureStderr = captureStderr;
+      return this;
+    }
+
+    public Builder maxOutputLines(int maxOutputLines) {
+      this.maxOutputLines = maxOutputLines;
+      return this;
+    }
+
+    public Builder maxOutputBytes(long maxOutputBytes) {
+      this.maxOutputBytes = maxOutputBytes;
+      return this;
+    }
+
+    public ProcessExecutionSpec build() {
+      return new ProcessExecutionSpec(
+          command,
+          workingDir,
+          timeoutSeconds,
+          env,
+          useShell,
+          stdin,
+          captureStderr,
+          maxOutputLines,
+          maxOutputBytes);
+    }
   }
 }
