@@ -61,6 +61,13 @@ jobs:
               return;
             }
 
+            // Job names come from the PR's workflow files, so treat them as
+            // untrusted: escape Markdown link/table syntax and strip newlines.
+            const escapeMd = (s) => String(s)
+              .replace(/\\/g, '\\\\')
+              .replace(/[[\]|]/g, '\\$&')
+              .replace(/[\r\n]+/g, ' ');
+
             const statusIcon = (s) => ({
               success: '✅',
               failure: '❌',
@@ -103,7 +110,7 @@ jobs:
               for (const job of jobs.data.jobs) {
                 const conclusion = job.conclusion ?? 'in_progress';
                 rows.push(
-                  `| ${wf.title} | [${job.name}](${latest.html_url}) | ` +
+                  `| ${wf.title} | [${escapeMd(job.name)}](${latest.html_url}) | ` +
                   `${statusIcon(conclusion)} ${conclusion.toUpperCase().replace('_', ' ')} |`
                 );
               }
