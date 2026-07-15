@@ -79,7 +79,7 @@ public record ProcessExecutionSpec(
     private Builder() {}
 
     public Builder command(List<String> command) {
-      this.command = command;
+      this.command = command == null ? null : List.copyOf(command);
       return this;
     }
 
