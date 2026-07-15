@@ -4,8 +4,6 @@ package com.infenia.yukta.plugin.process;
 
 import java.util.List;
 import java.util.Map;
-import lombok.Builder;
-import lombok.Builder.ObtainVia;
 
 /**
  * Fully resolved and validated configuration of a single process executor invocation.
@@ -33,12 +31,11 @@ import lombok.Builder.ObtainVia;
  *   <li>maxOutputBytes: maximum output bytes retained per stream (0 = unlimited)</li>
  * </ul>
  */
-@Builder
 /* package */ record ProcessExecutorConfig(
-    @ObtainVia(method = "copyCommand") List<String> command,
+    List<String> command,
     String workingDir,
     long timeout,
-    @ObtainVia(method = "copyEnv") Map<String, String> env,
+    Map<String, String> env,
     boolean useShell,
     OutputFormat outputFormat,
     FailureMode failureMode,
@@ -63,5 +60,114 @@ import lombok.Builder.ObtainVia;
   public ProcessExecutorConfig {
     command = copyCommand(command);
     env = copyEnv(env);
+  }
+
+  static Builder builder() {
+    return new Builder();
+  }
+
+  static final class Builder {
+    private List<String> command = List.of();
+    private String workingDir;
+    private long timeout;
+    private Map<String, String> env = Map.of();
+    private boolean useShell;
+    private OutputFormat outputFormat;
+    private FailureMode failureMode;
+    private InputMode inputMode;
+    private boolean routeByExitCode;
+    private boolean includeOutput;
+    private boolean includeInput;
+    private boolean captureStderr;
+    private int maxOutputLines;
+    private long maxOutputBytes;
+
+    Builder command(List<String> command) {
+      this.command = copyCommand(command);
+      return this;
+    }
+
+    Builder workingDir(String workingDir) {
+      this.workingDir = workingDir;
+      return this;
+    }
+
+    Builder timeout(long timeout) {
+      this.timeout = timeout;
+      return this;
+    }
+
+    Builder env(Map<String, String> env) {
+      this.env = copyEnv(env);
+      return this;
+    }
+
+    Builder useShell(boolean useShell) {
+      this.useShell = useShell;
+      return this;
+    }
+
+    Builder outputFormat(OutputFormat outputFormat) {
+      this.outputFormat = outputFormat;
+      return this;
+    }
+
+    Builder failureMode(FailureMode failureMode) {
+      this.failureMode = failureMode;
+      return this;
+    }
+
+    Builder inputMode(InputMode inputMode) {
+      this.inputMode = inputMode;
+      return this;
+    }
+
+    Builder routeByExitCode(boolean routeByExitCode) {
+      this.routeByExitCode = routeByExitCode;
+      return this;
+    }
+
+    Builder includeOutput(boolean includeOutput) {
+      this.includeOutput = includeOutput;
+      return this;
+    }
+
+    Builder includeInput(boolean includeInput) {
+      this.includeInput = includeInput;
+      return this;
+    }
+
+    Builder captureStderr(boolean captureStderr) {
+      this.captureStderr = captureStderr;
+      return this;
+    }
+
+    Builder maxOutputLines(int maxOutputLines) {
+      this.maxOutputLines = maxOutputLines;
+      return this;
+    }
+
+    Builder maxOutputBytes(long maxOutputBytes) {
+      this.maxOutputBytes = maxOutputBytes;
+      return this;
+    }
+
+    ProcessExecutorConfig build() {
+      return new ProcessExecutorConfig(
+          command,
+          workingDir,
+          timeout,
+          env,
+          useShell,
+          outputFormat,
+          failureMode,
+          inputMode,
+          routeByExitCode,
+          includeOutput,
+          includeInput,
+          captureStderr,
+          maxOutputLines,
+          maxOutputBytes);
+    }
   }
 }
