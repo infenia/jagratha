@@ -94,7 +94,7 @@ public record ProcessExecutionSpec(
     }
 
     public Builder env(Map<String, String> env) {
-      this.env = env;
+      this.env = env == null ? null : Map.copyOf(env);
       return this;
     }
 
