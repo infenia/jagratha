@@ -19,6 +19,8 @@ concurrency:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  # Pinned OpenGrep version — bump deliberately, keep builds reproducible
+  OPENGREP_VERSION: v1.25.0
 
 # Least privilege by default; jobs elevate only what they need.
 permissions:
@@ -140,31 +142,19 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Get Latest OpenGrep Version
-        id: opengrep-version
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          LATEST_VERSION=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/opengrep/opengrep/releases/latest | jq -r '.tag_name')
-          echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
-          echo "▶ Latest OpenGrep version: $LATEST_VERSION"
-
       - name: Cache OpenGrep
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         id: cache-opengrep
         with:
           path: ~/.opengrep
-          key: opengrep-${{ runner.os }}-${{ runner.arch }}-${{ steps.opengrep-version.outputs.version }}
-          restore-keys: |
-            opengrep-${{ runner.os }}-${{ runner.arch }}-
-            opengrep-${{ runner.os }}-
+          key: opengrep-${{ runner.os }}-${{ runner.arch }}-${{ env.OPENGREP_VERSION }}
 
       - name: Install OpenGrep
         if: steps.cache-opengrep.outputs.cache-hit != 'true'
         run: |
-          echo "▶ Installing OpenGrep (not found in cache)..."
-          curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
+          echo "▶ Installing OpenGrep $OPENGREP_VERSION (not found in cache)..."
+          curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh \
+            | bash -s -- -v "$OPENGREP_VERSION"
           echo "▶ OpenGrep installation complete"
 
       - name: Setup OpenGrep PATH
