@@ -48,11 +48,11 @@ import java.util.Map;
     int maxOutputLines,
     long maxOutputBytes) {
 
-  private static List<String> copyCommand(List<String> command) {
+  private static List<String> copyCommand(final List<String> command) {
     return command == null ? List.of() : List.copyOf(command);
   }
 
-  private static Map<String, String> copyEnv(Map<String, String> env) {
+  private static Map<String, String> copyEnv(final Map<String, String> env) {
     return env == null ? Map.of() : Map.copyOf(env);
   }
 
@@ -63,112 +63,235 @@ import java.util.Map;
     env = copyEnv(env);
   }
 
-  static Builder builder() {
+  /**
+   * Creates a new builder for constructing a {@link ProcessExecutorConfig}.
+   *
+   * @return a new builder instance
+   */
+  /* package */ static Builder builder() {
     return new Builder();
   }
 
-  static final class Builder {
-    private List<String> command = List.of();
-    private String workingDir;
-    private long timeout;
-    private Map<String, String> env = Map.of();
-    private boolean useShell;
-    private OutputFormat outputFormat;
-    private FailureMode failureMode;
-    private InputMode inputMode;
-    private boolean routeByExitCode;
-    private boolean includeOutput;
-    private boolean includeInput;
-    private boolean captureStderr;
-    private int maxOutputLines;
-    private long maxOutputBytes;
+  /** Builder for {@link ProcessExecutorConfig}. */
+  @SuppressWarnings("PMD.TooManyMethods")
+  /* package */ static final class Builder {
+    /** The resolved command and arguments. */
+    private List<String> commandValue = List.of();
 
-    Builder command(List<String> command) {
-      this.command = copyCommand(command);
+    /** The resolved working directory, or null for the current directory. */
+    private String workingDirValue;
+
+    /** The resolved timeout in seconds. */
+    private long timeoutValue;
+
+    /** The resolved environment variables. */
+    private Map<String, String> envValue = Map.of();
+
+    /** Whether to execute the command via an OS shell. */
+    private boolean useShellValue;
+
+    /** Shape of the output message payload. */
+    private OutputFormat outputFormatValue;
+
+    /** How to react to a non-zero exit code or timeout. */
+    private FailureMode failureModeValue;
+
+    /** How the input message is handed to the process. */
+    private InputMode inputModeValue;
+
+    /** Whether output messages are stamped with the success/failure source port. */
+    private boolean routeByExitCodeValue;
+
+    /** Whether structured payloads embed stdout/stderr text. */
+    private boolean includeOutputValue;
+
+    /** Whether structured payloads embed the original input payload. */
+    private boolean includeInputValue;
+
+    /** Whether stderr is captured separately instead of merged into stdout. */
+    private boolean captureStderrValue;
+
+    /** Maximum output lines retained per stream. */
+    private int maxOutputLinesValue;
+
+    /** Maximum output bytes retained per stream. */
+    private long maxOutputBytesValue;
+
+    /**
+     * Sets the command and its arguments.
+     *
+     * @param command the command and arguments
+     * @return this builder
+     */
+    /* package */ Builder command(final List<String> command) {
+      this.commandValue = copyCommand(command);
       return this;
     }
 
-    Builder workingDir(String workingDir) {
-      this.workingDir = workingDir;
+    /**
+     * Sets the working directory.
+     *
+     * @param workingDir the working directory, or null for the current directory
+     * @return this builder
+     */
+    /* package */ Builder workingDir(final String workingDir) {
+      this.workingDirValue = workingDir;
       return this;
     }
 
-    Builder timeout(long timeout) {
-      this.timeout = timeout;
+    /**
+     * Sets the timeout in seconds.
+     *
+     * @param timeout the timeout in seconds
+     * @return this builder
+     */
+    /* package */ Builder timeout(final long timeout) {
+      this.timeoutValue = timeout;
       return this;
     }
 
-    Builder env(Map<String, String> env) {
-      this.env = copyEnv(env);
+    /**
+     * Sets the environment variables.
+     *
+     * @param env the environment variables
+     * @return this builder
+     */
+    /* package */ Builder env(final Map<String, String> env) {
+      this.envValue = copyEnv(env);
       return this;
     }
 
-    Builder useShell(boolean useShell) {
-      this.useShell = useShell;
+    /**
+     * Sets whether to execute the command via an OS shell.
+     *
+     * @param useShell true to execute via an OS shell
+     * @return this builder
+     */
+    /* package */ Builder useShell(final boolean useShell) {
+      this.useShellValue = useShell;
       return this;
     }
 
-    Builder outputFormat(OutputFormat outputFormat) {
-      this.outputFormat = outputFormat;
+    /**
+     * Sets the shape of the output message payload.
+     *
+     * @param outputFormat the output format
+     * @return this builder
+     */
+    /* package */ Builder outputFormat(final OutputFormat outputFormat) {
+      this.outputFormatValue = outputFormat;
       return this;
     }
 
-    Builder failureMode(FailureMode failureMode) {
-      this.failureMode = failureMode;
+    /**
+     * Sets how to react to a non-zero exit code or timeout.
+     *
+     * @param failureMode the failure mode
+     * @return this builder
+     */
+    /* package */ Builder failureMode(final FailureMode failureMode) {
+      this.failureModeValue = failureMode;
       return this;
     }
 
-    Builder inputMode(InputMode inputMode) {
-      this.inputMode = inputMode;
+    /**
+     * Sets how the input message is handed to the process.
+     *
+     * @param inputMode the input mode
+     * @return this builder
+     */
+    /* package */ Builder inputMode(final InputMode inputMode) {
+      this.inputModeValue = inputMode;
       return this;
     }
 
-    Builder routeByExitCode(boolean routeByExitCode) {
-      this.routeByExitCode = routeByExitCode;
+    /**
+     * Sets whether output messages are stamped with the success/failure source port.
+     *
+     * @param routeByExitCode true to route by exit code (requires failureMode CONTINUE)
+     * @return this builder
+     */
+    /* package */ Builder routeByExitCode(final boolean routeByExitCode) {
+      this.routeByExitCodeValue = routeByExitCode;
       return this;
     }
 
-    Builder includeOutput(boolean includeOutput) {
-      this.includeOutput = includeOutput;
+    /**
+     * Sets whether structured payloads embed stdout/stderr text.
+     *
+     * @param includeOutput true to embed captured output
+     * @return this builder
+     */
+    /* package */ Builder includeOutput(final boolean includeOutput) {
+      this.includeOutputValue = includeOutput;
       return this;
     }
 
-    Builder includeInput(boolean includeInput) {
-      this.includeInput = includeInput;
+    /**
+     * Sets whether structured payloads embed the original input payload.
+     *
+     * @param includeInput true to embed the input payload
+     * @return this builder
+     */
+    /* package */ Builder includeInput(final boolean includeInput) {
+      this.includeInputValue = includeInput;
       return this;
     }
 
-    Builder captureStderr(boolean captureStderr) {
-      this.captureStderr = captureStderr;
+    /**
+     * Sets whether stderr is captured separately instead of merged into stdout.
+     *
+     * @param captureStderr true to capture stderr separately
+     * @return this builder
+     */
+    /* package */ Builder captureStderr(final boolean captureStderr) {
+      this.captureStderrValue = captureStderr;
       return this;
     }
 
-    Builder maxOutputLines(int maxOutputLines) {
-      this.maxOutputLines = maxOutputLines;
+    /**
+     * Sets the maximum output lines retained per stream.
+     *
+     * @param maxOutputLines the line cap (0 = unlimited)
+     * @return this builder
+     */
+    /* package */ Builder maxOutputLines(final int maxOutputLines) {
+      this.maxOutputLinesValue = maxOutputLines;
       return this;
     }
 
-    Builder maxOutputBytes(long maxOutputBytes) {
-      this.maxOutputBytes = maxOutputBytes;
+    /**
+     * Sets the maximum output bytes retained per stream.
+     *
+     * @param maxOutputBytes the byte cap (0 = unlimited)
+     * @return this builder
+     */
+    /* package */ Builder maxOutputBytes(final long maxOutputBytes) {
+      this.maxOutputBytesValue = maxOutputBytes;
       return this;
     }
 
-    ProcessExecutorConfig build() {
+    /**
+     * Builds the {@link ProcessExecutorConfig} from the configured values.
+     *
+     * @return the constructed config
+     */
+    /* package */ ProcessExecutorConfig build() {
       return new ProcessExecutorConfig(
-          command,
-          workingDir,
-          timeout,
-          env,
-          useShell,
-          outputFormat,
-          failureMode,
-          inputMode,
-          routeByExitCode,
-          includeOutput,
-          includeInput,
-          captureStderr,
-          maxOutputLines,
-          maxOutputBytes);
+          commandValue,
+          workingDirValue,
+          timeoutValue,
+          envValue,
+          useShellValue,
+          outputFormatValue,
+          failureModeValue,
+          inputModeValue,
+          routeByExitCodeValue,
+          includeOutputValue,
+          includeInputValue,
+          captureStderrValue,
+          maxOutputLinesValue,
+          maxOutputBytesValue);
     }
   }
 }

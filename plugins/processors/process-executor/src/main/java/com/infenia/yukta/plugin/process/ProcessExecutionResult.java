@@ -43,13 +43,14 @@ public record ProcessExecutionResult(
    *
    * <p>All list inputs are normalized and defensively copied by the canonical constructor.
    */
+  @SuppressWarnings("PMD.ShortMethodName")
   public static ProcessExecutionResult of(
-      int exitCode,
-      List<String> stdoutLines,
-      List<String> stderrLines,
-      long durationMillis,
-      boolean timedOut,
-      boolean outputTruncated) {
+      final int exitCode,
+      final List<String> stdoutLines,
+      final List<String> stderrLines,
+      final long durationMillis,
+      final boolean timedOut,
+      final boolean outputTruncated) {
     return new ProcessExecutionResult(
         exitCode, stdoutLines, stderrLines, durationMillis, timedOut, outputTruncated);
   }

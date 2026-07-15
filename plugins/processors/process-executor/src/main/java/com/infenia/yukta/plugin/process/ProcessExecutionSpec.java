@@ -50,14 +50,27 @@ public record ProcessExecutionSpec(
   /** Cap value indicating that output should not be limited. */
   public static final int UNLIMITED = 0;
 
+  /**
+   * Creates a new builder for constructing a {@link ProcessExecutionSpec}.
+   *
+   * @return a new builder instance
+   */
   public static Builder builder() {
     return new Builder();
   }
 
+  private static List<String> copyCommand(final List<String> command) {
+    return command == null ? List.of() : List.copyOf(command);
+  }
+
+  private static Map<String, String> copyEnv(final Map<String, String> env) {
+    return env == null ? Map.of() : Map.copyOf(env);
+  }
+
   /** Normalizes nulls and non-positive numeric fields to their documented defaults. */
   public ProcessExecutionSpec {
-    command = command == null ? List.of() : List.copyOf(command);
-    env = env == null ? Map.of() : Map.copyOf(env);
+    command = copyCommand(command);
+    env = copyEnv(env);
     if (timeoutSeconds <= 0) {
       timeoutSeconds = DEFAULT_TIMEOUT_SECONDS;
     }
@@ -65,75 +78,152 @@ public record ProcessExecutionSpec(
     maxOutputBytes = Math.max(UNLIMITED, maxOutputBytes);
   }
 
+  /** Builder for {@link ProcessExecutionSpec}. */
   public static final class Builder {
-    private List<String> command;
-    private String workingDir;
-    private long timeoutSeconds;
-    private Map<String, String> env;
-    private boolean useShell;
-    private String stdin;
-    private boolean captureStderr;
-    private int maxOutputLines;
-    private long maxOutputBytes;
+    /** The command and its arguments to execute. */
+    private List<String> commandValue = List.of();
+
+    /** The working directory, or null for the current directory. */
+    private String workingDirValue;
+
+    /** The maximum wall-clock execution time in seconds. */
+    private long timeoutSecondsValue;
+
+    /** Additional environment variables for the process. */
+    private Map<String, String> envValue = Map.of();
+
+    /** Whether to wrap the command in an OS shell. */
+    private boolean useShellValue;
+
+    /** Text to write to the process standard input, or null for none. */
+    private String stdinValue;
+
+    /** Whether to capture stderr separately from stdout. */
+    private boolean captureStderrValue;
+
+    /** Maximum number of output lines to retain per stream. */
+    private int maxOutputLinesValue;
+
+    /** Maximum number of output bytes to retain per stream. */
+    private long maxOutputBytesValue;
 
     private Builder() {}
 
-    public Builder command(List<String> command) {
-      this.command = command == null ? null : List.copyOf(command);
+    /**
+     * Sets the command and its arguments to execute.
+     *
+     * @param command the command and arguments
+     * @return this builder
+     */
+    public Builder command(final List<String> command) {
+      this.commandValue = copyCommand(command);
       return this;
     }
 
-    public Builder workingDir(String workingDir) {
-      this.workingDir = workingDir;
+    /**
+     * Sets the working directory for the process.
+     *
+     * @param workingDir the working directory, or null/blank for the current directory
+     * @return this builder
+     */
+    public Builder workingDir(final String workingDir) {
+      this.workingDirValue = workingDir;
       return this;
     }
 
-    public Builder timeoutSeconds(long timeoutSeconds) {
-      this.timeoutSeconds = timeoutSeconds;
+    /**
+     * Sets the maximum wall-clock execution time.
+     *
+     * @param timeoutSeconds the timeout in seconds
+     * @return this builder
+     */
+    public Builder timeoutSeconds(final long timeoutSeconds) {
+      this.timeoutSecondsValue = timeoutSeconds;
       return this;
     }
 
-    public Builder env(Map<String, String> env) {
-      this.env = env == null ? null : Map.copyOf(env);
+    /**
+     * Sets additional environment variables for the process.
+     *
+     * @param env the environment variables
+     * @return this builder
+     */
+    public Builder env(final Map<String, String> env) {
+      this.envValue = copyEnv(env);
       return this;
     }
 
-    public Builder useShell(boolean useShell) {
-      this.useShell = useShell;
+    /**
+     * Sets whether to wrap the command in an OS shell.
+     *
+     * @param useShell true to execute via an OS shell
+     * @return this builder
+     */
+    public Builder useShell(final boolean useShell) {
+      this.useShellValue = useShell;
       return this;
     }
 
-    public Builder stdin(String stdin) {
-      this.stdin = stdin;
+    /**
+     * Sets the text to write to the process standard input.
+     *
+     * @param stdin the standard input text, or null for none
+     * @return this builder
+     */
+    public Builder stdin(final String stdin) {
+      this.stdinValue = stdin;
       return this;
     }
 
-    public Builder captureStderr(boolean captureStderr) {
-      this.captureStderr = captureStderr;
+    /**
+     * Sets whether to capture stderr separately from stdout.
+     *
+     * @param captureStderr true to capture stderr separately
+     * @return this builder
+     */
+    public Builder captureStderr(final boolean captureStderr) {
+      this.captureStderrValue = captureStderr;
       return this;
     }
 
-    public Builder maxOutputLines(int maxOutputLines) {
-      this.maxOutputLines = maxOutputLines;
+    /**
+     * Sets the maximum number of output lines to retain per stream.
+     *
+     * @param maxOutputLines the line cap, or {@link #UNLIMITED} for no cap
+     * @return this builder
+     */
+    public Builder maxOutputLines(final int maxOutputLines) {
+      this.maxOutputLinesValue = maxOutputLines;
       return this;
     }
 
-    public Builder maxOutputBytes(long maxOutputBytes) {
-      this.maxOutputBytes = maxOutputBytes;
+    /**
+     * Sets the maximum number of output bytes to retain per stream.
+     *
+     * @param maxOutputBytes the byte cap, or {@link #UNLIMITED} for no cap
+     * @return this builder
+     */
+    public Builder maxOutputBytes(final long maxOutputBytes) {
+      this.maxOutputBytesValue = maxOutputBytes;
       return this;
     }
 
+    /**
+     * Builds the {@link ProcessExecutionSpec} from the configured values.
+     *
+     * @return the constructed spec
+     */
     public ProcessExecutionSpec build() {
       return new ProcessExecutionSpec(
-          command,
-          workingDir,
-          timeoutSeconds,
-          env,
-          useShell,
-          stdin,
-          captureStderr,
-          maxOutputLines,
-          maxOutputBytes);
+          commandValue,
+          workingDirValue,
+          timeoutSecondsValue,
+          envValue,
+          useShellValue,
+          stdinValue,
+          captureStderrValue,
+          maxOutputLinesValue,
+          maxOutputBytesValue);
     }
   }
 }

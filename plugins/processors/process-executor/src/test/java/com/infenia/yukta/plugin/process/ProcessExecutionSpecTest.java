@@ -98,4 +98,13 @@ class ProcessExecutionSpecTest {
     assertThat(spec.command()).containsExactly(ECHO);
     assertThat(spec.env()).containsOnlyKeys(K);
   }
+
+  @Test
+  void builder_nullCommandAndEnv_normalizedToEmpty() {
+    final ProcessExecutionSpec spec =
+        ProcessExecutionSpec.builder().command(null).env(null).build();
+
+    assertThat(spec.command()).isEmpty();
+    assertThat(spec.env()).isEmpty();
+  }
 }
