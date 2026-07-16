@@ -21,6 +21,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   # Pinned OpenGrep version — bump deliberately, keep builds reproducible
   OPENGREP_VERSION: v1.25.0
+  # Keep in sync with the trivy version pinned in security.yml
+  TRIVY_VERSION: v0.72.0
 
 # Least privilege by default; jobs elevate only what they need.
 permissions:
@@ -180,6 +182,27 @@ jobs:
           echo "$HOME/.opengrep/cli/latest" >> $GITHUB_PATH
           echo "$HOME/.local/bin" >> $GITHUB_PATH
           echo "▶ OpenGrep PATH configured and verified"
+
+      - name: Cache Trivy
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: cache-trivy
+        with:
+          path: ~/.local/bin/trivy
+          key: trivy-${{ runner.os }}-${{ runner.arch }}-${{ env.TRIVY_VERSION }}
+
+      - name: Install Trivy
+        if: steps.cache-trivy.outputs.cache-hit != 'true'
+        run: |
+          echo "▶ Installing Trivy $TRIVY_VERSION (not found in cache)..."
+          curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b ~/.local/bin "$TRIVY_VERSION"
+          echo "▶ Trivy installation complete"
+
+      - name: Verify Trivy is available
+        run: |
+          # ~/.local/bin was already added to GITHUB_PATH by the OpenGrep PATH step
+          which trivy
+          trivy --version
 
       - name: Verify dependency lock files are up-to-date
         run: |
