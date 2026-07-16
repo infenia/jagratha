@@ -421,10 +421,29 @@ tasks.register("goCoverageCheck") {
       )
       testProcess.directory(projectDirectory)
       val process = testProcess.start()
-      val testOutput = process.inputStream.bufferedReader().use { it.readText() }
-      val testErrorOutput = process.errorStream.bufferedReader().use { it.readText() }
+      val testOutput = StringBuilder()
+      val testErrorOutput = StringBuilder()
+
+      val stdoutThread = Thread {
+        process.inputStream.bufferedReader().use { reader ->
+          reader.forEachLine { testOutput.appendLine(it) }
+        }
+      }
+      val stderrThread = Thread {
+        process.errorStream.bufferedReader().use { reader ->
+          reader.forEachLine { testErrorOutput.appendLine(it) }
+        }
+      }
+
+      stdoutThread.start()
+      stderrThread.start()
       val exitCode = process.waitFor()
-      println(testOutput)
+      stdoutThread.join()
+      stderrThread.join()
+
+      if (testOutput.isNotEmpty()) {
+        println(testOutput)
+      }
       if (testErrorOutput.isNotEmpty()) {
         println(testErrorOutput)
       }

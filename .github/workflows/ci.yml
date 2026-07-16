@@ -165,7 +165,7 @@ jobs:
         if: steps.cache-opengrep.outputs.cache-hit != 'true'
         run: |
           echo "▶ Installing OpenGrep $OPENGREP_VERSION (not found in cache)..."
-          curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh \
+          curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/$OPENGREP_VERSION/install.sh \
             | bash -s -- -v "$OPENGREP_VERSION"
           echo "▶ OpenGrep installation complete"
 
@@ -194,7 +194,7 @@ jobs:
         if: steps.cache-trivy.outputs.cache-hit != 'true'
         run: |
           echo "▶ Installing Trivy $TRIVY_VERSION (not found in cache)..."
-          curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+          curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/$TRIVY_VERSION/contrib/install.sh \
             | sh -s -- -b ~/.local/bin "$TRIVY_VERSION"
           echo "▶ Trivy installation complete"
 

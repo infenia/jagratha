@@ -110,7 +110,7 @@ jobs:
               for (const job of jobs.data.jobs) {
                 const conclusion = job.conclusion ?? 'in_progress';
                 rows.push(
-                  `| ${wf.title} | [${escapeMd(job.name)}](${latest.html_url}) | ` +
+                  `| ${wf.title} | [${escapeMd(job.name)}](${job.html_url}) | ` +
                   `${statusIcon(conclusion)} ${conclusion.toUpperCase().replace('_', ' ')} |`
                 );
               }
