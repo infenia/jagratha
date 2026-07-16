@@ -109,7 +109,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
-      contents: write        # Required to submit dependency graph
+      contents: read
       checks: write          # For test result annotations
     # Skip entirely on PRs where nothing relevant changed
     if: |
@@ -142,10 +142,11 @@ jobs:
         with:
           # Use the exact Gradle version from your wrapper
           gradle-version: wrapper
-          # Submit the dependency graph (feeds Dependabot alerts and the
-          # dependency-review job). Fork PRs have a read-only token, so skip.
-          dependency-graph: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'disabled' || 'generate-submit-and-upload' }}
-          dependency-graph-continue-on-failure: true   # Don't fail build if submission fails
+          # Dependency graph submission is handled by the dedicated
+          # dependency-submission job below, which always resolves the FULL
+          # graph. Submitting from here would produce partial snapshots on
+          # PRs that only build changed modules.
+          dependency-graph: disabled
           cache-provider: enhanced                     # Default, best performance
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
           # Build reporting (very useful)
@@ -331,13 +332,55 @@ jobs:
           if-no-files-found: ignore
 
   # ─────────────────────────────────────────────
-  # Job 3: Fail PRs that introduce known-vulnerable dependencies.
-  # Compares the dependency graph snapshots submitted by the build job.
-  # Skipped for fork PRs (they cannot submit snapshots).
+  # Job 3: Submit the FULL dependency graph (feeds Dependabot alerts and
+  # the dependency-review job). Runs resolution only — no compile/test —
+  # so it is fast and always complete, even when the build job only
+  # rebuilds changed modules. Skipped for fork PRs (read-only token).
+  # ─────────────────────────────────────────────
+  dependency-submission:
+    name: Submit Dependency Graph
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write        # Required to submit the dependency graph
+    if: |
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      # cli/build.gradle.kts shells out to `go`; keep the toolchain
+      # available in case any of its tasks touch configuration/resolution.
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: 'cli/go.mod'
+          cache-dependency-path: 'cli/go.sum'
+
+      - name: Generate and submit dependency graph
+        uses: gradle/actions/dependency-submission@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+        with:
+          gradle-version: wrapper
+          dependency-graph-continue-on-failure: true   # Don't fail CI if submission fails
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+  # ─────────────────────────────────────────────
+  # Job 4: Fail PRs that introduce known-vulnerable dependencies.
+  # Compares the dependency graph snapshots submitted by the
+  # dependency-submission job. Skipped for fork PRs (they cannot
+  # submit snapshots).
   # ─────────────────────────────────────────────
   dependency-review:
     name: Dependency Review
-    needs: build
+    needs: dependency-submission
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: |
@@ -357,5 +400,8 @@ jobs:
           # Licenses are validated separately by Licensee with a curated allowlist
           license-check: false
           comment-summary-in-pr: on-failure
+          # Both base and head snapshots come from the dependency-submission
+          # job (always a full graph), so a warning just means the base
+          # snapshot hasn't landed yet — retrying briefly is safe.
           retry-on-snapshot-warnings: true
-          retry-on-snapshot-warnings-timeout: 600
+          retry-on-snapshot-warnings-timeout: 120
