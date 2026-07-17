@@ -13,11 +13,15 @@ import com.infenia.yukta.dto.response.SessionCreationGuide;
 import com.infenia.yukta.dto.response.SessionCreationResponse;
 import com.infenia.yukta.dto.response.SessionDetails;
 import com.infenia.yukta.dto.response.SessionInfo;
+import com.infenia.yukta.mcp.dto.ControlActionResult;
+import com.infenia.yukta.mcp.dto.NodeControlAction;
+import com.infenia.yukta.mcp.dto.WorkflowControlAction;
 import com.infenia.yukta.mcp.dto.WorkflowStartResult;
 import com.infenia.yukta.mcp.provider.DefaultLogProvider;
 import com.infenia.yukta.mcp.provider.DefaultPluginInfoProvider;
 import com.infenia.yukta.mcp.provider.DefaultSessionInfoProvider;
 import com.infenia.yukta.mcp.provider.DefaultSystemHealthProvider;
+import com.infenia.yukta.mcp.provider.DefaultWorkflowControlProvider;
 import com.infenia.yukta.mcp.provider.DefaultWorkflowExecutionProvider;
 import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.model.execution.WorkflowProgress;
@@ -35,6 +39,7 @@ class AppMcpToolsTest {
   private DefaultSessionInfoProvider sessionInfoProvider;
   private DefaultLogProvider logProvider;
   private DefaultWorkflowExecutionProvider workflowExecutionProvider;
+  private DefaultWorkflowControlProvider workflowControlProvider;
   private DefaultPluginInfoProvider pluginInfoProvider;
   private DefaultSystemHealthProvider systemHealthProvider;
 
@@ -43,6 +48,7 @@ class AppMcpToolsTest {
     sessionInfoProvider = mock(DefaultSessionInfoProvider.class);
     logProvider = mock(DefaultLogProvider.class);
     workflowExecutionProvider = mock(DefaultWorkflowExecutionProvider.class);
+    workflowControlProvider = mock(DefaultWorkflowControlProvider.class);
     pluginInfoProvider = mock(DefaultPluginInfoProvider.class);
     systemHealthProvider = mock(DefaultSystemHealthProvider.class);
     mcpTools =
@@ -50,6 +56,7 @@ class AppMcpToolsTest {
             sessionInfoProvider,
             logProvider,
             workflowExecutionProvider,
+            workflowControlProvider,
             pluginInfoProvider,
             systemHealthProvider);
   }
@@ -122,6 +129,30 @@ class AppMcpToolsTest {
 
     StepVerifier.create(mcpTools.getWorkflowHistory("s1"))
         .expectNext(List.of(summary))
+        .verifyComplete();
+  }
+
+  @Test
+  void testControlWorkflow() {
+    var result = new ControlActionResult("PAUSE", "e1", null, List.of(), "ok");
+    when(workflowControlProvider.controlWorkflow(
+            "s1", WorkflowControlAction.PAUSE, "e1", null, null, null))
+        .thenReturn(Mono.just(result));
+
+    StepVerifier.create(
+            mcpTools.controlWorkflow("s1", WorkflowControlAction.PAUSE, "e1", null, null, null))
+        .expectNext(result)
+        .verifyComplete();
+  }
+
+  @Test
+  void testControlNode() {
+    var result = new ControlActionResult("SKIP", "e1", "n1", List.of(), "ok");
+    when(workflowControlProvider.controlNode("s1", "e1", "n1", NodeControlAction.SKIP, null, null))
+        .thenReturn(Mono.just(result));
+
+    StepVerifier.create(mcpTools.controlNode("s1", "e1", "n1", NodeControlAction.SKIP, null, null))
+        .expectNext(result)
         .verifyComplete();
   }
 

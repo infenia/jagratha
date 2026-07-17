@@ -10,11 +10,15 @@ import com.infenia.yukta.dto.response.SessionCreationGuide;
 import com.infenia.yukta.dto.response.SessionCreationResponse;
 import com.infenia.yukta.dto.response.SessionDetails;
 import com.infenia.yukta.dto.response.SessionInfo;
+import com.infenia.yukta.mcp.dto.ControlActionResult;
+import com.infenia.yukta.mcp.dto.NodeControlAction;
+import com.infenia.yukta.mcp.dto.WorkflowControlAction;
 import com.infenia.yukta.mcp.dto.WorkflowStartResult;
 import com.infenia.yukta.mcp.provider.DefaultLogProvider;
 import com.infenia.yukta.mcp.provider.DefaultPluginInfoProvider;
 import com.infenia.yukta.mcp.provider.DefaultSessionInfoProvider;
 import com.infenia.yukta.mcp.provider.DefaultSystemHealthProvider;
+import com.infenia.yukta.mcp.provider.DefaultWorkflowControlProvider;
 import com.infenia.yukta.mcp.provider.DefaultWorkflowExecutionProvider;
 import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.model.execution.WorkflowProgress;
@@ -47,6 +51,9 @@ public class AppMcpTools {
 
   /** Provides workflow execution information for MCP tools. */
   private final DefaultWorkflowExecutionProvider workflowExecutionProvider;
+
+  /** Provides workflow and node control operations for MCP tools. */
+  private final DefaultWorkflowControlProvider workflowControlProvider;
 
   /** Provides plugin information for MCP tools. */
   private final DefaultPluginInfoProvider pluginInfoProvider;
@@ -220,6 +227,108 @@ public class AppMcpTools {
   public Mono<List<WorkflowExecutionSummary>> getWorkflowHistory(
       @McpToolParam(required = true, description = SESSION_ID_DESC) final String sessionId) {
     return workflowExecutionProvider.getWorkflowHistory(sessionId);
+  }
+
+  /**
+   * Execute a workflow-level control action.
+   *
+   * @param sessionId the session that owns the execution
+   * @param action the control action to execute
+   * @param executionId the target execution (all actions except stop_all)
+   * @param workflowId the target workflow (stop_all only)
+   * @param fromNodeId the node to restart from (restart_from_node only)
+   * @param reason optional reason recorded with stop actions
+   * @return Mono containing the action result
+   */
+  @McpTool(
+      name = "control_workflow",
+      title = "Control Workflow",
+      description =
+          "Control a workflow execution: PAUSE, RESUME, STOP, or RESTART an execution; "
+              + "RESTART_FROM_NODE to restart from a specific node (requires fromNodeId); "
+              + "STOP_ALL to stop every active execution of a workflow (requires workflowId, "
+              + "no executionId). Restart actions return the new execution ID in "
+              + "resultExecutionIds.",
+      generateOutputSchema = true,
+      annotations =
+          @McpTool.McpAnnotations(
+              readOnlyHint = false,
+              destructiveHint = true,
+              openWorldHint = false))
+  public Mono<ControlActionResult> controlWorkflow(
+      @McpToolParam(required = true, description = SESSION_ID_DESC) final String sessionId,
+      @McpToolParam(
+              required = true,
+              description =
+                  "The control action: PAUSE, RESUME, STOP, STOP_ALL, RESTART, or "
+                      + "RESTART_FROM_NODE")
+          final WorkflowControlAction action,
+      @McpToolParam(
+              required = false,
+              description =
+                  "The unique identifier of the workflow execution (required for all actions "
+                      + "except STOP_ALL)")
+          final String executionId,
+      @McpToolParam(
+              required = false,
+              description = "The unique identifier of the workflow (required for STOP_ALL)")
+          final String workflowId,
+      @McpToolParam(
+              required = false,
+              description = "The node ID to restart from (required for RESTART_FROM_NODE)")
+          final String fromNodeId,
+      @McpToolParam(required = false, description = "Optional reason recorded with stop actions")
+          final String reason) {
+    return workflowControlProvider.controlWorkflow(
+        sessionId, action, executionId, workflowId, fromNodeId, reason);
+  }
+
+  /**
+   * Execute a node-level control action.
+   *
+   * @param sessionId the session that owns the execution
+   * @param executionId the target execution
+   * @param nodeId the target node
+   * @param action the control action to execute
+   * @param immediate whether a STOP action interrupts the node immediately
+   * @param reason optional reason recorded with stop actions
+   * @return Mono containing the action result
+   */
+  @McpTool(
+      name = "control_node",
+      title = "Control Node",
+      description =
+          "Control a single node within a running workflow execution: PAUSE, RESUME, or STOP "
+              + "the node; SKIP/UNSKIP to toggle skipping; STEP_ENABLE/STEP_DISABLE to toggle "
+              + "step-by-step mode and STEP to execute one step.",
+      generateOutputSchema = true,
+      annotations =
+          @McpTool.McpAnnotations(
+              readOnlyHint = false,
+              destructiveHint = true,
+              openWorldHint = false))
+  public Mono<ControlActionResult> controlNode(
+      @McpToolParam(required = true, description = SESSION_ID_DESC) final String sessionId,
+      @McpToolParam(
+              required = true,
+              description = "The unique identifier of the workflow execution")
+          final String executionId,
+      @McpToolParam(required = true, description = "The unique identifier of the node")
+          final String nodeId,
+      @McpToolParam(
+              required = true,
+              description =
+                  "The control action: PAUSE, RESUME, STOP, SKIP, UNSKIP, STEP, STEP_ENABLE, "
+                      + "or STEP_DISABLE")
+          final NodeControlAction action,
+      @McpToolParam(
+              required = false,
+              description = "For STOP: interrupt the node immediately instead of gracefully")
+          final Boolean immediate,
+      @McpToolParam(required = false, description = "Optional reason recorded with stop actions")
+          final String reason) {
+    return workflowControlProvider.controlNode(
+        sessionId, executionId, nodeId, action, immediate, reason);
   }
 
   /**
