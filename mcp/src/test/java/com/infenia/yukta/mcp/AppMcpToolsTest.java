@@ -6,12 +6,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.dto.response.ControlBusStatus;
-import com.infenia.yukta.dto.response.PluginCreationGuide;
-import com.infenia.yukta.dto.response.PluginDetails;
-import com.infenia.yukta.dto.response.PluginSummary;
 import com.infenia.yukta.mcp.dto.ControlActionResult;
 import com.infenia.yukta.mcp.dto.ExecutionLogs;
 import com.infenia.yukta.mcp.dto.NodeControlAction;
+import com.infenia.yukta.mcp.dto.PluginCreationGuide;
+import com.infenia.yukta.mcp.dto.PluginDetails;
+import com.infenia.yukta.mcp.dto.PluginSummary;
 import com.infenia.yukta.mcp.dto.SessionCreationGuide;
 import com.infenia.yukta.mcp.dto.SessionCreationResult;
 import com.infenia.yukta.mcp.dto.SessionDetails;
@@ -153,7 +153,7 @@ class AppMcpToolsTest {
     var summary = mock(PluginSummary.class);
     when(pluginInfoProvider.listPlugins()).thenReturn(List.of(summary));
 
-    StepVerifier.create(mcpTools.listPlugins()).expectNext(summary).verifyComplete();
+    StepVerifier.create(mcpTools.listPlugins()).expectNext(List.of(summary)).verifyComplete();
   }
 
   @Test

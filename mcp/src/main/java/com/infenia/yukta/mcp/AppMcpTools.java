@@ -3,12 +3,12 @@
 package com.infenia.yukta.mcp;
 
 import com.infenia.yukta.dto.response.ControlBusStatus;
-import com.infenia.yukta.dto.response.PluginCreationGuide;
-import com.infenia.yukta.dto.response.PluginDetails;
-import com.infenia.yukta.dto.response.PluginSummary;
 import com.infenia.yukta.mcp.dto.ControlActionResult;
 import com.infenia.yukta.mcp.dto.ExecutionLogs;
 import com.infenia.yukta.mcp.dto.NodeControlAction;
+import com.infenia.yukta.mcp.dto.PluginCreationGuide;
+import com.infenia.yukta.mcp.dto.PluginDetails;
+import com.infenia.yukta.mcp.dto.PluginSummary;
 import com.infenia.yukta.mcp.dto.SessionCreationGuide;
 import com.infenia.yukta.mcp.dto.SessionCreationResult;
 import com.infenia.yukta.mcp.dto.SessionDetails;
@@ -29,8 +29,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * MCP (Model Context Protocol) tools for Yukta. Provides facade for interacting with workflows,
@@ -317,15 +317,17 @@ public class AppMcpTools {
   /**
    * List available plugins.
    *
-   * @return list of plugin summaries
+   * @return Mono containing the list of plugin summaries
    */
   @McpTool(
       name = "list_plugins",
       title = "List Plugins",
-      description = "List all available Yukta workflow plugins",
+      description = "List all available Yukta workflow plugins with their categories",
+      generateOutputSchema = true,
       annotations = @McpTool.McpAnnotations(readOnlyHint = true, openWorldHint = false))
-  public Flux<PluginSummary> listPlugins() {
-    return Flux.fromIterable(pluginInfoProvider.listPlugins());
+  public Mono<List<PluginSummary>> listPlugins() {
+    return Mono.fromCallable(pluginInfoProvider::listPlugins)
+        .subscribeOn(Schedulers.boundedElastic());
   }
 
   /**
@@ -343,7 +345,8 @@ public class AppMcpTools {
   public Mono<PluginDetails> getPluginDetails(
       @McpToolParam(required = true, description = "The unique plugin type/identifier")
           final String type) {
-    return Mono.fromCallable(() -> pluginInfoProvider.getPluginDetails(type));
+    return Mono.fromCallable(() -> pluginInfoProvider.getPluginDetails(type))
+        .subscribeOn(Schedulers.boundedElastic());
   }
 
   /**
