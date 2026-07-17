@@ -19,14 +19,6 @@ coverage:
     - path: internal/client/mock.go
       min: 0
 
-    # Plugin client - error paths in json.Unmarshal (tested via integration)
-    - path: internal/client/plugin.go
-      min: 70
-
-    # Control bus client - error paths in json.Unmarshal (tested via integration)
-    - path: internal/client/controlbus.go
-      min: 70
-
     # Stream client - low-level SSE parsing (tested comprehensively via stream_test.go)
     - path: internal/client/stream.go
       min: 90

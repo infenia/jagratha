@@ -5,6 +5,7 @@ package client
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -89,6 +90,36 @@ func TestListPlugins_apiError(t *testing.T) {
 	}
 }
 
+func TestListPlugins_newRequestFails(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	c.RequestFactory = &MockRequestFactory{
+		Err: errors.New("network error"),
+	}
+
+	_, err := c.ListPlugins()
+	if err == nil {
+		t.Error("expected error from newRequest failure")
+	}
+}
+
+func TestListPlugins_malformedJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte("invalid json {"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.ListPlugins()
+
+	if err == nil {
+		t.Fatal("expected error for malformed JSON, got nil")
+	}
+	if !strings.Contains(err.Error(), "unmarshal") {
+		t.Errorf("expected unmarshal error, got: %v", err)
+	}
+}
+
 func TestGetPluginDetails_success(t *testing.T) {
 	expectedDetails := PluginDetails{
 		Type:         "test-plugin",
@@ -166,6 +197,18 @@ func TestGetPluginDetails_emptyPluginType(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "empty") {
 		t.Errorf("expected empty error message, got: %v", err)
+	}
+}
+
+func TestGetPluginDetails_newRequestFails(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	c.RequestFactory = &MockRequestFactory{
+		Err: errors.New("network error"),
+	}
+
+	_, err := c.GetPluginDetails("test-plugin")
+	if err == nil {
+		t.Error("expected error from newRequest failure")
 	}
 }
 
