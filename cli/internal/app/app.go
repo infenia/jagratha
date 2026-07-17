@@ -6,6 +6,7 @@ package app
 import (
 	"com.infenia.yukta/go-cli/internal/client"
 	"com.infenia.yukta/go-cli/internal/commands"
+	"com.infenia.yukta/go-cli/internal/commands/controlbus"
 	"com.infenia.yukta/go-cli/internal/commands/plugin"
 	"com.infenia.yukta/go-cli/internal/commands/session"
 )
@@ -22,6 +23,9 @@ func Run() error {
 
 	// Add the plugin command group with all its subcommands
 	rootCmd.AddCommand(plugin.PluginCmd(c))
+
+	// Add the controlbus command group with all its subcommands
+	rootCmd.AddCommand(controlbus.ControlBusCmd(c))
 
 	// Add the session command group with all its subcommands
 	rootCmd.AddCommand(session.SessionCmd(c))

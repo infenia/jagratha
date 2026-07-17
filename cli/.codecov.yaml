@@ -23,6 +23,10 @@ coverage:
     - path: internal/client/plugin.go
       min: 70
 
+    # Control bus client - error paths in json.Unmarshal (tested via integration)
+    - path: internal/client/controlbus.go
+      min: 70
+
     # Integration test file (special case)
     - path: test/integration_test.go
       min: 0  # Integration tests are supplementary
