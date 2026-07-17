@@ -19,6 +19,10 @@ type ClientInterface interface {
 	ApplyConfig(configJSON []byte) error
 	ListPlugins() ([]PluginSummary, error)
 	GetPluginDetails(pluginType string) (PluginDetails, error)
+	GetActiveNodesInWorkflow(workflowID string) ([]string, error)
+	GetAllActiveNodes() ([]string, error)
+	GetLastHeartbeat(workflowID, nodeID string) (map[string]interface{}, error)
+	SendCommand(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error)
 }
 
 // Verify that Client implements ClientInterface
@@ -27,20 +31,28 @@ var _ ClientInterface = (*Client)(nil)
 // MockClient provides a mock implementation of ClientInterface for testing.
 // Each method can be customized via function fields.
 type MockClient struct {
-	GetSessionsFunc       func() ([]string, error)
-	GetSessionDetailsFunc func(sessionID string) (map[string]interface{}, error)
-	GetWorkflowFunc       func(sessionID, workflowID string) (map[string]interface{}, error)
-	ApplyConfigFunc       func(configJSON []byte) error
-	ListPluginsFunc       func() ([]PluginSummary, error)
-	GetPluginDetailsFunc  func(pluginType string) (PluginDetails, error)
+	GetSessionsFunc              func() ([]string, error)
+	GetSessionDetailsFunc        func(sessionID string) (map[string]interface{}, error)
+	GetWorkflowFunc              func(sessionID, workflowID string) (map[string]interface{}, error)
+	ApplyConfigFunc              func(configJSON []byte) error
+	ListPluginsFunc              func() ([]PluginSummary, error)
+	GetPluginDetailsFunc         func(pluginType string) (PluginDetails, error)
+	GetActiveNodesInWorkflowFunc func(workflowID string) ([]string, error)
+	GetAllActiveNodesFunc        func() ([]string, error)
+	GetLastHeartbeatFunc         func(workflowID, nodeID string) (map[string]interface{}, error)
+	SendCommandFunc              func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error)
 
 	// Call tracking for assertions
-	GetSessionsCalls       int
-	GetSessionDetailsCalls int
-	GetWorkflowCalls       int
-	ApplyConfigCalls       int
-	ListPluginsCalls       int
-	GetPluginDetailsCalls  int
+	GetSessionsCalls              int
+	GetSessionDetailsCalls        int
+	GetWorkflowCalls              int
+	ApplyConfigCalls              int
+	ListPluginsCalls              int
+	GetPluginDetailsCalls         int
+	GetActiveNodesInWorkflowCalls int
+	GetAllActiveNodesCalls        int
+	GetLastHeartbeatCalls         int
+	SendCommandCalls              int
 }
 
 // GetSessions mocks the GetSessions method.
@@ -125,6 +137,67 @@ func (m *MockClient) GetPluginDetails(pluginType string) (PluginDetails, error) 
 		UsagePattern: "test-pattern",
 		UIDesign:     UIDesign{HTML: "<div>Test</div>", Width: 100, Height: 100},
 		OutputPorts:  []string{"output1"},
+	}, nil
+}
+
+// GetActiveNodesInWorkflow mocks the GetActiveNodesInWorkflow method.
+func (m *MockClient) GetActiveNodesInWorkflow(workflowID string) ([]string, error) {
+	m.GetActiveNodesInWorkflowCalls++
+	if m.GetActiveNodesInWorkflowFunc != nil {
+		return m.GetActiveNodesInWorkflowFunc(workflowID)
+	}
+	if workflowID == "" {
+		return nil, fmt.Errorf("workflowID cannot be empty")
+	}
+	return []string{"node-1", "node-2"}, nil
+}
+
+// GetAllActiveNodes mocks the GetAllActiveNodes method.
+func (m *MockClient) GetAllActiveNodes() ([]string, error) {
+	m.GetAllActiveNodesCalls++
+	if m.GetAllActiveNodesFunc != nil {
+		return m.GetAllActiveNodesFunc()
+	}
+	return []string{"global-node-1", "global-node-2"}, nil
+}
+
+// GetLastHeartbeat mocks the GetLastHeartbeat method.
+func (m *MockClient) GetLastHeartbeat(workflowID, nodeID string) (map[string]interface{}, error) {
+	m.GetLastHeartbeatCalls++
+	if m.GetLastHeartbeatFunc != nil {
+		return m.GetLastHeartbeatFunc(workflowID, nodeID)
+	}
+	if workflowID == "" {
+		return nil, fmt.Errorf("workflowID cannot be empty")
+	}
+	if nodeID == "" {
+		return nil, fmt.Errorf("nodeID cannot be empty")
+	}
+	return map[string]interface{}{
+		"timestamp": "2026-07-17T10:00:00Z",
+		"nodeId":    nodeID,
+		"status":    "RUNNING",
+	}, nil
+}
+
+// SendCommand mocks the SendCommand method.
+func (m *MockClient) SendCommand(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error) {
+	m.SendCommandCalls++
+	if m.SendCommandFunc != nil {
+		return m.SendCommandFunc(workflowID, nodeID, commandPayloadJSON)
+	}
+	if workflowID == "" {
+		return nil, fmt.Errorf("workflowID cannot be empty")
+	}
+	if nodeID == "" {
+		return nil, fmt.Errorf("nodeID cannot be empty")
+	}
+	if len(commandPayloadJSON) == 0 {
+		return nil, fmt.Errorf("commandPayloadJSON cannot be empty")
+	}
+	return map[string]interface{}{
+		"status":  "success",
+		"message": "Command executed",
 	}, nil
 }
 
