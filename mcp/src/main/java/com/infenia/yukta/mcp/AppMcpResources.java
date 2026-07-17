@@ -28,13 +28,24 @@ public class AppMcpResources {
   public Mono<String> getYuktaOverview() {
     return Mono.just(
         """
-        Yukta (Sanskrit for 'Combined' or 'Joined') is a high-performance orchestration server
-        built for AI-driven development. It provides a robust DAG (Directed Acyclic Graph)
-        workflow engine that enables AI agents to trigger and monitor code quality checks,
-        security scans, and other build-time automations.
+        Yukta (Sanskrit for 'Combined' or 'Joined') is a reactive, DAG-based workflow
+        orchestration server. Workflows are defined once as JSON (nodes and edges) inside a
+        session and can be run via REST, a web UI, or this MCP server. Built-in
+        Trigger/Processor/Terminal plugins cover CI/CD, data pipelines, and quality gates,
+        and the plugin API allows custom extensions.
 
         Architecture:
-        Yukta is built with Java 21+ and Spring Boot WebFlux (Project Reactor), providing
+        Yukta is built with Java 25 and Spring Boot WebFlux (Project Reactor). A control bus
+        orchestrates workflow executions and exposes lifecycle control (start, pause, resume,
+        stop, restart, per-node signals), progress snapshots, execution history, and
+        persistent plugin logs.
+
+        Typical MCP flow:
+        1. list_sessions / create_session to find or create a session.
+        2. get_workflow_details to inspect a workflow DAG.
+        3. start_workflow to run it, then poll get_workflow_status and get_execution_logs.
+        4. control_workflow / control_node for pause, resume, stop, restart, skip, and
+           step-mode debugging.
         """);
   }
 
@@ -53,12 +64,28 @@ public class AppMcpResources {
         # Yukta Architecture Deep Dive
 
         ## DAG-based Workflow Engine
-        Yukta represents every quality check or automation as a Directed Acyclic Graph (DAG).
-        - Nodes: Individual processing steps.
-        - Edges: Dependencies and data flow between nodes.
+        Yukta represents every workflow as a Directed Acyclic Graph (DAG).
+        - Nodes: individual processing steps backed by plugins (Trigger, Processor, Terminal).
+        - Edges: dependencies and data flow between nodes, connected via named output ports.
+
+        ## Sessions
+        Workflows live inside sessions. A session configuration (JSON) declares one or more
+        workflow definitions; applying it compiles and caches each workflow for execution.
+
+        ## Control Bus
+        All execution control flows through a control bus gateway: starting and stopping
+        executions, pause/resume at workflow or node level, skip and step-mode signals,
+        progress snapshots, execution history, and live log observation.
 
         ## Reactive Core
-        The server is 100% non-blocking using Project Reactor's Flux and Mono.
+        The server is 100% non-blocking using Project Reactor's Flux and Mono on Spring Boot
+        WebFlux. The MCP server runs the reactive ASYNC stack with the stateless
+        streamable-HTTP transport.
+
+        ## Plugin Logs
+        Plugin output is persisted per execution in a pluggable log store and is available
+        via the get_execution_logs tool and the
+        yukta://sessions/{sessionId}/executions/{executionId}/logs resource.
         """);
   }
 
