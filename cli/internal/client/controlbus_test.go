@@ -311,7 +311,7 @@ func TestGetActiveNodesInWorkflow_requestFactoryFails_returnsError(t *testing.T)
 
 	_, err := c.GetActiveNodesInWorkflow("workflow-123")
 	if err == nil {
-		t.Error("expected error when factory fails, got nil")
+		t.Fatal("expected error when factory fails, got nil")
 	}
 	if !strings.Contains(err.Error(), "failed to create request") {
 		t.Errorf("expected factory error in GetActiveNodesInWorkflow, got: %v", err)
@@ -332,7 +332,7 @@ func TestGetAllActiveNodes_requestFactoryFails_returnsError(t *testing.T) {
 
 	_, err := c.GetAllActiveNodes()
 	if err == nil {
-		t.Error("expected error when factory fails, got nil")
+		t.Fatal("expected error when factory fails, got nil")
 	}
 	if !strings.Contains(err.Error(), "failed to create request") {
 		t.Errorf("expected factory error in GetAllActiveNodes, got: %v", err)
@@ -353,7 +353,7 @@ func TestGetLastHeartbeat_requestFactoryFails_returnsError(t *testing.T) {
 
 	_, err := c.GetLastHeartbeat("workflow-123", "node-1")
 	if err == nil {
-		t.Error("expected error when factory fails, got nil")
+		t.Fatal("expected error when factory fails, got nil")
 	}
 	if !strings.Contains(err.Error(), "failed to create request") {
 		t.Errorf("expected factory error in GetLastHeartbeat, got: %v", err)
@@ -374,7 +374,7 @@ func TestSendCommand_requestFactoryFails_returnsError(t *testing.T) {
 
 	_, err := c.SendCommand("workflow-123", "node-1", []byte(`{"action":"pause"}`))
 	if err == nil {
-		t.Error("expected error when factory fails, got nil")
+		t.Fatal("expected error when factory fails, got nil")
 	}
 	if !strings.Contains(err.Error(), "failed to create request") {
 		t.Errorf("expected factory error in SendCommand, got: %v", err)
@@ -397,7 +397,7 @@ func TestGetActiveNodesInWorkflow_httpDoerFails_returnsError(t *testing.T) {
 
 	_, err := c.GetActiveNodesInWorkflow("workflow-123")
 	if err == nil {
-		t.Error("expected error when HTTP doer fails, got nil")
+		t.Fatal("expected error when HTTP doer fails, got nil")
 	}
 	if !strings.Contains(err.Error(), "request failed") {
 		t.Errorf("expected doer error in GetActiveNodesInWorkflow, got: %v", err)
@@ -418,7 +418,7 @@ func TestGetAllActiveNodes_httpDoerFails_returnsError(t *testing.T) {
 
 	_, err := c.GetAllActiveNodes()
 	if err == nil {
-		t.Error("expected error when HTTP doer fails, got nil")
+		t.Fatal("expected error when HTTP doer fails, got nil")
 	}
 	if !strings.Contains(err.Error(), "request failed") {
 		t.Errorf("expected doer error in GetAllActiveNodes, got: %v", err)
@@ -439,7 +439,7 @@ func TestGetLastHeartbeat_httpDoerFails_returnsError(t *testing.T) {
 
 	_, err := c.GetLastHeartbeat("workflow-123", "node-1")
 	if err == nil {
-		t.Error("expected error when HTTP doer fails, got nil")
+		t.Fatal("expected error when HTTP doer fails, got nil")
 	}
 	if !strings.Contains(err.Error(), "request failed") {
 		t.Errorf("expected doer error in GetLastHeartbeat, got: %v", err)
@@ -460,7 +460,7 @@ func TestSendCommand_httpDoerFails_returnsError(t *testing.T) {
 
 	_, err := c.SendCommand("workflow-123", "node-1", []byte(`{"action":"pause"}`))
 	if err == nil {
-		t.Error("expected error when HTTP doer fails, got nil")
+		t.Fatal("expected error when HTTP doer fails, got nil")
 	}
 	if !strings.Contains(err.Error(), "request failed") {
 		t.Errorf("expected doer error in SendCommand, got: %v", err)
