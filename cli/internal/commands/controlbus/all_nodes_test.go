@@ -108,3 +108,20 @@ func TestAllNodesCmd_executesSuccessfully_jsonFormat(t *testing.T) {
 		t.Errorf("expected 'global-node-1' in JSON output, got: %s", output)
 	}
 }
+
+func TestAllNodesCmd_handlesApiError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("Internal server error"))
+	}))
+	defer server.Close()
+
+	c := client.NewClient(server.URL)
+	cmd := AllNodesCmd(c)
+
+	err := cmd.RunE(cmd, []string{})
+
+	if err == nil {
+		t.Error("expected error for server error, got nil")
+	}
+}
