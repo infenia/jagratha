@@ -13,7 +13,7 @@ func ExecutionsCmd(c client.ClientInterface) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "executions",
 		Short: "Manage workflow executions",
-		Long: `Manage individual workflow executions, including stopping and restarting them.`,
+		Long:  `Manage individual workflow executions, including stopping and restarting them.`,
 	}
 
 	cmd.AddCommand(StopCmd(c))
