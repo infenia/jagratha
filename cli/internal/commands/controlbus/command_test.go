@@ -397,7 +397,7 @@ func TestCommandCmd_usingMockClient(t *testing.T) {
 			"json_empty_response",
 			"json",
 			map[string]interface{}{},
-			"Field",
+			"{}",
 		},
 		{
 			"table_empty_response",
@@ -509,6 +509,46 @@ func TestCommandCmd_complexResponseStructures(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		})
+	}
+
+	commands.SetTestOutputFormat("table")
+}
+
+func TestCommandCmd_exhaustiveFormatAndResponseCombinations(t *testing.T) {
+	responses := []map[string]interface{}{
+		{},
+		{"a": "1"},
+		{"x": "10", "y": "20"},
+		{"field1": "val1", "field2": "val2", "field3": "val3", "field4": "val4"},
+	}
+
+	formats := []string{"json", "table"}
+
+	for _, resp := range responses {
+		for _, format := range formats {
+			responseData := resp
+			mockClient := &client.MockClient{
+				SendCommandFunc: func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error) {
+					return responseData, nil
+				},
+			}
+
+			cmd := CommandCmd(mockClient)
+			commands.SetTestOutputFormat(format)
+
+			_, w, _ := os.Pipe()
+			oldStdout := os.Stdout
+			os.Stdout = w
+
+			err := cmd.RunE(cmd, []string{"w", "n", `{}`})
+
+			w.Close()
+			os.Stdout = oldStdout
+
+			if err != nil {
+				t.Fatalf("unexpected error with format %s: %v", format, err)
+			}
+		}
 	}
 
 	commands.SetTestOutputFormat("table")
