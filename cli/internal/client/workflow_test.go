@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -441,4 +442,1300 @@ func TestStreamWorkflowStatus(t *testing.T) {
 	if !called {
 		t.Error("onProgress callback was not called")
 	}
+}
+
+// Error-path tests for workflow functions
+
+// TestStartWorkflow_invalidJSON tests handling of invalid JSON in response
+func TestStartWorkflow_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"invalid json"`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.StartWorkflow("session-1", "workflow-1")
+
+	if err == nil {
+		t.Error("expected error for invalid JSON, got nil")
+	}
+	if err.Error() != "failed to unmarshal response: unexpected end of JSON input" {
+		t.Errorf("expected unmarshal error, got: %v", err)
+	}
+}
+
+// TestStartWorkflow_httpError tests handling of HTTP error responses
+func TestStartWorkflow_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("Internal Server Error"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.StartWorkflow("session-1", "workflow-1")
+
+	if err == nil {
+		t.Error("expected error for 500 status, got nil")
+	}
+	if !contains(err.Error(), "API error") || !contains(err.Error(), "500") {
+		t.Errorf("expected API error 500, got: %v", err)
+	}
+}
+
+// TestStartWorkflow_networkError tests handling of network failures
+func TestStartWorkflow_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("connection refused"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.StartWorkflow("session-1", "workflow-1")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+	if !contains(err.Error(), "request failed") {
+		t.Errorf("expected request failed error, got: %v", err)
+	}
+}
+
+// TestStopWorkflow_invalidJSON tests JSON unmarshaling error
+func TestStopWorkflow_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":"invalid"}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.StopWorkflow("session-1", "workflow-1")
+
+	if err == nil {
+		t.Error("expected error for invalid response format, got nil")
+	}
+}
+
+// TestStopWorkflow_httpError tests HTTP error response
+func TestStopWorkflow_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte("Workflow not found"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.StopWorkflow("session-1", "nonexistent")
+
+	if err == nil {
+		t.Error("expected error for 404 status, got nil")
+	}
+}
+
+// TestStopWorkflow_emptySessionID tests validation error
+func TestStopWorkflow_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.StopWorkflow("", "workflow-1")
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+	if !contains(err.Error(), "sessionID cannot be empty") {
+		t.Errorf("expected sessionID empty error, got: %v", err)
+	}
+}
+
+// TestStopWorkflow_emptyWorkflowID tests validation error
+func TestStopWorkflow_emptyWorkflowID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.StopWorkflow("session-1", "")
+
+	if err == nil {
+		t.Error("expected error for empty workflowID, got nil")
+	}
+	if !contains(err.Error(), "workflowID cannot be empty") {
+		t.Errorf("expected workflowID empty error, got: %v", err)
+	}
+}
+
+// TestStopExecution_invalidJSON tests JSON unmarshaling error
+func TestStopExecution_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`malformed`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.StopExecution("exec-123")
+
+	if err == nil {
+		t.Error("expected error for invalid JSON, got nil")
+	}
+}
+
+// TestStopExecution_httpError tests HTTP error response
+func TestStopExecution_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte("Invalid request"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.StopExecution("exec-123")
+
+	if err == nil {
+		t.Error("expected error for 400 status, got nil")
+	}
+}
+
+// TestStopExecution_emptyExecutionID tests validation error
+func TestStopExecution_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.StopExecution("")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+	if !contains(err.Error(), "executionID cannot be empty") {
+		t.Errorf("expected executionID empty error, got: %v", err)
+	}
+}
+
+// TestRestartExecution_invalidJSON tests JSON unmarshaling error
+func TestRestartExecution_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":"not an object"}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.RestartExecution("exec-123")
+
+	if err == nil {
+		t.Error("expected error for invalid response format, got nil")
+	}
+}
+
+// TestRestartExecution_httpError tests HTTP error response
+func TestRestartExecution_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("Forbidden"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.RestartExecution("exec-123")
+
+	if err == nil {
+		t.Error("expected error for 403 status, got nil")
+	}
+}
+
+// TestRestartExecution_emptyExecutionID tests validation error
+func TestRestartExecution_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.RestartExecution("")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestRestartFromNode_emptyExecutionID tests validation error
+func TestRestartFromNode_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.RestartFromNode("", "node-1")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestRestartFromNode_emptyNodeID tests validation error
+func TestRestartFromNode_emptyNodeID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.RestartFromNode("exec-123", "")
+
+	if err == nil {
+		t.Error("expected error for empty nodeID, got nil")
+	}
+}
+
+// TestRestartFromNode_httpError tests HTTP error response
+func TestRestartFromNode_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte("Node not found"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.RestartFromNode("exec-123", "invalid-node")
+
+	if err == nil {
+		t.Error("expected error for 404 status, got nil")
+	}
+}
+
+// TestPauseWorkflow_emptySessionID tests validation error
+func TestPauseWorkflow_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.PauseWorkflow("", "exec-123")
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestPauseWorkflow_emptyExecutionID tests validation error
+func TestPauseWorkflow_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.PauseWorkflow("session-1", "")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestPauseWorkflow_httpError tests HTTP error response
+func TestPauseWorkflow_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte("Conflict"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.PauseWorkflow("session-1", "exec-123")
+
+	if err == nil {
+		t.Error("expected error for 409 status, got nil")
+	}
+}
+
+// TestResumeWorkflow_emptySessionID tests validation error
+func TestResumeWorkflow_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.ResumeWorkflow("", "exec-123")
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestResumeWorkflow_emptyExecutionID tests validation error
+func TestResumeWorkflow_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.ResumeWorkflow("session-1", "")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestResumeWorkflow_httpError tests HTTP error response
+func TestResumeWorkflow_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte("Service Unavailable"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.ResumeWorkflow("session-1", "exec-123")
+
+	if err == nil {
+		t.Error("expected error for 503 status, got nil")
+	}
+}
+
+// TestGetWorkflowStatus_emptySessionID tests validation error
+func TestGetWorkflowStatus_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.GetWorkflowStatus("", "exec-123")
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestGetWorkflowStatus_emptyExecutionID tests validation error
+func TestGetWorkflowStatus_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.GetWorkflowStatus("session-1", "")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestGetWorkflowStatus_invalidJSON tests JSON unmarshaling error
+func TestGetWorkflowStatus_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{invalid`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.GetWorkflowStatus("session-1", "exec-123")
+
+	if err == nil {
+		t.Error("expected error for invalid JSON, got nil")
+	}
+}
+
+// TestGetWorkflowStatus_httpError tests HTTP error response
+func TestGetWorkflowStatus_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusGatewayTimeout)
+		_, _ = w.Write([]byte("Gateway Timeout"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.GetWorkflowStatus("session-1", "exec-123")
+
+	if err == nil {
+		t.Error("expected error for 504 status, got nil")
+	}
+}
+
+// TestGetWorkflowHistory_emptySessionID tests validation error
+func TestGetWorkflowHistory_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.GetWorkflowHistory("")
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestGetWorkflowHistory_invalidJSON tests JSON unmarshaling error
+func TestGetWorkflowHistory_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":"not an array"}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.GetWorkflowHistory("session-1")
+
+	if err == nil {
+		t.Error("expected error for invalid response format, got nil")
+	}
+}
+
+// TestGetWorkflowHistory_httpError tests HTTP error response
+func TestGetWorkflowHistory_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte("Unauthorized"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.GetWorkflowHistory("session-1")
+
+	if err == nil {
+		t.Error("expected error for 401 status, got nil")
+	}
+}
+
+// TestPauseNode_emptySessionID tests validation error
+func TestPauseNode_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.PauseNode("", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestPauseNode_emptyExecutionID tests validation error
+func TestPauseNode_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.PauseNode("session-1", "", "node-1")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestPauseNode_emptyNodeID tests validation error
+func TestPauseNode_emptyNodeID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.PauseNode("session-1", "exec-123", "")
+
+	if err == nil {
+		t.Error("expected error for empty nodeID, got nil")
+	}
+}
+
+// TestPauseNode_httpError tests HTTP error response
+func TestPauseNode_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte("Bad Gateway"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.PauseNode("session-1", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for 502 status, got nil")
+	}
+}
+
+// TestResumeNode_emptySessionID tests validation error
+func TestResumeNode_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.ResumeNode("", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestResumeNode_emptyExecutionID tests validation error
+func TestResumeNode_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.ResumeNode("session-1", "", "node-1")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestResumeNode_emptyNodeID tests validation error
+func TestResumeNode_emptyNodeID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.ResumeNode("session-1", "exec-123", "")
+
+	if err == nil {
+		t.Error("expected error for empty nodeID, got nil")
+	}
+}
+
+// TestResumeNode_httpError tests HTTP error response
+func TestResumeNode_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte("Too Many Requests"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.ResumeNode("session-1", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for 429 status, got nil")
+	}
+}
+
+// TestEnableStepMode_emptySessionID tests validation error
+func TestEnableStepMode_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.EnableStepMode("", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestEnableStepMode_emptyExecutionID tests validation error
+func TestEnableStepMode_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.EnableStepMode("session-1", "", "node-1")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestEnableStepMode_emptyNodeID tests validation error
+func TestEnableStepMode_emptyNodeID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.EnableStepMode("session-1", "exec-123", "")
+
+	if err == nil {
+		t.Error("expected error for empty nodeID, got nil")
+	}
+}
+
+// TestEnableStepMode_httpError tests HTTP error response
+func TestEnableStepMode_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		_, _ = w.Write([]byte("Precondition Failed"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.EnableStepMode("session-1", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for 412 status, got nil")
+	}
+}
+
+// TestDisableStepMode_emptySessionID tests validation error
+func TestDisableStepMode_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.DisableStepMode("", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestDisableStepMode_emptyExecutionID tests validation error
+func TestDisableStepMode_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.DisableStepMode("session-1", "", "node-1")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestDisableStepMode_emptyNodeID tests validation error
+func TestDisableStepMode_emptyNodeID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.DisableStepMode("session-1", "exec-123", "")
+
+	if err == nil {
+		t.Error("expected error for empty nodeID, got nil")
+	}
+}
+
+// TestDisableStepMode_httpError tests HTTP error response
+func TestDisableStepMode_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusRequestTimeout)
+		_, _ = w.Write([]byte("Request Timeout"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.DisableStepMode("session-1", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for 408 status, got nil")
+	}
+}
+
+// TestStepNode_emptySessionID tests validation error
+func TestStepNode_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.StepNode("", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestStepNode_emptyExecutionID tests validation error
+func TestStepNode_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.StepNode("session-1", "", "node-1")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestStepNode_emptyNodeID tests validation error
+func TestStepNode_emptyNodeID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.StepNode("session-1", "exec-123", "")
+
+	if err == nil {
+		t.Error("expected error for empty nodeID, got nil")
+	}
+}
+
+// TestStepNode_httpError tests HTTP error response
+func TestStepNode_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("Internal Server Error"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.StepNode("session-1", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for 500 status, got nil")
+	}
+}
+
+// TestStopNode_emptySessionID tests validation error
+func TestStopNode_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.StopNode("", "exec-123", "node-1", true, "test")
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestStopNode_emptyExecutionID tests validation error
+func TestStopNode_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.StopNode("session-1", "", "node-1", true, "test")
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestStopNode_emptyNodeID tests validation error
+func TestStopNode_emptyNodeID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.StopNode("session-1", "exec-123", "", true, "test")
+
+	if err == nil {
+		t.Error("expected error for empty nodeID, got nil")
+	}
+}
+
+// TestStopNode_httpError tests HTTP error response
+func TestStopNode_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte("Not Found"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.StopNode("session-1", "exec-123", "node-1", false, "reason")
+
+	if err == nil {
+		t.Error("expected error for 404 status, got nil")
+	}
+}
+
+// TestSkipNode_emptySessionID tests validation error
+func TestSkipNode_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.SkipNode("", "exec-123", "node-1", true)
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestSkipNode_emptyExecutionID tests validation error
+func TestSkipNode_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.SkipNode("session-1", "", "node-1", true)
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestSkipNode_emptyNodeID tests validation error
+func TestSkipNode_emptyNodeID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.SkipNode("session-1", "exec-123", "", true)
+
+	if err == nil {
+		t.Error("expected error for empty nodeID, got nil")
+	}
+}
+
+// TestSkipNode_httpError tests HTTP error response
+func TestSkipNode_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte("Conflict"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.SkipNode("session-1", "exec-123", "node-1", false)
+
+	if err == nil {
+		t.Error("expected error for 409 status, got nil")
+	}
+}
+
+// TestStreamWorkflowStatus_emptySessionID tests validation error
+func TestStreamWorkflowStatus_emptySessionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	err := c.StreamWorkflowStatus(context.Background(), "", "exec-123", false, func(progress WorkflowProgress) error {
+		return nil
+	})
+
+	if err == nil {
+		t.Error("expected error for empty sessionID, got nil")
+	}
+}
+
+// TestStreamWorkflowStatus_emptyExecutionID tests validation error
+func TestStreamWorkflowStatus_emptyExecutionID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	err := c.StreamWorkflowStatus(context.Background(), "session-1", "", false, func(progress WorkflowProgress) error {
+		return nil
+	})
+
+	if err == nil {
+		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestStreamWorkflowStatus_httpError tests HTTP error response
+func TestStreamWorkflowStatus_httpError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("Forbidden"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	err := c.StreamWorkflowStatus(context.Background(), "session-1", "exec-123", false, func(progress WorkflowProgress) error {
+		return nil
+	})
+
+	if err == nil {
+		t.Error("expected error for 403 status, got nil")
+	}
+}
+
+// TestStreamWorkflowStatus_invalidJSON tests JSON unmarshaling error in streaming
+func TestStreamWorkflowStatus_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "data: {invalid json\n\n")
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	err := c.StreamWorkflowStatus(context.Background(), "session-1", "exec-123", false, func(progress WorkflowProgress) error {
+		return nil
+	})
+
+	if err == nil {
+		t.Error("expected error for invalid JSON in stream, got nil")
+	}
+}
+
+// TestStreamWorkflowStatus_callbackError tests callback returning error
+func TestStreamWorkflowStatus_callbackError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+
+		progress := WorkflowProgress{
+			ExecutionID: "exec-123",
+			SessionID:   "session-1",
+			Status:      "RUNNING",
+			Tasks:       []TaskProgress{},
+		}
+		data, _ := json.Marshal(progress)
+		fmt.Fprintf(w, "data: %s\n\n", string(data))
+
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	testErr := fmt.Errorf("callback error")
+	err := c.StreamWorkflowStatus(context.Background(), "session-1", "exec-123", false, func(progress WorkflowProgress) error {
+		return testErr
+	})
+
+	if err != testErr {
+		t.Errorf("expected callback error, got: %v", err)
+	}
+}
+
+// TestStopExecution_networkError tests network failure handling
+func TestStopExecution_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("connection refused"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.StopExecution("exec-123")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestRestartExecution_networkError tests network failure handling
+func TestRestartExecution_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("timeout"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.RestartExecution("exec-123")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestRestartFromNode_networkError tests network failure handling
+func TestRestartFromNode_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("connection reset"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.RestartFromNode("exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestRestartFromNode_invalidJSON tests JSON unmarshaling error
+func TestRestartFromNode_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":123}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.RestartFromNode("exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for invalid response format, got nil")
+	}
+}
+
+// TestPauseWorkflow_networkError tests network failure handling
+func TestPauseWorkflow_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("dial error"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.PauseWorkflow("session-1", "exec-123")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestPauseWorkflow_invalidJSON tests JSON unmarshaling error
+func TestPauseWorkflow_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`not json`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.PauseWorkflow("session-1", "exec-123")
+
+	if err == nil {
+		t.Error("expected error for invalid JSON, got nil")
+	}
+}
+
+// TestResumeWorkflow_networkError tests network failure handling
+func TestResumeWorkflow_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("DNS resolution failed"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.ResumeWorkflow("session-1", "exec-123")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestResumeWorkflow_invalidJSON tests JSON unmarshaling error
+func TestResumeWorkflow_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":[]}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.ResumeWorkflow("session-1", "exec-123")
+
+	if err == nil {
+		t.Error("expected error for invalid response format, got nil")
+	}
+}
+
+// TestGetWorkflowStatus_networkError tests network failure handling
+func TestGetWorkflowStatus_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("read error"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.GetWorkflowStatus("session-1", "exec-123")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestGetWorkflowHistory_networkError tests network failure handling
+func TestGetWorkflowHistory_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("write error"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.GetWorkflowHistory("session-1")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestPauseNode_networkError tests network failure handling
+func TestPauseNode_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("socket error"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.PauseNode("session-1", "exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestPauseNode_invalidJSON tests JSON unmarshaling error
+func TestPauseNode_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":"invalid type"}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.PauseNode("session-1", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for invalid response format, got nil")
+	}
+}
+
+// TestResumeNode_networkError tests network failure handling
+func TestResumeNode_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("connection lost"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.ResumeNode("session-1", "exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestResumeNode_invalidJSON tests JSON unmarshaling error
+func TestResumeNode_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.ResumeNode("session-1", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for invalid JSON, got nil")
+	}
+}
+
+// TestEnableStepMode_networkError tests network failure handling
+func TestEnableStepMode_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("peer closed connection"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.EnableStepMode("session-1", "exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestEnableStepMode_invalidJSON tests JSON unmarshaling error
+func TestEnableStepMode_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":{}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.EnableStepMode("session-1", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for invalid JSON, got nil")
+	}
+}
+
+// TestDisableStepMode_networkError tests network failure handling
+func TestDisableStepMode_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("broken pipe"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.DisableStepMode("session-1", "exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestDisableStepMode_invalidJSON tests JSON unmarshaling error
+func TestDisableStepMode_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":"string"}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.DisableStepMode("session-1", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for invalid response format, got nil")
+	}
+}
+
+// TestStepNode_networkError tests network failure handling
+func TestStepNode_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("packet loss"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.StepNode("session-1", "exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestStepNode_invalidJSON tests JSON unmarshaling error
+func TestStepNode_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`]]`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.StepNode("session-1", "exec-123", "node-1")
+
+	if err == nil {
+		t.Error("expected error for invalid JSON, got nil")
+	}
+}
+
+// TestStopNode_networkError tests network failure handling
+func TestStopNode_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("TLS handshake failed"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.StopNode("session-1", "exec-123", "node-1", true, "test")
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestStopNode_invalidJSON tests JSON unmarshaling error
+func TestStopNode_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":["array","not","object"]}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.StopNode("session-1", "exec-123", "node-1", true, "test")
+
+	if err == nil {
+		t.Error("expected error for invalid response format, got nil")
+	}
+}
+
+// TestSkipNode_networkError tests network failure handling
+func TestSkipNode_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("certificate validation failed"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.SkipNode("session-1", "exec-123", "node-1", true)
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// TestSkipNode_invalidJSON tests JSON unmarshaling error
+func TestSkipNode_invalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":0}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.SkipNode("session-1", "exec-123", "node-1", true)
+
+	if err == nil {
+		t.Error("expected error for invalid response format, got nil")
+	}
+}
+
+// TestStreamWorkflowStatus_networkError tests network failure handling
+func TestStreamWorkflowStatus_networkError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: fmt.Errorf("SSL protocol error"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	err := c.StreamWorkflowStatus(context.Background(), "session-1", "exec-123", false, func(progress WorkflowProgress) error {
+		return nil
+	})
+
+	if err == nil {
+		t.Error("expected error for network failure, got nil")
+	}
+}
+
+// Helper function to check if a string contains a substring
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
 }
