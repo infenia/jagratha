@@ -125,3 +125,36 @@ func TestAllNodesCmd_handlesApiError(t *testing.T) {
 		t.Error("expected error for server error, got nil")
 	}
 }
+
+func TestAllNodesCmd_emptyNodes_tableFormat(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"data": []string{},
+		}
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	c := client.NewClient(server.URL)
+	cmd := AllNodesCmd(c)
+
+	commands.SetTestOutputFormat("table")
+	defer commands.SetTestOutputFormat("table")
+
+	r, w, _ := os.Pipe()
+	oldStdout := os.Stdout
+	os.Stdout = w
+
+	err := cmd.RunE(cmd, []string{})
+
+	w.Close()
+	os.Stdout = oldStdout
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+}
