@@ -165,7 +165,6 @@ public class SessionService {
     return configService
         .getAllConfigs(sessionId)
         .doOnSubscribe(_ -> log.atDebug().log("Fetching configuration for session: {}", sessionId))
-        .filter(config -> config != null)
         .map(this::mapToSessionConfigResponse)
         .doOnNext(
             config ->
