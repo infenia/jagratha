@@ -7,6 +7,7 @@ import (
 	"com.infenia.yukta/go-cli/internal/client"
 	"com.infenia.yukta/go-cli/internal/commands"
 	"com.infenia.yukta/go-cli/internal/commands/controlbus"
+	"com.infenia.yukta/go-cli/internal/commands/logs"
 	"com.infenia.yukta/go-cli/internal/commands/plugin"
 	"com.infenia.yukta/go-cli/internal/commands/session"
 )
@@ -26,6 +27,9 @@ func Run() error {
 
 	// Add the controlbus command group with all its subcommands
 	rootCmd.AddCommand(controlbus.ControlBusCmd(c))
+
+	// Add the logs command for streaming execution logs
+	rootCmd.AddCommand(logs.LogsCmd(c))
 
 	// Add the session command group with all its subcommands
 	rootCmd.AddCommand(session.SessionCmd(c))

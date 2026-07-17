@@ -4,6 +4,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,6 +24,7 @@ type ClientInterface interface {
 	GetAllActiveNodes() ([]string, error)
 	GetLastHeartbeat(workflowID, nodeID string) (map[string]interface{}, error)
 	SendCommand(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error)
+	StreamExecutionLogs(ctx context.Context, sessionID, executionID string, onLine func(line string) error) error
 }
 
 // Verify that Client implements ClientInterface
@@ -41,6 +43,7 @@ type MockClient struct {
 	GetAllActiveNodesFunc        func() ([]string, error)
 	GetLastHeartbeatFunc         func(workflowID, nodeID string) (map[string]interface{}, error)
 	SendCommandFunc              func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error)
+	StreamExecutionLogsFunc      func(ctx context.Context, sessionID, executionID string, onLine func(line string) error) error
 
 	// Call tracking for assertions
 	GetSessionsCalls              int
@@ -53,6 +56,7 @@ type MockClient struct {
 	GetAllActiveNodesCalls        int
 	GetLastHeartbeatCalls         int
 	SendCommandCalls              int
+	StreamExecutionLogsCalls      int
 }
 
 // GetSessions mocks the GetSessions method.
@@ -199,6 +203,27 @@ func (m *MockClient) SendCommand(workflowID, nodeID string, commandPayloadJSON [
 		"status":  "success",
 		"message": "Command executed",
 	}, nil
+}
+
+// StreamExecutionLogs mocks the StreamExecutionLogs method.
+func (m *MockClient) StreamExecutionLogs(
+	ctx context.Context,
+	sessionID string,
+	executionID string,
+	onLine func(line string) error,
+) error {
+	m.StreamExecutionLogsCalls++
+	if m.StreamExecutionLogsFunc != nil {
+		return m.StreamExecutionLogsFunc(ctx, sessionID, executionID, onLine)
+	}
+	if sessionID == "" {
+		return fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return fmt.Errorf("executionID cannot be empty")
+	}
+	// Call onLine with a mock log entry
+	return onLine("Mock log entry")
 }
 
 // MockRequestFactory provides a mock implementation of RequestFactory for testing.
