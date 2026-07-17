@@ -177,10 +177,9 @@ public class UiController {
               model.addAttribute("config", config);
               model.addAttribute("logs", java.util.List.of());
 
-              final Object workflowsObj = config.workflows();
-              model.addAttribute(
-                  "workflows", workflowsObj instanceof Map ? workflowsObj : Map.of());
-              final String actualWorkflowId = resolveWorkflowId(workflowId, workflowsObj);
+              final Map<String, WorkflowDefinition> workflows = config.workflows();
+              model.addAttribute("workflows", workflows);
+              final String actualWorkflowId = resolveWorkflowId(workflowId, workflows);
 
               addProgressToModel(sessionId, actualWorkflowId, model);
               return fetchAndRenderSession(sessionId, actualWorkflowId, model);
@@ -188,13 +187,12 @@ public class UiController {
   }
 
   @SuppressWarnings("PMD.OnlyOneReturn")
-  private String resolveWorkflowId(final String workflowId, final Object workflowsObj) {
+  private String resolveWorkflowId(
+      final String workflowId, final Map<String, WorkflowDefinition> workflows) {
     if (workflowId != null) {
       return workflowId;
     }
-    return workflowsObj instanceof Map workflows && !workflows.isEmpty()
-        ? (String) workflows.keySet().iterator().next()
-        : null;
+    return !workflows.isEmpty() ? workflows.keySet().iterator().next() : null;
   }
 
   private void addProgressToModel(
