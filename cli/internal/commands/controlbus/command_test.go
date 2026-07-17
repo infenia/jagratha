@@ -233,3 +233,45 @@ func TestCommandCmd_emptyResponseMap(t *testing.T) {
 	var buf bytes.Buffer
 	_, _ = io.Copy(&buf, r)
 }
+
+func TestCommandCmd_multipleResponseFields_tableFormat(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"data": map[string]interface{}{
+				"status":    "executed",
+				"message":   "Command successfully sent",
+				"timestamp": "2026-07-17T00:00:00Z",
+			},
+		}
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	c := client.NewClient(server.URL)
+	cmd := CommandCmd(c)
+
+	commands.SetTestOutputFormat("table")
+	defer commands.SetTestOutputFormat("table")
+
+	r, w, _ := os.Pipe()
+	oldStdout := os.Stdout
+	os.Stdout = w
+
+	err := cmd.RunE(cmd, []string{"workflow-123", "node-1", `{"action":"pause"}`})
+
+	w.Close()
+	os.Stdout = oldStdout
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	output := buf.String()
+
+	if !strings.Contains(output, "executed") {
+		t.Errorf("expected 'executed' in output, got: %s", output)
+	}
+}
