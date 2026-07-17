@@ -8,12 +8,13 @@ import com.infenia.yukta.mcp.dto.ExecutionLogs;
 import com.infenia.yukta.mcp.dto.NodeControlAction;
 import com.infenia.yukta.mcp.dto.PluginCreationGuide;
 import com.infenia.yukta.mcp.dto.PluginDetails;
-import com.infenia.yukta.mcp.dto.PluginSummary;
+import com.infenia.yukta.mcp.dto.PluginList;
 import com.infenia.yukta.mcp.dto.SessionCreationGuide;
 import com.infenia.yukta.mcp.dto.SessionCreationResult;
 import com.infenia.yukta.mcp.dto.SessionDetails;
-import com.infenia.yukta.mcp.dto.SessionSummary;
+import com.infenia.yukta.mcp.dto.SessionList;
 import com.infenia.yukta.mcp.dto.WorkflowControlAction;
+import com.infenia.yukta.mcp.dto.WorkflowHistory;
 import com.infenia.yukta.mcp.dto.WorkflowStartResult;
 import com.infenia.yukta.mcp.provider.DefaultLogProvider;
 import com.infenia.yukta.mcp.provider.DefaultPluginInfoProvider;
@@ -21,10 +22,8 @@ import com.infenia.yukta.mcp.provider.DefaultSessionInfoProvider;
 import com.infenia.yukta.mcp.provider.DefaultSystemHealthProvider;
 import com.infenia.yukta.mcp.provider.DefaultWorkflowControlProvider;
 import com.infenia.yukta.mcp.provider.DefaultWorkflowExecutionProvider;
-import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
@@ -90,8 +89,8 @@ public class AppMcpTools {
       description = "List all available Yukta sessions with their workflow counts",
       generateOutputSchema = true,
       annotations = @McpTool.McpAnnotations(readOnlyHint = true, openWorldHint = false))
-  public Mono<List<SessionSummary>> listSessions() {
-    return sessionInfoProvider.listSessions();
+  public Mono<SessionList> listSessions() {
+    return sessionInfoProvider.listSessions().map(SessionList::new);
   }
 
   /**
@@ -207,9 +206,9 @@ public class AppMcpTools {
           "List all workflow executions of a session with their status and start/end times",
       generateOutputSchema = true,
       annotations = @McpTool.McpAnnotations(readOnlyHint = true, openWorldHint = false))
-  public Mono<List<WorkflowExecutionSummary>> getWorkflowHistory(
+  public Mono<WorkflowHistory> getWorkflowHistory(
       @McpToolParam(required = true, description = SESSION_ID_DESC) final String sessionId) {
-    return workflowExecutionProvider.getWorkflowHistory(sessionId);
+    return workflowExecutionProvider.getWorkflowHistory(sessionId).map(WorkflowHistory::new);
   }
 
   /**
@@ -325,9 +324,10 @@ public class AppMcpTools {
       description = "List all available Yukta workflow plugins with their categories",
       generateOutputSchema = true,
       annotations = @McpTool.McpAnnotations(readOnlyHint = true, openWorldHint = false))
-  public Mono<List<PluginSummary>> listPlugins() {
+  public Mono<PluginList> listPlugins() {
     return Mono.fromCallable(pluginInfoProvider::listPlugins)
-        .subscribeOn(Schedulers.boundedElastic());
+        .subscribeOn(Schedulers.boundedElastic())
+        .map(PluginList::new);
   }
 
   /**

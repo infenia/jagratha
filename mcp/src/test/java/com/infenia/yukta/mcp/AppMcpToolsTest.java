@@ -11,12 +11,15 @@ import com.infenia.yukta.mcp.dto.ExecutionLogs;
 import com.infenia.yukta.mcp.dto.NodeControlAction;
 import com.infenia.yukta.mcp.dto.PluginCreationGuide;
 import com.infenia.yukta.mcp.dto.PluginDetails;
+import com.infenia.yukta.mcp.dto.PluginList;
 import com.infenia.yukta.mcp.dto.PluginSummary;
 import com.infenia.yukta.mcp.dto.SessionCreationGuide;
 import com.infenia.yukta.mcp.dto.SessionCreationResult;
 import com.infenia.yukta.mcp.dto.SessionDetails;
+import com.infenia.yukta.mcp.dto.SessionList;
 import com.infenia.yukta.mcp.dto.SessionSummary;
 import com.infenia.yukta.mcp.dto.WorkflowControlAction;
+import com.infenia.yukta.mcp.dto.WorkflowHistory;
 import com.infenia.yukta.mcp.dto.WorkflowStartResult;
 import com.infenia.yukta.mcp.provider.DefaultLogProvider;
 import com.infenia.yukta.mcp.provider.DefaultPluginInfoProvider;
@@ -76,7 +79,9 @@ class AppMcpToolsTest {
     var summaries = List.of(new SessionSummary("s1", 2));
     when(sessionInfoProvider.listSessions()).thenReturn(Mono.just(summaries));
 
-    StepVerifier.create(mcpTools.listSessions()).expectNext(summaries).verifyComplete();
+    StepVerifier.create(mcpTools.listSessions())
+        .expectNext(new SessionList(summaries))
+        .verifyComplete();
   }
 
   @Test
@@ -120,7 +125,7 @@ class AppMcpToolsTest {
         .thenReturn(Mono.just(List.of(summary)));
 
     StepVerifier.create(mcpTools.getWorkflowHistory("s1"))
-        .expectNext(List.of(summary))
+        .expectNext(new WorkflowHistory(List.of(summary)))
         .verifyComplete();
   }
 
@@ -153,7 +158,9 @@ class AppMcpToolsTest {
     var summary = mock(PluginSummary.class);
     when(pluginInfoProvider.listPlugins()).thenReturn(List.of(summary));
 
-    StepVerifier.create(mcpTools.listPlugins()).expectNext(List.of(summary)).verifyComplete();
+    StepVerifier.create(mcpTools.listPlugins())
+        .expectNext(new PluginList(List.of(summary)))
+        .verifyComplete();
   }
 
   @Test

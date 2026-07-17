@@ -94,6 +94,16 @@ class McpDtoTest {
   }
 
   @Test
+  void testListWrappersNullListsDefaultToEmpty() {
+    assertThat(new SessionList(null).sessions()).isEmpty();
+    assertThat(new SessionList(List.of(new SessionSummary("s1", 1))).sessions()).hasSize(1);
+    assertThat(new WorkflowHistory(null).executions()).isEmpty();
+    assertThat(new WorkflowHistory(List.of()).executions()).isEmpty();
+    assertThat(new PluginList(null).plugins()).isEmpty();
+    assertThat(new PluginList(List.of(new PluginSummary("t", null))).plugins()).hasSize(1);
+  }
+
+  @Test
   void testListsAreImmutable() {
     final ExecutionLogs logs = new ExecutionLogs("e1", 1, 1, List.of("l1"));
     assertThatThrownBy(() -> logs.lines().add("l2"))
