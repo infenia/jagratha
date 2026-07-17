@@ -3,6 +3,7 @@
 package com.infenia.yukta.model.session;
 
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -26,5 +27,15 @@ public record SessionConfigResponse(
   public SessionConfigResponse {
     tags = tags == null ? Map.of() : Map.copyOf(tags);
     workflows = workflows != null ? Map.copyOf(workflows) : Map.of();
+  }
+
+  @Override
+  public Map<String, String> tags() {
+    return Collections.unmodifiableMap(tags);
+  }
+
+  @Override
+  public Map<String, WorkflowDefinition> workflows() {
+    return Collections.unmodifiableMap(workflows);
   }
 }
