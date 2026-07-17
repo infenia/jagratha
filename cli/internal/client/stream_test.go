@@ -63,6 +63,42 @@ func TestStreamRequest_apiError(t *testing.T) {
 	}
 }
 
+func TestStreamRequest_wrongContentType(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"error":"not a stream"}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.streamRequest(context.Background(), "/api/test/stream")
+
+	if err == nil {
+		t.Fatal("expected error for wrong content type, got nil")
+	}
+	if !strings.Contains(err.Error(), "text/event-stream") {
+		t.Errorf("expected content-type error, got: %v", err)
+	}
+}
+
+func TestStreamRequest_missingContentType(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.streamRequest(context.Background(), "/api/test/stream")
+
+	if err == nil {
+		t.Fatal("expected error for missing content type, got nil")
+	}
+	if !strings.Contains(err.Error(), "text/event-stream") {
+		t.Errorf("expected content-type error, got: %v", err)
+	}
+}
+
 func TestScanSSE_nilOnEvent(t *testing.T) {
 	err := ScanSSE(context.Background(), strings.NewReader("data: hello\n\n"), nil)
 
