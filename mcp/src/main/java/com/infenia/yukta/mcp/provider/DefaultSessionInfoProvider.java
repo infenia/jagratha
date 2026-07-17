@@ -196,9 +196,13 @@ public class DefaultSessionInfoProvider implements SessionInfoProvider {
         .onErrorResume(
             e -> {
               log.atWarn().setCause(e).log("Failed to create session: {}", e.getMessage());
-              return Mono.just(
-                  new SessionCreationResult(
-                      "", List.of(), List.of("Error creating session: " + e.getMessage()), false));
+              return Mono.error(
+                  new IllegalArgumentException(
+                      "Failed to create session: "
+                          + e.getMessage()
+                          + ". Use get_session_creation_instructions for the expected "
+                          + "configuration format.",
+                      e));
             });
   }
 

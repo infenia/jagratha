@@ -113,9 +113,11 @@ class AppMcpToolsTest {
   @Test
   void testGetWorkflowStatus() {
     var progress = mock(WorkflowProgress.class);
-    when(workflowExecutionProvider.getWorkflowStatus("e1")).thenReturn(Mono.just(progress));
+    when(workflowExecutionProvider.getWorkflowStatus("s1", "e1")).thenReturn(Mono.just(progress));
 
-    StepVerifier.create(mcpTools.getWorkflowStatus("e1")).expectNext(progress).verifyComplete();
+    StepVerifier.create(mcpTools.getWorkflowStatus("s1", "e1"))
+        .expectNext(progress)
+        .verifyComplete();
   }
 
   @Test

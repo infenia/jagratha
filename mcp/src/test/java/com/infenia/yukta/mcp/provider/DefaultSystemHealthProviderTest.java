@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.mcp.dto.ExecutionRecord;
 import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.core.PluginCategory;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -119,6 +121,60 @@ class DefaultSystemHealthProviderTest {
     StepVerifier.create(provider.getControlBusStatus(" "))
         .assertNext(status -> assertThat(status.systemHealth().uptime()).isNotBlank())
         .verifyComplete();
+  }
+
+  @Test
+  void testRecentExecutionsAreNewestFirstAcrossSessions() {
+    final LocalDateTime base = LocalDateTime.of(2026, 1, 1, 12, 0);
+    final List<WorkflowExecutionSummary> s1History =
+        IntStream.range(0, 12)
+            .mapToObj(
+                i ->
+                    new WorkflowExecutionSummary(
+                        "s1-e" + i,
+                        "wf-1",
+                        "COMPLETED",
+                        base.plusMinutes(2L * i),
+                        base.plusMinutes(2L * i + 1)))
+            .toList();
+    final List<WorkflowExecutionSummary> s2History =
+        IntStream.range(0, 12)
+            .mapToObj(
+                i ->
+                    new WorkflowExecutionSummary(
+                        "s2-e" + i,
+                        "wf-2",
+                        "COMPLETED",
+                        base.plusMinutes(2L * i + 1),
+                        base.plusMinutes(2L * i + 2)))
+            .toList();
+    when(sessionService.getSessionIds()).thenReturn(Flux.just("s1", "s2"));
+    when(controlBus.getHistory("s1")).thenReturn(s1History);
+    when(controlBus.getHistory("s2")).thenReturn(s2History);
+
+    StepVerifier.create(provider.getControlBusStatus("executions"))
+        .assertNext(
+            status -> {
+              final List<ExecutionRecord> recent = status.recentExecutions();
+              assertThat(recent).hasSize(20);
+              assertThat(recent.get(0).executionId()).isEqualTo("s2-e11");
+              assertThat(recent.get(1).executionId()).isEqualTo("s1-e11");
+              assertThat(recent)
+                  .extracting(ExecutionRecord::executionId)
+                  .doesNotContain("s1-e0", "s2-e0", "s1-e1", "s2-e1");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void testUnsupportedFilterYieldsError() {
+    StepVerifier.create(provider.getControlBusStatus("bogus"))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("Unsupported filter: bogus")
+                    && error.getMessage().contains("sessions, executions, plugins, health"))
+        .verify();
   }
 
   @Test

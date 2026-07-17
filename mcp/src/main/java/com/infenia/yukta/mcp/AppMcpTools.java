@@ -173,6 +173,7 @@ public class AppMcpTools {
   /**
    * Get the current progress snapshot of a workflow execution.
    *
+   * @param sessionId the session that owns the execution
    * @param executionId the execution identifier
    * @return Mono containing the current workflow progress including per-node task status
    */
@@ -186,11 +187,12 @@ public class AppMcpTools {
       generateOutputSchema = true,
       annotations = @McpTool.McpAnnotations(readOnlyHint = true, openWorldHint = false))
   public Mono<WorkflowProgress> getWorkflowStatus(
+      @McpToolParam(required = true, description = SESSION_ID_DESC) final String sessionId,
       @McpToolParam(
               required = true,
               description = "The unique identifier of the workflow execution")
           final String executionId) {
-    return workflowExecutionProvider.getWorkflowStatus(executionId);
+    return workflowExecutionProvider.getWorkflowStatus(sessionId, executionId);
   }
 
   /**

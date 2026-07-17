@@ -57,6 +57,7 @@ public class DefaultWorkflowControlProvider implements WorkflowControlProvider {
   }
 
   @Override
+  @SuppressWarnings("PMD.OnlyOneReturn")
   public Mono<ControlActionResult> controlNode(
       final String sessionId,
       final String executionId,
@@ -64,6 +65,14 @@ public class DefaultWorkflowControlProvider implements WorkflowControlProvider {
       final NodeControlAction action,
       final Boolean immediate,
       final String reason) {
+    if (executionId == null || executionId.isBlank()) {
+      return Mono.error(
+          new IllegalArgumentException("executionId is required for action " + action + "."));
+    }
+    if (nodeId == null || nodeId.isBlank()) {
+      return Mono.error(
+          new IllegalArgumentException("nodeId is required for action " + action + "."));
+    }
     return requireOwnership(sessionId, executionId)
         .flatMap(
             ignored ->

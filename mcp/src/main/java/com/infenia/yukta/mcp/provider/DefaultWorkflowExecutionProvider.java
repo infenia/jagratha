@@ -50,9 +50,11 @@ public class DefaultWorkflowExecutionProvider implements WorkflowExecutionProvid
   }
 
   @Override
-  public Mono<WorkflowProgress> getWorkflowStatus(final String executionId) {
+  public Mono<WorkflowProgress> getWorkflowStatus(
+      final String sessionId, final String executionId) {
     return Mono.fromCallable(() -> controlBus.getCurrentProgress(executionId))
         .subscribeOn(Schedulers.boundedElastic())
+        .filter(progress -> progress.sessionId().equals(sessionId))
         .switchIfEmpty(
             Mono.error(
                 () ->

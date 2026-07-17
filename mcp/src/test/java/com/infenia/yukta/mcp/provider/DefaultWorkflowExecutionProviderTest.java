@@ -73,18 +73,41 @@ class DefaultWorkflowExecutionProviderTest {
             null);
     when(controlBus.getCurrentProgress("e1")).thenReturn(progress);
 
-    StepVerifier.create(provider.getWorkflowStatus("e1")).expectNext(progress).verifyComplete();
+    StepVerifier.create(provider.getWorkflowStatus("sess-1", "e1"))
+        .expectNext(progress)
+        .verifyComplete();
   }
 
   @Test
   void testGetWorkflowStatusNotFound() {
     when(controlBus.getCurrentProgress("missing")).thenReturn(null);
 
-    StepVerifier.create(provider.getWorkflowStatus("missing"))
+    StepVerifier.create(provider.getWorkflowStatus("sess-1", "missing"))
         .expectErrorMatches(
             error ->
                 error instanceof IllegalArgumentException
                     && error.getMessage().contains("Execution not found: missing"))
+        .verify();
+  }
+
+  @Test
+  void testGetWorkflowStatusOtherSessionYieldsNotFound() {
+    WorkflowProgress progress =
+        new WorkflowProgress(
+            "e1",
+            "other-session",
+            "w1",
+            "RUNNING",
+            List.of(),
+            LocalDateTime.now(ZoneId.systemDefault()),
+            null);
+    when(controlBus.getCurrentProgress("e1")).thenReturn(progress);
+
+    StepVerifier.create(provider.getWorkflowStatus("sess-1", "e1"))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("Execution not found: e1"))
         .verify();
   }
 

@@ -34,12 +34,14 @@ public interface WorkflowExecutionProvider {
   Mono<WorkflowStartResult> startWorkflow(String sessionId, String workflowId);
 
   /**
-   * Get the current progress snapshot of a workflow execution.
+   * Get the current progress snapshot of a workflow execution owned by the session.
    *
+   * @param sessionId the session that owns the execution
    * @param executionId the execution identifier
-   * @return Mono containing the current workflow progress; errors if the execution is unknown
+   * @return Mono containing the current workflow progress; errors if the execution is unknown or
+   *     owned by another session
    */
-  Mono<WorkflowProgress> getWorkflowStatus(String executionId);
+  Mono<WorkflowProgress> getWorkflowStatus(String sessionId, String executionId);
 
   /**
    * Get the execution history of a session.

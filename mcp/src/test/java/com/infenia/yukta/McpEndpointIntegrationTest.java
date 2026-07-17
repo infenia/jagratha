@@ -79,7 +79,8 @@ class McpEndpointIntegrationTest {
     final String response =
         callMcp(
             "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":"
-                + "{\"name\":\"get_workflow_status\",\"arguments\":{\"executionId\":\"nope\"}}}");
+                + "{\"name\":\"get_workflow_status\",\"arguments\":"
+                + "{\"sessionId\":\"nope\",\"executionId\":\"nope\"}}}");
 
     assertThat(response).contains("isError").contains("Execution not found: nope");
   }

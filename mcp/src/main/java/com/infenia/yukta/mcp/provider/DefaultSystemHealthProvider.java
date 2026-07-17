@@ -13,7 +13,9 @@ import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.plugin.PluginRegistry;
 import com.infenia.yukta.service.session.SessionService;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,10 @@ public class DefaultSystemHealthProvider implements SystemHealthProvider {
   /** Maximum number of recent executions included in the status. */
   private static final int RECENT_EXECUTION_LIMIT = 20;
 
+  /** Filter values accepted by getControlBusStatus. */
+  private static final Set<String> VALID_FILTERS =
+      Set.of("sessions", "executions", "plugins", "health");
+
   /** Registry for accessing all available plugins. */
   private final PluginRegistry registry;
 
@@ -49,8 +55,21 @@ public class DefaultSystemHealthProvider implements SystemHealthProvider {
   private final ControlBusGateway controlBus;
 
   @Override
+  @SuppressWarnings("PMD.OnlyOneReturn")
   public Mono<ControlBusStatus> getControlBusStatus(final String filterType) {
     final boolean all = filterType == null || filterType.isBlank();
+    if (!all && !VALID_FILTERS.contains(filterType.toLowerCase(Locale.ROOT))) {
+      return Mono.error(
+          new IllegalArgumentException(
+              "Unsupported filter: "
+                  + filterType
+                  + ". Valid filters: sessions, executions, plugins, health; omit the filter "
+                  + "for the full status."));
+    }
+    return buildStatus(all, filterType);
+  }
+
+  private Mono<ControlBusStatus> buildStatus(final boolean all, final String filterType) {
     final Mono<List<SessionExecutionInfo>> sessions =
         all || "sessions".equalsIgnoreCase(filterType)
             ? buildSessionExecutionInfo()
@@ -105,7 +124,7 @@ public class DefaultSystemHealthProvider implements SystemHealthProvider {
             sessionId ->
                 historyOf(sessionId)
                     .flatMapMany(Flux::fromIterable)
-                    .map(summary -> toExecutionRecord(sessionId, summary))
+                    .map(summary -> new SessionExecution(sessionId, summary))
                     .onErrorResume(
                         e -> {
                           log.atWarn()
@@ -113,9 +132,17 @@ public class DefaultSystemHealthProvider implements SystemHealthProvider {
                               .log("Skipping executions of session {} in status", sessionId);
                           return Flux.empty();
                         }))
+        .sort(
+            Comparator.comparing(
+                (SessionExecution execution) -> execution.summary().startTime(),
+                Comparator.nullsLast(Comparator.reverseOrder())))
         .take(RECENT_EXECUTION_LIMIT)
+        .map(execution -> toExecutionRecord(execution.sessionId(), execution.summary()))
         .collectList();
   }
+
+  /** Pairs an execution summary with its owning session for cross-session ordering. */
+  private record SessionExecution(String sessionId, WorkflowExecutionSummary summary) {}
 
   private Mono<List<WorkflowExecutionSummary>> historyOf(final String sessionId) {
     return Mono.fromCallable(() -> controlBus.getHistory(sessionId))

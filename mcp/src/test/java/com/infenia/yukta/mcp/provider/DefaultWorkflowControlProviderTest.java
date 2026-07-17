@@ -259,6 +259,50 @@ class DefaultWorkflowControlProviderTest {
   }
 
   @Test
+  void testControlNodeRejectsNullExecutionId() {
+    StepVerifier.create(
+            provider.controlNode(SESSION, null, NODE, NodeControlAction.PAUSE, null, null))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("executionId is required"))
+        .verify();
+  }
+
+  @Test
+  void testControlNodeRejectsNullNodeId() {
+    StepVerifier.create(
+            provider.controlNode(SESSION, EXECUTION, null, NodeControlAction.PAUSE, null, null))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("nodeId is required"))
+        .verify();
+  }
+
+  @Test
+  void testControlNodeRejectsBlankExecutionId() {
+    StepVerifier.create(
+            provider.controlNode(SESSION, " ", NODE, NodeControlAction.PAUSE, null, null))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("executionId is required"))
+        .verify();
+  }
+
+  @Test
+  void testControlNodeRejectsBlankNodeId() {
+    StepVerifier.create(
+            provider.controlNode(SESSION, EXECUTION, " ", NodeControlAction.PAUSE, null, null))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("nodeId is required"))
+        .verify();
+  }
+
+  @Test
   void testNodePause() {
     when(controlBus.pauseNode(EXECUTION, NODE)).thenReturn(Mono.empty());
 

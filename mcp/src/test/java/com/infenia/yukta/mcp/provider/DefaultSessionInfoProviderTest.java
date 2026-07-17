@@ -154,8 +154,11 @@ class DefaultSessionInfoProviderTest {
   @Test
   void testCreateSessionInvalidJson() {
     StepVerifier.create(provider.createSession("invalid"))
-        .expectNextMatches(res -> !res.success())
-        .verifyComplete();
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("Failed to create session"))
+        .verify();
   }
 
   @Test
@@ -164,7 +167,11 @@ class DefaultSessionInfoProviderTest {
         .thenReturn(Mono.error(new RuntimeException("Config error")));
 
     StepVerifier.create(provider.createSession("{\"sessionId\":\"s1\", \"workflows\":{}}"))
-        .expectNextMatches(res -> !res.success() && res.warnings().size() > 0)
-        .verifyComplete();
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("Config error")
+                    && error.getCause() instanceof RuntimeException)
+        .verify();
   }
 }
