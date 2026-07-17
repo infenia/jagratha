@@ -22,23 +22,23 @@ func TestStartWorkflow(t *testing.T) {
 		expectExecutionID string
 	}{
 		{
-			name:       "valid start",
-			sessionID:  "session-1",
-			workflowID: "workflow-1",
-			responseBody: `{"data":{"executionId":"exec-123"}}`,
-			expectError: false,
+			name:              "valid start",
+			sessionID:         "session-1",
+			workflowID:        "workflow-1",
+			responseBody:      `{"data":{"executionId":"exec-123"}}`,
+			expectError:       false,
 			expectExecutionID: "exec-123",
 		},
 		{
-			name:       "missing sessionID",
-			sessionID:  "",
-			workflowID: "workflow-1",
+			name:        "missing sessionID",
+			sessionID:   "",
+			workflowID:  "workflow-1",
 			expectError: true,
 		},
 		{
-			name:       "missing workflowID",
-			sessionID:  "session-1",
-			workflowID: "",
+			name:        "missing workflowID",
+			sessionID:   "session-1",
+			workflowID:  "",
 			expectError: true,
 		},
 	}
@@ -54,7 +54,7 @@ func TestStartWorkflow(t *testing.T) {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(tt.responseBody))
+				_, _ = w.Write([]byte(tt.responseBody))
 			}))
 			defer server.Close()
 
@@ -81,7 +81,7 @@ func TestStopWorkflow(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionIds":["exec-1","exec-2"]}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionIds":["exec-1","exec-2"]}}`))
 	}))
 	defer server.Close()
 
