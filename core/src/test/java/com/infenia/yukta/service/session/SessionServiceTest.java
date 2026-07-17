@@ -159,15 +159,30 @@ class SessionServiceTest {
   }
 
   @Test
-  void testGetSessionConfig_validSessionId_returnsConfigMap() {
+  void testGetSessionConfig_validSessionId_returnsConfigResponse() {
     // Given
     final String sessionId = SESSION_ID_1;
-    final Map<String, Object> configMap = Map.of("k", "v");
+    final WorkflowDefinition workflow =
+        new WorkflowDefinition("test-workflow", DESC, List.of(), List.of());
+    final Map<String, Object> configMap =
+        Map.of(
+            "sessionId", sessionId,
+            "description", DESC,
+            "initiator", INITIATOR,
+            "tags", Map.of(),
+            "projectPath", PATH,
+            "workflows", Map.of("w1", workflow));
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
 
     // When & Then
     StepVerifier.create(sessionService.getSessionConfig(sessionId))
-        .expectNextMatches(m -> "v".equals(m.get("k")))
+        .expectNextMatches(
+            response ->
+                sessionId.equals(response.sessionId())
+                    && DESC.equals(response.description())
+                    && INITIATOR.equals(response.initiator())
+                    && PATH.equals(response.projectPath())
+                    && response.workflows().containsKey("w1"))
         .verifyComplete();
   }
 
@@ -314,13 +329,15 @@ class SessionServiceTest {
   }
 
   @Test
-  void testGetSessionConfig_configIsNull_returnsNull() {
-    // Given
-    final String sessionId = "sess-null-config";
+  void testGetSessionConfig_noConfigFound_returnsEmpty() {
+    // Given: session does not exist in the store
+    final String sessionId = "sess-nonexistent";
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.empty());
 
     // When & Then
     StepVerifier.create(sessionService.getSessionConfig(sessionId)).verifyComplete();
+
+    verify(configService).getAllConfigs(sessionId);
   }
 
   @Test
@@ -362,24 +379,101 @@ class SessionServiceTest {
   }
 
   @Test
-  void testGetSessionConfig_withMultipleConfigValues_returnsAllValues() {
+  void testGetSessionConfig_withMultipleWorkflows_returnsAllWorkflows() {
     // Given
     final String sessionId = "sess-multi-config";
+    final WorkflowDefinition workflow1 =
+        new WorkflowDefinition("w1", "desc1", List.of(), List.of());
+    final WorkflowDefinition workflow2 =
+        new WorkflowDefinition("w2", "desc2", List.of(), List.of());
     final Map<String, Object> configMap =
         Map.of(
-            "config1", "value1",
-            "config2", "value2",
-            "config3", "value3");
+            "sessionId", sessionId,
+            "description", DESC,
+            "initiator", INITIATOR,
+            "tags", Map.of(),
+            "projectPath", PATH,
+            "workflows", Map.of("w1", workflow1, "w2", workflow2));
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
 
     // When & Then
     StepVerifier.create(sessionService.getSessionConfig(sessionId))
         .expectNextMatches(
-            m ->
-                m.size() == 3
-                    && "value1".equals(m.get("config1"))
-                    && "value2".equals(m.get("config2"))
-                    && "value3".equals(m.get("config3")))
+            response ->
+                response.workflows().size() == 2
+                    && response.workflows().containsKey("w1")
+                    && response.workflows().containsKey("w2"))
+        .verifyComplete();
+  }
+
+  @Test
+  void testGetSessionConfig_withTags_returnsTags() {
+    // Given
+    final String sessionId = "sess-with-tags";
+    final Map<String, Object> configMap =
+        Map.of(
+            "sessionId", sessionId,
+            "description", DESC,
+            "initiator", INITIATOR,
+            "tags", Map.of("env", "test", "team", "backend"),
+            "projectPath", PATH,
+            "workflows", Map.of());
+    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
+
+    // When & Then
+    StepVerifier.create(sessionService.getSessionConfig(sessionId))
+        .expectNextMatches(
+            response ->
+                response.tags().size() == 2
+                    && "test".equals(response.tags().get("env"))
+                    && "backend".equals(response.tags().get("team")))
+        .verifyComplete();
+  }
+
+  @Test
+  void testGetSessionConfig_withNullTags_defaultsToEmptyMap() {
+    // Given: config has null tags
+    final String sessionId = "sess-null-tags";
+    final Map<String, Object> configMap =
+        Map.of(
+            "sessionId", sessionId,
+            "description", DESC,
+            "initiator", INITIATOR,
+            "projectPath", PATH,
+            "workflows", Map.of());
+    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
+
+    // When & Then
+    StepVerifier.create(sessionService.getSessionConfig(sessionId))
+        .expectNextMatches(response -> response.tags().isEmpty())
+        .verifyComplete();
+  }
+
+  @Test
+  void testGetSessionConfig_allFields_returnsComplete() {
+    // Given: all fields populated
+    final String sessionId = "sess-complete";
+    final WorkflowDefinition wf = new WorkflowDefinition("wf", "d", List.of(), List.of());
+    final Map<String, Object> configMap =
+        Map.of(
+            "sessionId", sessionId,
+            "description", "Full description",
+            "initiator", "user@example.com",
+            "tags", Map.of("region", "us-east-1"),
+            "projectPath", "/home/user/project",
+            "workflows", Map.of("main", wf));
+    when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
+
+    // When & Then
+    StepVerifier.create(sessionService.getSessionConfig(sessionId))
+        .expectNextMatches(
+            response ->
+                sessionId.equals(response.sessionId())
+                    && "Full description".equals(response.description())
+                    && "user@example.com".equals(response.initiator())
+                    && "us-east-1".equals(response.tags().get("region"))
+                    && "/home/user/project".equals(response.projectPath())
+                    && response.workflows().containsKey("main"))
         .verifyComplete();
   }
 }

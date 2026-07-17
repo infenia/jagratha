@@ -96,7 +96,17 @@ class SessionConfigControllerTest {
 
   @Test
   void testGetSessionDetails() {
-    final Map<String, Object> config = Map.of("workflows", Map.of(WF_ID_1, Map.of()));
+    final var config =
+        new com.infenia.yukta.model.session.SessionConfigResponse(
+            "s1",
+            "desc",
+            "initiator",
+            Map.of(),
+            "/path",
+            Map.of(
+                WF_ID_1,
+                new com.infenia.yukta.model.workflow.WorkflowDefinition(
+                    "w1", "d", List.of(), List.of())));
     when(sessionService.getSessionConfig("s1")).thenReturn(Mono.just(config));
 
     webTestClient
@@ -223,7 +233,9 @@ class SessionConfigControllerTest {
 
   @Test
   void testGetSessionDetailsWithEmptyWorkflows() {
-    final Map<String, Object> config = Map.of("workflows", Map.of());
+    final var config =
+        new com.infenia.yukta.model.session.SessionConfigResponse(
+            "s1", "desc", "initiator", Map.of(), "/path", Map.of());
     when(sessionService.getSessionConfig("s1")).thenReturn(Mono.just(config));
 
     final var result =
@@ -242,8 +254,13 @@ class SessionConfigControllerTest {
 
   @Test
   void testGetSessionDetailsSuccess() {
-    final Map<String, Object> config =
-        Map.of("workflows", Map.of(WF_ID_1, Map.of(), "wf2", Map.of()));
+    final var wf1 =
+        new com.infenia.yukta.model.workflow.WorkflowDefinition("wf1", "d", List.of(), List.of());
+    final var wf2 =
+        new com.infenia.yukta.model.workflow.WorkflowDefinition("wf2", "d", List.of(), List.of());
+    final var config =
+        new com.infenia.yukta.model.session.SessionConfigResponse(
+            "s2", "desc", "initiator", Map.of(), "/path", Map.of("wf1", wf1, "wf2", wf2));
     when(sessionService.getSessionConfig("s2")).thenReturn(Mono.just(config));
 
     final var result =
