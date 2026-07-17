@@ -138,8 +138,8 @@ func TestGetLastHeartbeat_emptyIDs(t *testing.T) {
 
 func TestSendCommand_success(t *testing.T) {
 	expectedResponse := map[string]interface{}{
-		"status":  "success",
-		"result":  "Command executed",
+		"status": "success",
+		"result": "Command executed",
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

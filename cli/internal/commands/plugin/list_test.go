@@ -42,7 +42,7 @@ func TestListCmd_executesSuccessfully_tableFormat(t *testing.T) {
 				{"type": "processor-1", "category": "PROCESSOR"},
 			},
 		}
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
 
@@ -85,7 +85,7 @@ func TestListCmd_executesSuccessfully_jsonFormat(t *testing.T) {
 				{"type": "trigger-1", "category": "TRIGGER"},
 			},
 		}
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
 
@@ -120,7 +120,7 @@ func TestListCmd_executesSuccessfully_jsonFormat(t *testing.T) {
 func TestListCmd_handlesApiError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Internal server error"))
+		_, _ = w.Write([]byte("Internal server error"))
 	}))
 	defer server.Close()
 

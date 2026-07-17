@@ -85,7 +85,7 @@ func ScanSSE(ctx context.Context, r io.Reader, onEvent func(SSEEvent) error) err
 			// Strip "event:" and trim whitespace
 			cur.Event = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
 
-		// Other fields (id:, retry:, comments starting with :) are intentionally ignored
+			// Other fields (id:, retry:, comments starting with :) are intentionally ignored
 		}
 	}
 

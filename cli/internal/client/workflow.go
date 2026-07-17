@@ -40,13 +40,13 @@ type TaskProgress struct {
 
 // WorkflowProgress represents the current progress of a workflow execution.
 type WorkflowProgress struct {
-	ExecutionID string          `json:"executionId"`
-	SessionID   string          `json:"sessionId"`
-	WorkflowID  string          `json:"workflowId"`
-	Status      string          `json:"status"`
-	Tasks       []TaskProgress  `json:"tasks"`
-	StartTime   time.Time       `json:"startTime"`
-	EndTime     time.Time       `json:"endTime"`
+	ExecutionID string         `json:"executionId"`
+	SessionID   string         `json:"sessionId"`
+	WorkflowID  string         `json:"workflowId"`
+	Status      string         `json:"status"`
+	Tasks       []TaskProgress `json:"tasks"`
+	StartTime   time.Time      `json:"startTime"`
+	EndTime     time.Time      `json:"endTime"`
 }
 
 // WorkflowExecutionSummary is a brief summary of a workflow execution.

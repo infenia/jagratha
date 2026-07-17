@@ -141,7 +141,7 @@ func TestGetCmd_executesSuccessfully_jsonFormat(t *testing.T) {
 func TestGetCmd_handlesNotFound(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("Plugin not found"))
+		_, _ = w.Write([]byte("Plugin not found"))
 	}))
 	defer server.Close()
 
