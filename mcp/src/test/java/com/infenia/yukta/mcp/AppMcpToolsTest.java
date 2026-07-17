@@ -13,12 +13,14 @@ import com.infenia.yukta.dto.response.SessionCreationGuide;
 import com.infenia.yukta.dto.response.SessionCreationResponse;
 import com.infenia.yukta.dto.response.SessionDetails;
 import com.infenia.yukta.dto.response.SessionInfo;
+import com.infenia.yukta.mcp.dto.WorkflowStartResult;
 import com.infenia.yukta.mcp.provider.DefaultLogProvider;
 import com.infenia.yukta.mcp.provider.DefaultPluginInfoProvider;
 import com.infenia.yukta.mcp.provider.DefaultSessionInfoProvider;
 import com.infenia.yukta.mcp.provider.DefaultSystemHealthProvider;
 import com.infenia.yukta.mcp.provider.DefaultWorkflowExecutionProvider;
 import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
+import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,22 +99,29 @@ class AppMcpToolsTest {
   }
 
   @Test
-  void testTriggerWorkflow() {
-    when(workflowExecutionProvider.triggerWorkflow("s1", "w1", null))
-        .thenReturn(Mono.just("exec-1"));
+  void testStartWorkflow() {
+    var result = new WorkflowStartResult("exec-1");
+    when(workflowExecutionProvider.startWorkflow("s1", "w1")).thenReturn(Mono.just(result));
 
-    StepVerifier.create(mcpTools.triggerWorkflow("s1", "w1", null))
-        .expectNext("exec-1")
-        .verifyComplete();
+    StepVerifier.create(mcpTools.startWorkflow("s1", "w1")).expectNext(result).verifyComplete();
   }
 
   @Test
   void testGetWorkflowStatus() {
-    var summary = mock(WorkflowExecutionSummary.class);
-    when(workflowExecutionProvider.getWorkflowStatus("s1", "e1")).thenReturn(Mono.just(summary));
+    var progress = mock(WorkflowProgress.class);
+    when(workflowExecutionProvider.getWorkflowStatus("e1")).thenReturn(Mono.just(progress));
 
-    StepVerifier.create(mcpTools.getWorkflowStatus("s1", "e1"))
-        .expectNext(summary)
+    StepVerifier.create(mcpTools.getWorkflowStatus("e1")).expectNext(progress).verifyComplete();
+  }
+
+  @Test
+  void testGetWorkflowHistory() {
+    var summary = mock(WorkflowExecutionSummary.class);
+    when(workflowExecutionProvider.getWorkflowHistory("s1"))
+        .thenReturn(Mono.just(List.of(summary)));
+
+    StepVerifier.create(mcpTools.getWorkflowHistory("s1"))
+        .expectNext(List.of(summary))
         .verifyComplete();
   }
 
