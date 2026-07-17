@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 package com.infenia.yukta.mcp;
 
-import com.infenia.yukta.dto.response.ControlBusStatus;
 import com.infenia.yukta.mcp.dto.ControlActionResult;
+import com.infenia.yukta.mcp.dto.ControlBusStatus;
 import com.infenia.yukta.mcp.dto.ExecutionLogs;
 import com.infenia.yukta.mcp.dto.NodeControlAction;
 import com.infenia.yukta.mcp.dto.PluginCreationGuide;
@@ -366,7 +366,7 @@ public class AppMcpTools {
               required = false,
               description = "Optional filter: sessions, plugins, health, or executions")
           final String filterType) {
-    return Mono.fromCallable(() -> systemHealthProvider.getControlBusStatus(filterType));
+    return systemHealthProvider.getControlBusStatus(filterType);
   }
 
   /**

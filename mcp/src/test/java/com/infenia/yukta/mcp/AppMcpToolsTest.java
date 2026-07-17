@@ -5,8 +5,8 @@ package com.infenia.yukta.mcp;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.dto.response.ControlBusStatus;
 import com.infenia.yukta.mcp.dto.ControlActionResult;
+import com.infenia.yukta.mcp.dto.ControlBusStatus;
 import com.infenia.yukta.mcp.dto.ExecutionLogs;
 import com.infenia.yukta.mcp.dto.NodeControlAction;
 import com.infenia.yukta.mcp.dto.PluginCreationGuide;
@@ -167,7 +167,7 @@ class AppMcpToolsTest {
   @Test
   void testGetControlBusStatus() {
     var status = mock(ControlBusStatus.class);
-    when(systemHealthProvider.getControlBusStatus(null)).thenReturn(status);
+    when(systemHealthProvider.getControlBusStatus(null)).thenReturn(Mono.just(status));
 
     StepVerifier.create(mcpTools.getControlBusStatus(null)).expectNext(status).verifyComplete();
   }

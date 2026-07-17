@@ -2,81 +2,129 @@
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 package com.infenia.yukta.mcp.provider;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.infenia.yukta.dto.response.ControlBusStatus;
+import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.core.PluginCategory;
+import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.plugin.PluginRegistry;
+import com.infenia.yukta.service.session.SessionService;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 class DefaultSystemHealthProviderTest {
 
   private DefaultSystemHealthProvider provider;
   private PluginRegistry registry;
+  private SessionService sessionService;
+  private ControlBusGateway controlBus;
 
   @BeforeEach
   void setUp() {
     registry = mock(PluginRegistry.class);
-    provider = new DefaultSystemHealthProvider(registry);
+    sessionService = mock(SessionService.class);
+    controlBus = mock(ControlBusGateway.class);
+    provider = new DefaultSystemHealthProvider(registry, sessionService, controlBus);
+  }
+
+  private WorkflowExecutionSummary execution(final String id, final String status) {
+    final LocalDateTime start = LocalDateTime.now(ZoneId.systemDefault()).minusMinutes(1);
+    final LocalDateTime end =
+        "RUNNING".equals(status) ? null : LocalDateTime.now(ZoneId.systemDefault());
+    return new WorkflowExecutionSummary(id, "wf-1", status, start, end);
   }
 
   @Test
-  void testGetControlBusStatusNull() {
-    when(registry.listPlugins()).thenReturn(List.of());
-
-    ControlBusStatus status = provider.getControlBusStatus(null);
-    assertNotNull(status);
-  }
-
-  @Test
-  void testGetControlBusStatusSessions() {
-    when(registry.listPlugins()).thenReturn(List.of());
-
-    ControlBusStatus status = provider.getControlBusStatus("sessions");
-    assertNotNull(status);
-  }
-
-  @Test
-  void testGetControlBusStatusPlugins() {
+  void testFullStatusWithRealSessionAndExecutionData() {
     Plugin plugin = mock(Plugin.class);
-    when(plugin.getType()).thenReturn("test");
+    when(plugin.getType()).thenReturn("gradle");
     when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
     when(registry.listPlugins()).thenReturn(List.of(plugin));
 
-    ControlBusStatus status = provider.getControlBusStatus("plugins");
-    assertNotNull(status);
-    assertTrue(status.pluginRegistry().size() > 0);
+    when(sessionService.getSessionIds()).thenReturn(Flux.just("s1"));
+    when(sessionService.getSessionConfig("s1"))
+        .thenReturn(Mono.just(Map.of("workflows", Map.of("wf-1", Map.of(), "wf-2", Map.of()))));
+    when(controlBus.getHistory("s1"))
+        .thenReturn(List.of(execution("e1", "RUNNING"), execution("e2", "COMPLETED")));
+
+    StepVerifier.create(provider.getControlBusStatus(null))
+        .assertNext(
+            status -> {
+              assertThat(status.activeSessions()).hasSize(1);
+              assertThat(status.activeSessions().get(0).sessionId()).isEqualTo("s1");
+              assertThat(status.activeSessions().get(0).activeExecutions()).isEqualTo(1);
+              assertThat(status.activeSessions().get(0).totalWorkflows()).isEqualTo(2);
+
+              assertThat(status.pluginRegistry()).hasSize(1);
+              assertThat(status.pluginRegistry().get(0).type()).isEqualTo("gradle");
+
+              assertThat(status.systemHealth()).isNotNull();
+              assertThat(status.systemHealth().uptime()).isNotBlank();
+
+              assertThat(status.recentExecutions()).hasSize(2);
+              assertThat(status.recentExecutions())
+                  .anyMatch(r -> r.executionId().equals("e1") && r.status().equals("RUNNING"));
+            })
+        .verifyComplete();
   }
 
   @Test
-  void testGetControlBusStatusHealth() {
-    when(registry.listPlugins()).thenReturn(List.of());
+  void testPluginsFilterSkipsSessionsAndExecutions() {
+    Plugin plugin = mock(Plugin.class);
+    when(plugin.getType()).thenReturn("gradle");
+    when(plugin.getCategory()).thenReturn(PluginCategory.PROCESSOR);
+    when(registry.listPlugins()).thenReturn(List.of(plugin));
 
-    ControlBusStatus status = provider.getControlBusStatus("health");
-    assertNotNull(status);
-    assertNotNull(status.systemHealth());
-    assertNotNull(status.systemHealth().uptime());
+    StepVerifier.create(provider.getControlBusStatus("plugins"))
+        .assertNext(
+            status -> {
+              assertThat(status.activeSessions()).isEmpty();
+              assertThat(status.pluginRegistry()).hasSize(1);
+              assertThat(status.recentExecutions()).isEmpty();
+            })
+        .verifyComplete();
   }
 
   @Test
-  void testGetControlBusStatusExecutions() {
-    when(registry.listPlugins()).thenReturn(List.of());
+  void testSessionsFilterSkipsPlugins() {
+    when(sessionService.getSessionIds()).thenReturn(Flux.just("s1"));
+    when(sessionService.getSessionConfig("s1")).thenReturn(Mono.just(Map.of()));
+    when(controlBus.getHistory("s1")).thenReturn(List.of());
 
-    ControlBusStatus status = provider.getControlBusStatus("executions");
-    assertNotNull(status);
+    StepVerifier.create(provider.getControlBusStatus("sessions"))
+        .assertNext(
+            status -> {
+              assertThat(status.activeSessions()).hasSize(1);
+              assertThat(status.activeSessions().get(0).totalWorkflows()).isZero();
+              assertThat(status.pluginRegistry()).isEmpty();
+            })
+        .verifyComplete();
   }
 
   @Test
-  void testGetControlBusStatusUnknownFilter() {
-    when(registry.listPlugins()).thenReturn(List.of());
+  void testFailingSessionConfigIsSkipped() {
+    when(sessionService.getSessionIds()).thenReturn(Flux.just("s1", "s2"));
+    when(sessionService.getSessionConfig("s1"))
+        .thenReturn(Mono.error(new RuntimeException("boom")));
+    when(sessionService.getSessionConfig("s2")).thenReturn(Mono.just(Map.of()));
+    when(controlBus.getHistory("s2")).thenReturn(List.of());
 
-    ControlBusStatus status = provider.getControlBusStatus("unknown");
-    assertNotNull(status);
+    StepVerifier.create(provider.getControlBusStatus("sessions"))
+        .assertNext(
+            status -> {
+              assertThat(status.activeSessions()).hasSize(1);
+              assertThat(status.activeSessions().get(0).sessionId()).isEqualTo("s2");
+            })
+        .verifyComplete();
   }
 }
