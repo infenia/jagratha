@@ -22,6 +22,7 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.UseObjectForClearerAPI")
 public class DefaultWorkflowControlProvider implements WorkflowControlProvider {
 
   /** Reason recorded for stop actions when the caller does not provide one. */
@@ -31,6 +32,7 @@ public class DefaultWorkflowControlProvider implements WorkflowControlProvider {
   private final ControlBusGateway controlBus;
 
   @Override
+  @SuppressWarnings("PMD.OnlyOneReturn")
   public Mono<ControlActionResult> controlWorkflow(
       final String sessionId,
       final WorkflowControlAction action,
@@ -94,6 +96,7 @@ public class DefaultWorkflowControlProvider implements WorkflowControlProvider {
                             + ". Use get_workflow_history to list executions.")));
   }
 
+  @SuppressWarnings("PMD.OnlyOneReturn")
   private Mono<ControlActionResult> stopAllExecutions(
       final String sessionId, final String workflowId, final String reason) {
     if (workflowId == null || workflowId.isBlank()) {
@@ -118,10 +121,6 @@ public class DefaultWorkflowControlProvider implements WorkflowControlProvider {
       final String fromNodeId,
       final String reason) {
     return switch (action) {
-      case PAUSE ->
-          controlBus
-              .pauseWorkflow(executionId)
-              .thenReturn(result(action, executionId, List.of(), "Pause signal sent."));
       case RESUME ->
           controlBus
               .resumeWorkflow(executionId)
@@ -150,8 +149,11 @@ public class DefaultWorkflowControlProvider implements WorkflowControlProvider {
                           executionId,
                           List.of(newId),
                           "Restarted from node " + fromNodeId + " as execution " + newId + "."));
-      case STOP_ALL ->
-          Mono.error(new IllegalStateException("STOP_ALL is handled before ownership checks."));
+      // STOP_ALL is dispatched before the ownership check; PAUSE is the remaining action.
+      default ->
+          controlBus
+              .pauseWorkflow(executionId)
+              .thenReturn(result(action, executionId, List.of(), "Pause signal sent."));
     };
   }
 

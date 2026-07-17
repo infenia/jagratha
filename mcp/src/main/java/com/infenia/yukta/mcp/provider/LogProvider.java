@@ -6,6 +6,7 @@ import com.infenia.yukta.mcp.dto.ExecutionLogs;
 import reactor.core.publisher.Mono;
 
 /** Provider for workflow execution logs backed by the persistent plugin log store. */
+@FunctionalInterface
 public interface LogProvider {
 
   /**

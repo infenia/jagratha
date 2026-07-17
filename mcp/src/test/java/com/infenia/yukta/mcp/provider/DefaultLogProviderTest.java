@@ -112,6 +112,28 @@ class DefaultLogProviderTest {
   }
 
   @Test
+  void testTailZeroReturnsAllLines() {
+    when(logStore.readExecution(EXECUTION)).thenReturn(Flux.just(entry("one"), entry("two")));
+
+    StepVerifier.create(provider.getExecutionLogs(SESSION, EXECUTION, 0, null))
+        .assertNext(logs -> assertThat(logs.returnedLines()).isEqualTo(2))
+        .verifyComplete();
+  }
+
+  @Test
+  void testTailLargerThanSizeReturnsAllLines() {
+    when(logStore.readExecution(EXECUTION)).thenReturn(Flux.just(entry("one"), entry("two")));
+
+    StepVerifier.create(provider.getExecutionLogs(SESSION, EXECUTION, 10, null))
+        .assertNext(
+            logs -> {
+              assertThat(logs.totalLines()).isEqualTo(2);
+              assertThat(logs.returnedLines()).isEqualTo(2);
+            })
+        .verifyComplete();
+  }
+
+  @Test
   void testInvalidRegexRejected() {
     StepVerifier.create(provider.getExecutionLogs(SESSION, EXECUTION, null, "[unclosed"))
         .expectErrorMatches(

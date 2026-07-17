@@ -112,6 +112,46 @@ class DefaultSystemHealthProviderTest {
   }
 
   @Test
+  void testBlankFilterBehavesLikeNull() {
+    when(registry.listPlugins()).thenReturn(List.of());
+    when(sessionService.getSessionIds()).thenReturn(Flux.empty());
+
+    StepVerifier.create(provider.getControlBusStatus(" "))
+        .assertNext(status -> assertThat(status.systemHealth().uptime()).isNotBlank())
+        .verifyComplete();
+  }
+
+  @Test
+  void testHealthFilterOnlyPopulatesHealth() {
+    StepVerifier.create(provider.getControlBusStatus("health"))
+        .assertNext(
+            status -> {
+              assertThat(status.activeSessions()).isEmpty();
+              assertThat(status.pluginRegistry()).isEmpty();
+              assertThat(status.recentExecutions()).isEmpty();
+              assertThat(status.systemHealth().uptime()).isNotBlank();
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void testExecutionsFilterSkipsFailingHistory() {
+    when(sessionService.getSessionIds()).thenReturn(Flux.just("s1", "s2"));
+    when(controlBus.getHistory("s1")).thenThrow(new IllegalStateException("boom"));
+    when(controlBus.getHistory("s2")).thenReturn(List.of(execution("e2", "COMPLETED")));
+
+    StepVerifier.create(provider.getControlBusStatus("executions"))
+        .assertNext(
+            status -> {
+              assertThat(status.activeSessions()).isEmpty();
+              assertThat(status.recentExecutions()).hasSize(1);
+              assertThat(status.recentExecutions().get(0).executionId()).isEqualTo("e2");
+              assertThat(status.recentExecutions().get(0).duration()).endsWith("ms");
+            })
+        .verifyComplete();
+  }
+
+  @Test
   void testFailingSessionConfigIsSkipped() {
     when(sessionService.getSessionIds()).thenReturn(Flux.just("s1", "s2"));
     when(sessionService.getSessionConfig("s1"))

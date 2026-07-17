@@ -168,6 +168,67 @@ class DefaultWorkflowControlProviderTest {
   }
 
   @Test
+  void testControlWorkflowRejectsBlankExecutionId() {
+    StepVerifier.create(
+            provider.controlWorkflow(SESSION, WorkflowControlAction.PAUSE, " ", null, null, null))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("executionId is required"))
+        .verify();
+  }
+
+  @Test
+  void testRestartFromNodeRejectsBlankFromNodeId() {
+    StepVerifier.create(
+            provider.controlWorkflow(
+                SESSION, WorkflowControlAction.RESTART_FROM_NODE, EXECUTION, null, " ", null))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("fromNodeId is required"))
+        .verify();
+  }
+
+  @Test
+  void testStopAllRejectsBlankWorkflowId() {
+    StepVerifier.create(
+            provider.controlWorkflow(
+                SESSION, WorkflowControlAction.STOP_ALL, null, " ", null, null))
+        .expectErrorMatches(
+            error ->
+                error instanceof IllegalArgumentException
+                    && error.getMessage().contains("workflowId is required"))
+        .verify();
+  }
+
+  @Test
+  void testStopExecutionBlankReasonFallsBackToDefault() {
+    when(controlBus.stopExecution(EXECUTION, "Requested via MCP")).thenReturn(Mono.just(EXECUTION));
+
+    StepVerifier.create(
+            provider.controlWorkflow(
+                SESSION, WorkflowControlAction.STOP, EXECUTION, null, null, " "))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    verify(controlBus).stopExecution(EXECUTION, "Requested via MCP");
+  }
+
+  @Test
+  void testStopExecutionUsesCustomReason() {
+    when(controlBus.stopExecution(EXECUTION, "maintenance")).thenReturn(Mono.just(EXECUTION));
+
+    StepVerifier.create(
+            provider.controlWorkflow(
+                SESSION, WorkflowControlAction.STOP, EXECUTION, null, null, "maintenance"))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    verify(controlBus).stopExecution(EXECUTION, "maintenance");
+  }
+
+  @Test
   void testOwnershipMismatchYieldsExecutionNotFound() {
     when(controlBus.getCurrentProgress(EXECUTION)).thenReturn(progressOwnedBy("other-session"));
 

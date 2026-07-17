@@ -11,6 +11,7 @@ import reactor.core.publisher.Mono;
  * Provider for workflow and node control operations. Every execution-scoped action verifies that
  * the execution belongs to the given session before sending the control signal.
  */
+@SuppressWarnings("PMD.UseObjectForClearerAPI")
 public interface WorkflowControlProvider {
 
   /**

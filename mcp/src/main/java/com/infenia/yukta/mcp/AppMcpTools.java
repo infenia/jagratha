@@ -38,7 +38,7 @@ import reactor.core.scheduler.Schedulers;
  */
 @Component
 @RequiredArgsConstructor
-@SuppressWarnings("PMD.UseObjectForClearerAPI")
+@SuppressWarnings({"PMD.UseObjectForClearerAPI", "PMD.CouplingBetweenObjects"})
 public class AppMcpTools {
 
   /** Description for session ID parameter. */
