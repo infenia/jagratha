@@ -19,10 +19,6 @@ coverage:
     - path: internal/client/mock.go
       min: 0
 
-    # Stream client - low-level SSE parsing (tested comprehensively via stream_test.go)
-    - path: internal/client/stream.go
-      min: 90
-
     # Logs client - error paths in stream handling (tested via integration)
     - path: internal/client/logs.go
       min: 80

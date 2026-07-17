@@ -45,6 +45,18 @@ func TestStreamRequest_success(t *testing.T) {
 	}
 }
 
+func TestStreamRequest_invalidPath(t *testing.T) {
+	c := NewClient("http://example.com")
+	_, err := c.streamRequest(context.Background(), "missing-leading-slash")
+
+	if err == nil {
+		t.Fatal("expected error for invalid path, got nil")
+	}
+	if !strings.Contains(err.Error(), "path must start with /") {
+		t.Errorf("expected path validation error, got: %v", err)
+	}
+}
+
 func TestStreamRequest_apiError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
