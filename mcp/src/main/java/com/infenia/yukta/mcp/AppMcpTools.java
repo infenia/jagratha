@@ -11,6 +11,7 @@ import com.infenia.yukta.dto.response.SessionCreationResponse;
 import com.infenia.yukta.dto.response.SessionDetails;
 import com.infenia.yukta.dto.response.SessionInfo;
 import com.infenia.yukta.mcp.dto.ControlActionResult;
+import com.infenia.yukta.mcp.dto.ExecutionLogs;
 import com.infenia.yukta.mcp.dto.NodeControlAction;
 import com.infenia.yukta.mcp.dto.WorkflowControlAction;
 import com.infenia.yukta.mcp.dto.WorkflowStartResult;
@@ -93,53 +94,34 @@ public class AppMcpTools {
   }
 
   /**
-   * Stream session logs with optional filtering.
+   * Get the persisted logs of a workflow execution.
    *
-   * @param sessionId the session identifier
-   * @param workflowId optional workflow filter
-   * @param executionId optional execution filter
-   * @param filterPattern optional regex pattern filter
-   * @return Flux of log lines
-   */
-  @McpTool(
-      name = "stream_session_logs",
-      title = "Stream Session Logs",
-      description =
-          "Stream session logs with optional filtering by workflow, execution, or pattern",
-      annotations = @McpTool.McpAnnotations(readOnlyHint = true, openWorldHint = false))
-  public Flux<String> streamSessionLogs(
-      @McpToolParam(required = true, description = SESSION_ID_DESC) final String sessionId,
-      @McpToolParam(required = false, description = "Optional workflow identifier to filter logs")
-          final String workflowId,
-      @McpToolParam(required = false, description = "Optional execution identifier to filter logs")
-          final String executionId,
-      @McpToolParam(required = false, description = "Optional regex pattern to filter log content")
-          final String filterPattern) {
-    return logProvider.streamSessionLogs(sessionId, workflowId, executionId, filterPattern);
-  }
-
-  /**
-   * Get workflow execution logs.
-   *
-   * @param sessionId the session identifier
+   * @param sessionId the session that owns the execution
    * @param executionId the execution identifier
-   * @param filterPattern optional regex pattern filter
-   * @return Mono containing formatted logs
+   * @param tailLines optional maximum number of trailing lines to return
+   * @param filterPattern optional regex applied to each log line
+   * @return Mono containing the execution logs
    */
   @McpTool(
-      name = "get_workflow_execution_logs",
-      title = "Get Workflow Execution Logs",
-      description = "Get all logs for a specific workflow execution with optional filtering",
+      name = "get_execution_logs",
+      title = "Get Execution Logs",
+      description =
+          "Get the persisted plugin logs of a workflow execution. Supports an optional regex "
+              + "filter and tailLines to return only the last N matching lines. Poll together "
+              + "with get_workflow_status while an execution is running.",
+      generateOutputSchema = true,
       annotations = @McpTool.McpAnnotations(readOnlyHint = true, openWorldHint = false))
-  public Mono<String> getWorkflowExecutionLogs(
+  public Mono<ExecutionLogs> getExecutionLogs(
       @McpToolParam(required = true, description = SESSION_ID_DESC) final String sessionId,
       @McpToolParam(
               required = true,
               description = "The unique identifier of the workflow execution")
           final String executionId,
-      @McpToolParam(required = false, description = "Optional regex pattern to filter log content")
+      @McpToolParam(required = false, description = "Return only the last N matching log lines")
+          final Integer tailLines,
+      @McpToolParam(required = false, description = "Optional regex pattern to filter log lines")
           final String filterPattern) {
-    return logProvider.getWorkflowExecutionLogs(sessionId, executionId, filterPattern);
+    return logProvider.getExecutionLogs(sessionId, executionId, tailLines, filterPattern);
   }
 
   /**

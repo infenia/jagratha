@@ -63,19 +63,19 @@ public class AppMcpResources {
   }
 
   /**
-   * Retrieves full logs for a specific session.
+   * Retrieves the persisted logs of a workflow execution.
    *
-   * @param sessionId the unique identifier of the session
-   * @return a Mono containing the joined session logs
+   * @param sessionId the unique identifier of the session owning the execution
+   * @param executionId the unique identifier of the execution
+   * @return a Mono containing the joined execution logs
    */
   @McpResource(
-      uri = "yukta://sessions/{sessionId}/logs",
-      name = "Session Logs",
-      description = "Full logs for a specific session")
-  public Mono<String> getSessionLogs(final String sessionId) {
+      uri = "yukta://sessions/{sessionId}/executions/{executionId}/logs",
+      name = "Execution Logs",
+      description = "Persisted plugin logs of a workflow execution")
+  public Mono<String> getExecutionLogs(final String sessionId, final String executionId) {
     return logProvider
-        .streamSessionLogs(sessionId, null, null, null)
-        .collectList()
-        .map(logs -> String.join("\n", logs));
+        .getExecutionLogs(sessionId, executionId, null, null)
+        .map(logs -> String.join("\n", logs.lines()));
   }
 }

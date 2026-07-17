@@ -14,6 +14,7 @@ import com.infenia.yukta.dto.response.SessionCreationResponse;
 import com.infenia.yukta.dto.response.SessionDetails;
 import com.infenia.yukta.dto.response.SessionInfo;
 import com.infenia.yukta.mcp.dto.ControlActionResult;
+import com.infenia.yukta.mcp.dto.ExecutionLogs;
 import com.infenia.yukta.mcp.dto.NodeControlAction;
 import com.infenia.yukta.mcp.dto.WorkflowControlAction;
 import com.infenia.yukta.mcp.dto.WorkflowStartResult;
@@ -80,20 +81,12 @@ class AppMcpToolsTest {
   }
 
   @Test
-  void testStreamSessionLogs() {
-    when(logProvider.streamSessionLogs("s1", null, null, null)).thenReturn(Flux.just("log1"));
+  void testGetExecutionLogs() {
+    var logs = new ExecutionLogs("e1", 1, 1, List.of("line1"));
+    when(logProvider.getExecutionLogs("s1", "e1", null, null)).thenReturn(Mono.just(logs));
 
-    StepVerifier.create(mcpTools.streamSessionLogs("s1", null, null, null))
-        .expectNextCount(1)
-        .verifyComplete();
-  }
-
-  @Test
-  void testGetWorkflowExecutionLogs() {
-    when(logProvider.getWorkflowExecutionLogs("s1", "e1", null)).thenReturn(Mono.just("logs"));
-
-    StepVerifier.create(mcpTools.getWorkflowExecutionLogs("s1", "e1", null))
-        .expectNext("logs")
+    StepVerifier.create(mcpTools.getExecutionLogs("s1", "e1", null, null))
+        .expectNext(logs)
         .verifyComplete();
   }
 
