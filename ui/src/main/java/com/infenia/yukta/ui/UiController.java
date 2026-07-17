@@ -14,8 +14,8 @@ import gg.jte.output.StringOutput;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -61,7 +61,7 @@ public class UiController {
                     .getSessionConfig(id)
                     .map(
                         config -> {
-                          final Map<String, Object> map = new ConcurrentHashMap<>();
+                          final Map<String, Object> map = new HashMap<>();
                           map.put("sessionId", config.sessionId());
                           map.put("description", config.description());
                           map.put("initiator", config.initiator());
@@ -102,7 +102,7 @@ public class UiController {
                     .getSessionConfig(id)
                     .map(
                         config -> {
-                          final Map<String, Object> map = new ConcurrentHashMap<>();
+                          final Map<String, Object> map = new HashMap<>();
                           map.put("sessionId", config.sessionId());
                           map.put("description", config.description());
                           map.put("initiator", config.initiator());
