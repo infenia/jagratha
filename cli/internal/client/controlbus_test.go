@@ -5,6 +5,7 @@ package client
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -182,6 +183,30 @@ func TestSendCommand_emptyPayload(t *testing.T) {
 	}
 }
 
+func TestSendCommand_emptyWorkflowID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.SendCommand("", "node-1", []byte(`{"action":"pause"}`))
+
+	if err == nil {
+		t.Fatal("expected error for empty workflowID, got nil")
+	}
+	if !strings.Contains(err.Error(), "workflowID") {
+		t.Errorf("expected workflowID error message, got: %v", err)
+	}
+}
+
+func TestSendCommand_emptyNodeID(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	_, err := c.SendCommand("workflow-123", "", []byte(`{"action":"pause"}`))
+
+	if err == nil {
+		t.Fatal("expected error for empty nodeID, got nil")
+	}
+	if !strings.Contains(err.Error(), "nodeID") {
+		t.Errorf("expected nodeID error message, got: %v", err)
+	}
+}
+
 func TestSendCommand_apiError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -197,5 +222,247 @@ func TestSendCommand_apiError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "API error") || !strings.Contains(err.Error(), "404") {
 		t.Errorf("expected 404 API error, got: %v", err)
+	}
+}
+
+// ===== Malformed JSON Tests (Complete Coverage) =====
+
+func TestGetActiveNodesInWorkflow_malformedJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{invalid json`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.GetActiveNodesInWorkflow("workflow-123")
+
+	if err == nil {
+		t.Fatal("expected error for malformed JSON, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to unmarshal response") {
+		t.Errorf("expected unmarshal error, got: %v", err)
+	}
+}
+
+func TestGetAllActiveNodes_malformedJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{invalid json`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.GetAllActiveNodes()
+
+	if err == nil {
+		t.Fatal("expected error for malformed JSON, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to unmarshal response") {
+		t.Errorf("expected unmarshal error, got: %v", err)
+	}
+}
+
+func TestGetLastHeartbeat_malformedJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{invalid json`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.GetLastHeartbeat("workflow-123", "node-1")
+
+	if err == nil {
+		t.Fatal("expected error for malformed JSON, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to unmarshal response") {
+		t.Errorf("expected unmarshal error, got: %v", err)
+	}
+}
+
+func TestSendCommand_malformedJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{invalid json`))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL)
+	_, err := c.SendCommand("workflow-123", "node-1", []byte(`{"action":"pause"}`))
+
+	if err == nil {
+		t.Fatal("expected error for malformed JSON, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to unmarshal response") {
+		t.Errorf("expected unmarshal error, got: %v", err)
+	}
+}
+
+// ===== RequestFactory Failure Tests (Complete Coverage) =====
+
+func TestGetActiveNodesInWorkflow_requestFactoryFails_returnsError(t *testing.T) {
+	mockFactory := &MockRequestFactory{
+		Err: errors.New("failed to create request"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: mockFactory,
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.GetActiveNodesInWorkflow("workflow-123")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to create request") {
+		t.Errorf("expected factory error in GetActiveNodesInWorkflow, got: %v", err)
+	}
+}
+
+func TestGetAllActiveNodes_requestFactoryFails_returnsError(t *testing.T) {
+	mockFactory := &MockRequestFactory{
+		Err: errors.New("failed to create request"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: mockFactory,
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.GetAllActiveNodes()
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to create request") {
+		t.Errorf("expected factory error in GetAllActiveNodes, got: %v", err)
+	}
+}
+
+func TestGetLastHeartbeat_requestFactoryFails_returnsError(t *testing.T) {
+	mockFactory := &MockRequestFactory{
+		Err: errors.New("failed to create request"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: mockFactory,
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.GetLastHeartbeat("workflow-123", "node-1")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to create request") {
+		t.Errorf("expected factory error in GetLastHeartbeat, got: %v", err)
+	}
+}
+
+func TestSendCommand_requestFactoryFails_returnsError(t *testing.T) {
+	mockFactory := &MockRequestFactory{
+		Err: errors.New("failed to create request"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: mockFactory,
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.SendCommand("workflow-123", "node-1", []byte(`{"action":"pause"}`))
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to create request") {
+		t.Errorf("expected factory error in SendCommand, got: %v", err)
+	}
+}
+
+// ===== HTTPDoer Failure Tests (Complete Coverage) =====
+
+func TestGetActiveNodesInWorkflow_httpDoerFails_returnsError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: errors.New("connection refused"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.GetActiveNodesInWorkflow("workflow-123")
+	if err == nil {
+		t.Error("expected error when HTTP doer fails, got nil")
+	}
+	if !strings.Contains(err.Error(), "request failed") {
+		t.Errorf("expected doer error in GetActiveNodesInWorkflow, got: %v", err)
+	}
+}
+
+func TestGetAllActiveNodes_httpDoerFails_returnsError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: errors.New("connection timeout"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.GetAllActiveNodes()
+	if err == nil {
+		t.Error("expected error when HTTP doer fails, got nil")
+	}
+	if !strings.Contains(err.Error(), "request failed") {
+		t.Errorf("expected doer error in GetAllActiveNodes, got: %v", err)
+	}
+}
+
+func TestGetLastHeartbeat_httpDoerFails_returnsError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: errors.New("network error"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.GetLastHeartbeat("workflow-123", "node-1")
+	if err == nil {
+		t.Error("expected error when HTTP doer fails, got nil")
+	}
+	if !strings.Contains(err.Error(), "request failed") {
+		t.Errorf("expected doer error in GetLastHeartbeat, got: %v", err)
+	}
+}
+
+func TestSendCommand_httpDoerFails_returnsError(t *testing.T) {
+	mockDoer := &MockHTTPDoer{
+		Err: errors.New("connection error"),
+	}
+
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &DefaultRequestFactory{},
+		httpDoer:       mockDoer,
+	}
+
+	_, err := c.SendCommand("workflow-123", "node-1", []byte(`{"action":"pause"}`))
+	if err == nil {
+		t.Error("expected error when HTTP doer fails, got nil")
+	}
+	if !strings.Contains(err.Error(), "request failed") {
+		t.Errorf("expected doer error in SendCommand, got: %v", err)
 	}
 }
