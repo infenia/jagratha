@@ -6,6 +6,7 @@ package logs
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -44,6 +45,7 @@ func TestLogsCmd_executesSuccessfully(t *testing.T) {
 
 	// Capture stdout
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -89,6 +91,7 @@ func TestLogsCmd_handlesError(t *testing.T) {
 
 	// Capture stdout to suppress output
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -104,6 +107,32 @@ func TestLogsCmd_handlesError(t *testing.T) {
 	}
 }
 
+func TestLogsCmd_handlesWrappedCancellation(t *testing.T) {
+	mockClient := &client.MockClient{
+		StreamExecutionLogsFunc: func(ctx context.Context, sessionID, executionID string, onLine func(line string) error) error {
+			return fmt.Errorf("request failed: %w", context.Canceled)
+		},
+	}
+
+	cmd := LogsCmd(mockClient)
+
+	r, w, _ := os.Pipe()
+	defer r.Close()
+	oldStdout := os.Stdout
+	os.Stdout = w
+
+	err := cmd.RunE(cmd, []string{"session-123", "exec-456"})
+
+	w.Close()
+	os.Stdout = oldStdout
+	_, _ = io.Copy(io.Discard, r)
+
+	// A wrapped context.Canceled should still be treated as a clean exit
+	if err != nil {
+		t.Errorf("expected nil error for wrapped context.Canceled, got: %v", err)
+	}
+}
+
 func TestLogsCmd_callbackError(t *testing.T) {
 	mockClient := &client.MockClient{
 		StreamExecutionLogsFunc: func(ctx context.Context, sessionID, executionID string, onLine func(line string) error) error {
@@ -115,6 +144,7 @@ func TestLogsCmd_callbackError(t *testing.T) {
 	cmd := LogsCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 

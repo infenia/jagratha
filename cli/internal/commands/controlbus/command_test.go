@@ -582,6 +582,30 @@ func TestBuildTableRows(t *testing.T) {
 	}
 }
 
+func TestBuildTableRows_deterministicOrder(t *testing.T) {
+	response := map[string]interface{}{"zeta": 1, "alpha": 2, "mu": 3}
+
+	first := buildTableRows(response)
+	for i := 0; i < 10; i++ {
+		rows := buildTableRows(response)
+		if len(rows) != len(first) {
+			t.Fatalf("expected %d rows, got %d", len(first), len(rows))
+		}
+		for j, row := range rows {
+			if row[0] != first[j][0] {
+				t.Errorf("row order not deterministic: iteration %d, index %d: expected key %q, got %q", i, j, first[j][0], row[0])
+			}
+		}
+	}
+
+	expectedKeys := []string{"alpha", "mu", "zeta"}
+	for i, row := range first {
+		if row[0] != expectedKeys[i] {
+			t.Errorf("expected sorted key %q at index %d, got %q", expectedKeys[i], i, row[0])
+		}
+	}
+}
+
 func TestFormatAndPrintResponse(t *testing.T) {
 	testCases := []struct {
 		name     string

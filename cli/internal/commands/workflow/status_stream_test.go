@@ -6,6 +6,8 @@ package workflow
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -123,11 +125,10 @@ func TestStatusStreamCmd_clientError(t *testing.T) {
 	}
 }
 
-func TestStatusStreamCmd_callbackError(t *testing.T) {
+func TestStatusStreamCmd_handlesWrappedCancellation(t *testing.T) {
 	mockClient := &client.MockClient{
 		StreamWorkflowStatusFunc: func(ctx context.Context, sessionID, executionID string, includeHistory bool, onProgress func(client.WorkflowProgress) error) error {
-			// Simulate callback error
-			return onProgress(client.WorkflowProgress{ExecutionID: "exec-123"})
+			return fmt.Errorf("request failed: %w", context.Canceled)
 		},
 	}
 
@@ -143,9 +144,34 @@ func TestStatusStreamCmd_callbackError(t *testing.T) {
 	os.Stdout = oldStdout
 	_, _ = io.Copy(io.Discard, r)
 
-	// Should not panic
+	// A wrapped context.Canceled should still be treated as a clean exit
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Errorf("expected nil error for wrapped context.Canceled, got: %v", err)
+	}
+}
+
+func TestStatusStreamCmd_callbackError(t *testing.T) {
+	sentinelErr := fmt.Errorf("callback failed")
+	mockClient := &client.MockClient{
+		StreamWorkflowStatusFunc: func(ctx context.Context, sessionID, executionID string, includeHistory bool, onProgress func(client.WorkflowProgress) error) error {
+			return sentinelErr
+		},
+	}
+
+	cmd := StatusStreamCmd(mockClient)
+
+	r, w, _ := os.Pipe()
+	oldStdout := os.Stdout
+	os.Stdout = w
+
+	err := cmd.RunE(cmd, []string{"session-1", "exec-123"})
+
+	w.Close()
+	os.Stdout = oldStdout
+	_, _ = io.Copy(io.Discard, r)
+
+	if !errors.Is(err, sentinelErr) {
+		t.Fatalf("expected sentinel error, got: %v", err)
 	}
 }
 

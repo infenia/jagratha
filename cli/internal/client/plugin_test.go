@@ -41,7 +41,7 @@ func TestListPlugins_success(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if len(plugins) != len(expectedPlugins) {
-		t.Errorf("expected %d plugins, got %d", len(expectedPlugins), len(plugins))
+		t.Fatalf("expected %d plugins, got %d", len(expectedPlugins), len(plugins))
 	}
 	for i, p := range plugins {
 		if p.Type != expectedPlugins[i].Type || p.Category != expectedPlugins[i].Category {
@@ -82,7 +82,7 @@ func TestListPlugins_apiError(t *testing.T) {
 	_, err := c.ListPlugins()
 
 	if err == nil {
-		t.Error("expected error, got nil")
+		t.Fatal("expected error, got nil")
 	}
 	if !strings.Contains(err.Error(), "API error") {
 		t.Errorf("expected API error message, got: %v", err)
@@ -150,7 +150,7 @@ func TestGetPluginDetails_notFound(t *testing.T) {
 	_, err := c.GetPluginDetails("nonexistent")
 
 	if err == nil {
-		t.Error("expected error, got nil")
+		t.Fatal("expected error, got nil")
 	}
 	if !strings.Contains(err.Error(), "API error") || !strings.Contains(err.Error(), "404") {
 		t.Errorf("expected 404 API error, got: %v", err)
@@ -162,7 +162,7 @@ func TestGetPluginDetails_emptyPluginType(t *testing.T) {
 	_, err := c.GetPluginDetails("")
 
 	if err == nil {
-		t.Error("expected error for empty pluginType, got nil")
+		t.Fatal("expected error for empty pluginType, got nil")
 	}
 	if !strings.Contains(err.Error(), "empty") {
 		t.Errorf("expected empty error message, got: %v", err)
@@ -180,7 +180,7 @@ func TestGetPluginDetails_malformedJSON(t *testing.T) {
 	_, err := c.GetPluginDetails("test")
 
 	if err == nil {
-		t.Error("expected error for malformed JSON, got nil")
+		t.Fatal("expected error for malformed JSON, got nil")
 	}
 	if !strings.Contains(err.Error(), "unmarshal") {
 		t.Errorf("expected unmarshal error, got: %v", err)

@@ -80,6 +80,9 @@ func TestStopWorkflow(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
+		if r.URL.Path != "/api/workflow/session-1/workflow-1/stop" {
+			t.Errorf("expected /api/workflow/session-1/workflow-1/stop, got %s", r.URL.Path)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"data":{"executionIds":["exec-1","exec-2"]}}`))
@@ -100,6 +103,9 @@ func TestStopExecution(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/workflow/executions/exec-123/stop" {
+			t.Errorf("expected /api/workflow/executions/exec-123/stop, got %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -122,6 +128,9 @@ func TestRestartExecution(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
+		if r.URL.Path != "/api/workflow/executions/exec-123/restart" {
+			t.Errorf("expected /api/workflow/executions/exec-123/restart, got %s", r.URL.Path)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-456"}}`))
@@ -142,6 +151,9 @@ func TestRestartFromNode(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/workflow/executions/exec-123/restart/node-1" {
+			t.Errorf("expected /api/workflow/executions/exec-123/restart/node-1, got %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -164,6 +176,9 @@ func TestPauseWorkflow(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
+		if r.URL.Path != "/api/workflow/session-1/exec-123/pause" {
+			t.Errorf("expected /api/workflow/session-1/exec-123/pause, got %s", r.URL.Path)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
@@ -185,6 +200,9 @@ func TestResumeWorkflow(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
+		if r.URL.Path != "/api/workflow/session-1/exec-123/resume" {
+			t.Errorf("expected /api/workflow/session-1/exec-123/resume, got %s", r.URL.Path)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
@@ -205,6 +223,9 @@ func TestGetWorkflowStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/workflow/session-1/status/exec-123" {
+			t.Errorf("expected /api/workflow/session-1/status/exec-123, got %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -230,6 +251,9 @@ func TestGetWorkflowHistory(t *testing.T) {
 		if r.Method != "GET" {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
+		if r.URL.Path != "/api/workflow/session-1/history" {
+			t.Errorf("expected /api/workflow/session-1/history, got %s", r.URL.Path)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"data":[{"executionId":"exec-1","workflowId":"wf-1","status":"COMPLETED","startTime":"2026-07-17T10:00:00Z","endTime":"2026-07-17T10:05:00Z"}]}`))
@@ -242,7 +266,7 @@ func TestGetWorkflowHistory(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(resp) != 1 {
-		t.Errorf("expected 1 summary, got %d", len(resp))
+		t.Fatalf("expected 1 summary, got %d", len(resp))
 	}
 	if resp[0].ExecutionID != "exec-1" {
 		t.Errorf("expected execution ID exec-1, got %s", resp[0].ExecutionID)
@@ -253,6 +277,9 @@ func TestPauseNode(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/workflow/session-1/exec-123/node/node-1/pause" {
+			t.Errorf("expected /api/workflow/session-1/exec-123/node/node-1/pause, got %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -275,6 +302,9 @@ func TestResumeNode(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
+		if r.URL.Path != "/api/workflow/session-1/exec-123/node/node-1/resume" {
+			t.Errorf("expected /api/workflow/session-1/exec-123/node/node-1/resume, got %s", r.URL.Path)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
@@ -295,6 +325,9 @@ func TestEnableStepMode(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/workflow/session-1/exec-123/node/node-1/step/enable" {
+			t.Errorf("expected /api/workflow/session-1/exec-123/node/node-1/step/enable, got %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -317,6 +350,9 @@ func TestDisableStepMode(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
+		if r.URL.Path != "/api/workflow/session-1/exec-123/node/node-1/step/disable" {
+			t.Errorf("expected /api/workflow/session-1/exec-123/node/node-1/step/disable, got %s", r.URL.Path)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
@@ -337,6 +373,9 @@ func TestStepNode(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/workflow/session-1/exec-123/node/node-1/step" {
+			t.Errorf("expected /api/workflow/session-1/exec-123/node/node-1/step, got %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -359,8 +398,14 @@ func TestStopNode(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
-		if r.URL.RawQuery == "" {
-			t.Error("expected query parameters")
+		if r.URL.Path != "/api/workflow/session-1/exec-123/node/node-1/stop" {
+			t.Errorf("expected /api/workflow/session-1/exec-123/node/node-1/stop, got %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("immediate"); got != "true" {
+			t.Errorf("expected immediate=true, got %q", got)
+		}
+		if got := r.URL.Query().Get("reason"); got != "test reason" {
+			t.Errorf("expected reason=%q, got %q", "test reason", got)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -383,8 +428,11 @@ func TestSkipNode(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
-		if r.URL.RawQuery == "" {
-			t.Error("expected query parameters")
+		if r.URL.Path != "/api/workflow/session-1/exec-123/node/node-1/skip" {
+			t.Errorf("expected /api/workflow/session-1/exec-123/node/node-1/skip, got %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("skip"); got != "true" {
+			t.Errorf("expected skip=true, got %q", got)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -406,6 +454,12 @@ func TestStreamWorkflowStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/workflow/session-1/exec-123/status/stream" {
+			t.Errorf("expected /api/workflow/session-1/exec-123/status/stream, got %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("includeHistory"); got != "false" {
+			t.Errorf("expected includeHistory=false, got %q", got)
 		}
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.WriteHeader(http.StatusOK)
@@ -1202,6 +1256,19 @@ func TestStreamWorkflowStatus_emptyExecutionID(t *testing.T) {
 
 	if err == nil {
 		t.Error("expected error for empty executionID, got nil")
+	}
+}
+
+// TestStreamWorkflowStatus_nilOnProgress tests validation error for a nil callback
+func TestStreamWorkflowStatus_nilOnProgress(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	err := c.StreamWorkflowStatus(context.Background(), "session-1", "exec-123", false, nil)
+
+	if err == nil {
+		t.Fatal("expected error for nil onProgress, got nil")
+	}
+	if !strings.Contains(err.Error(), "nil") {
+		t.Errorf("expected nil callback error message, got: %v", err)
 	}
 }
 

@@ -26,6 +26,7 @@ func TestStartCmd_successful(t *testing.T) {
 	cmd := StartCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -59,6 +60,7 @@ func TestStopCmd_successful(t *testing.T) {
 	cmd := StopCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -92,6 +94,7 @@ func TestPauseCmd_successful(t *testing.T) {
 	cmd := PauseCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -125,6 +128,7 @@ func TestResumeCmd_successful(t *testing.T) {
 	cmd := ResumeCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -158,6 +162,7 @@ func TestPauseCmd_error(t *testing.T) {
 	cmd := PauseCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -187,6 +192,7 @@ func TestPauseCmd_jsonOutput(t *testing.T) {
 	cmd := PauseCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -217,6 +223,7 @@ func TestResumeCmd_error(t *testing.T) {
 	cmd := ResumeCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -246,6 +253,7 @@ func TestResumeCmd_jsonOutput(t *testing.T) {
 	cmd := ResumeCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -280,6 +288,7 @@ func TestStatusCmd_successful(t *testing.T) {
 	cmd := StatusCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -315,6 +324,7 @@ func TestHistoryCmd_successful(t *testing.T) {
 	cmd := HistoryCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -348,6 +358,7 @@ func TestStopCmd_error(t *testing.T) {
 	cmd := StopCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -377,6 +388,7 @@ func TestStopCmd_jsonOutput(t *testing.T) {
 	cmd := StopCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -407,6 +419,7 @@ func TestStatusCmd_error(t *testing.T) {
 	cmd := StatusCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -440,6 +453,7 @@ func TestStatusCmd_jsonOutput(t *testing.T) {
 	cmd := StatusCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -477,6 +491,7 @@ func TestHistoryCmd_jsonOutput(t *testing.T) {
 	cmd := HistoryCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -507,6 +522,7 @@ func TestHistoryCmd_error(t *testing.T) {
 	cmd := HistoryCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -538,6 +554,7 @@ func TestHistoryCmd_multipleExecutions(t *testing.T) {
 	cmd := HistoryCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -571,6 +588,7 @@ func TestStartCmd_error(t *testing.T) {
 	cmd := StartCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -600,6 +618,7 @@ func TestStartCmd_jsonOutput(t *testing.T) {
 	cmd := StartCmd(mockClient)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -645,8 +664,9 @@ func TestWorkflowCmd_registersSubcommands(t *testing.T) {
 	foundCommands := make(map[string]bool)
 
 	for _, sub := range subcommands {
+		name := strings.Fields(sub.Use)[0]
 		for _, expected := range expectedCommands {
-			if strings.HasPrefix(sub.Use, expected) {
+			if name == expected {
 				foundCommands[expected] = true
 			}
 		}

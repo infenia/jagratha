@@ -53,7 +53,7 @@ func TestStreamExecutionLogs_success(t *testing.T) {
 	}
 
 	if len(receivedLines) != 3 {
-		t.Errorf("expected 3 lines, got %d", len(receivedLines))
+		t.Fatalf("expected 3 lines, got %d", len(receivedLines))
 	}
 	if receivedLines[0] != "Log line 1" {
 		t.Errorf("expected 'Log line 1', got %q", receivedLines[0])
@@ -91,6 +91,18 @@ func TestStreamExecutionLogs_emptyExecutionID(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "empty") {
 		t.Errorf("expected empty error message, got: %v", err)
+	}
+}
+
+func TestStreamExecutionLogs_nilOnLine(t *testing.T) {
+	c := NewClient("http://localhost:8080")
+	err := c.StreamExecutionLogs(context.Background(), "session-123", "exec-456", nil)
+
+	if err == nil {
+		t.Fatal("expected error for nil onLine, got nil")
+	}
+	if !strings.Contains(err.Error(), "nil") {
+		t.Errorf("expected nil callback error message, got: %v", err)
 	}
 }
 

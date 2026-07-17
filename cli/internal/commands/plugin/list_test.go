@@ -26,6 +26,18 @@ func TestListCmd_createsCommand_withCorrectUse(t *testing.T) {
 	}
 }
 
+func TestListCmd_rejectsStrayArgs(t *testing.T) {
+	c := client.NewClient("http://localhost:8080")
+	cmd := ListCmd(c)
+
+	if cmd.Args == nil {
+		t.Fatal("expected Args to be set")
+	}
+	if err := cmd.Args(cmd, []string{"unexpected"}); err == nil {
+		t.Error("expected error for stray positional argument, got nil")
+	}
+}
+
 func TestListCmd_executesSuccessfully_tableFormat(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
@@ -49,10 +61,12 @@ func TestListCmd_executesSuccessfully_tableFormat(t *testing.T) {
 	c := client.NewClient(server.URL)
 	cmd := ListCmd(c)
 
+	origFormat := commands.GetOutputFormat()
 	commands.SetTestOutputFormat("table")
-	defer commands.SetTestOutputFormat("table")
+	defer commands.SetTestOutputFormat(origFormat)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -92,10 +106,12 @@ func TestListCmd_executesSuccessfully_jsonFormat(t *testing.T) {
 	c := client.NewClient(server.URL)
 	cmd := ListCmd(c)
 
+	origFormat := commands.GetOutputFormat()
 	commands.SetTestOutputFormat("json")
-	defer commands.SetTestOutputFormat("table")
+	defer commands.SetTestOutputFormat(origFormat)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 

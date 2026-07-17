@@ -37,7 +37,7 @@ func TestGetActiveNodesInWorkflow_success(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if len(nodes) != len(expectedNodes) {
-		t.Errorf("expected %d nodes, got %d", len(expectedNodes), len(nodes))
+		t.Fatalf("expected %d nodes, got %d", len(expectedNodes), len(nodes))
 	}
 	for i, node := range nodes {
 		if node != expectedNodes[i] {
@@ -51,7 +51,7 @@ func TestGetActiveNodesInWorkflow_emptyWorkflowID(t *testing.T) {
 	_, err := c.GetActiveNodesInWorkflow("")
 
 	if err == nil {
-		t.Error("expected error for empty workflowID, got nil")
+		t.Fatal("expected error for empty workflowID, got nil")
 	}
 	if !strings.Contains(err.Error(), "empty") {
 		t.Errorf("expected empty error message, got: %v", err)
@@ -175,7 +175,7 @@ func TestSendCommand_emptyPayload(t *testing.T) {
 	_, err := c.SendCommand("workflow-123", "node-1", []byte{})
 
 	if err == nil {
-		t.Error("expected error for empty payload, got nil")
+		t.Fatal("expected error for empty payload, got nil")
 	}
 	if !strings.Contains(err.Error(), "empty") {
 		t.Errorf("expected empty error message, got: %v", err)
@@ -193,7 +193,7 @@ func TestSendCommand_apiError(t *testing.T) {
 	_, err := c.SendCommand("workflow-123", "nonexistent", []byte(`{"action":"pause"}`))
 
 	if err == nil {
-		t.Error("expected error, got nil")
+		t.Fatal("expected error, got nil")
 	}
 	if !strings.Contains(err.Error(), "API error") || !strings.Contains(err.Error(), "404") {
 		t.Errorf("expected 404 API error, got: %v", err)

@@ -56,10 +56,21 @@ func TestStreamRequest_apiError(t *testing.T) {
 	_, err := c.streamRequest(context.Background(), "/api/test/stream")
 
 	if err == nil {
-		t.Error("expected error, got nil")
+		t.Fatal("expected error, got nil")
 	}
 	if !strings.Contains(err.Error(), "API error") || !strings.Contains(err.Error(), "404") {
 		t.Errorf("expected 404 API error, got: %v", err)
+	}
+}
+
+func TestScanSSE_nilOnEvent(t *testing.T) {
+	err := ScanSSE(context.Background(), strings.NewReader("data: hello\n\n"), nil)
+
+	if err == nil {
+		t.Fatal("expected error for nil onEvent, got nil")
+	}
+	if !strings.Contains(err.Error(), "nil") {
+		t.Errorf("expected nil callback error message, got: %v", err)
 	}
 }
 

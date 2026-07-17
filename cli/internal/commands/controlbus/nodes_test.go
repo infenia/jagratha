@@ -46,10 +46,12 @@ func TestNodesCmd_executesSuccessfully_tableFormat(t *testing.T) {
 	c := client.NewClient(server.URL)
 	cmd := NodesCmd(c)
 
+	origFormat := commands.GetOutputFormat()
 	commands.SetTestOutputFormat("table")
-	defer commands.SetTestOutputFormat("table")
+	defer commands.SetTestOutputFormat(origFormat)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
@@ -87,10 +89,12 @@ func TestNodesCmd_executesSuccessfully_jsonFormat(t *testing.T) {
 	c := client.NewClient(server.URL)
 	cmd := NodesCmd(c)
 
+	origFormat := commands.GetOutputFormat()
 	commands.SetTestOutputFormat("json")
-	defer commands.SetTestOutputFormat("table")
+	defer commands.SetTestOutputFormat(origFormat)
 
 	r, w, _ := os.Pipe()
+	defer r.Close()
 	oldStdout := os.Stdout
 	os.Stdout = w
 
