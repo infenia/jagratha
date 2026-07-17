@@ -444,3 +444,72 @@ func TestCommandCmd_usingMockClient(t *testing.T) {
 
 	commands.SetTestOutputFormat("table")
 }
+
+func TestCommandCmd_complexResponseStructures(t *testing.T) {
+	testCases := []struct {
+		name       string
+		format     string
+		response   map[string]interface{}
+		testName   string
+	}{
+		{
+			"many_fields_json",
+			"json",
+			map[string]interface{}{
+				"field1": "value1", "field2": "value2", "field3": "value3",
+				"field4": "value4", "field5": "value5", "field6": "value6",
+			},
+			"many_fields_json",
+		},
+		{
+			"many_fields_table",
+			"table",
+			map[string]interface{}{
+				"field1": "value1", "field2": "value2", "field3": "value3",
+				"field4": "value4", "field5": "value5", "field6": "value6",
+			},
+			"many_fields_table",
+		},
+		{
+			"special_chars_json",
+			"json",
+			map[string]interface{}{"special": "value\nwith\nnewlines\tand\ttabs"},
+			"special_chars_json",
+		},
+		{
+			"special_chars_table",
+			"table",
+			map[string]interface{}{"special": "value\nwith\nnewlines\tand\ttabs"},
+			"special_chars_table",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			responseData := tc.response
+			mockClient := &client.MockClient{
+				SendCommandFunc: func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error) {
+					return responseData, nil
+				},
+			}
+
+			cmd := CommandCmd(mockClient)
+			commands.SetTestOutputFormat(tc.format)
+
+			_, w, _ := os.Pipe()
+			oldStdout := os.Stdout
+			os.Stdout = w
+
+			err := cmd.RunE(cmd, []string{"wf-1", "n-1", `{}`})
+
+			w.Close()
+			os.Stdout = oldStdout
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+
+	commands.SetTestOutputFormat("table")
+}
