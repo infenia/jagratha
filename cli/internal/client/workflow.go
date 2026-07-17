@@ -4,6 +4,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -575,4 +576,38 @@ func (c *Client) SkipNode(sessionID, executionID, nodeID string, skip bool) (Wor
 	}
 
 	return response.Data, nil
+}
+
+// StreamWorkflowStatus streams the progress of a workflow execution via SSE.
+func (c *Client) StreamWorkflowStatus(
+	ctx context.Context,
+	sessionID, executionID string,
+	includeHistory bool,
+	onProgress func(WorkflowProgress) error,
+) error {
+	if sessionID == "" {
+		return fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return fmt.Errorf("executionID cannot be empty")
+	}
+
+	params := url.Values{}
+	params.Set("includeHistory", strconv.FormatBool(includeHistory))
+
+	path := fmt.Sprintf("/api/workflow/%s/%s/status/stream?%s", sessionID, executionID, params.Encode())
+
+	resp, err := c.streamRequest(ctx, path)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return ScanSSE(ctx, resp.Body, func(event SSEEvent) error {
+		var progress WorkflowProgress
+		if err := json.Unmarshal([]byte(event.Data), &progress); err != nil {
+			return fmt.Errorf("failed to unmarshal progress: %w", err)
+		}
+		return onProgress(progress)
+	})
 }

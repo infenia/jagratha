@@ -41,6 +41,7 @@ type ClientInterface interface {
 	StepNode(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
 	StopNode(sessionID, executionID, nodeID string, immediate bool, reason string) (WorkflowStartResponse, error)
 	SkipNode(sessionID, executionID, nodeID string, skip bool) (WorkflowStartResponse, error)
+	StreamWorkflowStatus(ctx context.Context, sessionID, executionID string, includeHistory bool, onProgress func(WorkflowProgress) error) error
 }
 
 // Verify that Client implements ClientInterface
@@ -77,6 +78,7 @@ type MockClient struct {
 	StepNodeFunc             func(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
 	StopNodeFunc             func(sessionID, executionID, nodeID string, immediate bool, reason string) (WorkflowStartResponse, error)
 	SkipNodeFunc             func(sessionID, executionID, nodeID string, skip bool) (WorkflowStartResponse, error)
+	StreamWorkflowStatusFunc func(ctx context.Context, sessionID, executionID string, includeHistory bool, onProgress func(WorkflowProgress) error) error
 
 	// Call tracking for assertions
 	GetSessionsCalls              int
@@ -106,6 +108,7 @@ type MockClient struct {
 	StepNodeCalls                 int
 	StopNodeCalls                 int
 	SkipNodeCalls                 int
+	StreamWorkflowStatusCalls     int
 }
 
 // GetSessions mocks the GetSessions method.
@@ -532,6 +535,32 @@ func (m *MockClient) SkipNode(sessionID, executionID, nodeID string, skip bool) 
 		return WorkflowStartResponse{}, fmt.Errorf("nodeID cannot be empty")
 	}
 	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// StreamWorkflowStatus mocks the StreamWorkflowStatus method.
+func (m *MockClient) StreamWorkflowStatus(
+	ctx context.Context,
+	sessionID, executionID string,
+	includeHistory bool,
+	onProgress func(WorkflowProgress) error,
+) error {
+	m.StreamWorkflowStatusCalls++
+	if m.StreamWorkflowStatusFunc != nil {
+		return m.StreamWorkflowStatusFunc(ctx, sessionID, executionID, includeHistory, onProgress)
+	}
+	if sessionID == "" {
+		return fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return fmt.Errorf("executionID cannot be empty")
+	}
+	// Simulate a single progress update
+	return onProgress(WorkflowProgress{
+		ExecutionID: executionID,
+		SessionID:   sessionID,
+		Status:      "RUNNING",
+		Tasks:       []TaskProgress{},
+	})
 }
 
 // MockRequestFactory provides a mock implementation of RequestFactory for testing.
