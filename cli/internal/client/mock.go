@@ -17,6 +17,8 @@ type ClientInterface interface {
 	GetSessionDetails(sessionID string) (map[string]interface{}, error)
 	GetWorkflow(sessionID, workflowID string) (map[string]interface{}, error)
 	ApplyConfig(configJSON []byte) error
+	ListPlugins() ([]PluginSummary, error)
+	GetPluginDetails(pluginType string) (PluginDetails, error)
 }
 
 // Verify that Client implements ClientInterface
@@ -29,12 +31,16 @@ type MockClient struct {
 	GetSessionDetailsFunc func(sessionID string) (map[string]interface{}, error)
 	GetWorkflowFunc       func(sessionID, workflowID string) (map[string]interface{}, error)
 	ApplyConfigFunc       func(configJSON []byte) error
+	ListPluginsFunc       func() ([]PluginSummary, error)
+	GetPluginDetailsFunc  func(pluginType string) (PluginDetails, error)
 
 	// Call tracking for assertions
 	GetSessionsCalls       int
 	GetSessionDetailsCalls int
 	GetWorkflowCalls       int
 	ApplyConfigCalls       int
+	ListPluginsCalls       int
+	GetPluginDetailsCalls  int
 }
 
 // GetSessions mocks the GetSessions method.
@@ -89,6 +95,37 @@ func (m *MockClient) ApplyConfig(configJSON []byte) error {
 		return fmt.Errorf("configJSON cannot be empty")
 	}
 	return nil
+}
+
+// ListPlugins mocks the ListPlugins method.
+func (m *MockClient) ListPlugins() ([]PluginSummary, error) {
+	m.ListPluginsCalls++
+	if m.ListPluginsFunc != nil {
+		return m.ListPluginsFunc()
+	}
+	return []PluginSummary{
+		{Type: "plugin-1", Category: PluginCategoryTrigger},
+		{Type: "plugin-2", Category: PluginCategoryProcessor},
+	}, nil
+}
+
+// GetPluginDetails mocks the GetPluginDetails method.
+func (m *MockClient) GetPluginDetails(pluginType string) (PluginDetails, error) {
+	m.GetPluginDetailsCalls++
+	if m.GetPluginDetailsFunc != nil {
+		return m.GetPluginDetailsFunc(pluginType)
+	}
+	if pluginType == "" {
+		return PluginDetails{}, fmt.Errorf("pluginType cannot be empty")
+	}
+	return PluginDetails{
+		Type:         pluginType,
+		Category:     PluginCategoryProcessor,
+		Description:  "Test plugin",
+		UsagePattern: "test-pattern",
+		UIDesign:     UIDesign{HTML: "<div>Test</div>", Width: 100, Height: 100},
+		OutputPorts:  []string{"output1"},
+	}, nil
 }
 
 // MockRequestFactory provides a mock implementation of RequestFactory for testing.

@@ -19,6 +19,10 @@ coverage:
     - path: internal/client/mock.go
       min: 0
 
+    # Plugin client - error paths in json.Unmarshal (tested via integration)
+    - path: internal/client/plugin.go
+      min: 70
+
     # Integration test file (special case)
     - path: test/integration_test.go
       min: 0  # Integration tests are supplementary

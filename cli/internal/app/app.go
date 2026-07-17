@@ -6,6 +6,7 @@ package app
 import (
 	"com.infenia.yukta/go-cli/internal/client"
 	"com.infenia.yukta/go-cli/internal/commands"
+	"com.infenia.yukta/go-cli/internal/commands/plugin"
 	"com.infenia.yukta/go-cli/internal/commands/session"
 )
 
@@ -18,6 +19,9 @@ func Run() error {
 
 	// Create the root command
 	rootCmd := commands.RootCmd(c)
+
+	// Add the plugin command group with all its subcommands
+	rootCmd.AddCommand(plugin.PluginCmd(c))
 
 	// Add the session command group with all its subcommands
 	rootCmd.AddCommand(session.SessionCmd(c))
