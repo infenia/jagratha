@@ -43,8 +43,12 @@ controllers as an agent-friendly MCP tool surface backed directly by `core` serv
 - The server runs `type: ASYNC` + `protocol: STATELESS` (configured in
   `boot/src/main/resources/application*.yaml`). Tools return `Mono`; blocking core calls
   are wrapped in `Mono.fromCallable(...).subscribeOn(Schedulers.boundedElastic())`.
-- **List-shaped tools MUST return `Mono<List<T>>`, never `Flux<T>`** — the async MCP tool
-  callback truncates a `Flux` result to its first element (`fluxResult.next()`).
+- **List-shaped tools MUST return `Mono<WrapperRecord>`** (e.g. `SessionList`,
+  `WorkflowHistory`, `PluginList`), never `Flux<T>` or bare `Mono<List<T>>`: the async MCP
+  tool callback truncates a `Flux` result to its first element (`fluxResult.next()`), and
+  `generateOutputSchema = true` on a `Mono<List<T>>` return type crashes server startup
+  (Spring AI 2.0.0 passes null to `ClassUtils.isPrimitiveOrWrapper` for parameterized
+  types).
 - Errors surface as `Mono.error(new IllegalArgumentException(...))` with agent-actionable
   messages; the framework converts them to `isError` tool results.
 - Every executionId-scoped tool verifies session ownership via
