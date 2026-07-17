@@ -17,6 +17,7 @@ func ListCmd(c client.ClientInterface) *cobra.Command {
 		Use:   "list",
 		Short: "List all plugins",
 		Long:  "Retrieve and display all available plugins from the Yukta API.",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			plugins, err := c.ListPlugins()
 			if err != nil {

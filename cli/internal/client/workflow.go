@@ -591,6 +591,9 @@ func (c *Client) StreamWorkflowStatus(
 	if executionID == "" {
 		return fmt.Errorf("executionID cannot be empty")
 	}
+	if onProgress == nil {
+		return fmt.Errorf("onProgress callback cannot be nil")
+	}
 
 	params := url.Values{}
 	params.Set("includeHistory", strconv.FormatBool(includeHistory))

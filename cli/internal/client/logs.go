@@ -23,6 +23,9 @@ func (c *Client) StreamExecutionLogs(
 	if executionID == "" {
 		return fmt.Errorf("executionID cannot be empty")
 	}
+	if onLine == nil {
+		return fmt.Errorf("onLine callback cannot be nil")
+	}
 
 	path := fmt.Sprintf("/api/sessions/%s/executions/%s/logs", sessionID, executionID)
 	resp, err := c.streamRequest(ctx, path)

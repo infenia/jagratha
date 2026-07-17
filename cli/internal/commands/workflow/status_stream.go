@@ -5,6 +5,7 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -46,7 +47,7 @@ Press Ctrl-C to stop watching status at any time.`,
 			})
 
 			// If context was cancelled (Ctrl-C), treat it as a clean exit
-			if err == context.Canceled {
+			if errors.Is(err, context.Canceled) {
 				return nil
 			}
 

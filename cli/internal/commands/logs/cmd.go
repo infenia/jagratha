@@ -5,6 +5,7 @@ package logs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -49,7 +50,7 @@ Press Ctrl-C to stop watching logs at any time.`,
 			})
 
 			// If context was cancelled (Ctrl-C), treat it as a clean exit
-			if err == context.Canceled {
+			if errors.Is(err, context.Canceled) {
 				return nil
 			}
 

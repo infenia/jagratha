@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 
 	"com.infenia.yukta/go-cli/internal/client"
 	"com.infenia.yukta/go-cli/internal/commands"
@@ -73,10 +74,17 @@ func formatAndPrintResponse(response map[string]interface{}) error {
 }
 
 // buildTableRows converts a response map into table rows for formatted output.
+// Keys are sorted for deterministic row order across invocations.
 func buildTableRows(response map[string]interface{}) [][]string {
-	rows := make([][]string, 0)
-	for key, value := range response {
-		rows = append(rows, []string{key, fmt.Sprintf("%v", value)})
+	keys := make([]string, 0, len(response))
+	for key := range response {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	rows := make([][]string, 0, len(keys))
+	for _, key := range keys {
+		rows = append(rows, []string{key, fmt.Sprintf("%v", response[key])})
 	}
 	return rows
 }

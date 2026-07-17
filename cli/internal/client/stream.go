@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"strings"
 )
@@ -42,6 +43,12 @@ func (c *Client) streamRequest(ctx context.Context, path string) (*http.Response
 		return nil, fmt.Errorf("API error: status %d: %s", resp.StatusCode, string(body))
 	}
 
+	mediaType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil || mediaType != "text/event-stream" {
+		resp.Body.Close()
+		return nil, fmt.Errorf("unexpected content type %q, expected text/event-stream", resp.Header.Get("Content-Type"))
+	}
+
 	return resp, nil
 }
 
@@ -50,6 +57,10 @@ func (c *Client) streamRequest(ctx context.Context, path string) (*http.Response
 // fields are joined with newlines per the SSE spec. Returns when the stream ends
 // (EOF, ctx cancellation, or onEvent returns an error).
 func ScanSSE(ctx context.Context, r io.Reader, onEvent func(SSEEvent) error) error {
+	if onEvent == nil {
+		return fmt.Errorf("onEvent callback cannot be nil")
+	}
+
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 
