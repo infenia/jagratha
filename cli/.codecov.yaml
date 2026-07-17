@@ -35,6 +35,10 @@ coverage:
     - path: internal/client/logs.go
       min: 80
 
+    # Workflow client - error paths in json.Unmarshal and stream handling (tested via integration)
+    - path: internal/client/workflow.go
+      min: 80
+
     # Integration test file (special case)
     - path: test/integration_test.go
       min: 0  # Integration tests are supplementary
