@@ -448,10 +448,10 @@ func TestCommandCmd_usingMockClient(t *testing.T) {
 
 func TestCommandCmd_complexResponseStructures(t *testing.T) {
 	testCases := []struct {
-		name       string
-		format     string
-		response   map[string]interface{}
-		testName   string
+		name     string
+		format   string
+		response map[string]interface{}
+		testName string
 	}{
 		{
 			"many_fields_json",
@@ -616,6 +616,58 @@ func TestFormatAndPrintResponse(t *testing.T) {
 	}
 
 	commands.SetTestOutputFormat("table")
+}
+
+func TestCommandCmd_fileReadError(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("running as root; file permissions are not enforced")
+	}
+
+	tmpFile, err := os.CreateTemp("", "unreadable-*.json")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.Close()
+
+	if err := os.Chmod(tmpFile.Name(), 0o000); err != nil {
+		t.Fatalf("failed to chmod temp file: %v", err)
+	}
+
+	c := client.NewClient("http://localhost:8080")
+	cmd := CommandCmd(c)
+
+	err = cmd.RunE(cmd, []string{"wf-123", "node-1", tmpFile.Name()})
+
+	if err == nil {
+		t.Fatal("expected error for unreadable file, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to read command") {
+		t.Errorf("expected 'failed to read command' error, got: %v", err)
+	}
+}
+
+func TestReadCommandInput_fileReadError(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("running as root; file permissions are not enforced")
+	}
+
+	tmpFile, err := os.CreateTemp("", "unreadable-*.json")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.Close()
+
+	if err := os.Chmod(tmpFile.Name(), 0o000); err != nil {
+		t.Fatalf("failed to chmod temp file: %v", err)
+	}
+
+	_, err = readCommandInput(tmpFile.Name())
+
+	if err == nil {
+		t.Fatal("expected error reading unreadable file, got nil")
+	}
 }
 
 func TestReadCommandInput_inlineJSON(t *testing.T) {
@@ -849,11 +901,11 @@ func TestCommandCmd_responseVariations_comprehensive(t *testing.T) {
 
 func TestCommandCmd_inputMutations_systematicCoverage(t *testing.T) {
 	mutations := []struct {
-		name      string
+		name       string
 		workflowID string
-		nodeID    string
-		payload   string
-		shouldErr bool
+		nodeID     string
+		payload    string
+		shouldErr  bool
 	}{
 		{"valid_empty_object", "wf", "n", `{}`, false},
 		{"valid_simple_object", "workflow-123", "node-456", `{"action":"pause","reason":"test"}`, false},
