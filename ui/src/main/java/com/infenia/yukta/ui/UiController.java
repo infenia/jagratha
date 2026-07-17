@@ -61,6 +61,7 @@ public class UiController {
                     .getSessionConfig(id)
                     .map(
                         config -> {
+                          @SuppressWarnings("PMD.UseConcurrentHashMap")
                           final Map<String, Object> map = new HashMap<>();
                           map.put("sessionId", config.sessionId());
                           map.put("description", config.description());
@@ -102,6 +103,7 @@ public class UiController {
                     .getSessionConfig(id)
                     .map(
                         config -> {
+                          @SuppressWarnings("PMD.UseConcurrentHashMap")
                           final Map<String, Object> map = new HashMap<>();
                           map.put("sessionId", config.sessionId());
                           map.put("description", config.description());
