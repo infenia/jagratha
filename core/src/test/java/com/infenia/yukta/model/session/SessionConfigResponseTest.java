@@ -46,7 +46,7 @@ final class SessionConfigResponseTest {
   }
 
   @Test
-  void testSessionConfigResponse_defensivelyCopesTags() {
+  void testSessionConfigResponse_defensivelyCopiesTags() {
     final var tags = new HashMap<String, String>();
     tags.put("env", "test");
     final var response =
@@ -56,7 +56,7 @@ final class SessionConfigResponseTest {
   }
 
   @Test
-  void testSessionConfigResponse_defensivelyCopiresWorkflows() {
+  void testSessionConfigResponse_defensivelyCopiesWorkflows() {
     final var workflows = new HashMap<String, WorkflowDefinition>();
     final var response =
         new SessionConfigResponse(TEST_ID, TEST_DESC, TEST_INIT, Map.of(), TEST_PATH, workflows);
