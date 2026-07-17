@@ -1806,3 +1806,245 @@ func TestStreamWorkflowStatus_networkError(t *testing.T) {
 func contains(s, substr string) bool {
 	return strings.Contains(s, substr)
 }
+
+// ===== RequestFactory Failure Tests (Complete Coverage) =====
+
+// TestStartWorkflow_requestFactoryFails_returnsError tests newRequestWithBody error path in StartWorkflow.
+func TestStartWorkflow_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.StartWorkflow("session-1", "workflow-1")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestStopWorkflow_requestFactoryFails_returnsError tests newRequest error path in StopWorkflow.
+func TestStopWorkflow_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.StopWorkflow("session-1", "workflow-1")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestStopExecution_requestFactoryFails_returnsError tests newRequest error path in StopExecution.
+func TestStopExecution_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.StopExecution("exec-123")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestRestartExecution_requestFactoryFails_returnsError tests newRequest error path in RestartExecution.
+func TestRestartExecution_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.RestartExecution("exec-123")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestRestartFromNode_requestFactoryFails_returnsError tests newRequest error path in RestartFromNode.
+func TestRestartFromNode_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.RestartFromNode("exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestPauseWorkflow_requestFactoryFails_returnsError tests newRequest error path in PauseWorkflow.
+func TestPauseWorkflow_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.PauseWorkflow("session-1", "exec-123")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestResumeWorkflow_requestFactoryFails_returnsError tests newRequest error path in ResumeWorkflow.
+func TestResumeWorkflow_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.ResumeWorkflow("session-1", "exec-123")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestGetWorkflowStatus_requestFactoryFails_returnsError tests newRequest error path in GetWorkflowStatus.
+func TestGetWorkflowStatus_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.GetWorkflowStatus("session-1", "exec-123")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestGetWorkflowHistory_requestFactoryFails_returnsError tests newRequest error path in GetWorkflowHistory.
+func TestGetWorkflowHistory_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.GetWorkflowHistory("session-1")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestPauseNode_requestFactoryFails_returnsError tests newRequest error path in PauseNode.
+func TestPauseNode_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.PauseNode("session-1", "exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestResumeNode_requestFactoryFails_returnsError tests newRequest error path in ResumeNode.
+func TestResumeNode_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.ResumeNode("session-1", "exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestEnableStepMode_requestFactoryFails_returnsError tests newRequest error path in EnableStepMode.
+func TestEnableStepMode_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.EnableStepMode("session-1", "exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestDisableStepMode_requestFactoryFails_returnsError tests newRequest error path in DisableStepMode.
+func TestDisableStepMode_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.DisableStepMode("session-1", "exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestStepNode_requestFactoryFails_returnsError tests newRequest error path in StepNode.
+func TestStepNode_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.StepNode("session-1", "exec-123", "node-1")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestStopNode_requestFactoryFails_returnsError tests newRequest error path in StopNode.
+func TestStopNode_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.StopNode("session-1", "exec-123", "node-1", true, "test")
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}
+
+// TestSkipNode_requestFactoryFails_returnsError tests newRequest error path in SkipNode.
+func TestSkipNode_requestFactoryFails_returnsError(t *testing.T) {
+	c := &Client{
+		BaseURL:        "http://localhost:8080",
+		HTTPClient:     &http.Client{},
+		RequestFactory: &MockRequestFactory{Err: fmt.Errorf("failed to create request")},
+		httpDoer:       &http.Client{},
+	}
+
+	_, err := c.SkipNode("session-1", "exec-123", "node-1", true)
+	if err == nil {
+		t.Error("expected error when factory fails, got nil")
+	}
+}

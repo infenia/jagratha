@@ -68,10 +68,7 @@ func (c *Client) StartWorkflow(sessionID, workflowID string) (WorkflowStartRespo
 	}
 
 	req := WorkflowStartRequest{SessionID: sessionID, WorkflowID: workflowID}
-	reqBody, err := json.Marshal(req)
-	if err != nil {
-		return WorkflowStartResponse{}, fmt.Errorf("failed to marshal request: %w", err)
-	}
+	reqBody, _ := json.Marshal(req)
 
 	httpReq, err := c.newRequestWithBody("POST", "/api/workflow/start", reqBody)
 	if err != nil {
