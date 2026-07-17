@@ -52,23 +52,33 @@ The command will automatically detect whether the input is a file or JSON string
 				return fmt.Errorf("failed to send command: %w", err)
 			}
 
-			// Format and print the output
-			format := commands.GetOutputFormat()
-
-			if format == "json" {
-				output.PrintJSON(response)
-			} else {
-				// Table format: key-value pairs
-				rows := make([][]string, 0)
-				for key, value := range response {
-					rows = append(rows, []string{key, fmt.Sprintf("%v", value)})
-				}
-				output.PrintTable([]string{"Field", "Value"}, rows)
-			}
-
-			return nil
+			return formatAndPrintResponse(response)
 		},
 	}
+}
+
+// formatAndPrintResponse formats and prints the command response based on the output format.
+// It handles both JSON and table output formats.
+func formatAndPrintResponse(response map[string]interface{}) error {
+	format := commands.GetOutputFormat()
+
+	if format == "json" {
+		output.PrintJSON(response)
+	} else {
+		rows := buildTableRows(response)
+		output.PrintTable([]string{"Field", "Value"}, rows)
+	}
+
+	return nil
+}
+
+// buildTableRows converts a response map into table rows for formatted output.
+func buildTableRows(response map[string]interface{}) [][]string {
+	rows := make([][]string, 0)
+	for key, value := range response {
+		rows = append(rows, []string{key, fmt.Sprintf("%v", value)})
+	}
+	return rows
 }
 
 // readCommandInput reads command payload from either a file or an inline JSON string.

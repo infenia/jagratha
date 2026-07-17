@@ -553,3 +553,66 @@ func TestCommandCmd_exhaustiveFormatAndResponseCombinations(t *testing.T) {
 
 	commands.SetTestOutputFormat("table")
 }
+
+func TestBuildTableRows(t *testing.T) {
+	testCases := []struct {
+		name     string
+		response map[string]interface{}
+		expected int
+	}{
+		{"empty", map[string]interface{}{}, 0},
+		{"single", map[string]interface{}{"a": "1"}, 1},
+		{"multiple", map[string]interface{}{"a": "1", "b": "2", "c": "3"}, 3},
+		{"values", map[string]interface{}{"status": "ok", "count": 42, "active": true}, 3},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rows := buildTableRows(tc.response)
+			if len(rows) != tc.expected {
+				t.Errorf("expected %d rows, got %d", tc.expected, len(rows))
+			}
+			for _, row := range rows {
+				if len(row) != 2 {
+					t.Errorf("expected each row to have 2 columns, got %d", len(row))
+				}
+			}
+		})
+	}
+}
+
+func TestFormatAndPrintResponse(t *testing.T) {
+	testCases := []struct {
+		name     string
+		format   string
+		response map[string]interface{}
+	}{
+		{"json_empty", "json", map[string]interface{}{}},
+		{"json_single", "json", map[string]interface{}{"result": "ok"}},
+		{"json_multiple", "json", map[string]interface{}{"a": "1", "b": "2"}},
+		{"table_empty", "table", map[string]interface{}{}},
+		{"table_single", "table", map[string]interface{}{"result": "ok"}},
+		{"table_multiple", "table", map[string]interface{}{"a": "1", "b": "2"}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			commands.SetTestOutputFormat(tc.format)
+
+			_, w, _ := os.Pipe()
+			oldStdout := os.Stdout
+			os.Stdout = w
+
+			err := formatAndPrintResponse(tc.response)
+
+			w.Close()
+			os.Stdout = oldStdout
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+
+	commands.SetTestOutputFormat("table")
+}
