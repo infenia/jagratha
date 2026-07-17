@@ -102,7 +102,7 @@ func TestStopExecution(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
 	}))
 	defer server.Close()
 
@@ -123,7 +123,7 @@ func TestRestartExecution(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-456"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-456"}}`))
 	}))
 	defer server.Close()
 
@@ -144,7 +144,7 @@ func TestRestartFromNode(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-456"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-456"}}`))
 	}))
 	defer server.Close()
 
@@ -165,7 +165,7 @@ func TestPauseWorkflow(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
 	}))
 	defer server.Close()
 
@@ -186,7 +186,7 @@ func TestResumeWorkflow(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
 	}))
 	defer server.Close()
 
@@ -207,7 +207,7 @@ func TestGetWorkflowStatus(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-123","sessionId":"session-1","workflowId":"wf-1","status":"RUNNING","tasks":[],"startTime":"2026-07-17T10:00:00Z","endTime":"0001-01-01T00:00:00Z"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123","sessionId":"session-1","workflowId":"wf-1","status":"RUNNING","tasks":[],"startTime":"2026-07-17T10:00:00Z","endTime":"0001-01-01T00:00:00Z"}}`))
 	}))
 	defer server.Close()
 
@@ -231,7 +231,7 @@ func TestGetWorkflowHistory(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":[{"executionId":"exec-1","workflowId":"wf-1","status":"COMPLETED","startTime":"2026-07-17T10:00:00Z","endTime":"2026-07-17T10:05:00Z"}]}`))
+		_, _ = w.Write([]byte(`{"data":[{"executionId":"exec-1","workflowId":"wf-1","status":"COMPLETED","startTime":"2026-07-17T10:00:00Z","endTime":"2026-07-17T10:05:00Z"}]}`))
 	}))
 	defer server.Close()
 
@@ -255,7 +255,7 @@ func TestPauseNode(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
 	}))
 	defer server.Close()
 
@@ -276,7 +276,7 @@ func TestResumeNode(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
 	}))
 	defer server.Close()
 
@@ -297,7 +297,7 @@ func TestEnableStepMode(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
 	}))
 	defer server.Close()
 
@@ -318,7 +318,7 @@ func TestDisableStepMode(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
 	}))
 	defer server.Close()
 
@@ -339,7 +339,7 @@ func TestStepNode(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
 	}))
 	defer server.Close()
 
@@ -363,7 +363,7 @@ func TestStopNode(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
 	}))
 	defer server.Close()
 
@@ -387,7 +387,7 @@ func TestSkipNode(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
+		_, _ = w.Write([]byte(`{"data":{"executionId":"exec-123"}}`))
 	}))
 	defer server.Close()
 
