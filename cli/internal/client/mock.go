@@ -25,6 +25,22 @@ type ClientInterface interface {
 	GetLastHeartbeat(workflowID, nodeID string) (map[string]interface{}, error)
 	SendCommand(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error)
 	StreamExecutionLogs(ctx context.Context, sessionID, executionID string, onLine func(line string) error) error
+	StartWorkflow(sessionID, workflowID string) (WorkflowStartResponse, error)
+	StopWorkflow(sessionID, workflowID string) (WorkflowStopResponse, error)
+	StopExecution(executionID string) (WorkflowStartResponse, error)
+	RestartExecution(executionID string) (WorkflowStartResponse, error)
+	RestartFromNode(executionID, fromNodeID string) (WorkflowStartResponse, error)
+	PauseWorkflow(sessionID, executionID string) (WorkflowStartResponse, error)
+	ResumeWorkflow(sessionID, executionID string) (WorkflowStartResponse, error)
+	GetWorkflowStatus(sessionID, executionID string) (WorkflowProgress, error)
+	GetWorkflowHistory(sessionID string) ([]WorkflowExecutionSummary, error)
+	PauseNode(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
+	ResumeNode(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
+	EnableStepMode(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
+	DisableStepMode(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
+	StepNode(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
+	StopNode(sessionID, executionID, nodeID string, immediate bool, reason string) (WorkflowStartResponse, error)
+	SkipNode(sessionID, executionID, nodeID string, skip bool) (WorkflowStartResponse, error)
 }
 
 // Verify that Client implements ClientInterface
@@ -45,6 +61,23 @@ type MockClient struct {
 	SendCommandFunc              func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error)
 	StreamExecutionLogsFunc      func(ctx context.Context, sessionID, executionID string, onLine func(line string) error) error
 
+	StartWorkflowFunc        func(sessionID, workflowID string) (WorkflowStartResponse, error)
+	StopWorkflowFunc         func(sessionID, workflowID string) (WorkflowStopResponse, error)
+	StopExecutionFunc        func(executionID string) (WorkflowStartResponse, error)
+	RestartExecutionFunc     func(executionID string) (WorkflowStartResponse, error)
+	RestartFromNodeFunc      func(executionID, fromNodeID string) (WorkflowStartResponse, error)
+	PauseWorkflowFunc        func(sessionID, executionID string) (WorkflowStartResponse, error)
+	ResumeWorkflowFunc       func(sessionID, executionID string) (WorkflowStartResponse, error)
+	GetWorkflowStatusFunc    func(sessionID, executionID string) (WorkflowProgress, error)
+	GetWorkflowHistoryFunc   func(sessionID string) ([]WorkflowExecutionSummary, error)
+	PauseNodeFunc            func(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
+	ResumeNodeFunc           func(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
+	EnableStepModeFunc       func(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
+	DisableStepModeFunc      func(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
+	StepNodeFunc             func(sessionID, executionID, nodeID string) (WorkflowStartResponse, error)
+	StopNodeFunc             func(sessionID, executionID, nodeID string, immediate bool, reason string) (WorkflowStartResponse, error)
+	SkipNodeFunc             func(sessionID, executionID, nodeID string, skip bool) (WorkflowStartResponse, error)
+
 	// Call tracking for assertions
 	GetSessionsCalls              int
 	GetSessionDetailsCalls        int
@@ -57,6 +90,22 @@ type MockClient struct {
 	GetLastHeartbeatCalls         int
 	SendCommandCalls              int
 	StreamExecutionLogsCalls      int
+	StartWorkflowCalls            int
+	StopWorkflowCalls             int
+	StopExecutionCalls            int
+	RestartExecutionCalls         int
+	RestartFromNodeCalls          int
+	PauseWorkflowCalls            int
+	ResumeWorkflowCalls           int
+	GetWorkflowStatusCalls        int
+	GetWorkflowHistoryCalls       int
+	PauseNodeCalls                int
+	ResumeNodeCalls               int
+	EnableStepModeCalls           int
+	DisableStepModeCalls          int
+	StepNodeCalls                 int
+	StopNodeCalls                 int
+	SkipNodeCalls                 int
 }
 
 // GetSessions mocks the GetSessions method.
@@ -224,6 +273,265 @@ func (m *MockClient) StreamExecutionLogs(
 	}
 	// Call onLine with a mock log entry
 	return onLine("Mock log entry")
+}
+
+// StartWorkflow mocks the StartWorkflow method.
+func (m *MockClient) StartWorkflow(sessionID, workflowID string) (WorkflowStartResponse, error) {
+	m.StartWorkflowCalls++
+	if m.StartWorkflowFunc != nil {
+		return m.StartWorkflowFunc(sessionID, workflowID)
+	}
+	if sessionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if workflowID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("workflowID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: "exec-123"}, nil
+}
+
+// StopWorkflow mocks the StopWorkflow method.
+func (m *MockClient) StopWorkflow(sessionID, workflowID string) (WorkflowStopResponse, error) {
+	m.StopWorkflowCalls++
+	if m.StopWorkflowFunc != nil {
+		return m.StopWorkflowFunc(sessionID, workflowID)
+	}
+	if sessionID == "" {
+		return WorkflowStopResponse{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if workflowID == "" {
+		return WorkflowStopResponse{}, fmt.Errorf("workflowID cannot be empty")
+	}
+	return WorkflowStopResponse{ExecutionIDs: []string{"exec-123"}}, nil
+}
+
+// StopExecution mocks the StopExecution method.
+func (m *MockClient) StopExecution(executionID string) (WorkflowStartResponse, error) {
+	m.StopExecutionCalls++
+	if m.StopExecutionFunc != nil {
+		return m.StopExecutionFunc(executionID)
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// RestartExecution mocks the RestartExecution method.
+func (m *MockClient) RestartExecution(executionID string) (WorkflowStartResponse, error) {
+	m.RestartExecutionCalls++
+	if m.RestartExecutionFunc != nil {
+		return m.RestartExecutionFunc(executionID)
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// RestartFromNode mocks the RestartFromNode method.
+func (m *MockClient) RestartFromNode(executionID, fromNodeID string) (WorkflowStartResponse, error) {
+	m.RestartFromNodeCalls++
+	if m.RestartFromNodeFunc != nil {
+		return m.RestartFromNodeFunc(executionID, fromNodeID)
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	if fromNodeID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("fromNodeID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// PauseWorkflow mocks the PauseWorkflow method.
+func (m *MockClient) PauseWorkflow(sessionID, executionID string) (WorkflowStartResponse, error) {
+	m.PauseWorkflowCalls++
+	if m.PauseWorkflowFunc != nil {
+		return m.PauseWorkflowFunc(sessionID, executionID)
+	}
+	if sessionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// ResumeWorkflow mocks the ResumeWorkflow method.
+func (m *MockClient) ResumeWorkflow(sessionID, executionID string) (WorkflowStartResponse, error) {
+	m.ResumeWorkflowCalls++
+	if m.ResumeWorkflowFunc != nil {
+		return m.ResumeWorkflowFunc(sessionID, executionID)
+	}
+	if sessionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// GetWorkflowStatus mocks the GetWorkflowStatus method.
+func (m *MockClient) GetWorkflowStatus(sessionID, executionID string) (WorkflowProgress, error) {
+	m.GetWorkflowStatusCalls++
+	if m.GetWorkflowStatusFunc != nil {
+		return m.GetWorkflowStatusFunc(sessionID, executionID)
+	}
+	if sessionID == "" {
+		return WorkflowProgress{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return WorkflowProgress{}, fmt.Errorf("executionID cannot be empty")
+	}
+	return WorkflowProgress{
+		ExecutionID: executionID,
+		SessionID:   sessionID,
+		Status:      "RUNNING",
+		Tasks:       []TaskProgress{},
+	}, nil
+}
+
+// GetWorkflowHistory mocks the GetWorkflowHistory method.
+func (m *MockClient) GetWorkflowHistory(sessionID string) ([]WorkflowExecutionSummary, error) {
+	m.GetWorkflowHistoryCalls++
+	if m.GetWorkflowHistoryFunc != nil {
+		return m.GetWorkflowHistoryFunc(sessionID)
+	}
+	if sessionID == "" {
+		return nil, fmt.Errorf("sessionID cannot be empty")
+	}
+	return []WorkflowExecutionSummary{
+		{ExecutionID: "exec-1", WorkflowID: "wf-1", Status: "COMPLETED"},
+	}, nil
+}
+
+// PauseNode mocks the PauseNode method.
+func (m *MockClient) PauseNode(sessionID, executionID, nodeID string) (WorkflowStartResponse, error) {
+	m.PauseNodeCalls++
+	if m.PauseNodeFunc != nil {
+		return m.PauseNodeFunc(sessionID, executionID, nodeID)
+	}
+	if sessionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	if nodeID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("nodeID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// ResumeNode mocks the ResumeNode method.
+func (m *MockClient) ResumeNode(sessionID, executionID, nodeID string) (WorkflowStartResponse, error) {
+	m.ResumeNodeCalls++
+	if m.ResumeNodeFunc != nil {
+		return m.ResumeNodeFunc(sessionID, executionID, nodeID)
+	}
+	if sessionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	if nodeID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("nodeID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// EnableStepMode mocks the EnableStepMode method.
+func (m *MockClient) EnableStepMode(sessionID, executionID, nodeID string) (WorkflowStartResponse, error) {
+	m.EnableStepModeCalls++
+	if m.EnableStepModeFunc != nil {
+		return m.EnableStepModeFunc(sessionID, executionID, nodeID)
+	}
+	if sessionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	if nodeID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("nodeID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// DisableStepMode mocks the DisableStepMode method.
+func (m *MockClient) DisableStepMode(sessionID, executionID, nodeID string) (WorkflowStartResponse, error) {
+	m.DisableStepModeCalls++
+	if m.DisableStepModeFunc != nil {
+		return m.DisableStepModeFunc(sessionID, executionID, nodeID)
+	}
+	if sessionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	if nodeID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("nodeID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// StepNode mocks the StepNode method.
+func (m *MockClient) StepNode(sessionID, executionID, nodeID string) (WorkflowStartResponse, error) {
+	m.StepNodeCalls++
+	if m.StepNodeFunc != nil {
+		return m.StepNodeFunc(sessionID, executionID, nodeID)
+	}
+	if sessionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	if nodeID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("nodeID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// StopNode mocks the StopNode method.
+func (m *MockClient) StopNode(sessionID, executionID, nodeID string, immediate bool, reason string) (WorkflowStartResponse, error) {
+	m.StopNodeCalls++
+	if m.StopNodeFunc != nil {
+		return m.StopNodeFunc(sessionID, executionID, nodeID, immediate, reason)
+	}
+	if sessionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	if nodeID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("nodeID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
+}
+
+// SkipNode mocks the SkipNode method.
+func (m *MockClient) SkipNode(sessionID, executionID, nodeID string, skip bool) (WorkflowStartResponse, error) {
+	m.SkipNodeCalls++
+	if m.SkipNodeFunc != nil {
+		return m.SkipNodeFunc(sessionID, executionID, nodeID, skip)
+	}
+	if sessionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("sessionID cannot be empty")
+	}
+	if executionID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("executionID cannot be empty")
+	}
+	if nodeID == "" {
+		return WorkflowStartResponse{}, fmt.Errorf("nodeID cannot be empty")
+	}
+	return WorkflowStartResponse{ExecutionID: executionID}, nil
 }
 
 // MockRequestFactory provides a mock implementation of RequestFactory for testing.
