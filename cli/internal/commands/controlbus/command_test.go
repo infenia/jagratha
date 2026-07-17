@@ -6,6 +6,7 @@ package controlbus
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -647,4 +648,255 @@ func TestReadCommandInput_various(t *testing.T) {
 			t.Errorf("for input %q: expected %q, got %q", input, input, string(result))
 		}
 	}
+}
+
+func TestCommandCmd_malformedJSON_syntaxErrors(t *testing.T) {
+	syntaxErrors := []string{
+		`{invalid}`,
+		`{"unclosed":"value"`,
+		`{,}`,
+		`{"key":}`,
+		`{undefined}`,
+		`{"trailing",}`,
+	}
+
+	for _, malformed := range syntaxErrors {
+		mockClient := &client.MockClient{
+			SendCommandFunc: func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error) {
+				return map[string]interface{}{"status": "ok"}, nil
+			},
+		}
+		cmd := CommandCmd(mockClient)
+		err := cmd.RunE(cmd, []string{"wf", "node", malformed})
+		if err == nil {
+			t.Errorf("syntax error %q: expected error, got nil", malformed)
+		} else if !strings.Contains(err.Error(), "invalid JSON") {
+			t.Errorf("syntax error %q: wrong error: %v", malformed, err)
+		}
+	}
+}
+
+func TestCommandCmd_validJSONTypes(t *testing.T) {
+	validJSONInputs := []string{
+		`{}`,
+		`{"key":"value"}`,
+		`[1,2,3]`,
+		`null`,
+		`123`,
+		`true`,
+		`false`,
+		`"string"`,
+	}
+
+	mockClient := &client.MockClient{
+		SendCommandFunc: func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error) {
+			return map[string]interface{}{"result": "processed"}, nil
+		},
+	}
+
+	for _, payload := range validJSONInputs {
+		cmd := CommandCmd(mockClient)
+		commands.SetTestOutputFormat("json")
+
+		_, w, _ := os.Pipe()
+		oldStdout := os.Stdout
+		os.Stdout = w
+
+		err := cmd.RunE(cmd, []string{"wf", "node", payload})
+
+		w.Close()
+		os.Stdout = oldStdout
+
+		if err != nil {
+			t.Errorf("valid JSON %q: unexpected error: %v", payload, err)
+		}
+	}
+
+	commands.SetTestOutputFormat("table")
+}
+
+func TestCommandCmd_specialCharacters_inJSON(t *testing.T) {
+	specialCases := []string{
+		`{"key":"value\nwith\nnewlines"}`,
+		`{"key":"value\twith\ttabs"}`,
+		`{"key":"value\"with\\quotes"}`,
+		`{"key":"value with spaces"}`,
+		`{"key":"value123!@#$%"}`,
+		`{"emoji":"😀🎉"}`,
+		`{"unicode":"Hello"}`,
+		`{"mixed":"abc123!@#_-=+[]{}"}`,
+	}
+
+	mockClient := &client.MockClient{
+		SendCommandFunc: func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error) {
+			return map[string]interface{}{"status": "ok"}, nil
+		},
+	}
+
+	cmd := CommandCmd(mockClient)
+	commands.SetTestOutputFormat("json")
+
+	for _, input := range specialCases {
+		t.Run("special_chars", func(t *testing.T) {
+			_, w, _ := os.Pipe()
+			oldStdout := os.Stdout
+			os.Stdout = w
+
+			err := cmd.RunE(cmd, []string{"wf", "node", input})
+
+			w.Close()
+			os.Stdout = oldStdout
+
+			if err != nil {
+				t.Fatalf("unexpected error with special chars: %v", err)
+			}
+		})
+	}
+
+	commands.SetTestOutputFormat("table")
+}
+
+func TestCommandCmd_edgeCases_payloadSizes(t *testing.T) {
+	testCases := []struct {
+		name    string
+		payload string
+	}{
+		{"empty_object", `{}`},
+		{"minimal", `{"a":"1"}`},
+		{"large_value", `{"key":"` + strings.Repeat("x", 1000) + `"}`},
+		{"many_fields", func() string {
+			fields := make([]string, 0, 100)
+			for i := 0; i < 100; i++ {
+				fields = append(fields, fmt.Sprintf(`"f%d":"v%d"`, i, i))
+			}
+			return "{" + strings.Join(fields, ",") + "}"
+		}()},
+		{"deeply_nested", `{"a":{"b":{"c":{"d":{"e":"value"}}}}}`},
+	}
+
+	mockClient := &client.MockClient{
+		SendCommandFunc: func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error) {
+			return map[string]interface{}{"result": "processed"}, nil
+		},
+	}
+
+	cmd := CommandCmd(mockClient)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, w, _ := os.Pipe()
+			oldStdout := os.Stdout
+			os.Stdout = w
+
+			err := cmd.RunE(cmd, []string{"workflow-123", "node-456", tc.payload})
+
+			w.Close()
+			os.Stdout = oldStdout
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestCommandCmd_responseVariations_comprehensive(t *testing.T) {
+	responseVariations := []map[string]interface{}{
+		{},
+		{"status": "ok"},
+		{"status": "ok", "message": "success"},
+		{"status": "ok", "message": "success", "timestamp": "2026-07-17T00:00:00Z"},
+		{"field1": "value1", "field2": "value2", "field3": "value3", "field4": "value4"},
+		{"nested": map[string]interface{}{"inner": "value"}},
+		{"array": []interface{}{1, 2, 3}},
+		{"number": 42, "boolean": true, "null": nil},
+		{"special": "value\nwith\nnewlines"},
+	}
+
+	formats := []string{"json", "table"}
+
+	for _, response := range responseVariations {
+		for _, format := range formats {
+			testName := format + "_response"
+			t.Run(testName, func(t *testing.T) {
+				mockClient := &client.MockClient{
+					SendCommandFunc: func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error) {
+						return response, nil
+					},
+				}
+
+				cmd := CommandCmd(mockClient)
+				commands.SetTestOutputFormat(format)
+
+				_, w, _ := os.Pipe()
+				oldStdout := os.Stdout
+				os.Stdout = w
+
+				err := cmd.RunE(cmd, []string{"w", "n", `{"test":"payload"}`})
+
+				w.Close()
+				os.Stdout = oldStdout
+
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			})
+		}
+	}
+
+	commands.SetTestOutputFormat("table")
+}
+
+func TestCommandCmd_inputMutations_systematicCoverage(t *testing.T) {
+	mutations := []struct {
+		name      string
+		workflowID string
+		nodeID    string
+		payload   string
+		shouldErr bool
+	}{
+		{"valid_empty_object", "wf", "n", `{}`, false},
+		{"valid_simple_object", "workflow-123", "node-456", `{"action":"pause","reason":"test"}`, false},
+		{"valid_whitespace", "wf", "n", `{"a" : "b"}`, false},
+		{"valid_compact", "wf", "n", `{"a":"b","c":"d"}`, false},
+		{"valid_array", "wf", "n", `[1,2,3]`, false},
+		{"valid_null", "wf", "n", `null`, false},
+		{"valid_number", "wf", "n", `42`, false},
+		{"valid_boolean", "wf", "n", `true`, false},
+		{"valid_string", "wf", "n", `"text"`, false},
+		{"syntax_unclosed_object", "wf", "n", `{"a":"b"`, true},
+		{"syntax_invalid_key", "wf", "n", `{invalid}`, true},
+		{"syntax_trailing_comma", "wf", "n", `{"a":"b",}`, true},
+	}
+
+	mockClient := &client.MockClient{
+		SendCommandFunc: func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error) {
+			return map[string]interface{}{"status": "ok"}, nil
+		},
+	}
+
+	cmd := CommandCmd(mockClient)
+	commands.SetTestOutputFormat("json")
+
+	for _, m := range mutations {
+		t.Run(m.name, func(t *testing.T) {
+			_, w, _ := os.Pipe()
+			oldStdout := os.Stdout
+			os.Stdout = w
+
+			err := cmd.RunE(cmd, []string{m.workflowID, m.nodeID, m.payload})
+
+			w.Close()
+			os.Stdout = oldStdout
+
+			if m.shouldErr && err == nil {
+				t.Error("expected error, got nil")
+			}
+			if !m.shouldErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+
+	commands.SetTestOutputFormat("table")
 }
