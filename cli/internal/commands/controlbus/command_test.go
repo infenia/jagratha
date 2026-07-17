@@ -275,3 +275,172 @@ func TestCommandCmd_multipleResponseFields_tableFormat(t *testing.T) {
 		t.Errorf("expected 'executed' in output, got: %s", output)
 	}
 }
+
+func TestCommandCmd_formatCycleThroughAllPaths(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"data": map[string]interface{}{
+				"field1": "value1",
+				"field2": "value2",
+			},
+		}
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	c := client.NewClient(server.URL)
+	cmd := CommandCmd(c)
+
+	testCases := []string{"table", "json", "table", "json"}
+
+	for _, format := range testCases {
+		commands.SetTestOutputFormat(format)
+
+		r, w, _ := os.Pipe()
+		oldStdout := os.Stdout
+		os.Stdout = w
+
+		err := cmd.RunE(cmd, []string{"wf-123", "node-x", `{"cmd":"test"}`})
+
+		w.Close()
+		os.Stdout = oldStdout
+
+		if err != nil {
+			t.Fatalf("unexpected error with format %s: %v", format, err)
+		}
+
+		var buf bytes.Buffer
+		_, _ = io.Copy(&buf, r)
+		output := buf.String()
+
+		if !strings.Contains(output, "value1") {
+			t.Errorf("expected 'value1' in output with format %s, got: %s", format, output)
+		}
+	}
+
+	commands.SetTestOutputFormat("table")
+}
+
+func TestCommandCmd_responseSingleField(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"data": map[string]interface{}{
+				"result": "ok",
+			},
+		}
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	c := client.NewClient(server.URL)
+	cmd := CommandCmd(c)
+
+	commands.SetTestOutputFormat("json")
+	defer commands.SetTestOutputFormat("table")
+
+	r, w, _ := os.Pipe()
+	oldStdout := os.Stdout
+	os.Stdout = w
+
+	err := cmd.RunE(cmd, []string{"wf", "node", `{"action":"test"}`})
+
+	w.Close()
+	os.Stdout = oldStdout
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	output := buf.String()
+
+	if !strings.Contains(output, "ok") {
+		t.Errorf("expected 'ok' in JSON output, got: %s", output)
+	}
+}
+
+func TestCommandCmd_usingMockClient(t *testing.T) {
+	testCases := []struct {
+		name       string
+		format     string
+		response   map[string]interface{}
+		shouldHave string
+	}{
+		{
+			"json_single_field",
+			"json",
+			map[string]interface{}{"status": "ok"},
+			"ok",
+		},
+		{
+			"table_single_field",
+			"table",
+			map[string]interface{}{"status": "ok"},
+			"ok",
+		},
+		{
+			"json_multiple_fields",
+			"json",
+			map[string]interface{}{"field1": "val1", "field2": "val2"},
+			"val1",
+		},
+		{
+			"table_multiple_fields",
+			"table",
+			map[string]interface{}{"field1": "val1", "field2": "val2"},
+			"val1",
+		},
+		{
+			"json_empty_response",
+			"json",
+			map[string]interface{}{},
+			"Field",
+		},
+		{
+			"table_empty_response",
+			"table",
+			map[string]interface{}{},
+			"Field",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			responseData := tc.response
+			mockClient := &client.MockClient{
+				SendCommandFunc: func(workflowID, nodeID string, commandPayloadJSON []byte) (map[string]interface{}, error) {
+					return responseData, nil
+				},
+			}
+
+			cmd := CommandCmd(mockClient)
+			commands.SetTestOutputFormat(tc.format)
+
+			r, w, _ := os.Pipe()
+			oldStdout := os.Stdout
+			os.Stdout = w
+
+			err := cmd.RunE(cmd, []string{"wf-123", "node-1", `{"cmd":"test"}`})
+
+			w.Close()
+			os.Stdout = oldStdout
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			var buf bytes.Buffer
+			_, _ = io.Copy(&buf, r)
+			output := buf.String()
+
+			if !strings.Contains(output, tc.shouldHave) {
+				t.Errorf("expected %q in output, got: %s", tc.shouldHave, output)
+			}
+		})
+	}
+
+	commands.SetTestOutputFormat("table")
+}

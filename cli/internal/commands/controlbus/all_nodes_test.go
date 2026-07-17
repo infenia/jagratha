@@ -158,3 +158,133 @@ func TestAllNodesCmd_emptyNodes_tableFormat(t *testing.T) {
 	var buf bytes.Buffer
 	_, _ = io.Copy(&buf, r)
 }
+
+func TestAllNodesCmd_singleNode(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"data": []string{"single-node"},
+		}
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	c := client.NewClient(server.URL)
+	cmd := AllNodesCmd(c)
+
+	commands.SetTestOutputFormat("table")
+	defer commands.SetTestOutputFormat("table")
+
+	r, w, _ := os.Pipe()
+	oldStdout := os.Stdout
+	os.Stdout = w
+
+	err := cmd.RunE(cmd, []string{})
+
+	w.Close()
+	os.Stdout = oldStdout
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	output := buf.String()
+
+	if !strings.Contains(output, "single-node") {
+		t.Errorf("expected 'single-node' in output, got: %s", output)
+	}
+}
+
+func TestAllNodesCmd_formatCheck(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"data": []string{"node1", "node2", "node3"},
+		}
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	c := client.NewClient(server.URL)
+	cmd := AllNodesCmd(c)
+
+	for _, format := range []string{"table", "json", "table"} {
+		commands.SetTestOutputFormat(format)
+		r, w, _ := os.Pipe()
+		oldStdout := os.Stdout
+		os.Stdout = w
+
+		err := cmd.RunE(cmd, []string{})
+
+		w.Close()
+		os.Stdout = oldStdout
+
+		if err != nil {
+			t.Fatalf("unexpected error with format %s: %v", format, err)
+		}
+
+		var buf bytes.Buffer
+		_, _ = io.Copy(&buf, r)
+		output := buf.String()
+
+		if !strings.Contains(output, "node1") {
+			t.Errorf("expected nodes in output with format %s, got: %s", format, output)
+		}
+	}
+
+	commands.SetTestOutputFormat("table")
+}
+
+func TestAllNodesCmd_usingMockClient(t *testing.T) {
+	testCases := []struct {
+		name       string
+		format     string
+		nodes      []string
+		shouldHave string
+	}{
+		{"json_single_node", "json", []string{"n1"}, "n1"},
+		{"table_single_node", "table", []string{"n1"}, "n1"},
+		{"json_multiple_nodes", "json", []string{"n1", "n2"}, "n2"},
+		{"table_multiple_nodes", "table", []string{"n1", "n2"}, "n2"},
+		{"json_empty", "json", []string{}, "nodes"},
+		{"table_empty", "table", []string{}, "Node"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockClient := &client.MockClient{
+				GetAllActiveNodesFunc: func() ([]string, error) {
+					return tc.nodes, nil
+				},
+			}
+
+			cmd := AllNodesCmd(mockClient)
+			commands.SetTestOutputFormat(tc.format)
+
+			r, w, _ := os.Pipe()
+			oldStdout := os.Stdout
+			os.Stdout = w
+
+			err := cmd.RunE(cmd, []string{})
+
+			w.Close()
+			os.Stdout = oldStdout
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			var buf bytes.Buffer
+			_, _ = io.Copy(&buf, r)
+			output := buf.String()
+
+			if !strings.Contains(output, tc.shouldHave) {
+				t.Errorf("expected %q in output, got: %s", tc.shouldHave, output)
+			}
+		})
+	}
+
+	commands.SetTestOutputFormat("table")
+}
