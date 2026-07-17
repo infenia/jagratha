@@ -6,13 +6,13 @@ import com.infenia.yukta.dto.response.ControlBusStatus;
 import com.infenia.yukta.dto.response.PluginCreationGuide;
 import com.infenia.yukta.dto.response.PluginDetails;
 import com.infenia.yukta.dto.response.PluginSummary;
-import com.infenia.yukta.dto.response.SessionCreationGuide;
-import com.infenia.yukta.dto.response.SessionCreationResponse;
-import com.infenia.yukta.dto.response.SessionDetails;
-import com.infenia.yukta.dto.response.SessionInfo;
 import com.infenia.yukta.mcp.dto.ControlActionResult;
 import com.infenia.yukta.mcp.dto.ExecutionLogs;
 import com.infenia.yukta.mcp.dto.NodeControlAction;
+import com.infenia.yukta.mcp.dto.SessionCreationGuide;
+import com.infenia.yukta.mcp.dto.SessionCreationResult;
+import com.infenia.yukta.mcp.dto.SessionDetails;
+import com.infenia.yukta.mcp.dto.SessionSummary;
 import com.infenia.yukta.mcp.dto.WorkflowControlAction;
 import com.infenia.yukta.mcp.dto.WorkflowStartResult;
 import com.infenia.yukta.mcp.provider.DefaultLogProvider;
@@ -82,14 +82,15 @@ public class AppMcpTools {
   /**
    * List all available sessions.
    *
-   * @return Flux of session information
+   * @return Mono containing the list of session summaries
    */
   @McpTool(
       name = "list_sessions",
       title = "List Sessions",
-      description = "List all available Yukta sessions with metadata",
+      description = "List all available Yukta sessions with their workflow counts",
+      generateOutputSchema = true,
       annotations = @McpTool.McpAnnotations(readOnlyHint = true, openWorldHint = false))
-  public Flux<SessionInfo> listSessions() {
+  public Mono<List<SessionSummary>> listSessions() {
     return sessionInfoProvider.listSessions();
   }
 
@@ -387,8 +388,8 @@ public class AppMcpTools {
    *
    * @param sessionConfigJson JSON string containing session configuration with sessionId,
    *     workflows, and other configuration details
-   * @return Mono containing SessionCreationResponse with sessionId, created workflows, warnings,
-   *     and success status
+   * @return Mono containing SessionCreationResult with sessionId, created workflows, warnings, and
+   *     success status
    */
   @McpTool(
       name = "create_session",
@@ -400,7 +401,7 @@ public class AppMcpTools {
               readOnlyHint = false,
               destructiveHint = false,
               openWorldHint = false))
-  public Mono<SessionCreationResponse> createSession(
+  public Mono<SessionCreationResult> createSession(
       @McpToolParam(
               required = true,
               description =

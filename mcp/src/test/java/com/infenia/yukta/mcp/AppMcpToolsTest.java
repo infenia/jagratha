@@ -9,13 +9,13 @@ import com.infenia.yukta.dto.response.ControlBusStatus;
 import com.infenia.yukta.dto.response.PluginCreationGuide;
 import com.infenia.yukta.dto.response.PluginDetails;
 import com.infenia.yukta.dto.response.PluginSummary;
-import com.infenia.yukta.dto.response.SessionCreationGuide;
-import com.infenia.yukta.dto.response.SessionCreationResponse;
-import com.infenia.yukta.dto.response.SessionDetails;
-import com.infenia.yukta.dto.response.SessionInfo;
 import com.infenia.yukta.mcp.dto.ControlActionResult;
 import com.infenia.yukta.mcp.dto.ExecutionLogs;
 import com.infenia.yukta.mcp.dto.NodeControlAction;
+import com.infenia.yukta.mcp.dto.SessionCreationGuide;
+import com.infenia.yukta.mcp.dto.SessionCreationResult;
+import com.infenia.yukta.mcp.dto.SessionDetails;
+import com.infenia.yukta.mcp.dto.SessionSummary;
 import com.infenia.yukta.mcp.dto.WorkflowControlAction;
 import com.infenia.yukta.mcp.dto.WorkflowStartResult;
 import com.infenia.yukta.mcp.provider.DefaultLogProvider;
@@ -30,7 +30,6 @@ import com.infenia.yukta.model.workflow.WorkflowDefinition;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -64,7 +63,7 @@ class AppMcpToolsTest {
 
   @Test
   void testGetSessionDetails() {
-    var details = mock(SessionDetails.class);
+    var details = new SessionDetails("session-1", List.of("wf-1"));
     when(sessionInfoProvider.getSessionDetails("session-1")).thenReturn(Mono.just(details));
 
     StepVerifier.create(mcpTools.getSessionDetails("session-1"))
@@ -74,10 +73,10 @@ class AppMcpToolsTest {
 
   @Test
   void testListSessions() {
-    var info = mock(SessionInfo.class);
-    when(sessionInfoProvider.listSessions()).thenReturn(Flux.just(info));
+    var summaries = List.of(new SessionSummary("s1", 2));
+    when(sessionInfoProvider.listSessions()).thenReturn(Mono.just(summaries));
 
-    StepVerifier.create(mcpTools.listSessions()).expectNext(info).verifyComplete();
+    StepVerifier.create(mcpTools.listSessions()).expectNext(summaries).verifyComplete();
   }
 
   @Test
@@ -185,7 +184,7 @@ class AppMcpToolsTest {
 
   @Test
   void testCreateSession() {
-    var response = mock(SessionCreationResponse.class);
+    var response = new SessionCreationResult("s1", List.of("wf-1"), List.of(), true);
     when(sessionInfoProvider.createSession("{}")).thenReturn(Mono.just(response));
 
     StepVerifier.create(mcpTools.createSession("{}")).expectNext(response).verifyComplete();
