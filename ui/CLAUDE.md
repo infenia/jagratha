@@ -93,6 +93,43 @@ cd ui && pnpm dev
 - SpaWebFluxConfig provides SPA fallback routing (resource resolving is native-image compatible)
 - No dynamic reflection, no classloader resource enumeration needed
 
+## License Header Management
+
+All UI source files include SPDX license headers. This is managed through a **three-layer approach**:
+
+### 1. **REUSE.toml** (Baseline Compliance)
+- FSFE-compliant metadata at repo root
+- Defines copyright holder, license, and excludes generated files (dist/, node_modules/)
+- Validated by `reuse lint` (run via CI/CD)
+
+### 2. **Gradle Task** (`./gradlew :ui:check`)
+- `validateHeaders` task runs on every `check`
+- Calls `pnpm run lint:headers` (Node.js-based glob validation)
+- Checks all source files match expected SPDX header format
+- Fails the build if headers are missing/incorrect
+
+### 3. **Header Template** (`config/license/header-js.txt`)
+- Templates for JS/TS and CSS comment syntax
+- Used by developers to format headers consistently
+
+**Header Format:**
+```typescript
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2026 Infenia Private Limited
+```
+
+**Quick Commands:**
+```bash
+# Validate headers locally
+pnpm run lint:headers
+
+# Add/fix headers manually to new files
+cat config/license/header-js.txt | cat - <newfile> > <newfile>.tmp && mv <newfile>.tmp <newfile>
+
+# Gradle validation (runs on every check)
+./gradlew :ui:check
+```
+
 ## Imports
 @.claude/rules/coding-standards.md
 @.claude/rules/git-workflow.md
