@@ -7,16 +7,17 @@
 React SPA frontend with Vite, Tailwind CSS v4, and Gradle integration. The `ui` module produces a static JAR containing the built React application, consumed by the `boot` module for deployment.
 
 ## Project Structure
-- **`frontend/`**: Node/Vite/React project root (package.json, vite.config.ts, src/, e2e/)
+- **Root level**: Node/Vite/React project files (package.json, vite.config.ts, src/, e2e/, index.html, public/)
 - **`docs/design/`**: Design system spec (DESIGN.md) and mockups (session-list light/dark)
 - **`build.gradle.kts`**: Gradle wiring for Vite build → JAR static assets
+- **`build/`**: Gradle build output (JAR, reports, etc.)
 
 ## Build & Development Commands
 
 ### Development
 ```bash
 # Terminal 1: Vite dev server (http://localhost:5173 with HMR)
-cd ui/frontend && pnpm dev
+cd ui && pnpm dev
 
 # Terminal 2: Spring Boot backend (http://localhost:8080)
 ./gradlew :boot:bootRun
@@ -54,7 +55,7 @@ cd ui/frontend && pnpm dev
 ## Architecture
 
 ### Gradle Integration
-- `pnpmBuild` task: Runs `pnpm run build` → produces `frontend/dist/`
+- `pnpmBuild` task: Runs `pnpm run build` (working directory: ui root) → produces `dist/`
 - `processResources`: Copies `dist/` → `build/resources/main/static/` → included in JAR
 - Static assets served by `boot` module via Spring's classpath resource handling
 - SpaWebFluxConfig in boot: Fallback routing (non-existent routes → index.html for SPA)

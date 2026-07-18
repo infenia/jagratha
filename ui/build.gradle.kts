@@ -28,19 +28,19 @@ dependencies {
 val pnpmBuild = tasks.register<PnpmTask>("pnpmBuild") {
     description = "Build the React SPA (Vite production build)"
     dependsOn("pnpmInstall")
-    workingDir.set(layout.projectDirectory.dir("frontend"))
+    workingDir.set(layout.projectDirectory)
     pnpmCommand.set(listOf("run", "build"))
-    inputs.dir(layout.projectDirectory.dir("frontend/src"))
-    inputs.file(layout.projectDirectory.dir("frontend/package.json"))
-    inputs.file(layout.projectDirectory.dir("frontend/vite.config.ts"))
-    inputs.file(layout.projectDirectory.dir("frontend/index.html"))
-    outputs.dir(layout.projectDirectory.dir("frontend/dist"))
+    inputs.dir(layout.projectDirectory.dir("src"))
+    inputs.file(layout.projectDirectory.file("package.json"))
+    inputs.file(layout.projectDirectory.file("vite.config.ts"))
+    inputs.file(layout.projectDirectory.file("index.html"))
+    outputs.dir(layout.projectDirectory.dir("dist"))
 }
 
 // Wire SPA build into processResources to include dist/ in JAR
 tasks.named<ProcessResources>("processResources") {
     dependsOn(pnpmBuild)
-    from(layout.projectDirectory.dir("frontend/dist")) {
+    from(layout.projectDirectory.dir("dist")) {
         into("static")
     }
 }
@@ -49,7 +49,7 @@ tasks.named<ProcessResources>("processResources") {
 val pnpmTest = tasks.register<PnpmTask>("pnpmTest") {
     description = "Run Vitest unit/component tests"
     dependsOn("pnpmInstall")
-    workingDir.set(layout.projectDirectory.dir("frontend"))
+    workingDir.set(layout.projectDirectory)
     pnpmCommand.set(listOf("run", "test", "--", "--run"))
 }
 
@@ -57,7 +57,7 @@ val pnpmTest = tasks.register<PnpmTask>("pnpmTest") {
 val pnpmTestE2e = tasks.register<PnpmTask>("pnpmTestE2e") {
     description = "Run Playwright E2E tests"
     dependsOn("pnpmInstall", pnpmBuild)
-    workingDir.set(layout.projectDirectory.dir("frontend"))
+    workingDir.set(layout.projectDirectory)
     pnpmCommand.set(listOf("exec", "playwright", "test"))
     onlyIf {
         project.hasProperty("runE2e") && project.property("runE2e") == "true"
