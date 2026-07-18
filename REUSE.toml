@@ -7,7 +7,7 @@ SPDX-PackageSupplier = "Infenia Private Limited"
 SPDX-PackageDownloadLocation = "https://github.com/infenia/yukta"
 
 [[annotations]]
-path = ["build/", ".gradle/", "dist/", "target/", "node_modules/"]
+path = ["build/", ".gradle/", "dist/", "ui/dist/", "target/", "node_modules/"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "none"
 SPDX-License-Identifier = "CC0-1.0"
