@@ -18,7 +18,8 @@ configure<NodeExtension> {
 
     // If true, it will download node using above parameters.
     // If false, it will try to use globally installed node.
-    download.set(true)
+    // In CI (GitHub Actions), use system Node.js; locally use downloaded version.
+    download.set(System.getenv("CI") == null)
 }
 
 // Disable npm and yarn tasks — only pnpm is used in this project
