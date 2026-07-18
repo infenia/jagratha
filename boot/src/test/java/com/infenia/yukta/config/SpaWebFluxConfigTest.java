@@ -164,11 +164,7 @@ class SpaWebFluxConfigTest {
 
   @ParameterizedTest
   @ValueSource(
-      strings = {
-        "/",
-        "/foo/bar/baz/deeply/nested/path",
-        "/sessions?filter=active&sort=created"
-      })
+      strings = {"/", "/foo/bar/baz/deeply/nested/path", "/sessions?filter=active&sort=created"})
   void testSpaRouterHandlesVariousRoutes(final String uri) {
     final RouterFunction<ServerResponse> router = config.spaRouter();
     final WebTestClient client = WebTestClient.bindToRouterFunction(router).build();
