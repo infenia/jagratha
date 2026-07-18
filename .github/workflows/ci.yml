@@ -247,7 +247,12 @@ jobs:
           needs.changes.outputs.root == 'true'
         run: |
           echo "▶ Running full build (all modules: tests + quality gates)"
-          ./gradlew build jacocoTestReport
+          # On PRs, skip Trivy (vulnerability database downloads timeout in CI)
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            ./gradlew build jacocoTestReport -x trivy
+          else
+            ./gradlew build jacocoTestReport
+          fi
 
       - name: Partial build (PR — changed modules and their dependents)
         if: |
@@ -301,8 +306,8 @@ jobs:
           done
 
           if [ -n "$TASKS" ]; then
-            echo "▶ Executing: ./gradlew $TASKS jacocoTestReport"
-            ./gradlew $TASKS jacocoTestReport
+            echo "▶ Executing: ./gradlew $TASKS jacocoTestReport -x trivy"
+            ./gradlew $TASKS jacocoTestReport -x trivy
           else
             echo "▶ No module tasks matched — nothing to build"
           fi
