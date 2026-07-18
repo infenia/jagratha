@@ -45,6 +45,14 @@ tasks.named<ProcessResources>("processResources") {
     }
 }
 
+// Validate SPDX headers in source files
+val validateHeaders = tasks.register<PnpmTask>("validateHeaders") {
+    description = "Validate SPDX license headers in UI source files"
+    dependsOn("pnpmInstall")
+    workingDir.set(layout.projectDirectory)
+    pnpmCommand.set(listOf("run", "lint:headers"))
+}
+
 // Unit & component tests
 val pnpmTest = tasks.register<PnpmTask>("pnpmTest") {
     description = "Run Vitest unit/component tests"
@@ -64,11 +72,12 @@ val pnpmTestE2e = tasks.register<PnpmTask>("pnpmTestE2e") {
     }
 }
 
-// Wire unit tests into Gradle's check task (when tests exist)
-// Currently disabled since there are no test files yet
-// tasks.named("check") {
-//     dependsOn(pnpmTest)
-// }
+// Wire header validation and tests into Gradle's check task
+tasks.named("check") {
+    dependsOn(validateHeaders)
+    // Uncomment when tests are written:
+    // dependsOn(pnpmTest)
+}
 
 // Disable Spring Boot JAR/bootRun on this module
 tasks.named("bootJar") {
@@ -86,6 +95,10 @@ tasks.named<Jar>("jar") {
 tasks.named<Test>("test") {
     failOnNoDiscoveredTests.set(false)
 }
+
+// NOTE: Spotless is NOT applied to UI module to avoid conflicts with Prettier.
+// The UI module uses Prettier (pnpm format) for code formatting and license headers are
+// managed manually. See .prettierignore for files excluded from formatting checks.
 
 // Disable npm and yarn tasks — only pnpm is used
 tasks.withType<com.github.gradle.node.npm.task.NpmSetupTask>().configureEach {

@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "lint:headers": "node scripts/validate-headers.js",
     "test": "vitest",
     "test:e2e": "playwright test"
   },
@@ -24,6 +25,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
+    "glob": "10.4.5",
     "globals": "^17.7.0",
     "jsdom": "^29.1.1",
     "msw": "^2.15.0",
