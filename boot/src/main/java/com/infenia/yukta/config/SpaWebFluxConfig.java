@@ -20,8 +20,13 @@ import reactor.core.publisher.Mono;
 @Configuration
 public class SpaWebFluxConfig implements WebFluxConfigurer {
 
+  /** Default constructor for Spring. */
+  public SpaWebFluxConfig() {
+    // Intentionally empty
+  }
+
   @Override
-  public void addResourceHandlers(ResourceHandlerRegistry registry) {
+  public void addResourceHandlers(final ResourceHandlerRegistry registry) {
     // Serve all static assets (JS, CSS, fonts, images) with cache
     registry
         .addResourceHandler(
@@ -38,9 +43,12 @@ public class SpaWebFluxConfig implements WebFluxConfigurer {
         .setCacheControl(CacheControl.maxAge(365, java.util.concurrent.TimeUnit.DAYS));
   }
 
+  /**
+   * SPA fallback router: serves index.html for all unmatched routes to enable client-side routing.
+   */
   @Bean
   public RouterFunction<ServerResponse> spaRouter() {
-    Resource indexHtml = new ClassPathResource("static/index.html");
+    final Resource indexHtml = new ClassPathResource("static/index.html");
     return RouterFunctions.route(
         RequestPredicates.GET("/**"),
         request ->
