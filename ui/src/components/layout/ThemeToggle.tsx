@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2026 Infenia Private Limited
+
 import { useState, useEffect } from 'react';
 import { getTheme, setTheme, type Theme } from '@/lib/theme';
 
