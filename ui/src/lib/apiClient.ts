@@ -34,7 +34,15 @@ export async function fetchApi<T>(
     ...options,
   });
 
-  const json = (await response.json()) as ApiResponse<T>;
+  let json: ApiResponse<T>;
+  try {
+    json = (await response.json()) as ApiResponse<T>;
+  } catch (e) {
+    throw new ApiError(
+      response.status,
+      `Failed to parse JSON: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
 
   if (json.status !== 200 && json.status !== 201 && json.status !== 202) {
     throw new ApiError(json.status, json.error, json.errors);

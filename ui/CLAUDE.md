@@ -110,9 +110,10 @@ All UI source files include SPDX license headers. This is managed through a **th
 - Checks all source files match expected SPDX header format
 - Fails the build if headers are missing/incorrect
 
-### 3. **Header Template** (`config/license/header-js.txt`)
+### 3. **Header Templates** (`config/license/header-js.txt`, `config/license/header-css.txt`)
 
-- Templates for JS/TS and CSS comment syntax
+- `header-js.txt`: For JS/TS source files (double-slash comment syntax)
+- `header-css.txt`: For CSS source files (block comment syntax)
 - Used by developers to format headers consistently
 
 **Header Format:**

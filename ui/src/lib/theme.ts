@@ -44,17 +44,30 @@ function subscribe(listener: () => void): () => void {
   const handleThemeChange = () => listener();
   const handleStorageChange = (e: StorageEvent) => {
     if (e.key === THEME_KEY) {
+      applyTheme(getTheme());
+      listener();
+    }
+  };
+
+  // Listen for system preference changes (when theme is 'system')
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const handleSystemPreferenceChange = () => {
+    const theme = getTheme();
+    if (theme === 'system') {
+      applyTheme(theme);
       listener();
     }
   };
 
   window.addEventListener('theme-change', handleThemeChange);
   window.addEventListener('storage', handleStorageChange);
+  mediaQuery.addEventListener('change', handleSystemPreferenceChange);
 
   return () => {
     subscribers.delete(listener);
     window.removeEventListener('theme-change', handleThemeChange);
     window.removeEventListener('storage', handleStorageChange);
+    mediaQuery.removeEventListener('change', handleSystemPreferenceChange);
   };
 }
 

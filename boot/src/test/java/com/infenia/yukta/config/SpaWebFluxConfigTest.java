@@ -8,6 +8,8 @@ import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -160,44 +162,20 @@ class SpaWebFluxConfigTest {
         .contentTypeCompatibleWith(MediaType.TEXT_HTML);
   }
 
-  @Test
-  void testSpaRouterHandlesRootPath() {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/",
+        "/foo/bar/baz/deeply/nested/path",
+        "/sessions?filter=active&sort=created"
+      })
+  void testSpaRouterHandlesVariousRoutes(final String uri) {
     final RouterFunction<ServerResponse> router = config.spaRouter();
     final WebTestClient client = WebTestClient.bindToRouterFunction(router).build();
 
     client
         .get()
-        .uri("/")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectHeader()
-        .contentTypeCompatibleWith(MediaType.TEXT_HTML);
-  }
-
-  @Test
-  void testSpaRouterHandlesDeepPaths() {
-    final RouterFunction<ServerResponse> router = config.spaRouter();
-    final WebTestClient client = WebTestClient.bindToRouterFunction(router).build();
-
-    client
-        .get()
-        .uri("/foo/bar/baz/deeply/nested/path")
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectHeader()
-        .contentTypeCompatibleWith(MediaType.TEXT_HTML);
-  }
-
-  @Test
-  void testSpaRouterHandlesPathsWithQueryParameters() {
-    final RouterFunction<ServerResponse> router = config.spaRouter();
-    final WebTestClient client = WebTestClient.bindToRouterFunction(router).build();
-
-    client
-        .get()
-        .uri("/sessions?filter=active&sort=created")
+        .uri(uri)
         .exchange()
         .expectStatus()
         .isOk()
