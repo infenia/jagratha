@@ -34,14 +34,14 @@ export async function fetchApi<T>(
     ...options,
   });
 
-  if (!response.ok) {
-    throw new ApiError(response.status, `HTTP ${response.status}`);
-  }
-
   const json = (await response.json()) as ApiResponse<T>;
 
   if (json.status !== 200 && json.status !== 201 && json.status !== 202) {
     throw new ApiError(json.status, json.error, json.errors);
+  }
+
+  if (!response.ok) {
+    throw new ApiError(response.status, json.error || `HTTP ${response.status}`, json.errors);
   }
 
   return json.data;

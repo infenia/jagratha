@@ -56,7 +56,7 @@
 
   /* Typography */
   --font-sans: "IBM Plex Sans", sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
+  --font-mono: "JetBrains Mono", monospace;
 
   /* Spacing — 4px grid */
   --spacing-xs: 4px;
@@ -76,7 +76,7 @@
   --radius-xl: 0px;
   --radius-2xl: 0px;
   --radius-3xl: 0px;
-  --radius-full: 9999px;
+  --radius-full: 0px;
 }
 
 /* Dark mode color overrides */

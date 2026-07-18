@@ -31,9 +31,13 @@ val pnpmBuild = tasks.register<PnpmTask>("pnpmBuild") {
     workingDir.set(layout.projectDirectory)
     pnpmCommand.set(listOf("run", "build"))
     inputs.dir(layout.projectDirectory.dir("src"))
+    inputs.dir(layout.projectDirectory.dir("public"))
     inputs.file(layout.projectDirectory.file("package.json"))
     inputs.file(layout.projectDirectory.file("vite.config.ts"))
     inputs.file(layout.projectDirectory.file("index.html"))
+    inputs.file(layout.projectDirectory.file("tsconfig.json"))
+    inputs.file(layout.projectDirectory.file("tsconfig.node.json"))
+    inputs.file(layout.projectDirectory.file("pnpm-lock.yaml"))
     outputs.dir(layout.projectDirectory.dir("dist"))
 }
 

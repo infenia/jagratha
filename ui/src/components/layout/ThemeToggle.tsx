@@ -1,22 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { useState, useEffect } from 'react';
-import { getTheme, setTheme, type Theme } from '@/lib/theme';
+import { useTheme, type Theme } from '@/lib/theme';
 
 export default function ThemeToggle() {
-  const [theme, setCurrentTheme] = useState<Theme>('system');
-
-  useEffect(() => {
-    setCurrentTheme(getTheme());
-  }, []);
+  const { theme, setTheme } = useTheme();
 
   const toggleTheme = () => {
     const themes: Theme[] = ['light', 'dark', 'system'];
     const currentIndex = themes.indexOf(theme);
     const nextTheme = themes[(currentIndex + 1) % themes.length];
     setTheme(nextTheme);
-    setCurrentTheme(nextTheme);
   };
 
   const iconName =
@@ -28,8 +22,9 @@ export default function ThemeToggle() {
 
   return (
     <button
+      type="button"
       onClick={toggleTheme}
-      className="p-2 rounded hover:bg-surface-container-low transition-colors"
+      className="p-2 hover:bg-surface-container-low transition-colors"
       aria-label="Toggle theme"
       title={`Current: ${theme}`}
     >

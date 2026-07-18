@@ -19,7 +19,7 @@ export default function AppHeader() {
 
       {/* Bottom row: breadcrumb */}
       <div className="h-12 flex items-center px-spacing-md bg-surface-container-low text-body-sm">
-        <nav className="flex items-center gap-2">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2">
           <span>Sessions</span>
         </nav>
       </div>
