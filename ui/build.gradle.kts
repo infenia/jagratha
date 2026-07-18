@@ -85,3 +85,17 @@ tasks.named<Jar>("jar") {
 tasks.named<Test>("test") {
     failOnNoDiscoveredTests.set(false)
 }
+
+// Disable npm and yarn tasks — only pnpm is used
+tasks.withType<com.github.gradle.node.npm.task.NpmSetupTask>().configureEach {
+    enabled = false
+}
+tasks.withType<com.github.gradle.node.npm.task.NpmInstallTask>().configureEach {
+    enabled = false
+}
+tasks.withType<com.github.gradle.node.yarn.task.YarnSetupTask>().configureEach {
+    enabled = false
+}
+tasks.withType<com.github.gradle.node.yarn.task.YarnTask>().configureEach {
+    enabled = false
+}

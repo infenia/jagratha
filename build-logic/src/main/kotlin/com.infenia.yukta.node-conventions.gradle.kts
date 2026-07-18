@@ -20,3 +20,11 @@ configure<NodeExtension> {
     // If false, it will try to use globally installed node.
     download.set(true)
 }
+
+// Disable npm and yarn tasks — only pnpm is used in this project
+tasks.withType<com.github.gradle.node.npm.task.NpmTask>().configureEach {
+    enabled = false
+}
+tasks.withType<com.github.gradle.node.yarn.task.YarnTask>().configureEach {
+    enabled = false
+}
