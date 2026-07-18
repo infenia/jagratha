@@ -35,9 +35,6 @@ const patterns = [
   '*.config.js',
   'vitest.config.ts',
   'playwright.config.ts',
-  '.prettierrc.json',
-  'tsconfig.json',
-  'tsconfig.node.json',
   'index.html',
   'src/**/*.css',
 ];
@@ -48,14 +45,10 @@ let errors = [];
 
 function getHeaderForFile(filePath) {
   const ext = path.extname(filePath);
-  const basename = path.basename(filePath);
 
   if (ext === '.css') return SPDX_HEADER_CSS;
   if (ext === '.json') return SPDX_HEADER_JSON;
   if (ext === '.html') return SPDX_HEADER_HTML;
-  if (basename === '.prettierrc.json') return SPDX_HEADER_JSON;
-  if (basename === 'tsconfig.json' || basename === 'tsconfig.node.json')
-    return SPDX_HEADER_JSON;
   return SPDX_HEADER_JS; // Default for .ts, .tsx, .js
 }
 
