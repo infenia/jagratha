@@ -190,6 +190,7 @@ public class SessionService {
   private SessionConfigResponse mapToSessionConfigResponse(final Map<String, Object> config) {
     return new SessionConfigResponse(
         (String) config.get("sessionId"),
+        (String) config.get("name"),
         (String) config.get("description"),
         (String) config.get("initiator"),
         (Map<String, String>) config.getOrDefault("tags", Map.of()),
