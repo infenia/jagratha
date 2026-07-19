@@ -44,7 +44,7 @@ cd ui && pnpm dev
 pnpm coverage
 
 # Generate coverage without opening (useful for CI/CD)
-pnpm test -- --coverage
+pnpm exec vitest run --coverage
 ```
 
 The report includes:
