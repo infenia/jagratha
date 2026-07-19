@@ -9,7 +9,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-on-surface">
       <AppHeader />
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col mt-20">
         <Outlet />
       </main>
       <AppFooter />

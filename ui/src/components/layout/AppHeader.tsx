@@ -1,28 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { Link } from 'react-router';
+import HeaderLogo from './HeaderLogo';
+import BreadcrumbNav from './BreadcrumbNav';
 import ThemeToggle from './ThemeToggle';
 
 export default function AppHeader() {
   return (
-    <header className="border-b border-outline">
-      {/* Top row: logo */}
-      <div className="h-16 flex items-center px-spacing-md">
-        <Link to="/" className="font-headline text-heading-md">
-          Yukta
-        </Link>
-        <div className="ml-auto">
-          <ThemeToggle />
-        </div>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-surface border-b border-outline-variant">
+      {/* Top row: Logo + Theme Toggle */}
+      <div className="flex items-center justify-between w-full h-12 px-spacing-md">
+        <HeaderLogo />
+        <ThemeToggle />
       </div>
 
-      {/* Bottom row: breadcrumb */}
-      <div className="h-12 flex items-center px-spacing-md bg-surface-container-low text-body-sm">
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2">
-          <span>Sessions</span>
-        </nav>
-      </div>
+      {/* Bottom row: Breadcrumb Navigation */}
+      <BreadcrumbNav />
     </header>
   );
 }
