@@ -3,7 +3,6 @@
 
 import { describe, it, expect } from 'vitest';
 import { parseBreadcrumbsFromPath } from './breadcrumb-utils';
-import type { BreadcrumbItem } from '@/types/breadcrumb';
 
 describe('parseBreadcrumbsFromPath', () => {
   it('should return Sessions for root path', () => {
@@ -114,7 +113,7 @@ describe('parseBreadcrumbsFromPath', () => {
 
   it('should only set href for non-current items', () => {
     const breadcrumbs = parseBreadcrumbsFromPath('/sessions/123/workflows/456');
-    breadcrumbs.forEach((item, index) => {
+    breadcrumbs.forEach((item) => {
       if (item.isCurrent) {
         expect(item.href).toBeUndefined();
       } else {
