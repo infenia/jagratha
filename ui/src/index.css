@@ -4,6 +4,7 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/geist';
+@import 'material-symbols/outlined.css';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
