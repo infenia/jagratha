@@ -3,7 +3,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { parseBreadcrumbsFromPath } from './breadcrumb-utils';
-import { BreadcrumbItem } from '@/types/breadcrumb';
+import type { BreadcrumbItem } from '@/types/breadcrumb';
 
 describe('parseBreadcrumbsFromPath', () => {
   it('should return Sessions for root path', () => {

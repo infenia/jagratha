@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { BreadcrumbItem, RouteSegmentMap } from '@/types/breadcrumb';
+import type { BreadcrumbItem, RouteSegmentMap } from '@/types/breadcrumb';
 
 // Map route segments to friendly breadcrumb labels
 const ROUTE_LABEL_MAP: RouteSegmentMap = {
