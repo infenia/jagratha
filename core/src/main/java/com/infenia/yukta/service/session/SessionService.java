@@ -199,6 +199,33 @@ public class SessionService {
   }
 
   /**
+   * Get all session configurations.
+   *
+   * <p>Retrieves full configuration for all sessions. Individual sessions that fail to load are
+   * skipped with a warning; the flux completes with only successfully loaded sessions.
+   *
+   * @return Flux of all available session configurations
+   */
+  public Flux<SessionConfigResponse> getAllSessionConfigs() {
+    return getSessionIds()
+        .doOnSubscribe(_ -> log.atDebug().log("Fetching all session configurations"))
+        .flatMap(
+            sessionId ->
+                getSessionConfig(sessionId)
+                    .onErrorResume(
+                        err -> {
+                          log.atWarn()
+                              .addKeyValue("sessionId", sessionId)
+                              .setCause(err)
+                              .log(
+                                  "Skipping unreadable session config, continuing with other"
+                                      + " sessions");
+                          return Mono.empty();
+                        }))
+        .doOnComplete(() -> log.atDebug().log("All session configurations retrieved"));
+  }
+
+  /**
    * Get workflow for a session.
    *
    * @param sessionId the session identifier
