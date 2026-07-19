@@ -1,0 +1,94 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2026 Infenia Private Limited
+
+import type { Table } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import type { SessionListItem } from '../types/session';
+
+interface SessionsPaginationFooterProps {
+  table: Table<SessionListItem>;
+}
+
+export function SessionsPaginationFooter({ table }: SessionsPaginationFooterProps) {
+  const pageSize = table.getState().pagination.pageSize;
+  const pageIndex = table.getState().pagination.pageIndex;
+  const totalRows = table.getFilteredRowModel().rows.length;
+
+  const start = pageIndex * pageSize + 1;
+  const end = Math.min((pageIndex + 1) * pageSize, totalRows);
+
+  return (
+    <div className="flex items-center justify-between gap-4 border-t border-outline-variant bg-surface-container-lowest px-4 py-3 dark:bg-surface-container-low">
+      <div className="flex items-center gap-2">
+        <span className="text-body-sm">Rows per page:</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger>
+            <Button variant="outline" size="sm">
+              {pageSize}
+              <span className="material-symbols-outlined ml-1">arrow_drop_down</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {[10, 20, 50].map((size) => (
+              <DropdownMenuItem
+                key={size}
+                onClick={() => table.setPageSize(size)}
+              >
+                {size}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="border-l border-outline-variant pl-4 text-body-sm">
+        {start}–{end} of {totalRows} items
+      </div>
+
+      <div className="border-l border-outline-variant pl-4 flex gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => table.firstPage()}
+          disabled={!table.getCanPreviousPage()}
+          className="disabled:opacity-30"
+        >
+          <span className="material-symbols-outlined">first_page</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+          className="disabled:opacity-30"
+        >
+          <span className="material-symbols-outlined">chevron_left</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+          className="disabled:opacity-30"
+        >
+          <span className="material-symbols-outlined">chevron_right</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => table.lastPage()}
+          disabled={!table.getCanNextPage()}
+          className="disabled:opacity-30"
+        >
+          <span className="material-symbols-outlined">last_page</span>
+        </Button>
+      </div>
+    </div>
+  );
+}
