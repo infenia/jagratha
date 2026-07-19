@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* SPDX-FileCopyrightText: 2026 Infenia Private Limited */
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/geist';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -58,8 +58,8 @@
   --color-surface-variant: #e5e2e1;
 
   /* Typography */
-  --font-sans: "IBM Plex Sans", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
   /* Spacing — 4px grid */
   --spacing-xs: 4px;
@@ -248,7 +248,11 @@
   }
 
   .material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+    font-variation-settings:
+      'FILL' 0,
+      'wght' 300,
+      'GRAD' 0,
+      'opsz' 20;
     vertical-align: middle;
     font-size: 20px;
   }

@@ -27,12 +27,16 @@ export default function BreadcrumbNav() {
             <>
               {index > 0 && (
                 <BreadcrumbSeparator className="text-outline-variant">
-                  <span className="material-symbols-outlined text-xs">chevron_right</span>
+                  <span className="material-symbols-outlined text-xs">
+                    chevron_right
+                  </span>
                 </BreadcrumbSeparator>
               )}
               <BreadcrumbItem key={`${item.label}-${index}`}>
                 {item.isCurrent ? (
-                  <span className="text-on-surface text-xs font-medium">{item.label}</span>
+                  <span className="text-on-surface text-xs font-medium">
+                    {item.label}
+                  </span>
                 ) : item.href ? (
                   <Link
                     to={item.href}
@@ -41,7 +45,9 @@ export default function BreadcrumbNav() {
                     {item.label}
                   </Link>
                 ) : (
-                  <span className="text-on-surface-variant text-xs">{item.label}</span>
+                  <span className="text-on-surface-variant text-xs">
+                    {item.label}
+                  </span>
                 )}
               </BreadcrumbItem>
             </>

@@ -14,7 +14,10 @@ export default function ComingSoonPage({
     <div className="px-spacing-md py-spacing-lg flex flex-1 items-center justify-center">
       <div className="max-w-md text-center">
         <div className="mb-spacing-lg">
-          <span aria-hidden="true" className="material-symbols-outlined text-outline text-6xl">
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined text-outline text-6xl"
+          >
             construction
           </span>
         </div>
