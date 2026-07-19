@@ -6,7 +6,6 @@ import { Link } from 'react-router';
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
@@ -35,14 +34,12 @@ export default function BreadcrumbNav() {
                 {item.isCurrent ? (
                   <span className="text-xs font-medium text-on-surface">{item.label}</span>
                 ) : item.href ? (
-                  <BreadcrumbLink asChild>
-                    <Link
-                      to={item.href}
-                      className="text-xs text-on-surface-variant hover:text-on-surface transition-colors"
-                    >
-                      {item.label}
-                    </Link>
-                  </BreadcrumbLink>
+                  <Link
+                    to={item.href}
+                    className="text-xs text-on-surface-variant hover:text-on-surface transition-colors"
+                  >
+                    {item.label}
+                  </Link>
                 ) : (
                   <span className="text-xs text-on-surface-variant">{item.label}</span>
                 )}
