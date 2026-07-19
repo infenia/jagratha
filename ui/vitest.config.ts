@@ -25,10 +25,10 @@ export default defineConfig({
         'src/lib/apiClient.ts', // API client error paths tested at integration level
       ],
       thresholds: {
-        lines: 85,
-        functions: 80,
-        branches: 80,
-        statements: 85,
+        lines: 100,
+        functions: 100,
+        branches: 100,
+        statements: 100,
       },
     },
   },
