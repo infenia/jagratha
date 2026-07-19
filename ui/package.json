@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "lint:headers": "node scripts/validate-headers.js",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "coverage": "vitest run --coverage && node scripts/open-coverage.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
