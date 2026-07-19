@@ -174,6 +174,15 @@ describe('SessionsPaginationFooter', () => {
 
     expect(screen.getByText(/of 1 items/)).toBeInTheDocument();
   });
+
+  it('should display correct pagination format with start and end', () => {
+    render(<TableWrapper />);
+
+    // Verify the pagination text shows correct format
+    const paginationText = screen.getByText(/of 1 items/);
+    expect(paginationText).toBeInTheDocument();
+    expect(paginationText.textContent).toMatch(/–/); // En-dash between start and end
+  });
 });
 
 describe('SessionRowActionsMenu', () => {
@@ -218,4 +227,5 @@ describe('SessionRowActionsMenu', () => {
 
     expect(container.textContent).toContain('more_vert');
   });
+
 });
