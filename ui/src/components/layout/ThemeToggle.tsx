@@ -28,7 +28,7 @@ export default function ThemeToggle() {
       aria-label="Toggle theme"
       title={`Current: ${theme}`}
     >
-      <span className="material-symbols-outlined">{iconName}</span>
+      <span className="material-symbols-outlined scale-80">{iconName}</span>
     </button>
   );
 }

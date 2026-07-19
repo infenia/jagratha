@@ -16,11 +16,7 @@ export default function BreadcrumbNav() {
   const breadcrumbs = parseBreadcrumbsFromPath(pathname);
 
   return (
-    <div
-      className="px-spacing-md bg-surface-container-low border-outline-variant flex h-8 w-full items-center border-t p-4"
-      role="region"
-      aria-label="Breadcrumb navigation"
-    >
+    <div className="px-spacing-md bg-surface-container-low border-outline-variant flex h-8 w-full items-center border-t p-4">
       <Breadcrumb>
         <BreadcrumbList className="gap-spacing-sm">
           {breadcrumbs.map((item, index) => (

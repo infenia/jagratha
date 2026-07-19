@@ -16,7 +16,7 @@ export default function HeaderLogo() {
         <img
           src="/favicon.svg"
           alt="Yukta"
-          className="h-6 w-6 object-contain"
+          className="h-7 w-7 object-contain rounded-3xl"
         />
         <span className="font-headline text-on-surface dark:text-on-surface text-lg font-semibold tracking-tight">
           YUKTA
