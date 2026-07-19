@@ -7,9 +7,9 @@ import ThemeToggle from './ThemeToggle';
 
 export default function AppHeader() {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-surface border-b border-outline-variant">
+    <header className="bg-surface border-outline-variant fixed top-0 right-0 left-0 z-50 border-b">
       {/* Top row: Logo + Theme Toggle */}
-      <div className="flex items-center justify-between w-full h-12 px-spacing-md">
+      <div className="px-spacing-md flex h-12 w-full items-center  justify-between pr-2 ">
         <HeaderLogo />
         <ThemeToggle />
       </div>

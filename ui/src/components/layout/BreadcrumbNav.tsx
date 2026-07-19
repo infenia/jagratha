@@ -17,7 +17,7 @@ export default function BreadcrumbNav() {
 
   return (
     <div
-      className="flex items-center w-full px-spacing-md h-8 bg-surface-container-low border-t border-outline-variant"
+      className="px-spacing-md bg-surface-container-low border-outline-variant flex h-8 w-full items-center border-t p-4"
       role="region"
       aria-label="Breadcrumb navigation"
     >
@@ -32,16 +32,16 @@ export default function BreadcrumbNav() {
               )}
               <BreadcrumbItem key={`${item.label}-${index}`}>
                 {item.isCurrent ? (
-                  <span className="text-xs font-medium text-on-surface">{item.label}</span>
+                  <span className="text-on-surface text-xs font-medium">{item.label}</span>
                 ) : item.href ? (
                   <Link
                     to={item.href}
-                    className="text-xs text-on-surface-variant hover:text-on-surface transition-colors"
+                    className="text-on-surface-variant hover:text-on-surface text-xs transition-colors"
                   >
                     {item.label}
                   </Link>
                 ) : (
-                  <span className="text-xs text-on-surface-variant">{item.label}</span>
+                  <span className="text-on-surface-variant text-xs">{item.label}</span>
                 )}
               </BreadcrumbItem>
             </>

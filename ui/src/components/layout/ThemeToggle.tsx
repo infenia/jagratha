@@ -24,7 +24,7 @@ export default function ThemeToggle() {
     <button
       type="button"
       onClick={toggleTheme}
-      className="p-2 hover:bg-surface-container-low transition-colors"
+      className="hover:bg-surface-container-low p-2 transition-colors"
       aria-label="Toggle theme"
       title={`Current: ${theme}`}
     >
