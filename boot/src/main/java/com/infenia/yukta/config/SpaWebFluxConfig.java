@@ -45,12 +45,16 @@ public class SpaWebFluxConfig implements WebFluxConfigurer {
 
   /**
    * SPA fallback router: serves index.html for all unmatched routes to enable client-side routing.
+   * Excludes API routes (/api/**, /actuator/**, /sse/**) to allow backend endpoints to work.
    */
   @Bean
   public RouterFunction<ServerResponse> spaRouter() {
     final Resource indexHtml = new ClassPathResource("static/index.html");
     return RouterFunctions.route(
-        RequestPredicates.GET("/**"),
+        RequestPredicates.GET("/**")
+            .and(RequestPredicates.path("/api/**").negate())
+            .and(RequestPredicates.path("/actuator/**").negate())
+            .and(RequestPredicates.path("/sse/**").negate()),
         request ->
             ServerResponse.ok()
                 .contentType(MediaType.TEXT_HTML)
