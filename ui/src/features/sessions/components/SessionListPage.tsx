@@ -52,7 +52,7 @@ export function SessionListPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-on-surface-variant">Loading sessions...</p>
       </div>
     );
@@ -60,7 +60,7 @@ export function SessionListPage() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-error">Failed to load sessions</p>
       </div>
     );
@@ -73,7 +73,7 @@ export function SessionListPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col gap-0 bg-background">
+    <div className="flex flex-1 flex-col gap-0 bg-background">
       <div className="w-full">
         <SessionsHeader sessionCount={sessions.length} />
 
