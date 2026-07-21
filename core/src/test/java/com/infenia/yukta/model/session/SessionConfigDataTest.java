@@ -103,6 +103,51 @@ class SessionConfigDataTest {
   }
 
   @ParameterizedTest
+  @ValueSource(strings = {"my-session", "test-name", "Session A"})
+  void validationShouldNotFailWithValidName(final String name) {
+    final var workflows =
+        Map.of(
+            "wf1",
+            new WorkflowDefinition(
+                "wf1", "desc", List.of(new WorkflowDefinition.Node("n1", "t1", null)), null));
+    final var data =
+        new SessionConfigData("session-1", name, "desc", "initiator", null, "/path", workflows);
+    final var result = validator.validateProperty(data, "name");
+    assertThat(result).isEmpty();
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @EmptySource
+  @ValueSource(strings = {" ", "\t", "\n"})
+  void validationShouldFailWithInvalidName(final String name) {
+    final var workflows =
+        Map.of(
+            "wf1",
+            new WorkflowDefinition(
+                "wf1", "desc", List.of(new WorkflowDefinition.Node("n1", "t1", null)), null));
+    final var data =
+        new SessionConfigData("session-1", name, "desc", "initiator", null, "/path", workflows);
+    final var result = validator.validateProperty(data, "name");
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  void validationShouldFailWhenNameExceedsMaxLength() {
+    final var workflows =
+        Map.of(
+            "wf1",
+            new WorkflowDefinition(
+                "wf1", "desc", List.of(new WorkflowDefinition.Node("n1", "t1", null)), null));
+    final var tooLongName = "a".repeat(257);
+    final var data =
+        new SessionConfigData(
+            "session-1", tooLongName, "desc", "initiator", null, "/path", workflows);
+    final var result = validator.validateProperty(data, "name");
+    assertThat(result).isNotEmpty();
+  }
+
+  @ParameterizedTest
   @ValueSource(strings = {"d", "description", "This is a session description"})
   void validationShouldNotFailWithValidDescription(final String description) {
     final var workflows =
