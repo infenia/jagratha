@@ -52,16 +52,20 @@ class SpaWebFluxConfigTest {
 
     assertThat(patterns)
         .contains(
-            "/**/*.js",
-            "/**/*.css",
-            "/**/*.woff",
-            "/**/*.woff2",
-            "/**/*.ttf",
-            "/**/*.svg",
-            "/**/*.png",
-            "/**/*.ico",
-            "/**/*.webmanifest");
-    assertThat(patterns).hasSize(9);
+            "/assets/**",
+            "/*.js",
+            "/*.css",
+            "/*.woff",
+            "/*.woff2",
+            "/*.ttf",
+            "/*.svg",
+            "/*.png",
+            "/*.jpg",
+            "/*.webp",
+            "/*.ico",
+            "/*.json",
+            "/*.webmanifest");
+    assertThat(patterns).hasSize(13);
   }
 
   @Test

@@ -30,18 +30,19 @@ public class SpaWebFluxConfig implements WebFluxConfigurer {
 
   private static final List<String> STATIC_ASSET_PATTERNS =
       List.of(
-          "/**/*.js",
-          "/**/*.css",
-          "/**/*.woff",
-          "/**/*.woff2",
-          "/**/*.ttf",
-          "/**/*.svg",
-          "/**/*.png",
-          "/**/*.jpg",
-          "/**/*.webp",
-          "/**/*.ico",
-          "/**/*.json",
-          "/**/*.webmanifest");
+          "/assets/**",
+          "/*.js",
+          "/*.css",
+          "/*.woff",
+          "/*.woff2",
+          "/*.ttf",
+          "/*.svg",
+          "/*.png",
+          "/*.jpg",
+          "/*.webp",
+          "/*.ico",
+          "/*.json",
+          "/*.webmanifest");
 
   @Override
   public void addResourceHandlers(final ResourceHandlerRegistry registry) {
