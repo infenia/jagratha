@@ -24,7 +24,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 @SpringJUnitConfig(ConfigRequestTest.TestConfig.class)
 @Tag("ConfigRequestTest")
 @NoArgsConstructor
-@SuppressWarnings("PMD.TooManyMethods")
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals"})
 class ConfigRequestTest {
 
   /** Test workflow identifier. */

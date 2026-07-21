@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.dto.request.ConfigRequest;
 import com.infenia.yukta.dto.request.WorkflowDefinitionRequest;
 import com.infenia.yukta.dto.request.WorkflowDefinitionRequest.NodeRequest;
+import com.infenia.yukta.dto.response.SessionListItem;
 import com.infenia.yukta.mapper.SessionMapper;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.session.SessionConfigResponse;
@@ -28,7 +29,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Tests for SessionConfigController. */
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyStaticImports", "PMD.TooManyMethods"})
+@SuppressWarnings({
+  "PMD.LawOfDemeter",
+  "PMD.TooManyStaticImports",
+  "PMD.TooManyMethods",
+  "PMD.AvoidDuplicateLiterals"
+})
 @NoArgsConstructor
 class SessionConfigControllerTest {
 
@@ -605,5 +611,97 @@ class SessionConfigControllerTest {
         .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(500));
 
     verify(sessionService).getSessionIds();
+  }
+
+  @Test
+  void testListSessionSummariesWithSessions() {
+    final SessionConfigResponse config1 =
+        new SessionConfigResponse(
+            "sess-1",
+            "Session 1",
+            "Description 1",
+            "user1",
+            Map.of("tag1", "val1"),
+            "/path1",
+            Map.of(WF_ID_1, new WorkflowDefinition(WF_ID_1, "desc", List.of(), List.of())));
+    final SessionConfigResponse config2 =
+        new SessionConfigResponse(
+            "sess-2",
+            "Session 2",
+            "Description 2",
+            "user2",
+            Map.of("tag2", "val2"),
+            "/path2",
+            Map.of(
+                WF_ID_1, new WorkflowDefinition(WF_ID_1, "desc", List.of(), List.of()),
+                WF_ID_2, new WorkflowDefinition(WF_ID_2, "desc", List.of(), List.of())));
+
+    when(sessionService.getAllSessionConfigs()).thenReturn(Flux.just(config1, config2));
+    when(sessionMapper.sessionConfigResponseToSessionListItem(config1))
+        .thenReturn(
+            new SessionListItem(
+                "sess-1", "Session 1", "Description 1", "user1", List.of("tag1"), "/path1", 1));
+    when(sessionMapper.sessionConfigResponseToSessionListItem(config2))
+        .thenReturn(
+            new SessionListItem(
+                "sess-2", "Session 2", "Description 2", "user2", List.of("tag2"), "/path2", 2));
+
+    webTestClient
+        .get()
+        .uri(API_SESSIONS + "/summaries")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath(DOLLAR_DATA)
+        .exists()
+        .jsonPath("$.data.sessions")
+        .isArray()
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(200));
+
+    verify(sessionService).getAllSessionConfigs();
+  }
+
+  @Test
+  void testListSessionSummariesNoSessions() {
+    when(sessionService.getAllSessionConfigs()).thenReturn(Flux.empty());
+
+    webTestClient
+        .get()
+        .uri(API_SESSIONS + "/summaries")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath(DOLLAR_DATA)
+        .exists()
+        .jsonPath("$.data.sessions")
+        .isArray()
+        .jsonPath("$.data.sessions")
+        .isEmpty()
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(200));
+
+    verify(sessionService).getAllSessionConfigs();
+  }
+
+  @Test
+  void testListSessionSummariesWithError() {
+    when(sessionService.getAllSessionConfigs())
+        .thenReturn(Flux.error(new RuntimeException("Service error")));
+
+    webTestClient
+        .get()
+        .uri(API_SESSIONS + "/summaries")
+        .exchange()
+        .expectStatus()
+        .is5xxServerError()
+        .expectBody()
+        .jsonPath(DOLLAR_STATUS)
+        .isEqualTo(500)
+        .jsonPath("$.errors")
+        .exists()
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(500));
+
+    verify(sessionService).getAllSessionConfigs();
   }
 }
