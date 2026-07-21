@@ -47,7 +47,7 @@ describe('Coverage - User Interactions', () => {
 
       expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
 
-      const nextButton = screen.getByRole('button', { name: 'chevron_right' });
+      const nextButton = screen.getByRole('button', { name: 'Next page' });
       expect(nextButton).toBeEnabled();
       await user.click(nextButton);
 
@@ -60,7 +60,7 @@ describe('Coverage - User Interactions', () => {
 
       expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
 
-      const lastButton = screen.getByRole('button', { name: 'last_page' });
+      const lastButton = screen.getByRole('button', { name: 'Last page' });
       expect(lastButton).toBeEnabled();
       await user.click(lastButton);
 
@@ -73,9 +73,7 @@ describe('Coverage - User Interactions', () => {
 
       expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
 
-      const [pageSizeTrigger] = screen.getAllByRole('button', {
-        name: /arrow_drop_down/,
-      });
+      const pageSizeTrigger = screen.getByRole('button', { name: /^\d+$/ });
       await user.click(pageSizeTrigger);
       const pageSize20Option = await screen.findByText('20');
       expect(pageSize20Option).toBeInTheDocument();
@@ -90,11 +88,11 @@ describe('Coverage - User Interactions', () => {
 
       expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
 
-      const nextButton = screen.getByRole('button', { name: 'chevron_right' });
+      const nextButton = screen.getByRole('button', { name: 'Next page' });
       await user.click(nextButton);
       expect(screen.getByText('11–20 of 35 items')).toBeInTheDocument();
 
-      const firstButton = screen.getByRole('button', { name: 'first_page' });
+      const firstButton = screen.getByRole('button', { name: 'First page' });
       expect(firstButton).toBeEnabled();
       await user.click(firstButton);
 
@@ -114,11 +112,11 @@ describe('Coverage - User Interactions', () => {
       const user = userEvent.setup();
       render(<TableComponent />);
 
-      await user.click(screen.getByRole('button', { name: 'chevron_right' }));
+      await user.click(screen.getByRole('button', { name: 'Next page' }));
       expect(screen.getByText('11–20 of 35 items')).toBeInTheDocument();
 
       // When: previous page button is clicked
-      await user.click(screen.getByRole('button', { name: 'chevron_left' }));
+      await user.click(screen.getByRole('button', { name: 'Previous page' }));
 
       // Then: table is back on the first page
       expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
@@ -129,11 +127,11 @@ describe('Coverage - User Interactions', () => {
       const user = userEvent.setup();
       render(<TableComponent />);
 
-      await user.click(screen.getByRole('button', { name: 'last_page' }));
+      await user.click(screen.getByRole('button', { name: 'Last page' }));
       expect(screen.getByText('31–35 of 35 items')).toBeInTheDocument();
 
       // When: first page button is clicked
-      await user.click(screen.getByRole('button', { name: 'first_page' }));
+      await user.click(screen.getByRole('button', { name: 'First page' }));
 
       // Then: table is back on the first page
       expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
@@ -147,9 +145,7 @@ describe('Coverage - User Interactions', () => {
 
       // When: 20 is selected from the rows-per-page dropdown
       // (Base UI trigger and inner Button both match, click the trigger)
-      const [pageSizeTrigger] = screen.getAllByRole('button', {
-        name: /arrow_drop_down/,
-      });
+      const pageSizeTrigger = screen.getByRole('button', { name: /^\d+$/ });
       await user.click(pageSizeTrigger);
       const option20 = await screen.findByText('20');
       await user.click(option20);
@@ -164,32 +160,30 @@ describe('Coverage - User Interactions', () => {
 
       // Test 1: Navigate to next page
       expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
-      await user.click(screen.getByRole('button', { name: 'chevron_right' }));
+      await user.click(screen.getByRole('button', { name: 'Next page' }));
       expect(screen.getByText('11–20 of 35 items')).toBeInTheDocument();
 
       // Test 2: Navigate to last page
-      await user.click(screen.getByRole('button', { name: 'last_page' }));
+      await user.click(screen.getByRole('button', { name: 'Last page' }));
       expect(screen.getByText('31–35 of 35 items')).toBeInTheDocument();
 
       // Test 3: Navigate back to first page
-      await user.click(screen.getByRole('button', { name: 'first_page' }));
+      await user.click(screen.getByRole('button', { name: 'First page' }));
       expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
 
       // Test 4: Change page size
-      const [pageSizeTrigger] = screen.getAllByRole('button', {
-        name: /arrow_drop_down/,
-      });
+      const pageSizeTrigger = screen.getByRole('button', { name: /^\d+$/ });
       await user.click(pageSizeTrigger);
       const pageSize20 = await screen.findByText('20');
       await user.click(pageSize20);
       expect(screen.getByText('1–20 of 35 items')).toBeInTheDocument();
 
       // Test 5: Navigate to next with new page size
-      await user.click(screen.getByRole('button', { name: 'chevron_right' }));
+      await user.click(screen.getByRole('button', { name: 'Next page' }));
       expect(screen.getByText('21–35 of 35 items')).toBeInTheDocument();
 
       // Test 6: Navigate back
-      await user.click(screen.getByRole('button', { name: 'chevron_left' }));
+      await user.click(screen.getByRole('button', { name: 'Previous page' }));
       expect(screen.getByText('1–20 of 35 items')).toBeInTheDocument();
     });
   });

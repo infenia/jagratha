@@ -106,7 +106,7 @@ describe('Coverage - SessionsPaginationFooter Exhaustive', () => {
     expect(screen.getByText('1–10 of 30 items')).toBeInTheDocument();
 
     // Verify navigation buttons are present (distinct control section)
-    const firstPageButton = screen.getByRole('button', { name: 'first_page' });
+    const firstPageButton = screen.getByRole('button', { name: 'First page' });
     expect(firstPageButton).toBeInTheDocument();
   });
 
@@ -129,7 +129,7 @@ describe('Coverage - SessionsPaginationFooter Exhaustive', () => {
     expect(screen.getByText('1–10 of 40 items')).toBeInTheDocument();
 
     // Verify navigation buttons are present
-    expect(screen.getByRole('button', { name: 'chevron_right' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeInTheDocument();
   });
 
   it('should organize controls horizontally', () => {
@@ -139,7 +139,7 @@ describe('Coverage - SessionsPaginationFooter Exhaustive', () => {
     // Verify all controls are present and accessible
     expect(screen.getByText(/Rows per page:/)).toBeInTheDocument();
     expect(screen.getByText('1–10 of 50 items')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'last_page' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Last page' })).toBeInTheDocument();
   });
 
   it('should render navigation icons', () => {
@@ -147,10 +147,10 @@ describe('Coverage - SessionsPaginationFooter Exhaustive', () => {
     render(<PaginationTest sessions={sessions} pageSize={10} />);
 
     // Verify icon buttons are present and accessible
-    const firstPageBtn = screen.getByRole('button', { name: 'first_page' });
-    const lastPageBtn = screen.getByRole('button', { name: 'last_page' });
-    const nextBtn = screen.getByRole('button', { name: 'chevron_right' });
-    const prevBtn = screen.getByRole('button', { name: 'chevron_left' });
+    const firstPageBtn = screen.getByRole('button', { name: 'First page' });
+    const lastPageBtn = screen.getByRole('button', { name: 'Last page' });
+    const nextBtn = screen.getByRole('button', { name: 'Next page' });
+    const prevBtn = screen.getByRole('button', { name: 'Previous page' });
 
     expect(firstPageBtn).toBeInTheDocument();
     expect(lastPageBtn).toBeInTheDocument();

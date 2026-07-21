@@ -32,7 +32,7 @@ export function SessionsPaginationFooter({ table }: SessionsPaginationFooterProp
             render={(state) => (
               <Button variant="outline" size="sm" {...state}>
                 {pageSize}
-                <span className="material-symbols-outlined ml-1">arrow_drop_down</span>
+                <span className="material-symbols-outlined ml-1" aria-hidden="true">arrow_drop_down</span>
               </Button>
             )}
           />
@@ -60,8 +60,9 @@ export function SessionsPaginationFooter({ table }: SessionsPaginationFooterProp
           onClick={() => table.firstPage()}
           disabled={!table.getCanPreviousPage()}
           className="disabled:opacity-30"
+          aria-label="First page"
         >
-          <span className="material-symbols-outlined">first_page</span>
+          <span className="material-symbols-outlined" aria-hidden="true">first_page</span>
         </Button>
         <Button
           variant="ghost"
@@ -69,8 +70,9 @@ export function SessionsPaginationFooter({ table }: SessionsPaginationFooterProp
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
           className="disabled:opacity-30"
+          aria-label="Previous page"
         >
-          <span className="material-symbols-outlined">chevron_left</span>
+          <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
         </Button>
         <Button
           variant="ghost"
@@ -78,8 +80,9 @@ export function SessionsPaginationFooter({ table }: SessionsPaginationFooterProp
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
           className="disabled:opacity-30"
+          aria-label="Next page"
         >
-          <span className="material-symbols-outlined">chevron_right</span>
+          <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
         </Button>
         <Button
           variant="ghost"
@@ -87,8 +90,9 @@ export function SessionsPaginationFooter({ table }: SessionsPaginationFooterProp
           onClick={() => table.lastPage()}
           disabled={!table.getCanNextPage()}
           className="disabled:opacity-30"
+          aria-label="Last page"
         >
-          <span className="material-symbols-outlined">last_page</span>
+          <span className="material-symbols-outlined" aria-hidden="true">last_page</span>
         </Button>
       </div>
     </div>
