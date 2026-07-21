@@ -88,7 +88,8 @@ class ConfigRequestTest {
     final var workflows =
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var request =
-        new ConfigRequest(sessionId, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            sessionId, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
     final var result = validator.validateProperty(request, "sessionId");
     assertThat(result).isEmpty();
   }
@@ -101,7 +102,8 @@ class ConfigRequestTest {
     final var workflows =
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var request =
-        new ConfigRequest(sessionId, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            sessionId, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
     final var result = validator.validateProperty(request, "sessionId");
     assertThat(result).isNotEmpty();
   }
@@ -111,7 +113,8 @@ class ConfigRequestTest {
     final var workflows =
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var request =
-        new ConfigRequest("../session", "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            "../session", "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
     final var result = validator.validateProperty(request, "sessionId");
     assertThat(result).isNotEmpty();
   }
@@ -122,7 +125,8 @@ class ConfigRequestTest {
     final var workflows =
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var request =
-        new ConfigRequest(SESSION_ID, "test", description, INITIATOR, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", description, INITIATOR, null, PROJECT_PATH, workflows);
     final var result = validator.validateProperty(request, DESCRIPTION_FIELD);
     assertThat(result).isEmpty();
   }
@@ -135,7 +139,8 @@ class ConfigRequestTest {
     final var workflows =
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var request =
-        new ConfigRequest(SESSION_ID, "test", description, INITIATOR, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", description, INITIATOR, null, PROJECT_PATH, workflows);
     final var result = validator.validateProperty(request, DESCRIPTION_FIELD);
     assertThat(result).isNotEmpty();
   }
@@ -146,7 +151,8 @@ class ConfigRequestTest {
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var tooLongDescription = "a".repeat(257);
     final var request =
-        new ConfigRequest(SESSION_ID, "test", tooLongDescription, INITIATOR, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", tooLongDescription, INITIATOR, null, PROJECT_PATH, workflows);
     final var result = validator.validateProperty(request, DESCRIPTION_FIELD);
     assertThat(result).isNotEmpty();
   }
@@ -157,7 +163,8 @@ class ConfigRequestTest {
     final var workflows =
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var request =
-        new ConfigRequest(SESSION_ID, "test", WORKFLOW_DESC, initiator, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", WORKFLOW_DESC, initiator, null, PROJECT_PATH, workflows);
     final var result = validator.validateProperty(request, INITIATOR);
     assertThat(result).isEmpty();
   }
@@ -170,7 +177,8 @@ class ConfigRequestTest {
     final var workflows =
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var request =
-        new ConfigRequest(SESSION_ID, "test", WORKFLOW_DESC, initiator, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", WORKFLOW_DESC, initiator, null, PROJECT_PATH, workflows);
     final var result = validator.validateProperty(request, INITIATOR);
     assertThat(result).isNotEmpty();
   }
@@ -181,7 +189,8 @@ class ConfigRequestTest {
     final var workflows =
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var request =
-        new ConfigRequest(SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, projectPath, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, projectPath, workflows);
     final var result = validator.validateProperty(request, "projectPath");
     assertThat(result).isEmpty();
   }
@@ -194,7 +203,8 @@ class ConfigRequestTest {
     final var workflows =
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var request =
-        new ConfigRequest(SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, projectPath, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, projectPath, workflows);
     final var result = validator.validateProperty(request, "projectPath");
     assertThat(result).isNotEmpty();
   }
@@ -205,7 +215,8 @@ class ConfigRequestTest {
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var tooLongPath = "/path" + "/a".repeat(512);
     final var request =
-        new ConfigRequest(SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, tooLongPath, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, tooLongPath, workflows);
     final var result = validator.validateProperty(request, "projectPath");
     assertThat(result).isNotEmpty();
   }
@@ -219,7 +230,8 @@ class ConfigRequestTest {
             "wf2",
             createWorkflowDefinitionRequest("wf2", WORKFLOW_DESC));
     final var request =
-        new ConfigRequest(SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
     final var result = validator.validateProperty(request, "workflows");
     assertThat(result).isEmpty();
   }
@@ -229,7 +241,8 @@ class ConfigRequestTest {
   void validationShouldFailWithNullWorkflows(
       final Map<String, WorkflowDefinitionRequest> workflows) {
     final var request =
-        new ConfigRequest(SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
     final var result = validator.validateProperty(request, "workflows");
     assertThat(result).isNotEmpty();
   }
@@ -238,7 +251,8 @@ class ConfigRequestTest {
   void validationShouldFailWithEmptyWorkflows() {
     final var workflows = Map.<String, WorkflowDefinitionRequest>of();
     final var request =
-        new ConfigRequest(SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
     final var result = validator.validateProperty(request, "workflows");
     assertThat(result).isNotEmpty();
   }
@@ -248,7 +262,8 @@ class ConfigRequestTest {
     final var workflows =
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var request =
-        new ConfigRequest(SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
     assertThat(request.tags()).isEmpty();
   }
 
@@ -258,7 +273,8 @@ class ConfigRequestTest {
     final var workflows =
         Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
     final var request =
-        new ConfigRequest(SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, tags, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, tags, PROJECT_PATH, workflows);
     assertThat(request.tags()).isEqualTo(tags);
     assertThat(request.tags()).containsExactlyEntriesOf(tags);
   }
@@ -268,7 +284,8 @@ class ConfigRequestTest {
     final var workflowDefinition = createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC);
     final var workflows = Map.of(WORKFLOW_ID, workflowDefinition);
     final var request =
-        new ConfigRequest(SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
+        new ConfigRequest(
+            SESSION_ID, "test", WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
     assertThat(request.workflows()).containsEntry(WORKFLOW_ID, workflowDefinition);
     assertThat(request.workflows()).hasSize(1);
   }

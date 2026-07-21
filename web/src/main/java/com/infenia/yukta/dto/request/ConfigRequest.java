@@ -35,9 +35,7 @@ public record ConfigRequest(
             example = "session-123")
         @SessionId
         String sessionId,
-    @Schema(
-            description = "A human-readable name for the session",
-            example = "Production ETL v4")
+    @Schema(description = "A human-readable name for the session", example = "Production ETL v4")
         @NotBlank(message = "Session name is mandatory")
         @Size(max = 256, message = "Session name must be at most 256 characters")
         String name,

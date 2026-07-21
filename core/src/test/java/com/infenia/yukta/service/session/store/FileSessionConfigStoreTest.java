@@ -140,8 +140,7 @@ class FileSessionConfigStoreTest {
         .verifyComplete();
 
     // Directly modify the file to bypass cache
-    final Path sessionFile =
-        tempDir.resolve(SESSIONS_DIR).resolve(sessionId + JSON_EXT);
+    final Path sessionFile = tempDir.resolve(SESSIONS_DIR).resolve(sessionId + JSON_EXT);
     try {
       final String content = Files.readString(sessionFile);
       Files.writeString(sessionFile, content.replace(origPath, "/modified"));
@@ -487,8 +486,13 @@ class FileSessionConfigStoreTest {
             "wf1", TEST_DESC, List.of(new WorkflowDefinition.Node("n1", "t", Map.of())), List.of());
     final SessionConfigData data =
         new SessionConfigData(
-            sessionId, "workflow-delegate", "some description", "init", Map.of(),
-            TEST_PATH, Map.of("wf1", workflow));
+            sessionId,
+            "workflow-delegate",
+            "some description",
+            "init",
+            Map.of(),
+            TEST_PATH,
+            Map.of("wf1", workflow));
 
     when(workflowDefinitionStore.save(sessionId, workflow)).thenReturn(Mono.empty());
 
@@ -502,8 +506,13 @@ class FileSessionConfigStoreTest {
     final String sessionId = "sess-empty-wf";
     final SessionConfigData data =
         new SessionConfigData(
-            sessionId, "empty-workflows", "some description", "init", Map.of(),
-            TEST_PATH, Map.of());
+            sessionId,
+            "empty-workflows",
+            "some description",
+            "init",
+            Map.of(),
+            TEST_PATH,
+            Map.of());
 
     StepVerifier.create(configStore.applySessionConfig(data)).verifyComplete();
 
@@ -525,8 +534,7 @@ class FileSessionConfigStoreTest {
   @SuppressWarnings({"PMD.AvoidAccessibilityAlteration"})
   void testPathTraversalDetectionInGetSessionConfigPath() throws Exception {
     final java.lang.reflect.Method getSessionConfigPathMethod =
-        FileSessionConfigStore.class.getDeclaredMethod(
-            "getSessionConfigPath", String.class);
+        FileSessionConfigStore.class.getDeclaredMethod("getSessionConfigPath", String.class);
     getSessionConfigPathMethod.setAccessible(true);
 
     final java.lang.reflect.InvocationTargetException invocationException =
@@ -541,11 +549,9 @@ class FileSessionConfigStoreTest {
 
   @Test
   @SuppressWarnings({"PMD.AvoidAccessibilityAlteration"})
-  void testPathTraversalDetectionWithAbsolutePathInGetSessionConfigPath()
-      throws Exception {
+  void testPathTraversalDetectionWithAbsolutePathInGetSessionConfigPath() throws Exception {
     final java.lang.reflect.Method getSessionConfigPathMethod =
-        FileSessionConfigStore.class.getDeclaredMethod(
-            "getSessionConfigPath", String.class);
+        FileSessionConfigStore.class.getDeclaredMethod("getSessionConfigPath", String.class);
     getSessionConfigPathMethod.setAccessible(true);
 
     final java.lang.reflect.InvocationTargetException invocationException =
@@ -565,8 +571,7 @@ class FileSessionConfigStoreTest {
       justification = "Root path '/' is intentionally used to test null filename edge case")
   void testExtractSessionIdFromFileWithNullFileName() throws Exception {
     final java.lang.reflect.Method extractSessionIdMethod =
-        FileSessionConfigStore.class.getDeclaredMethod(
-            "extractSessionIdFromFile", Path.class);
+        FileSessionConfigStore.class.getDeclaredMethod("extractSessionIdFromFile", Path.class);
     extractSessionIdMethod.setAccessible(true);
 
     // Root path has getFileName() == null, testing defensive null check

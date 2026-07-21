@@ -21,8 +21,7 @@ import java.util.List;
  */
 @Schema(description = "A session summary for list/table display")
 public record SessionListItem(
-    @Schema(description = "The unique session identifier", example = "sess-123")
-        String sessionId,
+    @Schema(description = "The unique session identifier", example = "sess-123") String sessionId,
     @Schema(description = "Human-readable name for the session", example = "Production ETL v4")
         String name,
     @Schema(description = "Description of the session", example = "Nightly batch processing")
@@ -31,8 +30,7 @@ public record SessionListItem(
         String initiator,
     @Schema(description = "Tags associated with the session", example = "[\"prod\", \"etl\"]")
         List<String> tags,
-    @Schema(description = "Project path", example = "/data/pipelines/main")
-        String projectPath,
+    @Schema(description = "Project path", example = "/data/pipelines/main") String projectPath,
     @Schema(description = "Number of workflows", example = "24") int workflowCount) {
 
   /** Compact constructor for defensive copying. */

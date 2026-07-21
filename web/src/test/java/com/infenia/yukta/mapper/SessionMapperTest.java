@@ -146,7 +146,13 @@ class SessionMapperTest {
   void testConfigRequestToSessionConfigDataWithEmptyWorkflows() {
     final ConfigRequest request =
         new ConfigRequest(
-            "session-456", "Empty Session", "system", "initiator", null, "/home/user/project2", Map.of());
+            "session-456",
+            "Empty Session",
+            "system",
+            "initiator",
+            null,
+            "/home/user/project2",
+            Map.of());
 
     final SessionConfigData result = mapper.configRequestToSessionConfigData(request);
 

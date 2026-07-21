@@ -23,6 +23,9 @@ final class SessionConfigResponseTest {
   /** Test initiator constant. */
   private static final String TEST_INIT = "init";
 
+  /** Test name constant. */
+  private static final String TEST_NAME = "test-name";
+
   /** Test path constant. */
   private static final String TEST_PATH = "path";
 
@@ -35,7 +38,7 @@ final class SessionConfigResponseTest {
   void testSessionConfigResponse_withNullTags_defaultsToEmpty() {
     final var response =
         new SessionConfigResponse(
-            TEST_ID, "test-name", TEST_DESC, TEST_INIT, null, TEST_PATH, Map.of());
+            TEST_ID, TEST_NAME, TEST_DESC, TEST_INIT, null, TEST_PATH, Map.of());
     assertThat(response.tags()).isEmpty();
   }
 
@@ -43,7 +46,7 @@ final class SessionConfigResponseTest {
   void testSessionConfigResponse_withNullWorkflows_defaultsToEmpty() {
     final var response =
         new SessionConfigResponse(
-            TEST_ID, "test-name", TEST_DESC, TEST_INIT, Map.of(), TEST_PATH, null);
+            TEST_ID, TEST_NAME, TEST_DESC, TEST_INIT, Map.of(), TEST_PATH, null);
     assertThat(response.workflows()).isEmpty();
   }
 
@@ -53,7 +56,7 @@ final class SessionConfigResponseTest {
     tags.put("env", "test");
     final var response =
         new SessionConfigResponse(
-            TEST_ID, "test-name", TEST_DESC, TEST_INIT, tags, TEST_PATH, Map.of());
+            TEST_ID, TEST_NAME, TEST_DESC, TEST_INIT, tags, TEST_PATH, Map.of());
     tags.put("extra", "value");
     assertThat(response.tags()).hasSize(1).containsEntry("env", "test");
   }
@@ -63,7 +66,7 @@ final class SessionConfigResponseTest {
     final var workflows = new HashMap<String, WorkflowDefinition>();
     final var response =
         new SessionConfigResponse(
-            TEST_ID, "test-name", TEST_DESC, TEST_INIT, Map.of(), TEST_PATH, workflows);
+            TEST_ID, TEST_NAME, TEST_DESC, TEST_INIT, Map.of(), TEST_PATH, workflows);
     workflows.put("w1", new WorkflowDefinition("w1", "description", List.of(), List.of()));
     assertThat(response.workflows()).isEmpty();
   }

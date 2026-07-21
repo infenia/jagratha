@@ -39,6 +39,7 @@ class SessionServiceTest {
   private static final String INITIATOR = "initiator";
   private static final String SESSION_ID_1 = "sess-1";
   private static final String CONFIG_SESSION_ID = "sessionId";
+  private static final String CONFIG_NAME = "name";
   private static final String CONFIG_DESCRIPTION = "description";
   private static final String CONFIG_INITIATOR = "initiator";
   private static final String CONFIG_TAGS = "tags";
@@ -130,8 +131,7 @@ class SessionServiceTest {
     // ...and the new config only keeps "w1", dropping "w2".
     final SessionConfigData data =
         new SessionConfigData(
-            sessionId, "stale-cleanup", DESC, INITIATOR, Map.of(), PATH,
-            Map.of("w1", workflowA));
+            sessionId, "stale-cleanup", DESC, INITIATOR, Map.of(), PATH, Map.of("w1", workflowA));
     when(configService.applySessionConfig(any())).thenReturn(Mono.empty());
     when(controlBus.compileAndCacheWorkflow(eq(sessionId), any())).thenReturn(Mono.empty());
 
@@ -156,7 +156,12 @@ class SessionServiceTest {
 
     final SessionConfigData data =
         new SessionConfigData(
-            sessionId, "stale-cleanup-error", DESC, INITIATOR, Map.of(), PATH,
+            sessionId,
+            "stale-cleanup-error",
+            DESC,
+            INITIATOR,
+            Map.of(),
+            PATH,
             Map.of("w1", workflowA));
     when(configService.applySessionConfig(any())).thenReturn(Mono.empty());
     when(controlBus.compileAndCacheWorkflow(eq(sessionId), any())).thenReturn(Mono.empty());
@@ -237,7 +242,12 @@ class SessionServiceTest {
         new WorkflowDefinition("workflow-2", "desc2", List.of(), List.of());
     final SessionConfigData data =
         new SessionConfigData(
-            sessionId, "multi-workflow-session", DESC, INITIATOR, Map.of(), PATH,
+            sessionId,
+            "multi-workflow-session",
+            DESC,
+            INITIATOR,
+            Map.of(),
+            PATH,
             Map.of("w1", workflow1, "w2", workflow2));
 
     when(configService.applySessionConfig(configDataCaptor.capture())).thenReturn(Mono.empty());
@@ -265,8 +275,7 @@ class SessionServiceTest {
         new WorkflowDefinition(TEST_WORKFLOW, DESC, List.of(), List.of());
     final SessionConfigData data =
         new SessionConfigData(
-            sessionId, "error-session", DESC, INITIATOR, Map.of(), PATH,
-            Map.of("w1", workflow));
+            sessionId, "error-session", DESC, INITIATOR, Map.of(), PATH, Map.of("w1", workflow));
 
     when(configService.applySessionConfig(any())).thenReturn(Mono.empty());
     when(workflowDefinitionStore.findAll(sessionId)).thenReturn(Mono.just(Map.of()));
@@ -284,8 +293,7 @@ class SessionServiceTest {
     // Given
     final String sessionId = "sess-store-error";
     final SessionConfigData data =
-        new SessionConfigData(
-            sessionId, "store-error", DESC, INITIATOR, Map.of(), PATH, Map.of());
+        new SessionConfigData(sessionId, "store-error", DESC, INITIATOR, Map.of(), PATH, Map.of());
 
     when(configService.applySessionConfig(any()))
         .thenReturn(Mono.error(new RuntimeException("Store failed")));
@@ -375,8 +383,7 @@ class SessionServiceTest {
         new WorkflowDefinition("single-workflow", DESC, List.of(), List.of());
     final SessionConfigData data =
         new SessionConfigData(
-            sessionId, "single-workflow", DESC, INITIATOR, Map.of(), PATH,
-            Map.of("w1", workflow));
+            sessionId, "single-workflow", DESC, INITIATOR, Map.of(), PATH, Map.of("w1", workflow));
 
     when(configService.applySessionConfig(configDataCaptor.capture())).thenReturn(Mono.empty());
     when(workflowDefinitionStore.findAll(sessionId)).thenReturn(Mono.just(Map.of()));
@@ -407,11 +414,16 @@ class SessionServiceTest {
         new WorkflowDefinition("w2", "desc2", List.of(), List.of());
     final Map<String, Object> configMap =
         Map.of(
-            CONFIG_SESSION_ID, sessionId,
-            CONFIG_DESCRIPTION, DESC,
-            CONFIG_INITIATOR, INITIATOR,
-            CONFIG_TAGS, Map.of(),
-            CONFIG_PROJECT_PATH, PATH,
+            CONFIG_SESSION_ID,
+            sessionId,
+            CONFIG_DESCRIPTION,
+            DESC,
+            CONFIG_INITIATOR,
+            INITIATOR,
+            CONFIG_TAGS,
+            Map.of(),
+            CONFIG_PROJECT_PATH,
+            PATH,
             CONFIG_WORKFLOWS,
             Map.of("w1", workflow1, "w2", workflow2));
     when(configService.getAllConfigs(sessionId)).thenReturn(Mono.just(configMap));
@@ -578,7 +590,7 @@ class SessionServiceTest {
         Map.of(
             CONFIG_SESSION_ID,
             "s1",
-            "name",
+            CONFIG_NAME,
             "Session 1",
             CONFIG_DESCRIPTION,
             DESC,
@@ -594,7 +606,7 @@ class SessionServiceTest {
         Map.of(
             CONFIG_SESSION_ID,
             "s2",
-            "name",
+            CONFIG_NAME,
             "Session 2",
             CONFIG_DESCRIPTION,
             "desc2",
@@ -633,13 +645,20 @@ class SessionServiceTest {
         .thenReturn(Mono.error(new RuntimeException("Failed to load s1")));
     final Map<String, Object> config2 =
         Map.of(
-            CONFIG_SESSION_ID, "s2",
-            "name", "Session 2",
-            CONFIG_DESCRIPTION, DESC,
-            CONFIG_INITIATOR, INITIATOR,
-            CONFIG_TAGS, Map.of(),
-            CONFIG_PROJECT_PATH, PATH,
-            CONFIG_WORKFLOWS, Map.of());
+            CONFIG_SESSION_ID,
+            "s2",
+            "name",
+            "Session 2",
+            CONFIG_DESCRIPTION,
+            DESC,
+            CONFIG_INITIATOR,
+            INITIATOR,
+            CONFIG_TAGS,
+            Map.of(),
+            CONFIG_PROJECT_PATH,
+            PATH,
+            CONFIG_WORKFLOWS,
+            Map.of());
     when(configService.getAllConfigs("s2")).thenReturn(Mono.just(config2));
 
     // When & Then: s1 is skipped, s2 is returned
@@ -656,7 +675,7 @@ class SessionServiceTest {
     final Map<String, Object> configMap =
         Map.of(
             CONFIG_SESSION_ID, sessionId,
-            "name", sessionName,
+            CONFIG_NAME, sessionName,
             CONFIG_DESCRIPTION, DESC,
             CONFIG_INITIATOR, INITIATOR,
             CONFIG_TAGS, Map.of(),
