@@ -24,7 +24,7 @@ export function SessionsPaginationFooter({ table }: SessionsPaginationFooterProp
   const end = Math.min((pageIndex + 1) * pageSize, totalRows);
 
   return (
-    <div className="flex items-center justify-between gap-4 border-t border-outline-variant bg-surface-container-lowest px-4 py-3 dark:bg-surface-container-low">
+    <div className="flex h-10 items-center justify-end gap-6 bg-surface-container-high px-4 text-xs text-on-surface-variant">
       <div className="flex items-center gap-2">
         <span className="text-body-sm">Rows per page:</span>
         <DropdownMenu>
@@ -51,7 +51,7 @@ export function SessionsPaginationFooter({ table }: SessionsPaginationFooterProp
         {start}–{end} of {totalRows} items
       </div>
 
-      <div className="border-l border-outline-variant pl-4 flex gap-1">
+      <div className="flex gap-1 border-l border-outline-variant pl-4">
         <Button
           variant="ghost"
           size="sm"

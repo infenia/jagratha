@@ -8,9 +8,13 @@ interface SessionsHeaderProps {
 export function SessionsHeader({ sessionCount }: SessionsHeaderProps) {
   return (
     <div className="flex flex-col gap-1 px-6 py-4">
-      <h1 className="text-headline-lg font-bold">Sessions</h1>
+      <h1 className="text-3xl font-light text-on-surface">Sessions</h1>
       <p className="text-body-md text-on-surface-variant">
-        {sessionCount} session{sessionCount !== 1 ? 's' : ''} available
+        Manage and monitor active data orchestration environments.{' '}
+        <span className="font-semibold text-primary">
+          {sessionCount} session{sessionCount !== 1 ? 's' : ''}
+        </span>{' '}
+        found.
       </p>
     </div>
   );

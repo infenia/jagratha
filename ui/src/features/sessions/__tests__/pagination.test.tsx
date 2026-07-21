@@ -138,8 +138,8 @@ describe('Coverage - SessionsPaginationFooter Exhaustive', () => {
     const sessions = createSessions(30);
     const { container } = render(<PaginationTest sessions={sessions} pageSize={10} />);
 
-    // Should have gap-4 for spacing
-    const gappedElement = container.querySelector('.gap-4');
+    // Should have gap-6 for spacing
+    const gappedElement = container.querySelector('.gap-6');
     expect(gappedElement).toBeInTheDocument();
   });
 
@@ -156,12 +156,12 @@ describe('Coverage - SessionsPaginationFooter Exhaustive', () => {
     const sessions = createSessions(50);
     const { container } = render(<PaginationTest sessions={sessions} pageSize={10} />);
 
-    // Should have flex-row for horizontal layout
+    // Should have flex layout for horizontal layout
     const flexRow = container.querySelector('.flex');
     expect(flexRow?.classList.contains('items-center')).toBeTruthy();
 
-    // Should have justify-between for space distribution
-    const justifyBetween = container.querySelector('.justify-between');
-    expect(justifyBetween).toBeInTheDocument();
+    // Should have justify-end for right alignment
+    const justifyEnd = container.querySelector('.justify-end');
+    expect(justifyEnd).toBeInTheDocument();
   });
 });

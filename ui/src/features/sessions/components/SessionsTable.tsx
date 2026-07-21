@@ -8,6 +8,7 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   flexRender,
+  type ColumnFiltersState,
 } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { SessionListItem } from '../types/session';
@@ -19,8 +20,10 @@ interface SessionsTableProps {
 
 export function SessionsTable({ data }: SessionsTableProps) {
   const [globalFilter, setGlobalFilter] = useState('');
-  const [columnFilters, setColumnFilters] = useState<any[]>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
+  // React Compiler skips memoizing useReactTable (headless API returns unstable functions); accepted
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
@@ -70,7 +73,7 @@ export function SessionsTable({ data }: SessionsTableProps) {
               onClick={() => {
                 // Row click navigation handled per-row via SessionRowActionsMenu
               }}
-              className={`border-b border-outline-variant py-2 dark:py-3 cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container ${
+              className={`cursor-pointer border-b border-outline-variant py-2 hover:bg-surface-container-high dark:py-3 dark:hover:bg-surface-container ${
                 idx % 2 === 1 ? 'bg-surface-variant dark:bg-surface-variant' : 'bg-surface-container-lowest dark:bg-surface-container-low'
               }`}
             >

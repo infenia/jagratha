@@ -25,18 +25,24 @@ describe('SessionsHeader', () => {
   });
 
   it('should display session count - singular', () => {
-    render(<SessionsHeader sessionCount={1} />);
-    expect(screen.getByText('1 session available')).toBeInTheDocument();
+    const { container } = render(<SessionsHeader sessionCount={1} />);
+    const p = container.querySelector('p');
+    expect(p?.textContent).toContain('1 session');
+    expect(p?.textContent).toContain('found.');
   });
 
   it('should display session count - plural', () => {
-    render(<SessionsHeader sessionCount={5} />);
-    expect(screen.getByText('5 sessions available')).toBeInTheDocument();
+    const { container } = render(<SessionsHeader sessionCount={5} />);
+    const p = container.querySelector('p');
+    expect(p?.textContent).toContain('5 sessions');
+    expect(p?.textContent).toContain('found.');
   });
 
   it('should handle zero sessions', () => {
-    render(<SessionsHeader sessionCount={0} />);
-    expect(screen.getByText('0 sessions available')).toBeInTheDocument();
+    const { container } = render(<SessionsHeader sessionCount={0} />);
+    const p = container.querySelector('p');
+    expect(p?.textContent).toContain('0 sessions');
+    expect(p?.textContent).toContain('found.');
   });
 });
 
@@ -62,7 +68,8 @@ describe('SessionsFilterBar', () => {
         onReset={() => {}}
       />
     );
-    expect(screen.getByText(/Reset Filters/i)).toBeInTheDocument();
+    // Reset button is now icon-only with aria-label
+    expect(screen.getByLabelText('Reset filters')).toBeInTheDocument();
   });
 
   it('should call onGlobalFilterChange when typing in search', async () => {
@@ -97,7 +104,7 @@ describe('SessionsFilterBar', () => {
       />
     );
 
-    const resetButton = screen.getByText(/Reset Filters/i);
+    const resetButton = screen.getByLabelText('Reset filters');
     await user.click(resetButton);
 
     expect(handleReset).toHaveBeenCalled();

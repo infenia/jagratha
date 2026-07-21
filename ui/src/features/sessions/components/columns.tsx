@@ -18,14 +18,14 @@ export const columns: ColumnDef<SessionListItem>[] = [
     accessorKey: 'sessionId',
     header: 'Session ID',
     cell: ({ row }) => (
-      <div className="font-mono text-body-sm">{row.getValue('sessionId')}</div>
+      <div className="text-body-sm font-mono">{row.getValue('sessionId')}</div>
     ),
   },
   {
     accessorKey: 'description',
     header: 'Description',
     cell: ({ row }) => (
-      <div className="truncate max-w-xs">{row.getValue('description')}</div>
+      <div className="max-w-xs truncate">{row.getValue('description')}</div>
     ),
   },
   {
@@ -42,7 +42,7 @@ export const columns: ColumnDef<SessionListItem>[] = [
           {tags.map((tag) => (
             <Badge
               key={tag}
-              className="bg-secondary-container text-[10px] font-bold uppercase tracking-tighter text-on-secondary-container"
+              className="bg-secondary-container text-[10px] font-bold tracking-tighter text-on-surface uppercase"
             >
               {tag}
             </Badge>
@@ -55,7 +55,7 @@ export const columns: ColumnDef<SessionListItem>[] = [
     accessorKey: 'projectPath',
     header: 'Project Path',
     cell: ({ row }) => (
-      <div className="font-mono text-body-sm">{row.getValue('projectPath')}</div>
+      <div className="text-body-sm font-mono">{row.getValue('projectPath')}</div>
     ),
   },
   {

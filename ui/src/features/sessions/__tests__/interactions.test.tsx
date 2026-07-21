@@ -110,6 +110,55 @@ describe('Coverage - User Interactions', () => {
       expect(screen.getByText(/items/)).toBeInTheDocument();
     });
 
+    it('should navigate back to first page with chevron_left button', async () => {
+      // Given: table on page 2 (35 rows, page size 10)
+      const user = userEvent.setup();
+      render(<TableComponent />);
+
+      await user.click(screen.getByRole('button', { name: 'chevron_right' }));
+      expect(screen.getByText('11–20 of 35 items')).toBeInTheDocument();
+
+      // When: previous page button is clicked
+      await user.click(screen.getByRole('button', { name: 'chevron_left' }));
+
+      // Then: table is back on the first page
+      expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
+    });
+
+    it('should jump to first page with first_page button from last page', async () => {
+      // Given: table on the last page (35 rows, page size 10)
+      const user = userEvent.setup();
+      render(<TableComponent />);
+
+      await user.click(screen.getByRole('button', { name: 'last_page' }));
+      expect(screen.getByText('31–35 of 35 items')).toBeInTheDocument();
+
+      // When: first page button is clicked
+      await user.click(screen.getByRole('button', { name: 'first_page' }));
+
+      // Then: table is back on the first page
+      expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
+    });
+
+    it('should change page size when selecting 20 from dropdown', async () => {
+      // Given: table with page size 10
+      const user = userEvent.setup();
+      render(<TableComponent />);
+      expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
+
+      // When: 20 is selected from the rows-per-page dropdown
+      // (Base UI trigger and inner Button both match, click the trigger)
+      const [pageSizeTrigger] = screen.getAllByRole('button', {
+        name: /arrow_drop_down/,
+      });
+      await user.click(pageSizeTrigger);
+      const option20 = await screen.findByText('20');
+      await user.click(option20);
+
+      // Then: 20 rows are shown per page
+      expect(screen.getByText('1–20 of 35 items')).toBeInTheDocument();
+    });
+
     it('should handle all pagination controls', async () => {
       const user = userEvent.setup();
       render(<TableComponent />);
@@ -156,6 +205,27 @@ describe('Coverage - User Interactions', () => {
         // Menu should be interactive (button is rendered with dropdown)
         expect(button).toBeInTheDocument();
       }
+    });
+
+    it('should navigate to session detail when View Details is clicked', async () => {
+      // Given: row actions menu is open
+      const user = userEvent.setup();
+      render(
+        <BrowserRouter>
+          <SessionRowActionsMenu session={mockSession} />
+        </BrowserRouter>
+      );
+
+      // (Base UI trigger and inner Button both match, click the trigger)
+      const [menuTrigger] = screen.getAllByRole('button', { name: 'more_vert' });
+      await user.click(menuTrigger);
+
+      // When: View Details is clicked
+      const viewDetailsItem = await screen.findByText('View Details');
+      await user.click(viewDetailsItem);
+
+      // Then: browser navigates to the session detail route
+      expect(window.location.pathname).toBe(`/sessions/${mockSession.sessionId}`);
     });
 
     it('should support multiple interactions', async () => {

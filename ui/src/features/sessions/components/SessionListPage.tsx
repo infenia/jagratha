@@ -8,6 +8,7 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   flexRender,
+  type ColumnFiltersState,
 } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useSessionSummaries } from '../hooks/useSessionSummaries';
@@ -19,8 +20,10 @@ import { SessionsPaginationFooter } from './SessionsPaginationFooter';
 export function SessionListPage() {
   const { data: sessions = [], isLoading, error } = useSessionSummaries();
   const [globalFilter, setGlobalFilter] = useState('');
-  const [columnFilters, setColumnFilters] = useState<any[]>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
+  // React Compiler skips memoizing useReactTable (headless API returns unstable functions); accepted
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: sessions,
     columns,
@@ -49,7 +52,7 @@ export function SessionListPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-on-surface-variant">Loading sessions...</p>
       </div>
     );
@@ -57,7 +60,7 @@ export function SessionListPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-error">Failed to load sessions</p>
       </div>
     );
@@ -70,57 +73,61 @@ export function SessionListPage() {
   };
 
   return (
-    <div className="flex flex-col gap-0 min-h-screen bg-background">
-      <div className="border-b border-outline-variant">
+    <div className="flex min-h-screen flex-col gap-0 bg-background">
+      <div className="w-full">
         <SessionsHeader sessionCount={sessions.length} />
-      </div>
 
-      <SessionsFilterBar
-        data={sessions}
-        globalFilter={globalFilter}
-        onGlobalFilterChange={setGlobalFilter}
-        onReset={handleReset}
-      />
+        <SessionsFilterBar
+          data={sessions}
+          globalFilter={globalFilter}
+          onGlobalFilterChange={setGlobalFilter}
+          onReset={handleReset}
+        />
 
-      <div className="flex-1 overflow-auto">
-        <div className="rounded-lg border border-outline bg-surface-container-lowest dark:bg-surface-container-low">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="border-b border-outline-variant">
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="h-12">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row, idx) => (
-                <TableRow
-                  key={row.id}
-                  className={`border-b border-outline-variant py-2 dark:py-3 cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container ${
-                    idx % 2 === 1
-                      ? 'bg-surface-variant dark:bg-surface-variant'
-                      : 'bg-surface-container-lowest dark:bg-surface-container-low'
-                  }`}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-4">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="px-6 pb-12">
+          <div className="border border-outline-variant bg-surface-container">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow
+                    key={headerGroup.id}
+                    className="border-b border-outline-variant bg-surface-container-high hover:bg-surface-container-high"
+                  >
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        className="h-10 text-xs font-semibold tracking-wider uppercase"
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.map((row, idx) => (
+                  <TableRow
+                    key={row.id}
+                    className={`cursor-pointer border-b border-outline-variant py-3 hover:bg-surface-container-high ${
+                      idx % 2 === 1 ? 'bg-white/[0.02]' : ''
+                    }`}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="px-4">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            <SessionsPaginationFooter table={table} />
+          </div>
         </div>
       </div>
-
-      <SessionsPaginationFooter table={table} />
     </div>
   );
 }
