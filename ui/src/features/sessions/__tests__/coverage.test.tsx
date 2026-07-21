@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router';
@@ -43,6 +43,7 @@ const server = setupServer(
 );
 
 beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe('Coverage - SessionsPaginationFooter', () => {
@@ -63,16 +64,16 @@ describe('Coverage - SessionsPaginationFooter', () => {
     const user = userEvent.setup();
     const { rerender } = render(<TableWrapper pageSize={10} />);
 
-    expect(screen.getByText('10')).toBeInTheDocument();
-
     const rowsPerPageButton = screen.getByText('10');
+    expect(rowsPerPageButton).toBeInTheDocument();
     await user.click(rowsPerPageButton);
 
-    const option20 = screen.queryByText('20');
-    if (option20) {
-      await user.click(option20);
-      rerender(<TableWrapper pageSize={20} />);
-    }
+    const option20 = screen.getByText('20');
+    expect(option20).toBeInTheDocument();
+    expect(option20).toBeEnabled();
+    await user.click(option20);
+    rerender(<TableWrapper pageSize={20} />);
+    expect(screen.getByText('20')).toBeInTheDocument();
   });
 
   it('should handle changing page size from 10 to 50', async () => {
@@ -80,13 +81,15 @@ describe('Coverage - SessionsPaginationFooter', () => {
     const { rerender } = render(<TableWrapper pageSize={10} />);
 
     const rowsPerPageButton = screen.getByText('10');
+    expect(rowsPerPageButton).toBeInTheDocument();
     await user.click(rowsPerPageButton);
 
-    const option50 = screen.queryByText('50');
-    if (option50) {
-      await user.click(option50);
-      rerender(<TableWrapper pageSize={50} />);
-    }
+    const option50 = screen.getByText('50');
+    expect(option50).toBeInTheDocument();
+    expect(option50).toBeEnabled();
+    await user.click(option50);
+    rerender(<TableWrapper pageSize={50} />);
+    expect(screen.getByText('50')).toBeInTheDocument();
   });
 
   it('should navigate pages with next button', async () => {
@@ -98,9 +101,9 @@ describe('Coverage - SessionsPaginationFooter', () => {
       btn.querySelector('.material-symbols-outlined')?.textContent?.includes('chevron_right')
     );
 
-    if (nextButton && !nextButton.hasAttribute('disabled')) {
-      await user.click(nextButton);
-    }
+    expect(nextButton).toBeDefined();
+    expect(nextButton).toHaveProperty('disabled', false);
+    await user.click(nextButton!);
   });
 
   it('should navigate pages with last button', async () => {
@@ -112,9 +115,9 @@ describe('Coverage - SessionsPaginationFooter', () => {
       btn.querySelector('.material-symbols-outlined')?.textContent?.includes('last_page')
     );
 
-    if (lastButton && !lastButton.hasAttribute('disabled')) {
-      await user.click(lastButton);
-    }
+    expect(lastButton).toBeDefined();
+    expect(lastButton).toHaveProperty('disabled', false);
+    await user.click(lastButton!);
   });
 
   it('should render with multiple pages', () => {
@@ -145,11 +148,11 @@ describe('Coverage - SessionRowActionsMenu', () => {
     );
 
     const icon = screen.getByText('more_vert');
+    expect(icon).toBeInTheDocument();
     const button = icon.closest('button');
-
-    if (button) {
-      await user.click(button);
-    }
+    expect(button).toBeInTheDocument();
+    expect(button).toBeEnabled();
+    await user.click(button!);
   });
 
   it('should render with different sessions', () => {
@@ -182,12 +185,14 @@ describe('Coverage - SessionRowActionsMenu', () => {
     );
 
     const icon = screen.getByText('more_vert');
+    expect(icon).toBeInTheDocument();
     const button = icon.closest('button');
-
-    if (button) {
-      await user.click(button);
-      await user.click(button);
-    }
+    expect(button).toBeInTheDocument();
+    expect(button).toBeEnabled();
+    await user.click(button!);
+    expect(button).toBeInTheDocument();
+    await user.click(button!);
+    expect(button).toBeInTheDocument();
   });
 });
 
@@ -215,11 +220,11 @@ describe('Coverage - SessionListPage Error States', () => {
     });
 
     render(
-      React.createElement(
-        QueryClientProvider,
-        { client: testQueryClient },
-        React.createElement(BrowserRouter, {}, React.createElement(SessionListPage))
-      )
+      <QueryClientProvider client={testQueryClient}>
+        <BrowserRouter>
+          <SessionListPage />
+        </BrowserRouter>
+      </QueryClientProvider>
     );
 
     await waitFor(() => {
@@ -241,11 +246,11 @@ describe('Coverage - SessionListPage Error States', () => {
     });
 
     render(
-      React.createElement(
-        QueryClientProvider,
-        { client: testQueryClient },
-        React.createElement(BrowserRouter, {}, React.createElement(SessionListPage))
-      )
+      <QueryClientProvider client={testQueryClient}>
+        <BrowserRouter>
+          <SessionListPage />
+        </BrowserRouter>
+      </QueryClientProvider>
     );
 
     await waitFor(() => {
@@ -254,6 +259,3 @@ describe('Coverage - SessionListPage Error States', () => {
     });
   });
 });
-
-// Re-export React for use in createElement
-import React from 'react';

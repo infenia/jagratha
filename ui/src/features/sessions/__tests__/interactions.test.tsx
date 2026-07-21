@@ -47,59 +47,58 @@ describe('Coverage - User Interactions', () => {
 
       expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
 
-      const buttons = screen.getAllByRole('button');
-      const nextButton = buttons.find(
-        (btn) =>
-          btn.querySelector('.material-symbols-outlined')?.textContent ===
-          'chevron_right'
-      );
+      const nextButton = screen.getByRole('button', { name: 'chevron_right' });
+      expect(nextButton).toBeEnabled();
+      await user.click(nextButton);
 
-      if (nextButton && !nextButton.hasAttribute('disabled')) {
-        await user.click(nextButton);
-      }
+      expect(screen.getByText('11–20 of 35 items')).toBeInTheDocument();
     });
 
     it('should navigate to last page', async () => {
       const user = userEvent.setup();
       render(<TableComponent />);
 
-      const buttons = screen.getAllByRole('button');
-      const lastButton = buttons.find(
-        (btn) =>
-          btn.querySelector('.material-symbols-outlined')?.textContent === 'last_page'
-      );
+      expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
 
-      if (lastButton && !lastButton.hasAttribute('disabled')) {
-        await user.click(lastButton);
-      }
+      const lastButton = screen.getByRole('button', { name: 'last_page' });
+      expect(lastButton).toBeEnabled();
+      await user.click(lastButton);
+
+      expect(screen.getByText('31–35 of 35 items')).toBeInTheDocument();
     });
 
     it('should change page size via dropdown', async () => {
       const user = userEvent.setup();
       render(<TableComponent />);
 
-      const pageSize10 = screen.getByText('10');
-      await user.click(pageSize10);
+      expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
 
-      const pageSize20Option = screen.queryByText('20');
-      if (pageSize20Option) {
-        await user.click(pageSize20Option);
-      }
+      const [pageSizeTrigger] = screen.getAllByRole('button', {
+        name: /arrow_drop_down/,
+      });
+      await user.click(pageSizeTrigger);
+      const pageSize20Option = await screen.findByText('20');
+      expect(pageSize20Option).toBeInTheDocument();
+      await user.click(pageSize20Option);
+
+      expect(screen.getByText('1–20 of 35 items')).toBeInTheDocument();
     });
 
     it('should handle first page button click', async () => {
       const user = userEvent.setup();
       render(<TableComponent />);
 
-      const buttons = screen.getAllByRole('button');
-      const firstButton = buttons.find(
-        (btn) =>
-          btn.querySelector('.material-symbols-outlined')?.textContent === 'first_page'
-      );
+      expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
 
-      if (firstButton) {
-        await user.click(firstButton);
-      }
+      const nextButton = screen.getByRole('button', { name: 'chevron_right' });
+      await user.click(nextButton);
+      expect(screen.getByText('11–20 of 35 items')).toBeInTheDocument();
+
+      const firstButton = screen.getByRole('button', { name: 'first_page' });
+      expect(firstButton).toBeEnabled();
+      await user.click(firstButton);
+
+      expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
     });
 
     it('should render different page sizes', () => {
@@ -163,16 +162,35 @@ describe('Coverage - User Interactions', () => {
       const user = userEvent.setup();
       render(<TableComponent />);
 
-      const buttons = screen.getAllByRole('button');
+      // Test 1: Navigate to next page
+      expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'chevron_right' }));
+      expect(screen.getByText('11–20 of 35 items')).toBeInTheDocument();
 
-      // Click each button to ensure they're functional
-      for (const btn of buttons) {
-        if (!btn.hasAttribute('disabled')) {
-          await user.click(btn);
-          // Restore the component state
-          break;
-        }
-      }
+      // Test 2: Navigate to last page
+      await user.click(screen.getByRole('button', { name: 'last_page' }));
+      expect(screen.getByText('31–35 of 35 items')).toBeInTheDocument();
+
+      // Test 3: Navigate back to first page
+      await user.click(screen.getByRole('button', { name: 'first_page' }));
+      expect(screen.getByText('1–10 of 35 items')).toBeInTheDocument();
+
+      // Test 4: Change page size
+      const [pageSizeTrigger] = screen.getAllByRole('button', {
+        name: /arrow_drop_down/,
+      });
+      await user.click(pageSizeTrigger);
+      const pageSize20 = await screen.findByText('20');
+      await user.click(pageSize20);
+      expect(screen.getByText('1–20 of 35 items')).toBeInTheDocument();
+
+      // Test 5: Navigate to next with new page size
+      await user.click(screen.getByRole('button', { name: 'chevron_right' }));
+      expect(screen.getByText('21–35 of 35 items')).toBeInTheDocument();
+
+      // Test 6: Navigate back
+      await user.click(screen.getByRole('button', { name: 'chevron_left' }));
+      expect(screen.getByText('1–20 of 35 items')).toBeInTheDocument();
     });
   });
 

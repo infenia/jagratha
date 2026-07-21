@@ -24,11 +24,13 @@ export function SessionRowActionsMenu({ session }: SessionRowActionsMenuProps) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        <Button variant="ghost" size="sm">
-          <span className="material-symbols-outlined">more_vert</span>
-        </Button>
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger
+        render={(state) => (
+          <Button variant="ghost" size="sm" aria-label="Session actions" {...state}>
+            <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
+          </Button>
+        )}
+      />
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={handleView}>View Details</DropdownMenuItem>
       </DropdownMenuContent>

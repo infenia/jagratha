@@ -51,7 +51,7 @@ export function SessionsTable({ data }: SessionsTableProps) {
   });
 
   return (
-    <div className="rounded-lg border border-outline bg-surface-container-lowest dark:bg-surface-container-low">
+    <div className="border border-outline bg-surface-container-lowest dark:bg-surface-container-low">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -70,10 +70,7 @@ export function SessionsTable({ data }: SessionsTableProps) {
           {table.getRowModel().rows.map((row, idx) => (
             <TableRow
               key={row.id}
-              onClick={() => {
-                // Row click navigation handled per-row via SessionRowActionsMenu
-              }}
-              className={`cursor-pointer border-b border-outline-variant py-2 hover:bg-surface-container-high dark:py-3 dark:hover:bg-surface-container ${
+              className={`border-b border-outline-variant py-2 hover:bg-surface-container-high dark:py-3 dark:hover:bg-surface-container ${
                 idx % 2 === 1 ? 'bg-surface-variant dark:bg-surface-variant' : 'bg-surface-container-lowest dark:bg-surface-container-low'
               }`}
             >

@@ -37,7 +37,10 @@ public class SpaWebFluxConfig implements WebFluxConfigurer {
           "/**/*.ttf",
           "/**/*.svg",
           "/**/*.png",
+          "/**/*.jpg",
+          "/**/*.webp",
           "/**/*.ico",
+          "/**/*.json",
           "/**/*.webmanifest");
 
   @Override

@@ -110,8 +110,8 @@ export function SessionListPage() {
                 {table.getRowModel().rows.map((row, idx) => (
                   <TableRow
                     key={row.id}
-                    className={`cursor-pointer border-b border-outline-variant py-3 hover:bg-surface-container-high ${
-                      idx % 2 === 1 ? 'bg-white/[0.02]' : ''
+                    className={`border-b border-outline-variant py-3 hover:bg-surface-container-high ${
+                      idx % 2 === 1 ? 'bg-surface-container-low' : ''
                     }`}
                   >
                     {row.getVisibleCells().map((cell) => (

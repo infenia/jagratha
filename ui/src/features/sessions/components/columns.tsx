@@ -39,9 +39,9 @@ export const columns: ColumnDef<SessionListItem>[] = [
       const tags = row.getValue('tags') as string[];
       return (
         <div className="flex flex-row gap-1.5">
-          {tags.map((tag) => (
+          {tags.map((tag, index) => (
             <Badge
-              key={tag}
+              key={`${tag}-${index}`}
               className="bg-secondary-container text-[10px] font-bold tracking-tighter text-on-surface uppercase"
             >
               {tag}

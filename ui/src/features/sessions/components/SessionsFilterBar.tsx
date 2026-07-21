@@ -27,6 +27,7 @@ export function SessionsFilterBar({
             placeholder="Search by name or session ID..."
             value={globalFilter}
             onChange={(e) => onGlobalFilterChange(e.target.value)}
+            aria-label="Search sessions by name or session ID"
             className="w-full border-none bg-transparent text-sm text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none"
           />
         </div>

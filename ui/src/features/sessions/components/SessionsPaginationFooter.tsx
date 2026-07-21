@@ -20,7 +20,7 @@ export function SessionsPaginationFooter({ table }: SessionsPaginationFooterProp
   const pageIndex = table.getState().pagination.pageIndex;
   const totalRows = table.getFilteredRowModel().rows.length;
 
-  const start = pageIndex * pageSize + 1;
+  const start = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
   const end = Math.min((pageIndex + 1) * pageSize, totalRows);
 
   return (
