@@ -29,12 +29,11 @@ public record SessionListItem(
         String description,
     @Schema(description = "The initiator name (user or system)", example = "system-scheduler")
         String initiator,
-    @Schema(
-            description = "Tags associated with the session",
-            example = "[\"prod\", \"etl\"]")
+    @Schema(description = "Tags associated with the session", example = "[\"prod\", \"etl\"]")
         List<String> tags,
-    @Schema(description = "Project path", example = "/data/pipelines/main") String projectPath,
-    @Schema(description = "Number of workflows in this session", example = "24") int workflowCount) {
+    @Schema(description = "Project path", example = "/data/pipelines/main")
+        String projectPath,
+    @Schema(description = "Number of workflows", example = "24") int workflowCount) {
 
   /** Compact constructor for defensive copying. */
   public SessionListItem {

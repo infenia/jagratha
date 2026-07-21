@@ -80,6 +80,7 @@ class SessionMapperTest {
             "session-123",
             "Test Session",
             "test-user",
+            "initiator",
             Map.of("env", "test"),
             "/home/user/project",
             Map.of(
@@ -145,7 +146,7 @@ class SessionMapperTest {
   void testConfigRequestToSessionConfigDataWithEmptyWorkflows() {
     final ConfigRequest request =
         new ConfigRequest(
-            "session-456", "Empty Session", "system", null, "/home/user/project2", Map.of());
+            "session-456", "Empty Session", "system", "initiator", null, "/home/user/project2", Map.of());
 
     final SessionConfigData result = mapper.configRequestToSessionConfigData(request);
 
@@ -202,6 +203,7 @@ class SessionMapperTest {
             "session-many",
             "Many Workflows",
             "test-user",
+            "initiator",
             Map.of("key1", "val1", "key2", "val2"),
             "/home/user/project",
             workflows);

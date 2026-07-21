@@ -203,8 +203,8 @@ public class SessionConfigController {
   @Operation(
       summary = "List all session summaries",
       description =
-          "Retrieves a list of all available sessions with their summaries (lean data suitable"
-              + " for table display). Response is non-blocking and returned asynchronously via Mono.")
+          "Retrieves a list of all available sessions with their summaries (lean data"
+              + " suitable for table display). Response is non-blocking and asynchronous.")
   @io.swagger.v3.oas.annotations.responses.ApiResponse(
       responseCode = HTTP_200,
       description = "Session summaries retrieved successfully",
