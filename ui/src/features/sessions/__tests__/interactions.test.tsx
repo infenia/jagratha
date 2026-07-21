@@ -234,11 +234,11 @@ describe('Coverage - User Interactions', () => {
         </BrowserRouter>
       );
 
-      // (Base UI trigger and inner Button both match, click the trigger)
-      const [menuTrigger] = screen.getAllByRole('button', { name: 'more_vert' });
+      // When: Session actions menu is opened
+      const menuTrigger = screen.getByRole('button', { name: 'Session actions' });
       await user.click(menuTrigger);
 
-      // When: View Details is clicked
+      // And: View Details is clicked
       const viewDetailsItem = await screen.findByText('View Details');
       await user.click(viewDetailsItem);
 
