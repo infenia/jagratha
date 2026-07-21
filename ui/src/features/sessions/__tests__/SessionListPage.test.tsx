@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -55,6 +55,7 @@ const server = setupServer(
 );
 
 beforeAll(() => server.listen());
+afterEach(() => vi.restoreAllMocks());
 afterAll(() => server.close());
 
 const renderWithProviders = (component: React.ReactElement) => {
