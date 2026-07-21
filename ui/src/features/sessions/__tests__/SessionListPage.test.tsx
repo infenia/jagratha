@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -10,6 +10,7 @@ import { BrowserRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { SessionListPage } from '../components/SessionListPage';
+import * as useSessionSummariesModule from '../hooks/useSessionSummaries';
 
 const mockSessions = [
   {
@@ -372,6 +373,18 @@ describe('SessionListPage', () => {
       expect(searchInput.value).toBe('staging');
       expect(screen.getByText('Staging Deploy')).toBeInTheDocument();
     });
+  });
+
+  it('should display empty state message when no sessions exist', () => {
+    vi.spyOn(useSessionSummariesModule, 'useSessionSummaries').mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: undefined,
+    });
+
+    renderWithProviders(<SessionListPage />);
+
+    expect(screen.getByText('No sessions yet')).toBeInTheDocument();
   });
 
 });
