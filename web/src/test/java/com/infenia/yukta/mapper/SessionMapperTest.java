@@ -95,8 +95,9 @@ class SessionMapperTest {
 
     assertThat(result).isNotNull();
     assertThat(result.sessionId()).isEqualTo("session-123");
-    assertThat(result.description()).isEqualTo("Test Session");
-    assertThat(result.initiator()).isEqualTo("test-user");
+    assertThat(result.name()).isEqualTo("Test Session");
+    assertThat(result.description()).isEqualTo("test-user");
+    assertThat(result.initiator()).isEqualTo("initiator");
     assertThat(result.projectPath()).isEqualTo("/home/user/project");
   }
 
