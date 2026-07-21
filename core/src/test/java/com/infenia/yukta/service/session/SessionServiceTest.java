@@ -647,7 +647,7 @@ class SessionServiceTest {
         Map.of(
             CONFIG_SESSION_ID,
             "s2",
-            "name",
+            CONFIG_NAME,
             "Session 2",
             CONFIG_DESCRIPTION,
             DESC,
