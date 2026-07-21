@@ -28,12 +28,14 @@ export function SessionsPaginationFooter({ table }: SessionsPaginationFooterProp
       <div className="flex items-center gap-2">
         <span className="text-body-sm">Rows per page:</span>
         <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Button variant="outline" size="sm">
-              {pageSize}
-              <span className="material-symbols-outlined ml-1">arrow_drop_down</span>
-            </Button>
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger
+            render={(state) => (
+              <Button variant="outline" size="sm" {...state}>
+                {pageSize}
+                <span className="material-symbols-outlined ml-1">arrow_drop_down</span>
+              </Button>
+            )}
+          />
           <DropdownMenuContent>
             {[10, 20, 50].map((size) => (
               <DropdownMenuItem
