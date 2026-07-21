@@ -23,11 +23,7 @@ import reactor.core.publisher.Mono;
 @Configuration
 public class SpaWebFluxConfig implements WebFluxConfigurer {
 
-  /** Default constructor for Spring. */
-  public SpaWebFluxConfig() {
-    // Intentionally empty
-  }
-
+  /** Patterns for static asset routes served from classpath. */
   private static final List<String> STATIC_ASSET_PATTERNS =
       List.of(
           "/assets/**",
@@ -43,6 +39,11 @@ public class SpaWebFluxConfig implements WebFluxConfigurer {
           "/*.ico",
           "/*.json",
           "/*.webmanifest");
+
+  /** Default constructor for Spring. */
+  public SpaWebFluxConfig() {
+    // Intentionally empty
+  }
 
   @Override
   public void addResourceHandlers(final ResourceHandlerRegistry registry) {
