@@ -120,6 +120,44 @@ class ConfigRequestTest {
   }
 
   @ParameterizedTest
+  @ValueSource(strings = {"my-session", "test-name", "Session A"})
+  void validationShouldNotFailWithValidName(final String name) {
+    final var workflows =
+        Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
+    final var request =
+        new ConfigRequest(
+            SESSION_ID, name, WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
+    final var result = validator.validateProperty(request, "name");
+    assertThat(result).isEmpty();
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @EmptySource
+  @ValueSource(strings = {" ", "\t", "\n"})
+  void validationShouldFailWithInvalidName(final String name) {
+    final var workflows =
+        Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
+    final var request =
+        new ConfigRequest(
+            SESSION_ID, name, WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
+    final var result = validator.validateProperty(request, "name");
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  void validationShouldFailWhenNameExceedsMaxLength() {
+    final var workflows =
+        Map.of(WORKFLOW_ID, createWorkflowDefinitionRequest(WORKFLOW_ID, WORKFLOW_DESC));
+    final var tooLongName = "a".repeat(257);
+    final var request =
+        new ConfigRequest(
+            SESSION_ID, tooLongName, WORKFLOW_DESC, INITIATOR, null, PROJECT_PATH, workflows);
+    final var result = validator.validateProperty(request, "name");
+    assertThat(result).isNotEmpty();
+  }
+
+  @ParameterizedTest
   @ValueSource(strings = {"d", "description", "This is a session description"})
   void validationShouldNotFailWithValidDescription(final String description) {
     final var workflows =
