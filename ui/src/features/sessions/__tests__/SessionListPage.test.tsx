@@ -380,8 +380,8 @@ describe('SessionListPage', () => {
     vi.spyOn(useSessionSummariesModule, 'useSessionSummaries').mockReturnValue({
       data: [],
       isLoading: false,
-      error: undefined,
-    });
+      error: null,
+    } as any);
 
     renderWithProviders(<SessionListPage />);
 
