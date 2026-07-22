@@ -13,6 +13,7 @@ test.describe('Visual Regression - Screenshots', () => {
       await expect(page).toHaveScreenshot('session-list-full-page.png', {
         maxDiffPixels: 100,
         threshold: 0.2,
+        animations: 'disabled',
       });
     });
 
