@@ -8,7 +8,7 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 
 export const apiHandlers = [
   // Get session summaries
-  http.get(`${BASE_URL}/api/sessions/summaries`, ({ request }) => {
+  http.get(`${BASE_URL}/api/sessions/summaries`, () => {
     return HttpResponse.json(
       {
         timestamp: new Date().toISOString(),

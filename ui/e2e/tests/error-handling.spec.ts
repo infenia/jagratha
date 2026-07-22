@@ -67,7 +67,7 @@ test.describe('Error Handling - MSW Mocked Failures', () => {
 
     // Intercept and count requests
     let requestCount = 0;
-    await page.on('request', (request) => {
+    page.on('request', (request) => {
       if (request.url().includes('/api/sessions/summaries')) {
         requestCount++;
       }
@@ -112,7 +112,7 @@ test.describe('Error Handling - MSW Mocked Failures', () => {
       await route.continue();
     });
 
-    const loadPromise = page.goto('/');
+    void page.goto('/');
 
     // Look for loading indicator during navigation
     await page.waitForTimeout(100);
@@ -126,7 +126,8 @@ test.describe('Error Handling - MSW Mocked Failures', () => {
       await expect(loader).toBeVisible();
     }
 
-    await loadPromise;
+    // Wait for page load
+    await page.waitForLoadState('load');
 
     // Loading should disappear once complete
     await expect(loader).not.toBeVisible();

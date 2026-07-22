@@ -106,21 +106,13 @@ export async function countTableRows(page: Page): Promise<number> {
  */
 export async function mockApiResponse(
   page: Page,
-  urlPattern: string | RegExp,
-  data: unknown,
-  status = 200
+  urlPattern: string | RegExp
 ): Promise<void> {
-  await page.route(urlPattern, (route) => {
-    route.abort('failed');
-  });
-
-  // Re-enable the route and mock response
+  // Note: In Playwright, routing overwrites MSW mocks.
+  // For production use, MSW's client-side interception is recommended.
   await page.route(urlPattern, (route) => {
     route.continue();
   });
-
-  // In Playwright, routing overwrites MSW mocks
-  // For actual implementation, use MSW's client-side interception
 }
 
 /**
@@ -129,8 +121,8 @@ export async function mockApiResponse(
  * @example
  * const text = await getTextContent(page.locator('[data-testid="error-message"]'));
  */
-export async function getTextContent(locator) {
-  return locator.evaluate((el) => el.textContent || '');
+export async function getTextContent(locator: any): Promise<string> {
+  return locator.evaluate((el: HTMLElement) => el.textContent || '');
 }
 
 /**
@@ -192,8 +184,8 @@ export async function clickAndWait(
  * @example
  * const tags = await getTextContents(page.locator('span.tag'));
  */
-export async function getTextContents(locator): Promise<string[]> {
-  return locator.evaluateAll((elements) =>
-    elements.map((el) => (el as HTMLElement).textContent || '')
+export async function getTextContents(locator: any): Promise<string[]> {
+  return locator.evaluateAll((elements: any) =>
+    elements.map((el: HTMLElement) => el.textContent || '')
   );
 }

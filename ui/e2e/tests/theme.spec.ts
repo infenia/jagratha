@@ -32,16 +32,12 @@ test.describe('Theme Switching', () => {
       test.skip();
     }
 
-    // Get initial theme
-    let htmlElement = page.locator('html');
-    const initialTheme = await htmlElement.getAttribute('data-theme');
-
     // Click toggle
     await themeToggle.click();
     await page.waitForTimeout(300);
 
     // Theme should change
-    htmlElement = page.locator('html');
+    const htmlElement = page.locator('html');
     const newTheme = await htmlElement.getAttribute('data-theme');
 
     // Should be different (if it was switching mode)
@@ -49,7 +45,7 @@ test.describe('Theme Switching', () => {
     expect(['light', 'dark', 'system', null]).toContain(newTheme);
   });
 
-  test('should persist theme preference', async ({ page, context }) => {
+  test('should persist theme preference', async ({ page }) => {
     await page.goto('/');
 
     const themeToggle = page.locator('[data-testid="theme-toggle"], button:has-svg');
@@ -111,23 +107,12 @@ test.describe('Theme Switching', () => {
       test.skip();
     }
 
-    // Get initial colors
-    const header = page.locator('header');
-    const initialStyle = await header.evaluate((el) =>
-      window.getComputedStyle(el).backgroundColor
-    );
-
     // Toggle theme
     await themeToggle.click();
     await page.waitForTimeout(300);
 
-    // Colors should update
-    const newStyle = await header.evaluate((el) =>
-      window.getComputedStyle(el).backgroundColor
-    );
-
-    // At least one element should have updated style
-    // (They may be the same if theme affects different elements)
+    // Verify header is still visible
+    const header = page.locator('header');
     expect(header).toBeVisible();
   });
 
