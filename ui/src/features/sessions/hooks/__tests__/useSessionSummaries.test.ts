@@ -9,8 +9,8 @@ import { QueryClient } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { useSessionSummaries } from '../useSessionSummaries';
-import { createMockSessions } from '../../../test/factories/sessionFactory';
-import { createTestQueryClient, createTestWrapper } from '../../../test/utils/testUtils';
+import { createMockSessions } from '@/test/factories/sessionFactory';
+import { createTestQueryClient, createTestWrapper } from '@/test/utils/testUtils';
 
 const mockSessions = createMockSessions(1);
 

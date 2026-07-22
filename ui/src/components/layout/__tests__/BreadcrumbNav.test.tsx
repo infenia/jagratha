@@ -216,4 +216,26 @@ describe('BreadcrumbNav', () => {
       expect(link).toHaveAttribute('href');
     });
   });
+
+  describe('Edge Cases', () => {
+    it('should render span for non-current item without href', () => {
+      vi.spyOn(breadcrumbUtils, 'parseBreadcrumbsFromPath').mockReturnValue([
+        { label: 'Parent', href: undefined, isCurrent: false },
+        { label: 'Current', href: undefined, isCurrent: true },
+      ]);
+
+      renderWithRouter(<BreadcrumbNav />);
+      const parentItem = screen.getByText('Parent');
+      expect(parentItem).toBeInTheDocument();
+      expect(parentItem).toHaveClass('text-on-surface-variant');
+    });
+
+    it('should render empty breadcrumbs list gracefully', () => {
+      vi.spyOn(breadcrumbUtils, 'parseBreadcrumbsFromPath').mockReturnValue([]);
+
+      const { container } = renderWithRouter(<BreadcrumbNav />);
+      const nav = container.querySelector('nav');
+      expect(nav).toBeInTheDocument();
+    });
+  });
 });

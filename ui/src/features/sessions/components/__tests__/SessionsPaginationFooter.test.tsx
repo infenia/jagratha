@@ -11,7 +11,7 @@ import {
 } from '@tanstack/react-table';
 import { SessionsPaginationFooter } from '../SessionsPaginationFooter';
 import { columns } from '../columns';
-import { createMockSessions } from '../../../test/factories/sessionFactory';
+import { createMockSessions } from '@/test/factories/sessionFactory';
 import type { SessionListItem } from '../types/session';
 
 describe('SessionsPaginationFooter', () => {

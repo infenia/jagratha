@@ -7,9 +7,9 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { SessionListPage } from '../SessionListPage';
-import * as useSessionSummariesModule from '../hooks/useSessionSummaries';
-import { createMockSessions } from '../../../test/factories/sessionFactory';
-import { renderWithProviders } from '../../../test/utils/testUtils';
+import * as useSessionSummariesModule from '../../hooks/useSessionSummaries';
+import { createMockSessions } from '@/test/factories/sessionFactory';
+import { renderWithProviders } from '@/test/utils/testUtils';
 
 const mockSessions = createMockSessions(3, {
   tags: ['production', 'critical'],
@@ -260,6 +260,20 @@ describe('SessionListPage', () => {
       renderWithProviders(<SessionListPage />);
 
       expect(screen.getByText('No sessions yet')).toBeInTheDocument();
+    });
+  });
+
+  describe('Error State', () => {
+    it('should display error message when fetch fails', () => {
+      vi.spyOn(useSessionSummariesModule, 'useSessionSummaries').mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: new Error('Failed to fetch sessions'),
+      } as any);
+
+      renderWithProviders(<SessionListPage />);
+
+      expect(screen.getByText(/Failed to load sessions/)).toBeInTheDocument();
     });
   });
 });

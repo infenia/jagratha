@@ -1,10 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router';
+import { BrowserRouter, useNavigate } from 'react-router';
+
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router');
+  return {
+    ...actual,
+    useNavigate: vi.fn(),
+  };
+});
 import {
   useReactTable,
   getCoreRowModel,
@@ -14,8 +22,8 @@ import {
 import { SessionsPaginationFooter } from '../SessionsPaginationFooter';
 import { SessionRowActionsMenu } from '../SessionRowActionsMenu';
 import { columns } from '../columns';
-import { createMockSession, createMockSessions } from '../../../test/factories/sessionFactory';
-import type { SessionListItem } from '../types/session';
+import { createMockSession, createMockSessions } from '@/test/factories/sessionFactory';
+import type { SessionListItem } from '../../types/session';
 
 describe('User Interactions', () => {
   describe('SessionsPaginationFooter', () => {
@@ -192,6 +200,28 @@ describe('User Interactions', () => {
       workflowCount: 1,
     };
 
+    it('should call navigate when View Details menu item is clicked', async () => {
+      const user = userEvent.setup();
+      const mockNavigate = vi.fn();
+      vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+
+      render(
+        <BrowserRouter>
+          <SessionRowActionsMenu session={mockSession} />
+        </BrowserRouter>
+      );
+
+      const menuTrigger = screen.getByRole('button', { name: 'Session actions' });
+      await user.click(menuTrigger);
+
+      const viewDetailsOption = await screen.findByText('View Details');
+      await user.click(viewDetailsOption);
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        `/sessions/${mockSession.sessionId}`
+      );
+    });
+
     it('should render menu and handle interaction', async () => {
       const user = userEvent.setup();
 
@@ -225,6 +255,17 @@ describe('User Interactions', () => {
 
       const viewDetailsOption = await screen.findByText('View Details');
       expect(viewDetailsOption).toBeInTheDocument();
+    });
+
+    it('should render button with aria-label', () => {
+      render(
+        <BrowserRouter>
+          <SessionRowActionsMenu session={mockSession} />
+        </BrowserRouter>
+      );
+
+      const button = screen.getByRole('button', { name: 'Session actions' });
+      expect(button).toHaveAttribute('aria-label', 'Session actions');
     });
 
     it('should handle rapid menu interactions', async () => {
