@@ -1,6 +1,13 @@
 {
   "permissions": {
-    "deny": [],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(Secrets/**)",
+      "Read(**/*credentials*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)"
+    ],
     "allow": [
       "mcp__codegraph__*"
     ]
