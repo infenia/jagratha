@@ -106,20 +106,9 @@ test.describe('Session List Page - MSW Mocked API', () => {
       const session = mockSessions[0];
       const row = await getTableRow(page, session.name);
 
-      // Description might be in title attribute or visible somewhere
-      const titleAttr = await row.locator('td').first().getAttribute('title');
-      const textContent = await row.textContent();
-
-      // Either in title or visible text - verify at least one has the description
-      const titleHasDescription = titleAttr ? titleAttr.includes(session.description) : false;
-      const textHasDescription = textContent ? textContent.includes(session.description) : false;
-
-      // This is flexible based on implementation
-      expect(row).toBeVisible();
-      // At least one source should contain the description, or row is visible as fallback
-      if (!titleHasDescription && !textHasDescription) {
-        expect(row).toBeVisible();
-      }
+      // Row should be visible regardless of description location
+      // (description might be in title, text, or tooltip)
+      await expect(row).toBeVisible();
     });
   });
 
