@@ -31,7 +31,7 @@ async function globalSetup() {
     } else {
       console.warn('⚠️  Dev server may not be ready (HTTP ' + response?.status + ')');
     }
-  } catch (error) {
+  } catch {
     console.warn(
       '⚠️  Could not verify dev server. Make sure "pnpm dev" is running.'
     );

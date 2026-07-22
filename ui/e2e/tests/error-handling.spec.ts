@@ -65,14 +65,6 @@ test.describe('Error Handling - MSW Mocked Failures', () => {
   test('should retry failed requests', async ({ page }) => {
     await page.goto('/');
 
-    // Intercept and count requests
-    let requestCount = 0;
-    page.on('request', (request) => {
-      if (request.url().includes('/api/sessions/summaries')) {
-        requestCount++;
-      }
-    });
-
     // Initial load
     await waitForLoadingComplete(page);
 

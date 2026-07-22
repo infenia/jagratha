@@ -121,7 +121,7 @@ export async function mockApiResponse(
  * @example
  * const text = await getTextContent(page.locator('[data-testid="error-message"]'));
  */
-export async function getTextContent(locator: any): Promise<string> {
+export async function getTextContent(locator: { evaluate: (fn: (el: HTMLElement) => string) => Promise<string> }): Promise<string> {
   return locator.evaluate((el: HTMLElement) => el.textContent || '');
 }
 
@@ -184,8 +184,8 @@ export async function clickAndWait(
  * @example
  * const tags = await getTextContents(page.locator('span.tag'));
  */
-export async function getTextContents(locator: any): Promise<string[]> {
-  return locator.evaluateAll((elements: any) =>
-    elements.map((el: HTMLElement) => el.textContent || '')
+export async function getTextContents(locator: { evaluateAll: (fn: (elements: HTMLElement[]) => string[]) => Promise<string[]> }): Promise<string[]> {
+  return locator.evaluateAll((elements: HTMLElement[]) =>
+    elements.map((el) => el.textContent || '')
   );
 }
