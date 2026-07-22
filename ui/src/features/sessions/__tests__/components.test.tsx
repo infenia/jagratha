@@ -16,32 +16,18 @@ import { SessionsFilterBar } from '../components/SessionsFilterBar';
 import { SessionsPaginationFooter } from '../components/SessionsPaginationFooter';
 import { SessionRowActionsMenu } from '../components/SessionRowActionsMenu';
 import { columns } from '../components/columns';
-import type { SessionListItem } from '../types/session';
+import { createMockSession, createMockSessions } from '@/test/factories/sessionFactory';
 
 describe('SessionsHeader', () => {
-  it('should render Sessions title', () => {
-    render(<SessionsHeader sessionCount={5} />);
+  it.each([
+    { count: 0, expectedText: '0 sessions' },
+    { count: 1, expectedText: '1 session' },
+    { count: 5, expectedText: '5 sessions' },
+  ])('should display "$expectedText" for $count sessions', ({ count, expectedText }) => {
+    const { container } = render(<SessionsHeader sessionCount={count} />);
+    const p = container.querySelector('p');
     expect(screen.getByRole('heading', { name: /Sessions/ })).toBeInTheDocument();
-  });
-
-  it('should display session count - singular', () => {
-    const { container } = render(<SessionsHeader sessionCount={1} />);
-    const p = container.querySelector('p');
-    expect(p?.textContent).toContain('1 session');
-    expect(p?.textContent).toContain('found.');
-  });
-
-  it('should display session count - plural', () => {
-    const { container } = render(<SessionsHeader sessionCount={5} />);
-    const p = container.querySelector('p');
-    expect(p?.textContent).toContain('5 sessions');
-    expect(p?.textContent).toContain('found.');
-  });
-
-  it('should handle zero sessions', () => {
-    const { container } = render(<SessionsHeader sessionCount={0} />);
-    const p = container.querySelector('p');
-    expect(p?.textContent).toContain('0 sessions');
+    expect(p?.textContent).toContain(expectedText);
     expect(p?.textContent).toContain('found.');
   });
 });

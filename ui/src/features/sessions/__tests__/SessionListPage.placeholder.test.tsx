@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router';
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { SessionListPage } from '../components/SessionListPage';
+import { createMockSessions } from '@/test/factories/sessionFactory';
+import { renderWithProviders } from '@/test/utils/testUtils';
 
 // Grouped column defs of mixed depth force TanStack Table to generate
 // placeholder headers, covering the `header.isPlaceholder` branch in
@@ -27,17 +26,13 @@ vi.mock('../components/columns', () => ({
   ],
 }));
 
-const mockSessions = [
-  {
-    sessionId: 'session-1',
-    name: 'Production Build',
-    description: 'Main production build session',
-    initiator: 'user@example.com',
-    tags: ['production'],
-    projectPath: '/prod/project',
-    workflowCount: 5,
-  },
-];
+const mockSessions = createMockSessions(1, {
+  name: 'Production Build',
+  description: 'Main production build session',
+  tags: ['production'],
+  projectPath: '/prod/project',
+  workflowCount: 5,
+});
 
 const server = setupServer(
   http.get('/api/sessions/summaries', () => {
@@ -52,22 +47,11 @@ const server = setupServer(
 );
 
 beforeAll(() => server.listen());
+afterEach(() => {
+  vi.restoreAllMocks();
+  server.resetHandlers();
+});
 afterAll(() => server.close());
-
-const renderWithProviders = (component: React.ReactElement) => {
-  const testQueryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
-  });
-  return render(
-    React.createElement(
-      QueryClientProvider,
-      { client: testQueryClient },
-      React.createElement(BrowserRouter, {}, component)
-    )
-  );
-};
 
 describe('SessionListPage - placeholder headers', () => {
   it('should render empty cell for placeholder headers with grouped columns', async () => {

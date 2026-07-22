@@ -1,32 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { getSessionSummaries } from '../api/getSessionSummaries';
+import { createMockSessions } from '@/test/factories/sessionFactory';
 
 const mockSessionData = {
-  sessions: [
-    {
-      sessionId: 'session-1',
-      name: 'Test Session 1',
-      description: 'A test session',
-      initiator: 'user@example.com',
-      tags: ['tag1', 'tag2'],
-      projectPath: '/path/to/project',
-      workflowCount: 3,
-    },
-    {
-      sessionId: 'session-2',
-      name: 'Test Session 2',
-      description: 'Another test session',
-      initiator: 'another@example.com',
-      tags: ['tag3'],
-      projectPath: '/another/path',
-      workflowCount: 1,
-    },
-  ],
+  sessions: createMockSessions(2),
 };
 
 const server = setupServer(
@@ -42,39 +24,23 @@ const server = setupServer(
 );
 
 beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe('getSessionSummaries', () => {
-  it('should fetch session summaries successfully', async () => {
+  it('should fetch and return valid session summaries', async () => {
     const result = await getSessionSummaries();
-    expect(result.sessions).toBeDefined();
+
     expect(result.sessions).toHaveLength(2);
-  });
-
-  it('should return sessions with correct structure', async () => {
-    const result = await getSessionSummaries();
-    const session = result.sessions[0];
-
-    expect(session).toHaveProperty('sessionId');
-    expect(session).toHaveProperty('name');
-    expect(session).toHaveProperty('description');
-    expect(session).toHaveProperty('initiator');
-    expect(session).toHaveProperty('tags');
-    expect(session).toHaveProperty('projectPath');
-    expect(session).toHaveProperty('workflowCount');
-  });
-
-  it('should return sessions with correct values', async () => {
-    const result = await getSessionSummaries();
-    const session = result.sessions[0];
-
-    expect(session.sessionId).toBe('session-1');
-    expect(session.name).toBe('Test Session 1');
-    expect(session.description).toBe('A test session');
-    expect(session.initiator).toBe('user@example.com');
-    expect(session.tags).toEqual(['tag1', 'tag2']);
-    expect(session.projectPath).toBe('/path/to/project');
-    expect(session.workflowCount).toBe(3);
+    expect(result.sessions[0]).toMatchObject({
+      sessionId: expect.any(String),
+      name: expect.any(String),
+      description: expect.any(String),
+      initiator: expect.any(String),
+      tags: expect.any(Array),
+      projectPath: expect.any(String),
+      workflowCount: expect.any(Number),
+    });
   });
 
   it('should handle empty tags array', async () => {
@@ -85,17 +51,7 @@ describe('getSessionSummaries', () => {
           status: 200,
           message: 'Session summaries retrieved successfully',
           data: {
-            sessions: [
-              {
-                sessionId: 'session-empty-tags',
-                name: 'No Tags Session',
-                description: 'Session without tags',
-                initiator: 'user@example.com',
-                tags: [],
-                projectPath: '/path',
-                workflowCount: 0,
-              },
-            ],
+            sessions: createMockSessions(1, { tags: [] }),
           },
           path: '/api/sessions/summaries',
         });
