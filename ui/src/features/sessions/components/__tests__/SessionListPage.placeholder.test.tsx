@@ -5,9 +5,9 @@ import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest
 import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { SessionListPage } from '../components/SessionListPage';
-import { createMockSessions } from '@/test/factories/sessionFactory';
-import { renderWithProviders } from '@/test/utils/testUtils';
+import { SessionListPage } from '../SessionListPage';
+import { createMockSessions } from '../../../test/factories/sessionFactory';
+import { renderWithProviders } from '../../../test/utils/testUtils';
 
 // Grouped column defs of mixed depth force TanStack Table to generate
 // placeholder headers, covering the `header.isPlaceholder` branch in

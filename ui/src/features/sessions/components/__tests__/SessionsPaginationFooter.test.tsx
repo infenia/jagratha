@@ -9,9 +9,9 @@ import {
   getPaginationRowModel,
   getFilteredRowModel,
 } from '@tanstack/react-table';
-import { SessionsPaginationFooter } from '../components/SessionsPaginationFooter';
-import { columns } from '../components/columns';
-import { createMockSessions } from '@/test/factories/sessionFactory';
+import { SessionsPaginationFooter } from '../SessionsPaginationFooter';
+import { columns } from '../columns';
+import { createMockSessions } from '../../../test/factories/sessionFactory';
 import type { SessionListItem } from '../types/session';
 
 describe('SessionsPaginationFooter', () => {

@@ -11,12 +11,12 @@ import {
   getPaginationRowModel,
   getFilteredRowModel,
 } from '@tanstack/react-table';
-import { SessionsHeader } from '../components/SessionsHeader';
-import { SessionsFilterBar } from '../components/SessionsFilterBar';
-import { SessionsPaginationFooter } from '../components/SessionsPaginationFooter';
-import { SessionRowActionsMenu } from '../components/SessionRowActionsMenu';
-import { columns } from '../components/columns';
-import { createMockSession, createMockSessions } from '@/test/factories/sessionFactory';
+import { SessionsHeader } from '../SessionsHeader';
+import { SessionsFilterBar } from '../SessionsFilterBar';
+import { SessionsPaginationFooter } from '../SessionsPaginationFooter';
+import { SessionRowActionsMenu } from '../SessionRowActionsMenu';
+import { columns } from '../columns';
+import { createMockSession, createMockSessions } from '../../../test/factories/sessionFactory';
 
 describe('SessionsHeader', () => {
   it.each([

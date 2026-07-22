@@ -6,10 +6,10 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { SessionListPage } from '../components/SessionListPage';
+import { SessionListPage } from '../SessionListPage';
 import * as useSessionSummariesModule from '../hooks/useSessionSummaries';
-import { createMockSessions } from '@/test/factories/sessionFactory';
-import { renderWithProviders } from '@/test/utils/testUtils';
+import { createMockSessions } from '../../../test/factories/sessionFactory';
+import { renderWithProviders } from '../../../test/utils/testUtils';
 
 const mockSessions = createMockSessions(3, {
   tags: ['production', 'critical'],

@@ -11,10 +11,10 @@ import {
   getPaginationRowModel,
   getFilteredRowModel,
 } from '@tanstack/react-table';
-import { SessionsPaginationFooter } from '../components/SessionsPaginationFooter';
-import { SessionRowActionsMenu } from '../components/SessionRowActionsMenu';
-import { columns } from '../components/columns';
-import { createMockSession, createMockSessions } from '@/test/factories/sessionFactory';
+import { SessionsPaginationFooter } from '../SessionsPaginationFooter';
+import { SessionRowActionsMenu } from '../SessionRowActionsMenu';
+import { columns } from '../columns';
+import { createMockSession, createMockSessions } from '../../../test/factories/sessionFactory';
 import type { SessionListItem } from '../types/session';
 
 describe('User Interactions', () => {
