@@ -30,7 +30,7 @@ async function globalSetup() {
     });
     if (!response?.ok()) {
       throw new Error(
-        `Dev server returned status ${response?.status} at ${baseUrl}`
+        `Dev server returned status ${response?.status()} at ${baseUrl}`
       );
     }
     console.log(`✅ Dev server is running at ${baseUrl}`);
