@@ -40,7 +40,6 @@ jobs:
     outputs:
       modules: ${{ steps.filter.outputs.changes }}
       root: ${{ steps.filter.outputs.root }}
-      ui: ${{ steps.filter.outputs.ui }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
@@ -438,7 +437,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: |
-      needs.changes.outputs.ui == 'true' &&
+      contains(fromJson(needs.changes.outputs.modules), 'ui') &&
       (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
     permissions:
       contents: read
