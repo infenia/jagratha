@@ -17,28 +17,32 @@ import { chromium } from '@playwright/test';
 async function globalSetup() {
   console.log('🔧 Running global setup...');
 
+  const baseUrl = process.env.BASE_URL || 'http://localhost:5173';
+
   // Verify that the dev server is running
   const browser = await chromium.launch();
   const page = await browser.newPage();
 
   try {
-    const response = await page.goto('http://localhost:5173', {
+    const response = await page.goto(baseUrl, {
       waitUntil: 'networkidle',
       timeout: 30000,
     });
-    if (response?.ok()) {
-      console.log('✅ Dev server is running at http://localhost:5173');
-    } else {
-      console.warn('⚠️  Dev server may not be ready (HTTP ' + response?.status + ')');
+    if (!response?.ok()) {
+      throw new Error(
+        `Dev server returned status ${response?.status} at ${baseUrl}`
+      );
     }
-  } catch {
-    console.warn(
-      '⚠️  Could not verify dev server. Make sure "pnpm dev" is running.'
+    console.log(`✅ Dev server is running at ${baseUrl}`);
+  } catch (error) {
+    console.error(
+      `❌ Failed to verify dev server at ${baseUrl}. Make sure "pnpm dev" is running.`
     );
-  } finally {
     await browser.close();
+    throw error;
   }
 
+  await browser.close();
   console.log('✅ Global setup complete');
 }
 

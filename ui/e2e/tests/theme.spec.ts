@@ -107,13 +107,17 @@ test.describe('Theme Switching', () => {
       test.skip();
     }
 
+    // Capture initial theme
+    const htmlElement = page.locator('html');
+    const initialTheme = await htmlElement.getAttribute('data-theme');
+
     // Toggle theme
     await themeToggle.click();
     await page.waitForTimeout(300);
 
-    // Verify header is still visible
-    const header = page.locator('header');
-    expect(header).toBeVisible();
+    // Verify theme changed
+    const newTheme = await htmlElement.getAttribute('data-theme');
+    expect(newTheme).not.toBe(initialTheme);
   });
 
   test('should support prefers-color-scheme media query', async ({ page }) => {

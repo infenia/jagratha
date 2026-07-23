@@ -30,10 +30,13 @@ test.describe('Session List Page - MSW Mocked API', () => {
       page,
       mockSessions,
     }) => {
-      // Wait for the API response
-      const response = await waitForApiResponse(page, {
+      // Register waiter before page is fully loaded
+      const responsePromise = waitForApiResponse(page, {
         url: '/api/sessions/summaries',
       });
+
+      // Page is already loaded from beforeEach, but await the API response
+      const response = await responsePromise;
       expect(response.status()).toBe(200);
 
       // Verify table is rendered

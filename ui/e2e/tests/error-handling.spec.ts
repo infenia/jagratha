@@ -6,14 +6,16 @@ import { waitForApiResponse, waitForLoadingComplete } from '../utils';
 
 test.describe('Error Handling - MSW Mocked Failures', () => {
   test('should handle API errors gracefully', async ({ page }) => {
-    // Use query parameter to trigger error response in MSW
-    await page.goto('/?error=true');
-
-    // Wait for the error response
-    const response = await waitForApiResponse(page, {
+    // Register response waiter before navigation
+    const responsePromise = waitForApiResponse(page, {
       url: '/api/sessions/summaries',
     });
 
+    // Navigate with error parameter
+    await page.goto('/?error=true');
+
+    // Await the error response
+    const response = await responsePromise;
     expect(response.status()).toBe(500);
 
     // Look for error message or empty state
@@ -104,7 +106,8 @@ test.describe('Error Handling - MSW Mocked Failures', () => {
       await route.continue();
     });
 
-    void page.goto('/');
+    // Start navigation
+    const navigationPromise = page.goto('/');
 
     // Look for loading indicator during navigation
     await page.waitForTimeout(100);
@@ -113,13 +116,11 @@ test.describe('Error Handling - MSW Mocked Failures', () => {
       '[data-testid="loading"], .spinner, [aria-busy="true"]'
     );
 
-    // May show loading state
-    if (await loader.isVisible()) {
-      await expect(loader).toBeVisible();
-    }
+    // Require loading state to be visible before navigation completes
+    await expect(loader).toBeVisible({ timeout: 5000 });
 
-    // Wait for page load
-    await page.waitForLoadState('load');
+    // Wait for navigation to complete
+    await navigationPromise;
 
     // Loading should disappear once complete
     await expect(loader).not.toBeVisible();

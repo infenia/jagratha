@@ -61,8 +61,14 @@ test('should display sessions', async ({ page, mockSessions }) => {
 ### API Error Test
 ```typescript
 test('should handle error', async ({ page }) => {
+  // Register waiter BEFORE navigation
+  const responsePromise = waitForApiResponse(page, { url: '/api/sessions/summaries' });
+  
+  // Then navigate
   await page.goto('/?error=true');
-  const response = await waitForApiResponse(page, { url: '/api/sessions/summaries' });
+  
+  // Await the response
+  const response = await responsePromise;
   expect(response.status()).toBe(500);
 });
 ```
