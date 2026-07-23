@@ -453,7 +453,7 @@ jobs:
           node-version: '24'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@c3b53f6a16b57b4a12ba9c115fc0c7d3d86305d0 # v2.4.0
         with:
           version: 10
 
@@ -479,7 +479,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: playwright-report
           path: ui/playwright-report/
@@ -488,7 +488,7 @@ jobs:
 
       - name: Upload test videos
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: playwright-videos
           path: ui/test-results/
@@ -497,7 +497,7 @@ jobs:
 
       - name: Comment PR with test results
         if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:
           script: |
             const fs = require('fs');

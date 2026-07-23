@@ -34,7 +34,7 @@ describe('theme', () => {
       expect(theme).toBe('light');
     });
 
-    it('should return invalid theme unchanged when stored', () => {
+    it('should return stored theme even if invalid', () => {
       localStorage.setItem('theme', 'invalid');
       const theme = getTheme();
       expect(theme).toBe('invalid' as Theme);

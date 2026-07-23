@@ -15,57 +15,57 @@ describe('columns', () => {
   });
 
   it('should have name column', () => {
-    const nameColumn = columns.find((col: any) => col.accessorKey === 'name');
+    const nameColumn = columns.find((col) => (col as any).accessorKey === 'name');
     expect(nameColumn).toBeDefined();
-    expect(nameColumn?.header).toBe('Name');
+    expect((nameColumn as any).header).toBe('Name');
   });
 
   it('should have sessionId column', () => {
-    const idColumn = columns.find((col: any) => col.accessorKey === 'sessionId');
+    const idColumn = columns.find((col) => (col as any).accessorKey === 'sessionId');
     expect(idColumn).toBeDefined();
-    expect(idColumn?.header).toBe('Session ID');
+    expect((idColumn as any).header).toBe('Session ID');
   });
 
   it('should have description column', () => {
-    const descColumn = columns.find((col: any) => col.accessorKey === 'description');
+    const descColumn = columns.find((col) => (col as any).accessorKey === 'description');
     expect(descColumn).toBeDefined();
-    expect(descColumn?.header).toBe('Description');
+    expect((descColumn as any).header).toBe('Description');
   });
 
   it('should have initiator column', () => {
-    const initiatorColumn = columns.find((col: any) => col.accessorKey === 'initiator');
+    const initiatorColumn = columns.find((col) => (col as any).accessorKey === 'initiator');
     expect(initiatorColumn).toBeDefined();
-    expect(initiatorColumn?.header).toBe('Initiator');
+    expect((initiatorColumn as any).header).toBe('Initiator');
   });
 
   it('should have tags column', () => {
-    const tagsColumn = columns.find((col: any) => col.accessorKey === 'tags');
+    const tagsColumn = columns.find((col) => (col as any).accessorKey === 'tags');
     expect(tagsColumn).toBeDefined();
-    expect(tagsColumn?.header).toBe('Tags');
+    expect((tagsColumn as any).header).toBe('Tags');
   });
 
   it('should have projectPath column', () => {
-    const pathColumn = columns.find((col: any) => col.accessorKey === 'projectPath');
+    const pathColumn = columns.find((col) => (col as any).accessorKey === 'projectPath');
     expect(pathColumn).toBeDefined();
-    expect(pathColumn?.header).toBe('Project Path');
+    expect((pathColumn as any).header).toBe('Project Path');
   });
 
   it('should have workflowCount column', () => {
-    const countColumn = columns.find((col: any) => col.accessorKey === 'workflowCount');
+    const countColumn = columns.find((col) => (col as any).accessorKey === 'workflowCount');
     expect(countColumn).toBeDefined();
-    expect(countColumn?.header).toBe('Workflows');
+    expect((countColumn as any).header).toBe('Workflows');
   });
 
   it('should have actions column', () => {
-    const actionsColumn = columns.find((col: any) => col.id === 'actions');
+    const actionsColumn = columns.find((col) => (col as any).id === 'actions');
     expect(actionsColumn).toBeDefined();
-    expect(actionsColumn?.id).toBe('actions');
+    expect((actionsColumn as any).id).toBe('actions');
   });
 
   it('should have cell renderers for custom columns', () => {
-    const nameColumn = columns.find((col: any) => col.accessorKey === 'name');
-    const tagsColumn = columns.find((col: any) => col.accessorKey === 'tags');
-    const actionsColumn = columns.find((col: any) => col.id === 'actions');
+    const nameColumn = columns.find((col) => (col as any).accessorKey === 'name');
+    const tagsColumn = columns.find((col) => (col as any).accessorKey === 'tags');
+    const actionsColumn = columns.find((col) => (col as any).id === 'actions');
 
     expect(nameColumn?.cell).toBeDefined();
     expect(tagsColumn?.cell).toBeDefined();

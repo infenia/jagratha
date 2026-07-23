@@ -30,7 +30,7 @@ export default defineConfig({
 
   // Screenshot comparison
   snapshotDir: 'e2e/__snapshots__',
-  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-{platform}{ext}',
+  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-{projectName}-{platform}{ext}',
 
   // Reporting
   reporter: [

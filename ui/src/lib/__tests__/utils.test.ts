@@ -116,8 +116,7 @@ describe('cn', () => {
 
   it('should handle display property conflicts', () => {
     const result = cn('block', 'inline-block');
-    expect(result).toContain('inline-block');
-    expect(result).not.toMatch(/^block$|(?<!inline-)block/);
+    expect(result).toBe('inline-block');
   });
 
   it('should handle shadow classes', () => {

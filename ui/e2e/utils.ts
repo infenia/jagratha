@@ -99,17 +99,17 @@ export async function countTableRows(page: Page): Promise<number> {
 
 /**
  * Mock API response for next request
- * Useful for testing error states or specific scenarios
+ * MSW handles the actual mocking; this is a placeholder for custom overrides
  *
  * @example
- * await mockApiResponse(page, '/api/sessions', { sessions: [] });
+ * await mockApiResponse(page, '/api/sessions');
  */
 export async function mockApiResponse(
   page: Page,
   urlPattern: string | RegExp
 ): Promise<void> {
-  // Note: In Playwright, routing overwrites MSW mocks.
-  // For production use, MSW's client-side interception is recommended.
+  // MSW server handles API mocking via page.route interception
+  // This function is reserved for custom route handling if needed
   await page.route(urlPattern, (route) => {
     route.continue();
   });
@@ -122,7 +122,7 @@ export async function mockApiResponse(
  * const text = await getTextContent(page.locator('[data-testid="error-message"]'));
  */
 export async function getTextContent(locator: Locator): Promise<string> {
-  return locator.evaluate((el: HTMLElement) => el.textContent || '');
+  return locator.evaluate((el) => (el as HTMLElement).textContent || '');
 }
 
 /**
@@ -185,7 +185,7 @@ export async function clickAndWait(
  * const tags = await getTextContents(page.locator('span.tag'));
  */
 export async function getTextContents(locator: Locator): Promise<string[]> {
-  return locator.evaluateAll((elements: HTMLElement[]) =>
-    elements.map((el) => el.textContent || '')
+  return locator.evaluateAll((elements) =>
+    (elements as HTMLElement[]).map((el) => el.textContent || '')
   );
 }
