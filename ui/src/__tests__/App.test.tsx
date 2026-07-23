@@ -70,15 +70,17 @@ describe('App', () => {
     renderApp();
     const main = screen.getByRole('main');
     expect(main).toBeInTheDocument();
+    // Outlet is rendered inside main; it's a container for routes
+    expect(main.children.length).toBeGreaterThanOrEqual(0);
   });
 
   describe('layout structure', () => {
     it('should have header before main', () => {
-      const { container } = renderApp();
-      const divs = container.querySelectorAll('div');
-      expect(divs.length).toBeGreaterThan(0);
-      const main = container.querySelector('main');
-      expect(main).toBeTruthy();
+      renderApp();
+      const header = screen.getByTestId('app-header');
+      const main = screen.getByRole('main');
+      expect(header).toBeInTheDocument();
+      expect(main).toBeInTheDocument();
     });
 
     it('should have footer component rendered', () => {

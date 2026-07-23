@@ -37,8 +37,8 @@ describe('AppHeader', () => {
 
   it('should render BreadcrumbNav', () => {
     const { container } = renderWithRouter(<AppHeader />);
-    const breadcrumbList = container.querySelector('[class*="BreadcrumbList"]');
-    expect(breadcrumbList || container.querySelector('nav')).toBeInTheDocument();
+    const nav = container.querySelector('nav');
+    expect(nav).toBeInTheDocument();
   });
 
   it('should have correct layout structure', () => {

@@ -97,9 +97,10 @@ describe('main.tsx', () => {
         removeListener: vi.fn(),
       }));
 
+      localStorage.setItem('theme', 'system');
       const isDark =
-        'system' === 'dark' ||
-        ('system' === 'system' &&
+        localStorage.getItem('theme') === 'dark' ||
+        (localStorage.getItem('theme') === 'system' &&
           window.matchMedia('(prefers-color-scheme: dark)').matches);
       expect(isDark).toBe(true);
     });
@@ -115,9 +116,10 @@ describe('main.tsx', () => {
         removeListener: vi.fn(),
       }));
 
+      localStorage.setItem('theme', 'system');
       const isDark =
-        'system' === 'dark' ||
-        ('system' === 'system' &&
+        localStorage.getItem('theme') === 'dark' ||
+        (localStorage.getItem('theme') === 'system' &&
           window.matchMedia('(prefers-color-scheme: dark)').matches);
       expect(isDark).toBe(false);
     });
