@@ -34,7 +34,7 @@ describe('theme', () => {
       expect(theme).toBe('light');
     });
 
-    it('should return "system" as default when invalid theme is stored', () => {
+    it('should return invalid theme unchanged when stored', () => {
       localStorage.setItem('theme', 'invalid');
       const theme = getTheme();
       expect(theme).toBe('invalid' as Theme);
@@ -135,8 +135,6 @@ describe('theme', () => {
         key: 'theme',
         newValue: 'dark',
         oldValue: 'light',
-        bubbles: false,
-        cancelable: false,
       });
 
       window.dispatchEvent(event);
@@ -150,8 +148,6 @@ describe('theme', () => {
         key: 'theme',
         newValue: 'dark',
         oldValue: 'light',
-        bubbles: false,
-        cancelable: false,
       });
 
       localStorage.setItem('theme', 'dark');
@@ -169,8 +165,6 @@ describe('theme', () => {
         key: 'otherKey',
         newValue: 'dark',
         oldValue: 'light',
-        bubbles: false,
-        cancelable: false,
       });
 
       window.dispatchEvent(event);
@@ -215,8 +209,6 @@ describe('theme', () => {
         key: 'theme',
         newValue: 'light',
         oldValue: 'dark',
-        bubbles: false,
-        cancelable: false,
       });
 
       window.dispatchEvent(storageEvent);
@@ -233,8 +225,6 @@ describe('theme', () => {
       const storageEvent = new StorageEvent('storage', {
         key: 'theme',
         newValue: 'dark',
-        bubbles: false,
-        cancelable: false,
       });
 
       window.dispatchEvent(storageEvent);

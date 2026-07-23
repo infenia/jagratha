@@ -119,6 +119,7 @@ describe('fetchApi', () => {
 
     try {
       await fetchApi('/api/test');
+      expect.fail('Expected ApiError to be thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(ApiError);
       expect((err as ApiError).message).toBe('Invalid input');
@@ -145,6 +146,7 @@ describe('fetchApi', () => {
 
     try {
       await fetchApi('/api/test');
+      expect.fail('Expected ApiError to be thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(ApiError);
       expect((err as ApiError).fieldErrors).toEqual(fieldErrors);
@@ -179,6 +181,7 @@ describe('fetchApi', () => {
 
     try {
       await fetchApi('/api/test');
+      expect.fail('Expected ApiError to be thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(ApiError);
       expect((err as ApiError).message).toContain('Failed to parse JSON');

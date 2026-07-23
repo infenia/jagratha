@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import type { Page, Response } from '@playwright/test';
+import type { Page, Response, Locator } from '@playwright/test';
 
 /**
  * Wait for API response with optional URL/method filtering
@@ -20,14 +20,14 @@ export async function waitForApiResponse(
 ): Promise<Response> {
   return page.waitForResponse((response) => {
     if (options?.url) {
-      const urlRegex = new RegExp(options.url);
+      const urlRegex = typeof options.url === 'string' ? new RegExp(options.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) : options.url;
       if (!urlRegex.test(response.url())) return false;
     }
     if (options?.method && response.request().method() !== options.method) {
       return false;
     }
     return true;
-  }, { timeout: options?.timeout || 5000 });
+  }, { timeout: options?.timeout !== undefined ? options.timeout : 5000 });
 }
 
 /**
@@ -121,7 +121,7 @@ export async function mockApiResponse(
  * @example
  * const text = await getTextContent(page.locator('[data-testid="error-message"]'));
  */
-export async function getTextContent(locator: { evaluate: (fn: (el: HTMLElement) => string) => Promise<string> }): Promise<string> {
+export async function getTextContent(locator: Locator): Promise<string> {
   return locator.evaluate((el: HTMLElement) => el.textContent || '');
 }
 
@@ -184,7 +184,7 @@ export async function clickAndWait(
  * @example
  * const tags = await getTextContents(page.locator('span.tag'));
  */
-export async function getTextContents(locator: { evaluateAll: (fn: (elements: HTMLElement[]) => string[]) => Promise<string[]> }): Promise<string[]> {
+export async function getTextContents(locator: Locator): Promise<string[]> {
   return locator.evaluateAll((elements: HTMLElement[]) =>
     elements.map((el) => el.textContent || '')
   );

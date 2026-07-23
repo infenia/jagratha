@@ -8,7 +8,39 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 
 export const apiHandlers = [
   // Get session summaries
-  http.get(`${BASE_URL}/api/sessions/summaries`, () => {
+  http.get(`${BASE_URL}/api/sessions/summaries`, ({ request }) => {
+    const url = new URL(request.url);
+    const empty = url.searchParams.get('empty') === 'true';
+    const error = url.searchParams.get('error') === 'true';
+
+    if (error) {
+      return HttpResponse.json(
+        {
+          timestamp: new Date().toISOString(),
+          status: 500,
+          message: 'Internal server error',
+          path: '/api/sessions/summaries',
+          error: 'Database connection failed',
+        },
+        { status: 500 }
+      );
+    }
+
+    if (empty) {
+      return HttpResponse.json(
+        {
+          timestamp: new Date().toISOString(),
+          status: 200,
+          message: 'Sessions retrieved successfully',
+          path: '/api/sessions/summaries',
+          data: {
+            sessions: [],
+          } as SessionListItems,
+        },
+        { status: 200 }
+      );
+    }
+
     return HttpResponse.json(
       {
         timestamp: new Date().toISOString(),
@@ -51,22 +83,6 @@ export const apiHandlers = [
     );
   }),
 
-  // Get empty sessions list
-  http.get(`${BASE_URL}/api/sessions/summaries?empty=true`, () => {
-    return HttpResponse.json(
-      {
-        timestamp: new Date().toISOString(),
-        status: 200,
-        message: 'Sessions retrieved successfully',
-        path: '/api/sessions/summaries',
-        data: {
-          sessions: [],
-        } as SessionListItems,
-      },
-      { status: 200 }
-    );
-  }),
-
   // Get single session details
   http.get(`${BASE_URL}/api/sessions/:sessionId`, ({ params }) => {
     const { sessionId } = params;
@@ -90,19 +106,6 @@ export const apiHandlers = [
     );
   }),
 
-  // Simulate server error
-  http.get(`${BASE_URL}/api/sessions/summaries?error=true`, () => {
-    return HttpResponse.json(
-      {
-        timestamp: new Date().toISOString(),
-        status: 500,
-        message: 'Internal server error',
-        path: '/api/sessions/summaries',
-        error: 'Database connection failed',
-      },
-      { status: 500 }
-    );
-  }),
 ];
 
 export const handlers = apiHandlers;

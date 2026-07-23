@@ -508,7 +508,7 @@ jobs:
             }
 
             const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
-            const stats = results.stats || { tests: 0, passes: 0, failures: 0 };
+            const stats = results.stats || { tests: 0, passes: 0, failures: 0, duration: 0 };
 
             const status = stats.failures === 0 ? '✅ All tests passed' : '❌ Tests failed';
             const comment = `
@@ -519,7 +519,7 @@ jobs:
 | Total Tests | ${stats.tests || 0} |
 | Passed | ${stats.passes || 0} |
 | Failed | ${stats.failures || 0} |
-| Duration | ${(stats.duration / 1000).toFixed(1)}s |
+| Duration | ${((stats.duration || 0) / 1000).toFixed(1)}s |
 
 <details>
 <summary>View detailed report</summary>

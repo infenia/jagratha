@@ -62,7 +62,7 @@ test('should display sessions', async ({ page, mockSessions }) => {
 ```typescript
 test('should handle error', async ({ page }) => {
   await page.goto('/?error=true');
-  const response = await waitForApiResponse(page, { url: '/api/sessions' });
+  const response = await waitForApiResponse(page, { url: '/api/sessions/summaries' });
   expect(response.status()).toBe(500);
 });
 ```
