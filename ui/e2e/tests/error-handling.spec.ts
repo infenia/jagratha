@@ -1,195 +1,84 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { test, expect } from '@playwright/test';
-import { waitForApiResponse, waitForLoadingComplete } from '../utils';
+import { test, expect } from '../fixtures';
+import { waitForLoadingComplete } from '../utils';
 
-test.describe('Error Handling - MSW Mocked Failures', () => {
-  test('should handle API errors gracefully', async ({ page }) => {
-    // Register response waiter before navigation
-    const responsePromise = waitForApiResponse(page, {
-      url: '/api/sessions/summaries',
-    });
+test.describe('Error Handling - Mocked API Failures', () => {
+  test('should show error message when the sessions API fails', async ({
+    page,
+    mockSessionsApi,
+  }) => {
+    await mockSessionsApi(page, { status: 500 });
+    await page.goto('/');
 
-    // Navigate with error parameter
-    await page.goto('/?error=true');
-
-    // Await the error response
-    const response = await responsePromise;
-    expect(response.status()).toBe(500);
-
-    // Look for error message or empty state
-    await page.waitForTimeout(500);
-
-    // Check for error display (implementation-dependent)
-    const errorElement = page.locator(
-      '[data-testid="error"], .error, [role="alert"]'
-    );
-
-    if (await errorElement.isVisible()) {
-      await expect(errorElement).toBeVisible();
-      const errorText = await errorElement.textContent();
-      expect(errorText).toBeTruthy();
-    }
+    await expect(page.getByText('Failed to load sessions')).toBeVisible();
   });
 
   test('should display empty state when no sessions available', async ({
     page,
+    mockSessionsApi,
   }) => {
-    // Navigate with empty parameter
-    await page.goto('/?empty=true');
-
-    // Wait for API call
+    await mockSessionsApi(page, { sessions: [] });
+    await page.goto('/');
     await waitForLoadingComplete(page);
 
-    // Look for empty state message or empty table
-    const emptyMessage = page.locator(
-      '[data-testid="empty"], text="No sessions", text="Empty"'
-    );
-
-    const table = page.locator('table');
-
-    // Either empty message shows or table is empty
-    const hasEmptyMessage = await emptyMessage.isVisible().catch(() => false);
-    const tableVisible = await table.isVisible().catch(() => false);
-
-    if (tableVisible) {
-      const rows = page.locator('tbody tr');
-      const rowCount = await rows.count();
-      // Empty state should show no data rows (header might exist)
-      expect(rowCount).toBe(0);
-    } else {
-      // Empty state message should be visible
-      expect(hasEmptyMessage).toBe(true);
-    }
+    await expect(page.getByText('No sessions yet')).toBeVisible();
+    const rows = page.locator('tbody tr');
+    await expect(rows).toHaveCount(1);
   });
 
-  test('should retry failed requests', async ({ page }) => {
+  test('should recover after a reload once the API succeeds', async ({
+    page,
+    mockSessionsApi,
+  }) => {
+    await mockSessionsApi(page, { status: 500 });
     await page.goto('/');
+    await expect(page.getByText('Failed to load sessions')).toBeVisible();
 
-    // Initial load
-    await waitForLoadingComplete(page);
-
-    // Check if retry logic exists by refreshing
+    await mockSessionsApi(page, {});
     await page.reload();
     await waitForLoadingComplete(page);
 
-    // Page should load successfully
-    const table = page.locator('table');
-    await expect(table).toBeVisible();
+    await expect(page.locator('table')).toBeVisible();
+    await expect(page.getByText('Failed to load sessions')).not.toBeVisible();
   });
 
-  test('should handle network timeout gracefully', async ({
-    page,
+  test('should show loading state before the error appears', async ({
     context,
   }) => {
-    // Set aggressive timeout
-    context.setDefaultTimeout(1000);
-
-    try {
-      // This might timeout but should handle it
-      await page.goto('/', { timeout: 5000 }).catch(() => {
-        // Timeout expected, but page might still load
-      });
-
-      // Page should still be accessible
-      await page.waitForLoadState('domcontentloaded').catch(() => {});
-    } finally {
-      context.setDefaultTimeout(30000);
-    }
-  });
-
-  test('should display loading state during request', async ({ page }) => {
-    // Slow down network to observe loading state
-    await page.route('**/*', async (route) => {
+    const freshPage = await context.newPage();
+    await freshPage.route('**/api/sessions/summaries', async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 500));
-      await route.continue();
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          timestamp: new Date().toISOString(),
+          status: 500,
+          message: 'Internal server error',
+          path: '/api/sessions/summaries',
+          error: 'Database connection failed',
+        }),
+      });
     });
 
-    // Start navigation
-    const navigationPromise = page.goto('/');
-
-    // Look for loading indicator during navigation
-    await page.waitForTimeout(100);
-
-    const loader = page.locator(
-      '[data-testid="loading"], .spinner, [aria-busy="true"]'
-    );
-
-    // Require loading state to be visible before navigation completes
-    await expect(loader).toBeVisible({ timeout: 5000 });
-
-    // Wait for navigation to complete
-    await navigationPromise;
-
-    // Loading should disappear once complete
-    await expect(loader).not.toBeVisible();
+    const navigation = freshPage.goto('/', { waitUntil: 'commit' });
+    await expect(freshPage.getByText('Loading sessions...')).toBeVisible();
+    await navigation;
+    await expect(freshPage.getByText('Failed to load sessions')).toBeVisible();
+    await freshPage.close();
   });
 
-  test('should display specific field errors if provided', async ({ page }) => {
-    // Would need MSW handler that returns field errors
-    await page.goto('/');
-
-    // If form submission happens with field errors
-    // This is a template for form error handling tests
-    const formField = page.locator('input[name="example"]');
-
-    if (await formField.isVisible()) {
-      // Test would verify error display for the field
-      await expect(formField).toBeVisible();
-    }
-  });
-
-  test('should recover from error state', async ({ page }) => {
-    // Navigate to error state
-    await page.goto('/?error=true');
-    await page.waitForTimeout(500);
-
-    // Then navigate to normal state
-    await page.goto('/');
-    await waitForLoadingComplete(page);
-
-    // Page should load successfully
-    const table = page.locator('table');
-    await expect(table).toBeVisible();
-  });
-
-  test('should not show error for non-API failures', async ({ page }) => {
-    // Navigate to non-existent page
-    await page.goto('/nonexistent', { waitUntil: 'networkidle' }).catch(
-      () => {}
-    );
-
-    // Page might show 404 or redirect
-    const url = page.url();
-    expect(url).toBeTruthy();
-  });
-});
-
-test.describe('Form Error Validation', () => {
-  test('should show validation errors on form submission', async ({
+  test('should render a client-side 404 for a non-existent route', async ({
     page,
   }) => {
-    // Navigate to any form (if one exists)
-    await page.goto('/');
+    await page.goto('/nonexistent');
+    await waitForLoadingComplete(page);
 
-    // Look for submit button
-    const submitButton = page.locator('button[type="submit"]');
-
-    if (!(await submitButton.isVisible())) {
-      test.skip();
-    }
-
-    // Try to submit empty form
-    await submitButton.click();
-    await page.waitForTimeout(300);
-
-    // Check for validation errors
-    const errors = page.locator('[role="alert"], .error, [data-testid="error"]');
-
-    // May show inline validation or form-level error
-    if (await errors.isVisible()) {
-      await expect(errors).toBeVisible();
-    }
+    // React Router's default error boundary handles unmatched routes;
+    // the request never round-trips to the server as a real 404.
+    await expect(page.locator('body')).toBeVisible();
+    expect(page.url()).toContain('/nonexistent');
   });
 });

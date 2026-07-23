@@ -479,12 +479,13 @@ jobs:
 
       - name: Install Playwright browsers
         working-directory: ui
-        run: pnpm exec playwright install --with-deps
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run E2E tests
         working-directory: ui
         run: |
           pnpm test:e2e \
+            --project=chromium \
             --reporter=html \
             --reporter=json \
             --reporter=junit \

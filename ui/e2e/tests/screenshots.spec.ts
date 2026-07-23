@@ -42,28 +42,33 @@ test.describe('Visual Regression - Screenshots', () => {
 
   test.describe('Session List - Dark Mode', () => {
     test('should match screenshot - dark mode', async ({ page }) => {
-      // Emulate dark color scheme
-      await page.emulateMedia({ colorScheme: 'dark' });
-
       await page.goto('/');
       await waitForLoadingComplete(page);
+      const toggle = page.getByRole('button', { name: 'Toggle theme' });
+      for (let i = 0; i < 3; i += 1) {
+        const title = await toggle.getAttribute('title');
+        if (title === 'Current: dark') break;
+        await toggle.click();
+      }
+      await expect(toggle).toHaveAttribute('title', 'Current: dark');
+      await expect(page.locator('html')).toHaveClass(/dark/);
+      await page.waitForTimeout(200);
 
       await expect(page).toHaveScreenshot('session-list-dark-mode.png', {
         maxDiffPixels: 100,
         threshold: 0.2,
+        animations: 'disabled',
       });
     });
 
     test('should match screenshot - light mode', async ({ page }) => {
-      // Emulate light color scheme
-      await page.emulateMedia({ colorScheme: 'light' });
-
       await page.goto('/');
       await waitForLoadingComplete(page);
 
       await expect(page).toHaveScreenshot('session-list-light-mode.png', {
         maxDiffPixels: 100,
         threshold: 0.2,
+        animations: 'disabled',
       });
     });
   });
@@ -77,6 +82,7 @@ test.describe('Visual Regression - Screenshots', () => {
       await expect(page).toHaveScreenshot('session-list-mobile.png', {
         maxDiffPixels: 100,
         threshold: 0.2,
+        animations: 'disabled',
       });
     });
 
@@ -88,6 +94,7 @@ test.describe('Visual Regression - Screenshots', () => {
       await expect(page).toHaveScreenshot('session-list-tablet.png', {
         maxDiffPixels: 100,
         threshold: 0.2,
+        animations: 'disabled',
       });
     });
 
@@ -99,28 +106,39 @@ test.describe('Visual Regression - Screenshots', () => {
       await expect(page).toHaveScreenshot('session-list-desktop.png', {
         maxDiffPixels: 100,
         threshold: 0.2,
+        animations: 'disabled',
       });
     });
   });
 
   test.describe('Error States - Screenshots', () => {
-    test('should match screenshot - error state', async ({ page }) => {
-      await page.goto('/?error=true');
-      await page.waitForTimeout(500);
+    test('should match screenshot - error state', async ({
+      page,
+      mockSessionsApi,
+    }) => {
+      await mockSessionsApi(page, { status: 500 });
+      await page.goto('/');
+      await expect(page.getByText('Failed to load sessions')).toBeVisible();
 
       await expect(page).toHaveScreenshot('session-list-error-state.png', {
         maxDiffPixels: 100,
         threshold: 0.2,
+        animations: 'disabled',
       });
     });
 
-    test('should match screenshot - empty state', async ({ page }) => {
-      await page.goto('/?empty=true');
+    test('should match screenshot - empty state', async ({
+      page,
+      mockSessionsApi,
+    }) => {
+      await mockSessionsApi(page, { sessions: [] });
+      await page.goto('/');
       await waitForLoadingComplete(page);
 
       await expect(page).toHaveScreenshot('session-list-empty-state.png', {
         maxDiffPixels: 100,
         threshold: 0.2,
+        animations: 'disabled',
       });
     });
   });
@@ -139,32 +157,26 @@ test.describe('Visual Regression - Screenshots', () => {
       });
     });
 
-    test('should match screenshot - filter bar (if visible)', async ({ page }) => {
+    test('should match screenshot - filter bar', async ({ page }) => {
       await page.goto('/');
       await waitForLoadingComplete(page);
 
-      const filterBar = page.locator('[data-testid="filter-bar"], .filter-bar').first();
-
-      if (await filterBar.isVisible()) {
-        await expect(filterBar).toHaveScreenshot('session-list-filter-bar.png', {
-          maxDiffPixels: 50,
-          threshold: 0.15,
-        });
-      }
+      const filterBar = page.getByPlaceholder(/Search by name or session ID/i).locator('..').locator('..');
+      await expect(filterBar).toHaveScreenshot('session-list-filter-bar.png', {
+        maxDiffPixels: 50,
+        threshold: 0.15,
+      });
     });
 
-    test('should match screenshot - pagination (if visible)', async ({ page }) => {
+    test('should match screenshot - pagination footer', async ({ page }) => {
       await page.goto('/');
       await waitForLoadingComplete(page);
 
-      const pagination = page.locator('[data-testid="pagination"], nav[aria-label="pagination"]').first();
-
-      if (await pagination.isVisible()) {
-        await expect(pagination).toHaveScreenshot('session-list-pagination.png', {
-          maxDiffPixels: 50,
-          threshold: 0.15,
-        });
-      }
+      const pagination = page.getByText(/items$/).locator('..');
+      await expect(pagination).toHaveScreenshot('session-list-pagination.png', {
+        maxDiffPixels: 50,
+        threshold: 0.15,
+      });
     });
   });
 });

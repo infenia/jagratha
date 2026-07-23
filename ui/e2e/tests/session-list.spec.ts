@@ -10,11 +10,9 @@ import {
   countTableRows,
 } from '../utils';
 
-test.describe('Session List Page - MSW Mocked API', () => {
+test.describe('Session List Page - Mocked API', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to the application
     await page.goto('/');
-    // Wait for page to load and API calls to complete
     await waitForLoadingComplete(page);
   });
 
@@ -30,24 +28,19 @@ test.describe('Session List Page - MSW Mocked API', () => {
       page,
       mockSessions,
     }) => {
-      // Register waiter before page is fully loaded
       const responsePromise = waitForApiResponse(page, {
         url: '/api/sessions/summaries',
       });
-
-      // Page is already loaded from beforeEach, but await the API response
+      await page.reload();
       const response = await responsePromise;
       expect(response.status()).toBe(200);
 
-      // Verify table is rendered
       const table = page.locator('table');
       await expect(table).toBeVisible();
 
-      // Verify all sessions are displayed
       const rowCount = await countTableRows(page);
       expect(rowCount).toBe(mockSessions.length);
 
-      // Verify first session data
       const firstRow = await getTableRow(page, mockSessions[0].name);
       await expect(firstRow).toBeVisible();
       const content = await firstRow.textContent();
@@ -67,7 +60,6 @@ test.describe('Session List Page - MSW Mocked API', () => {
       const session = mockSessions[0];
       const row = await getTableRow(page, session.name);
 
-      // Verify visible data
       const content = await row.textContent();
       expect(content).toContain(session.name);
       expect(content).toContain(session.initiator);
@@ -83,9 +75,8 @@ test.describe('Session List Page - MSW Mocked API', () => {
       const session = mockSessions[0];
       const row = await getTableRow(page, session.name);
 
-      // Tags should be visible in the row
       for (const tag of session.tags) {
-        const tagElement = row.locator(`text="${tag}"`);
+        const tagElement = row.getByText(tag, { exact: true });
         await expect(tagElement).toBeVisible();
       }
     });
@@ -94,7 +85,6 @@ test.describe('Session List Page - MSW Mocked API', () => {
       page,
       mockSessions,
     }) => {
-      // Check that workflow counts are displayed
       for (const session of mockSessions) {
         const row = await getTableRow(page, session.name);
         const content = await row.textContent();
@@ -102,16 +92,14 @@ test.describe('Session List Page - MSW Mocked API', () => {
       }
     });
 
-    test('should display session description in title attribute or tooltip', async ({
+    test('should display session project path in the row', async ({
       page,
       mockSessions,
     }) => {
       const session = mockSessions[0];
       const row = await getTableRow(page, session.name);
-
-      // Row should be visible regardless of description location
-      // (description might be in title, text, or tooltip)
-      await expect(row).toBeVisible();
+      const content = await row.textContent();
+      expect(content).toContain(session.projectPath);
     });
   });
 
@@ -123,11 +111,9 @@ test.describe('Session List Page - MSW Mocked API', () => {
       const session = mockSessions[0];
       const row = await getTableRow(page, session.name);
 
-      // Click should be possible (may navigate or show details)
       await row.click();
 
-      // Row should remain or page should navigate
-      await page.waitForTimeout(500); // Brief pause to see any navigation
+      await page.waitForTimeout(500);
       const url = page.url();
       expect(url).toBeTruthy();
     });
@@ -136,141 +122,116 @@ test.describe('Session List Page - MSW Mocked API', () => {
       const session = mockSessions[1];
       const row = await getTableRow(page, session.name);
 
-      // Hover over row
       await row.hover();
-      await page.waitForTimeout(200);
-
-      // May have hover state or cursor change
-      await expect(row).toBeVisible();
+      await expect(row).toHaveClass(/hover:bg-surface-container-high/);
     });
   });
 
-  test.describe('Filtering (if implemented)', () => {
-    test('should have filter input elements', async ({ page }) => {
-      // Look for filter/search inputs
-      const filterInput = page.locator('input[placeholder*="Search" i]').first();
-
-      // May or may not exist - this is flexible
-      if (await filterInput.isVisible()) {
-        await expect(filterInput).toBeVisible();
-      }
+  test.describe('Filtering', () => {
+    test('should have a search input', async ({ page }) => {
+      const filterInput = page.getByPlaceholder(/Search by name or session ID/i);
+      await expect(filterInput).toBeVisible();
     });
 
     test('should filter sessions by name when text is entered', async ({
       page,
     }) => {
-      const filterInput = page
-        .locator('input[placeholder*="Search" i], input[type="search"]')
-        .first();
+      const filterInput = page.getByPlaceholder(/Search by name or session ID/i);
 
-      if (!(await filterInput.isVisible())) {
-        test.skip();
-      }
-
-      // Type filter text
       await filterInput.fill('Build');
 
-      // Table should update
-      await page.waitForTimeout(300);
-      const rows = page.locator('tbody tr:visible');
-      const count = await rows.count();
+      const rows = page.locator('tbody tr');
+      await expect(rows).toHaveCount(1);
+      await expect(rows.first()).toContainText('Build Pipeline');
+    });
 
-      // At least one row should remain (Build Pipeline)
-      expect(count).toBeGreaterThan(0);
+    test('should show empty state when filter matches nothing', async ({
+      page,
+    }) => {
+      const filterInput = page.getByPlaceholder(/Search by name or session ID/i);
+
+      await filterInput.fill('no-such-session-xyz');
+
+      await expect(page.getByText('No sessions yet')).toBeVisible();
     });
   });
 
-  test.describe('Pagination (if implemented)', () => {
+  test.describe('Pagination', () => {
     test('should display pagination controls', async ({ page }) => {
-      const pagination = page.locator(
-        'nav[aria-label="pagination"], [data-testid="pagination"]'
-      );
-
-      // Pagination may or may not exist
-      if (await pagination.isVisible()) {
-        await expect(pagination).toBeVisible();
-      }
+      await expect(page.getByText(/items$/)).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Next page' })).toBeVisible();
     });
 
-    test('should navigate between pages', async ({ page }) => {
-      const nextButton = page.locator(
-        'button:has-text("Next"), [aria-label*="Next"]'
-      );
-
-      if (!(await nextButton.isVisible())) {
-        test.skip();
-      }
-
-      await nextButton.click();
-
-      // URL or page content should change
-      await page.waitForTimeout(300);
-
-      // Either URL changes or content changes, but page should remain
-      expect(page.url()).toBeTruthy();
+    test('next/previous page controls are disabled with a single page of results', async ({
+      page,
+    }) => {
+      // Only 3 mock sessions and a default page size of 10 → single page.
+      await expect(page.getByRole('button', { name: 'Next page' })).toBeDisabled();
+      await expect(page.getByRole('button', { name: 'Previous page' })).toBeDisabled();
     });
   });
 
   test.describe('Loading States', () => {
-    test('should show loading state during initial load', async ({ page }) => {
-      // Create new page without waiting
-      const newPage = await page.context().newPage();
-      await newPage.goto('/', { waitUntil: 'domcontentloaded' });
+    test('should show loading state during initial load', async ({
+      context,
+    }) => {
+      const freshPage = await context.newPage();
+      await freshPage.route('**/api/sessions/summaries', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            timestamp: new Date().toISOString(),
+            status: 200,
+            message: 'ok',
+            path: '/api/sessions/summaries',
+            data: { sessions: [] },
+          }),
+        });
+      });
 
-      // May show briefly during load
-      // Just verify page gets to stable state
-      await waitForLoadingComplete(newPage);
-      await expect(newPage.locator('table')).toBeVisible();
-
-      await newPage.close();
+      const navigation = freshPage.goto('/', { waitUntil: 'commit' });
+      await expect(freshPage.getByText('Loading sessions...')).toBeVisible();
+      await navigation;
+      await waitForLoadingComplete(freshPage);
+      await expect(freshPage.getByText('Loading sessions...')).not.toBeVisible();
+      await freshPage.close();
     });
   });
 
   test.describe('Accessibility', () => {
     test('should have proper heading hierarchy', async ({ page }) => {
-      const h1 = page.locator('h1');
-      const h2 = page.locator('h2');
-
-      // Should have at least h1 or h2
-      const hasHeading =
-        (await h1.count()) > 0 || (await h2.count()) > 0;
-      expect(hasHeading).toBe(true);
+      await expect(page.locator('h1')).toHaveCount(1);
     });
 
     test('should have accessible table headers', async ({ page }) => {
       const table = page.locator('table');
       const headers = table.locator('th');
 
-      // Should have proper headers
       const headerCount = await headers.count();
       expect(headerCount).toBeGreaterThan(0);
     });
 
-    test('table should have proper ARIA labels', async ({ page }) => {
+    test('table should have proper semantic structure', async ({ page }) => {
       const table = page.locator('table');
-
-      // Either table has role or structure is semantic
       const role = await table.getAttribute('role');
-      expect(['table', 'grid', null].includes(role)).toBe(true);
+      expect([null, 'table', 'grid']).toContain(role);
     });
 
-    test('should support keyboard navigation', async ({ page }) => {
-      // Tab to first row
+    test('should support keyboard navigation to the search input', async ({
+      page,
+    }) => {
       await page.keyboard.press('Tab');
-      await page.waitForTimeout(100);
-
-      // Should be able to navigate with arrow keys (if interactive)
       const focusedElement = await page.evaluate(
         () => document.activeElement?.tagName
       );
-
       expect(focusedElement).toBeTruthy();
     });
   });
 
   test.describe('Responsive Design', () => {
     test('should be visible on desktop viewport', async ({ page }) => {
-      // Already default viewport
       const table = page.locator('table');
       await expect(table).toBeVisible();
     });
@@ -278,6 +239,7 @@ test.describe('Session List Page - MSW Mocked API', () => {
     test('should render on tablet viewport', async ({ page }) => {
       await page.setViewportSize({ width: 768, height: 1024 });
       await page.reload();
+      await waitForLoadingComplete(page);
 
       const table = page.locator('table');
       await expect(table).toBeVisible();
@@ -286,8 +248,8 @@ test.describe('Session List Page - MSW Mocked API', () => {
     test('should render on mobile viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.reload();
+      await waitForLoadingComplete(page);
 
-      // Content should still be accessible (may scroll horizontally)
       const table = page.locator('table');
       await expect(table).toBeVisible();
     });

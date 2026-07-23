@@ -1,140 +1,108 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
+import { waitForLoadingComplete } from '../utils';
+
+const themeToggle = (page: import('@playwright/test').Page) =>
+  page.getByRole('button', { name: 'Toggle theme' });
 
 test.describe('Theme Switching', () => {
-  test('should start with system theme', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await waitForLoadingComplete(page);
+  });
 
-    // Check if theme toggle exists
-    const themeToggle = page.locator('[data-testid="theme-toggle"], button:has-svg');
-
-    // Theme toggle might be in header
-    if (!(await themeToggle.isVisible())) {
-      test.skip();
-    }
-
-    // Verify initial state
-    const htmlElement = page.locator('html');
-    const theme = await htmlElement.getAttribute('data-theme');
-
-    // Could be light, dark, or system
-    expect(['light', 'dark', 'system', null]).toContain(theme);
+  test('should start with system theme', async ({ page }) => {
+    await expect(themeToggle(page)).toBeVisible();
+    await expect(themeToggle(page)).toHaveAttribute('title', /Current: system/);
   });
 
   test('should switch between light and dark mode', async ({ page }) => {
-    await page.goto('/');
+    const toggle = themeToggle(page);
+    const html = page.locator('html');
 
-    const themeToggle = page.locator('[data-testid="theme-toggle"], button:has-svg');
+    await expect(toggle).toHaveAttribute('title', 'Current: system');
 
-    if (!(await themeToggle.isVisible())) {
-      test.skip();
-    }
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('title', 'Current: light');
+    await expect(html).not.toHaveClass(/dark/);
 
-    // Click toggle
-    await themeToggle.click();
-    await page.waitForTimeout(300);
-
-    // Theme should change
-    const htmlElement = page.locator('html');
-    const newTheme = await htmlElement.getAttribute('data-theme');
-
-    // Should be different (if it was switching mode)
-    // Or should be a valid theme value
-    expect(['light', 'dark', 'system', null]).toContain(newTheme);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('title', 'Current: dark');
+    await expect(html).toHaveClass(/dark/);
   });
 
   test('should persist theme preference', async ({ page }) => {
-    await page.goto('/');
+    const toggle = themeToggle(page);
 
-    const themeToggle = page.locator('[data-testid="theme-toggle"], button:has-svg');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('title', 'Current: light');
 
-    if (!(await themeToggle.isVisible())) {
-      test.skip();
-    }
-
-    // Switch theme
-    await themeToggle.click();
-    await page.waitForTimeout(300);
-
-    const themeBefore = await page
-      .locator('html')
-      .getAttribute('data-theme');
-
-    // Reload page
     await page.reload();
-    await page.waitForLoadState('networkidle');
+    await waitForLoadingComplete(page);
 
-    // Theme should be persisted
-    const themeAfter = await page.locator('html').getAttribute('data-theme');
-
-    // Should maintain preference
-    expect(themeAfter).toBe(themeBefore);
+    await expect(themeToggle(page)).toHaveAttribute('title', 'Current: light');
   });
 
   test('should have proper color contrast in both modes', async ({ page }) => {
-    await page.goto('/');
-
-    // Check text color contrast
     const table = page.locator('table');
+    await expect(table).toBeVisible();
 
-    if (!(await table.isVisible())) {
-      test.skip();
+    // Force light mode explicitly; 'system' can resolve to either depending
+    // on the host's OS preference.
+    for (let i = 0; i < 3; i += 1) {
+      const title = await themeToggle(page).getAttribute('title');
+      if (title === 'Current: light') break;
+      await themeToggle(page).click();
     }
+    await expect(themeToggle(page)).toHaveAttribute('title', 'Current: light');
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
 
-    // Get computed styles
-    const textElement = table.locator('td').first();
-    const color = await textElement.evaluate((el) => {
+    const cell = table.locator('td').first();
+    const lightColors = await cell.evaluate((el) => {
       const style = window.getComputedStyle(el);
-      return {
-        color: style.color,
-        backgroundColor: style.backgroundColor,
-      };
+      return { color: style.color, backgroundColor: style.backgroundColor };
     });
+    expect(lightColors.color).toBeTruthy();
 
-    // Colors should be defined
-    expect(color.color).toBeTruthy();
-    expect(color.backgroundColor).toBeTruthy();
+    await themeToggle(page).click();
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    // Color changes are CSS-transitioned; wait for it to settle before reading.
+    await expect(async () => {
+      const color = await cell.evaluate((el) => window.getComputedStyle(el).color);
+      expect(color).not.toBe(lightColors.color);
+    }).toPass({ timeout: 2000 });
+
+    const darkColors = await cell.evaluate((el) => {
+      const style = window.getComputedStyle(el);
+      return { color: style.color, backgroundColor: style.backgroundColor };
+    });
+    expect(darkColors.color).toBeTruthy();
+    expect(darkColors).not.toEqual(lightColors);
   });
 
   test('should update all UI elements when theme changes', async ({ page }) => {
-    await page.goto('/');
+    const toggle = themeToggle(page);
+    const html = page.locator('html');
 
-    const themeToggle = page.locator('[data-testid="theme-toggle"], button:has-svg');
-
-    if (!(await themeToggle.isVisible())) {
-      test.skip();
-    }
-
-    // Capture initial theme
-    const htmlElement = page.locator('html');
-    const initialTheme = await htmlElement.getAttribute('data-theme');
-
-    // Toggle theme
-    await themeToggle.click();
-    await page.waitForTimeout(300);
-
-    // Verify theme changed
-    const newTheme = await htmlElement.getAttribute('data-theme');
-    expect(newTheme).not.toBe(initialTheme);
+    await expect(html).not.toHaveClass(/dark/);
+    await toggle.click();
+    await toggle.click();
+    await expect(html).toHaveClass(/dark/);
   });
 
   test('should support prefers-color-scheme media query', async ({ page }) => {
-    // Set system theme preference
+    await page.evaluate(() => localStorage.removeItem('theme'));
+
     await page.emulateMedia({ colorScheme: 'dark' });
+    await page.reload();
+    await waitForLoadingComplete(page);
+    await expect(page.locator('html')).toHaveClass(/dark/);
 
-    await page.goto('/');
-
-    // Page should respect the preference
-    const htmlElement = page.locator('html');
-    await expect(htmlElement).toBeVisible();
-
-    // Change system preference
     await page.emulateMedia({ colorScheme: 'light' });
-    await page.waitForTimeout(300);
-
-    // Page should update if using prefers-color-scheme
-    await expect(htmlElement).toBeVisible();
+    await page.reload();
+    await waitForLoadingComplete(page);
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
   });
 });
