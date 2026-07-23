@@ -22,7 +22,6 @@ rules:
     min-spaces-inside: 0
     max-spaces-inside: 0
 
-  # Truthy values: allow common GitHub Actions values like 'true', 'false'
+  # Truthy values: relax for GitHub Actions (many workflows use bare 'true'/'false')
   truthy:
-    allowed: ["true", "false", "yes", "no"]
     check-keys: false
