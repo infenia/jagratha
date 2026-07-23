@@ -12,7 +12,7 @@ import {
 import { SessionsPaginationFooter } from '../SessionsPaginationFooter';
 import { columns } from '../columns';
 import { createMockSessions } from '@/test/factories/sessionFactory';
-import type { SessionListItem } from '../types/session';
+import type { SessionListItem } from '@/features/sessions/types/session';
 
 describe('SessionsPaginationFooter', () => {
   const PaginationTest = ({
