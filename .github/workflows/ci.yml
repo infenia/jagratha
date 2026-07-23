@@ -515,36 +515,16 @@ jobs:
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:
-          script: |
+          script: >-
             const fs = require('fs');
             const resultsPath = 'ui/test-results/results.json';
-
             if (!fs.existsSync(resultsPath)) {
               return;
             }
-
             const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
             const stats = results.stats || { tests: 0, passes: 0, failures: 0, duration: 0 };
-
             const status = stats.failures === 0 ? '✅ All tests passed' : '❌ Tests failed';
-            const comment = `
-## ${status}
-
-| Metric | Value |
-|--------|-------|
-| Total Tests | ${stats.tests || 0} |
-| Passed | ${stats.passes || 0} |
-| Failed | ${stats.failures || 0} |
-| Duration | ${((stats.duration || 0) / 1000).toFixed(1)}s |
-
-<details>
-<summary>View detailed report</summary>
-
-[Download Playwright Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-</details>
-            `;
-
+            const comment = `## ${status}\n\n| Metric | Value |\n|--------|-------|\n| Total Tests | ${stats.tests || 0} |\n| Passed | ${stats.passes || 0} |\n| Failed | ${stats.failures || 0} |\n| Duration | ${((stats.duration || 0) / 1000).toFixed(1)}s |\n\n<details>\n<summary>View detailed report</summary>\n\n[Download Playwright Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n</details>`;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
