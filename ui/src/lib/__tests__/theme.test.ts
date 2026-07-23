@@ -135,6 +135,7 @@ describe('theme', () => {
         key: 'theme',
         newValue: 'dark',
         oldValue: 'light',
+        storageArea: localStorage,
       });
 
       window.dispatchEvent(event);
@@ -148,6 +149,7 @@ describe('theme', () => {
         key: 'theme',
         newValue: 'dark',
         oldValue: 'light',
+        storageArea: localStorage,
       });
 
       localStorage.setItem('theme', 'dark');
