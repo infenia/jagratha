@@ -464,12 +464,12 @@ jobs:
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@1a4442caab129478691385c6a3e4cb2d4cbf2b38 # v4.1.0
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
