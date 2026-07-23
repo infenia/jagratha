@@ -7,20 +7,18 @@ rules:
   # Disable document-start requirement (GitHub Actions workflows don't need it)
   document-start: disable
 
-  # Line length: allow up to 120 chars for GitHub Actions workflows
-  # (comments with SHAs and URLs often exceed 80 chars)
+  # Line length: allow up to 140 chars for GitHub Actions workflows
+  # (inline JavaScript strings and action URLs can be very long)
   line-length:
-    max: 120
+    max: 140
     level: error
 
   # Comment spacing: allow 1 space before comments (GitHub Actions style)
   comments:
     min-spaces-from-content: 1
 
-  # Brackets: don't enforce spacing inside brackets
-  brackets:
-    min-spaces-inside: 0
-    max-spaces-inside: 0
+  # Brackets: GitHub Actions uses [ "main" ] spacing, which is valid but non-standard
+  brackets: disable
 
   # Truthy values: relax for GitHub Actions (many workflows use bare 'true'/'false')
   truthy:
