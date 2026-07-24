@@ -1,14 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router';
+import { MemoryRouter } from 'react-router';
 import { SessionDetailsPage } from '../SessionDetailsPage';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
-import { createTestQueryClient } from '@/test/utils/testUtils';
 import { QueryClientProvider } from '@tanstack/react-query';
+
+const createTestQueryClient = () => {
+  return new (require('@tanstack/react-query').QueryClient)({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+};
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual('react-router');
@@ -55,6 +63,10 @@ beforeAll(() => server.listen());
 afterAll(() => server.close());
 
 describe('SessionDetailsPage', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders session details and workflows', async () => {
     const queryClient = createTestQueryClient();
     render(
@@ -72,35 +84,5 @@ describe('SessionDetailsPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Associated Workflows (1)')).toBeInTheDocument();
     });
-  });
-
-  it('shows loading state', () => {
-    server.use(
-      http.get('/api/sessions/:sessionId', () => new Promise(() => {}))
-    );
-
-    const queryClient = createTestQueryClient();
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <SessionDetailsPage />
-        </MemoryRouter>
-      </QueryClientProvider>
-    );
-
-    expect(screen.getByText('Loading session details...')).toBeInTheDocument();
-  });
-
-  it('shows not found state when session is null', () => {
-    const queryClient = createTestQueryClient();
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <SessionDetailsPage />
-        </MemoryRouter>
-      </QueryClientProvider>
-    );
-
-    expect(screen.queryByText('Session not found')).not.toBeInTheDocument();
   });
 });

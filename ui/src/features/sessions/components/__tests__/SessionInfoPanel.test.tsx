@@ -55,4 +55,22 @@ describe('SessionInfoPanel', () => {
     render(<SessionInfoPanel session={singleWordSession} />);
     expect(screen.getByText('US')).toBeInTheDocument();
   });
+
+  it('handles initiator with three characters', () => {
+    const threeCharSession = { ...mockSession, initiator: 'ABC' };
+    render(<SessionInfoPanel session={threeCharSession} />);
+    expect(screen.getByText('AB')).toBeInTheDocument();
+  });
+
+  it('handles initiator with extra whitespace', () => {
+    const whitespacSession = { ...mockSession, initiator: '  John   Doe  ' };
+    render(<SessionInfoPanel session={whitespacSession} />);
+    expect(screen.getByText('JD')).toBeInTheDocument();
+  });
+
+  it('renders empty tags list', () => {
+    const noTagsSession = { ...mockSession, tags: [] };
+    render(<SessionInfoPanel session={noTagsSession} />);
+    expect(screen.getByText('Tags')).toBeInTheDocument();
+  });
 });
