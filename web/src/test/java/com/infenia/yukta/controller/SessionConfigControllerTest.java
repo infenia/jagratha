@@ -13,6 +13,8 @@ import com.infenia.yukta.dto.request.WorkflowDefinitionRequest;
 import com.infenia.yukta.dto.request.WorkflowDefinitionRequest.NodeRequest;
 import com.infenia.yukta.dto.response.SessionDetails;
 import com.infenia.yukta.dto.response.SessionListItem;
+import com.infenia.yukta.dto.response.WorkflowSummaries;
+import com.infenia.yukta.dto.response.WorkflowSummary;
 import com.infenia.yukta.mapper.SessionMapper;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.session.SessionConfigResponse;
@@ -716,5 +718,67 @@ class SessionConfigControllerTest {
         .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(500));
 
     verify(sessionService).getAllSessionConfigs();
+  }
+
+  @Test
+  void testGetSessionWorkflowsSuccess() {
+    when(sessionService.getSessionConfig("sess-123"))
+        .thenReturn(Mono.just(new SessionConfigResponse("sess-123", "name", "desc", "user", Map.of(), "/path", Map.of())));
+    when(sessionService.getSessionWorkflows("sess-123")).thenReturn(Mono.just(Map.of()));
+    when(sessionService.getLatestExecutionStatusByWorkflow("sess-123"))
+        .thenReturn(Mono.just(Map.of()));
+
+    webTestClient
+        .get()
+        .uri(API_SESSIONS + "/sess-123/workflows")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath(DOLLAR_DATA)
+        .exists()
+        .jsonPath("$.data.workflows")
+        .isArray()
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(200));
+
+    verify(sessionService).getSessionConfig("sess-123");
+    verify(sessionService).getSessionWorkflows("sess-123");
+    verify(sessionService).getLatestExecutionStatusByWorkflow("sess-123");
+  }
+
+  @Test
+  void testGetSessionWorkflowsSessionNotFound() {
+    when(sessionService.getSessionConfig("sess-missing")).thenReturn(Mono.empty());
+
+    webTestClient
+        .get()
+        .uri(API_SESSIONS + "/sess-missing/workflows")
+        .exchange()
+        .expectStatus()
+        .isNotFound()
+        .expectBody()
+        .jsonPath(DOLLAR_STATUS)
+        .isEqualTo(404)
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(404));
+
+    verify(sessionService).getSessionConfig("sess-missing");
+  }
+
+  @Test
+  void testGetSessionWorkflowsWithError() {
+    when(sessionService.getSessionConfig("sess-123"))
+        .thenReturn(Mono.just(new SessionConfigResponse("sess-123", "name", "desc", "user", Map.of(), "/path", Map.of())));
+    when(sessionService.getSessionWorkflows("sess-123"))
+        .thenReturn(Mono.error(new RuntimeException("Service error")));
+
+    webTestClient
+        .get()
+        .uri(API_SESSIONS + "/sess-123/workflows")
+        .exchange()
+        .expectStatus()
+        .is5xxServerError();
+
+    verify(sessionService).getSessionConfig("sess-123");
+    verify(sessionService).getSessionWorkflows("sess-123");
   }
 }

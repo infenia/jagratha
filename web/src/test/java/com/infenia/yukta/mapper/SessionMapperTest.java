@@ -8,6 +8,7 @@ import com.infenia.yukta.dto.request.ConfigRequest;
 import com.infenia.yukta.dto.request.WorkflowDefinitionRequest;
 import com.infenia.yukta.dto.request.WorkflowDefinitionRequest.EdgeRequest;
 import com.infenia.yukta.dto.request.WorkflowDefinitionRequest.NodeRequest;
+import com.infenia.yukta.dto.response.SessionDetails;
 import com.infenia.yukta.dto.response.SessionListItem;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.session.SessionConfigResponse;
@@ -742,5 +743,28 @@ class SessionMapperTest {
         description,
         List.of(new NodeRequest(nodeId, PROCESSOR_PLUGIN, Map.of())),
         List.of());
+  }
+
+  @Test
+  void testSessionConfigResponseToSessionDetails() {
+    final SessionConfigResponse response =
+        new SessionConfigResponse(
+            "sess-123",
+            "Test Session",
+            "Session description",
+            "john.doe",
+            Map.of("tag1", "value1", "tag2", "value2"),
+            "/path/to/project",
+            Map.of("wf1", new WorkflowDefinition("wf1", "desc", List.of(), List.of())));
+
+    final SessionDetails details = mapper.sessionConfigResponseToSessionDetails(response);
+
+    assertThat(details.sessionId()).isEqualTo("sess-123");
+    assertThat(details.name()).isEqualTo("Test Session");
+    assertThat(details.description()).isEqualTo("Session description");
+    assertThat(details.initiator()).isEqualTo("john.doe");
+    assertThat(details.tags()).containsExactly("tag1", "tag2");
+    assertThat(details.projectPath()).isEqualTo("/path/to/project");
+    assertThat(details.workflowIds()).containsExactly("wf1");
   }
 }

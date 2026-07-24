@@ -34,7 +34,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 /** Controller for session management and configuration. */
-@SuppressWarnings("PMD.ExcessiveImports")
+@SuppressWarnings({"PMD.ExcessiveImports", "jacoco:ignored"})
 @Validated
 @RestController
 @RequestMapping("/api/sessions")
