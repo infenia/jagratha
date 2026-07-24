@@ -21,3 +21,14 @@ dependencies {
     testImplementation(libs.findLibrary("spring-boot-starter-test").get())
     testImplementation(libs.findLibrary("reactor-test").get())
 }
+
+configurations.all {
+    // Patch CVE-2026-59901, CVE-2026-55831, CVE-2026-55833, CVE-2026-56745, CVE-2026-56816
+    // Force Netty codec versions to 4.2.16.Final
+    val nettyVersion = libs.findVersion("netty").get().requiredVersion
+    resolutionStrategy.force(
+        "io.netty:netty-codec-compression:$nettyVersion",
+        "io.netty:netty-codec-http:$nettyVersion",
+        "io.netty:netty-codec-http3:$nettyVersion"
+    )
+}
