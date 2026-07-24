@@ -73,4 +73,10 @@ describe('SessionInfoPanel', () => {
     render(<SessionInfoPanel session={noTagsSession} />);
     expect(screen.getByText('Tags')).toBeInTheDocument();
   });
+
+  it('displays project path in code block', () => {
+    render(<SessionInfoPanel session={mockSession} />);
+    const codeBlock = screen.getByText('/path/to/project');
+    expect(codeBlock.tagName).toBe('CODE');
+  });
 });

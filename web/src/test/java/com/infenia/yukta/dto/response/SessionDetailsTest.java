@@ -19,6 +19,24 @@ class SessionDetailsTest {
   /** Second session ID test constant. */
   private static final String SESSION_ID_456 = "session-456";
 
+  /** Test data: name field. */
+  private static final String NAME = "name";
+
+  /** Test data: description field. */
+  private static final String DESC = "desc";
+
+  /** Test data: initiator field. */
+  private static final String INITIATOR = "initiator";
+
+  /** Test data: project path field. */
+  private static final String PATH = "/path";
+
+  /** Test data: tag1. */
+  private static final String TAG1 = "tag1";
+
+  /** Test data: workflow1. */
+  private static final String WORKFLOW1 = "workflow1";
+
   @Test
   void constructor_validInputs_createsRecord() {
     // Given
@@ -26,9 +44,9 @@ class SessionDetailsTest {
     final String name = "Test Session";
     final String description = "A test session";
     final String initiator = "test-user";
-    final List<String> tags = List.of("tag1", "tag2");
+    final List<String> tags = List.of(TAG1, "tag2");
     final String projectPath = "/path/to/project";
-    final List<String> workflowIds = List.of("workflow1", "workflow2");
+    final List<String> workflowIds = List.of(WORKFLOW1, "workflow2");
 
     // When
     final SessionDetails details =
@@ -48,7 +66,7 @@ class SessionDetailsTest {
   void constructor_withNullTagsAndWorkflowIds_convertsToEmptyLists() {
     // Given-When
     final SessionDetails details =
-        new SessionDetails(SESSION_ID_123, "name", "desc", "initiator", null, "/path", null);
+        new SessionDetails(SESSION_ID_123, NAME, DESC, INITIATOR, null, PATH, null);
 
     // Then
     assertThat(details.tags()).isEmpty();
@@ -62,13 +80,7 @@ class SessionDetailsTest {
     // Given
     final SessionDetails details =
         new SessionDetails(
-            SESSION_ID_123,
-            "name",
-            "desc",
-            "initiator",
-            List.of("tag1"),
-            "/path",
-            List.of("workflow1"));
+            SESSION_ID_123, NAME, DESC, INITIATOR, List.of(TAG1), PATH, List.of(WORKFLOW1));
 
     // When-Then
     assertThatThrownBy(() -> details.tags().add("tag2"))
@@ -80,7 +92,7 @@ class SessionDetailsTest {
     // Given
     final SessionDetails details =
         new SessionDetails(
-            SESSION_ID_123, "name", "desc", "initiator", List.of(), "/path", List.of("workflow1"));
+            SESSION_ID_123, NAME, DESC, INITIATOR, List.of(), PATH, List.of(WORKFLOW1));
 
     // When-Then
     assertThatThrownBy(() -> details.workflowIds().add("workflow2"))
@@ -92,22 +104,10 @@ class SessionDetailsTest {
     // Given
     final SessionDetails details1 =
         new SessionDetails(
-            SESSION_ID_123,
-            "name",
-            "desc",
-            "initiator",
-            List.of("tag1"),
-            "/path",
-            List.of("workflow1"));
+            SESSION_ID_123, NAME, DESC, INITIATOR, List.of(TAG1), PATH, List.of(WORKFLOW1));
     final SessionDetails details2 =
         new SessionDetails(
-            SESSION_ID_123,
-            "name",
-            "desc",
-            "initiator",
-            List.of("tag1"),
-            "/path",
-            List.of("workflow1"));
+            SESSION_ID_123, NAME, DESC, INITIATOR, List.of(TAG1), PATH, List.of(WORKFLOW1));
 
     // When-Then
     assertThat(details1).isEqualTo(details2);
@@ -117,11 +117,9 @@ class SessionDetailsTest {
   void equals_differentValues_returnsFalse() {
     // Given
     final SessionDetails details1 =
-        new SessionDetails(
-            SESSION_ID_123, "name", "desc", "initiator", List.of(), "/path", List.of());
+        new SessionDetails(SESSION_ID_123, NAME, DESC, INITIATOR, List.of(), PATH, List.of());
     final SessionDetails details2 =
-        new SessionDetails(
-            SESSION_ID_456, "name", "desc", "initiator", List.of(), "/path", List.of());
+        new SessionDetails(SESSION_ID_456, NAME, DESC, INITIATOR, List.of(), PATH, List.of());
 
     // When-Then
     assertThat(details1).isNotEqualTo(details2);
@@ -131,13 +129,12 @@ class SessionDetailsTest {
   void verifyToStringContainsRelevantFieldValues() {
     // Given
     final SessionDetails details =
-        new SessionDetails(
-            SESSION_ID_123, "name", "desc", "initiator", List.of(), "/path", List.of());
+        new SessionDetails(SESSION_ID_123, NAME, DESC, INITIATOR, List.of(), PATH, List.of());
 
     // When
     final String actual = details.toString();
 
     // Then
-    assertThat(actual).contains("SessionDetails").contains(SESSION_ID_123).contains("name");
+    assertThat(actual).contains("SessionDetails").contains(SESSION_ID_123).contains(NAME);
   }
 }

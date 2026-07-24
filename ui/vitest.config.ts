@@ -27,8 +27,8 @@ export default defineConfig({
       thresholds: {
         lines: 98,
         functions: 95,
-        branches: 94,
-        statements: 97,
+        branches: 96,
+        statements: 98,
         'src/lib/apiClient.ts': {
           lines: 100,
           functions: 100,

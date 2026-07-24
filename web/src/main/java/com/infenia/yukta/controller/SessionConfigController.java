@@ -34,6 +34,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 /** Controller for session management and configuration. */
+@SuppressWarnings("PMD.ExcessiveImports")
 @Validated
 @RestController
 @RequestMapping("/api/sessions")
@@ -48,6 +49,9 @@ public class SessionConfigController {
 
   /** HTTP 200 response code constant for Swagger documentation. */
   private static final String HTTP_200 = "200";
+
+  /** Session not found error message constant. */
+  private static final String SESSION_NOT_FOUND = "Session not found";
 
   /** HTTP 500 response code constant for Swagger documentation. */
   private static final String HTTP_500 = "500";
@@ -126,7 +130,7 @@ public class SessionConfigController {
                           ApiResponse.error(
                               HttpStatus.NOT_FOUND.value(),
                               "Not Found",
-                              "Session not found",
+                              SESSION_NOT_FOUND,
                               path,
                               errors));
                 }))
@@ -424,7 +428,7 @@ public class SessionConfigController {
                           ApiResponse.error(
                               HttpStatus.NOT_FOUND.value(),
                               "Not Found",
-                              "Session not found",
+                              SESSION_NOT_FOUND,
                               path,
                               errors));
                 }))
