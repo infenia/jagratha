@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import {
   useReactTable,
   getCoreRowModel,
@@ -18,6 +19,7 @@ import { SessionsFilterBar } from './SessionsFilterBar';
 import { SessionsPaginationFooter } from './SessionsPaginationFooter';
 
 export function SessionListPage() {
+  const navigate = useNavigate();
   const { data: sessions = [], isLoading, error } = useSessionSummaries();
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -117,7 +119,8 @@ export function SessionListPage() {
                   table.getRowModel().rows.map((row, idx) => (
                     <TableRow
                       key={row.id}
-                      className={`border-b border-outline-variant py-3 hover:bg-surface-container-high ${
+                      onClick={() => navigate(`/sessions/${row.original.sessionId}`)}
+                      className={`cursor-pointer border-b border-outline-variant py-3 hover:bg-surface-container-high ${
                         idx % 2 === 1 ? 'bg-surface-container-low' : ''
                       }`}
                     >

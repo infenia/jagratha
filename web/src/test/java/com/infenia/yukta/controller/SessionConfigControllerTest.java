@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.infenia.yukta.dto.request.ConfigRequest;
 import com.infenia.yukta.dto.request.WorkflowDefinitionRequest;
 import com.infenia.yukta.dto.request.WorkflowDefinitionRequest.NodeRequest;
+import com.infenia.yukta.dto.response.SessionDetails;
 import com.infenia.yukta.dto.response.SessionListItem;
 import com.infenia.yukta.mapper.SessionMapper;
 import com.infenia.yukta.model.session.SessionConfigData;
@@ -115,7 +116,13 @@ class SessionConfigControllerTest {
             Map.of(),
             "/path",
             Map.of(WF_ID_1, new WorkflowDefinition("w1", "d", List.of(), List.of())));
+    final var sessionDetails =
+        new SessionDetails(
+            "s1", "Test Session", WORKFLOW_DESC, "initiator", List.of(), "/path", List.of(WF_ID_1));
     when(sessionService.getSessionConfig("s1")).thenReturn(Mono.just(config));
+    lenient()
+        .when(sessionMapper.sessionConfigResponseToSessionDetails(config))
+        .thenReturn(sessionDetails);
 
     webTestClient
         .get()
@@ -251,7 +258,13 @@ class SessionConfigControllerTest {
     final var config =
         new SessionConfigResponse(
             "s1", "Test Session", "desc", "initiator", Map.of(), "/path", Map.of());
+    final var sessionDetails =
+        new SessionDetails(
+            "s1", "Test Session", "desc", "initiator", List.of(), "/path", List.of());
     when(sessionService.getSessionConfig("s1")).thenReturn(Mono.just(config));
+    lenient()
+        .when(sessionMapper.sessionConfigResponseToSessionDetails(config))
+        .thenReturn(sessionDetails);
 
     final var result =
         webTestClient
