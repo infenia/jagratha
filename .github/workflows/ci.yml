@@ -494,6 +494,30 @@ jobs:
           CI: true
           BASE_URL: http://localhost:5173
 
+      # TEMPORARY: regenerates screenshot baselines on the CI runner so they
+      # match ubuntu-latest's font rendering exactly. Remove this step once
+      # the regenerated PNGs are downloaded and committed.
+      - name: Regenerate screenshot baselines
+        if: always()
+        working-directory: ui
+        run: |
+          pnpm exec playwright test screenshots.spec.ts \
+            --project=chromium \
+            --update-snapshots \
+            --reporter=list
+        env:
+          CI: true
+          BASE_URL: http://localhost:5173
+
+      - name: Upload regenerated baselines
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        with:
+          name: e2e-snapshot-baselines
+          path: ui/e2e/__snapshots__/
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
