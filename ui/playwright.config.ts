@@ -29,6 +29,9 @@ export default defineConfig({
   expect: { timeout: 5000 },
 
   // Screenshot comparison
+  // {arg} is the name passed to toHaveScreenshot()/toMatchSnapshot() — it
+  // must be included or every screenshot in a spec file collapses onto the
+  // same file for a given project/platform.
   snapshotDir: 'e2e/__snapshots__',
   snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{arg}-{projectName}-{platform}{ext}',
 
