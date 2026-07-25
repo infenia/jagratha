@@ -282,6 +282,7 @@ class SessionConfigControllerTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.UnitTestShouldIncludeAssert")
   void testGetSessionDetailsSuccess() {
     final var wf1 = new WorkflowDefinition("wf1", "d", List.of(), List.of());
     final var wf2 = new WorkflowDefinition(WF_ID_2, "d", List.of(), List.of());
@@ -798,7 +799,7 @@ class SessionConfigControllerTest {
         .jsonPath(DOLLAR_STATUS)
         .isEqualTo(500)
         .jsonPath(DOLLAR_MESSAGE)
-        .exists();
+        .isEqualTo("An internal server error occurred. Please try again later.");
 
     verify(sessionService).getSessionConfig("sess-123");
     verify(sessionService).getLatestExecutionStatusByWorkflow("sess-123");

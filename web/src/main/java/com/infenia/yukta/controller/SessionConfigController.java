@@ -400,14 +400,16 @@ public class SessionConfigController {
                       "getSessionWorkflows error occurred: sessionId={}, error={}",
                       sessionId,
                       error.getMessage());
+              @SuppressWarnings("PMD.LawOfDemeter")
+              final var path = exchange.getRequest().getPath().toString();
               return Mono.just(
                   ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                       .body(
                           ApiResponse.error(
                               HttpStatus.INTERNAL_SERVER_ERROR.value(),
                               "Internal Server Error",
-                              error.getMessage(),
-                              exchange.getRequest().getPath().toString(),
+                              "An internal server error occurred. Please try again later.",
+                              path,
                               List.of())));
             });
   }
