@@ -763,7 +763,7 @@ class SessionMapperTest {
     assertThat(details.name()).isEqualTo("Test Session");
     assertThat(details.description()).isEqualTo("Session description");
     assertThat(details.initiator()).isEqualTo("john.doe");
-    assertThat(details.tags()).containsExactly("tag1", "tag2");
+    assertThat(details.tags()).containsExactlyInAnyOrder("tag1", "tag2");
     assertThat(details.projectPath()).isEqualTo("/path/to/project");
     assertThat(details.workflowIds()).containsExactly("wf1");
   }

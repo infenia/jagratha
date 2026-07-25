@@ -72,6 +72,12 @@ class WorkflowSummaryTest {
     final WorkflowSummary summary = new WorkflowSummary(WF_ID_1, DESC, 5, 4, STATUS_SUCCESS);
     final String str = summary.toString();
 
-    assertThat(str).contains("WorkflowSummary").contains(WF_ID_1).contains(STATUS_SUCCESS);
+    assertThat(str)
+        .contains("WorkflowSummary")
+        .contains(WF_ID_1)
+        .contains(DESC)
+        .contains("5")
+        .contains("4")
+        .contains(STATUS_SUCCESS);
   }
 }

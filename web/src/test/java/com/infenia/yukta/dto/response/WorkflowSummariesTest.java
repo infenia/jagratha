@@ -29,14 +29,16 @@ class WorkflowSummariesTest {
 
   @Test
   void constructor_validInputs_createsRecord() {
-    final List<WorkflowSummary> workflows =
-        List.of(
-            new WorkflowSummary(WF_ID_1, DESC_1, 5, 4, STATUS_SUCCESS),
-            new WorkflowSummary(WF_ID_2, DESC_2, 3, 2, null));
+    final List<WorkflowSummary> workflows = new java.util.ArrayList<>();
+    workflows.add(new WorkflowSummary(WF_ID_1, DESC_1, 5, 4, STATUS_SUCCESS));
+    workflows.add(new WorkflowSummary(WF_ID_2, DESC_2, 3, 2, null));
     final WorkflowSummaries summaries = new WorkflowSummaries(workflows);
+
+    workflows.clear();
 
     assertThat(summaries.workflows()).hasSize(2);
     assertThat(summaries.workflows().get(0).workflowId()).isEqualTo(WF_ID_1);
+    assertThat(summaries.workflows().get(1).workflowId()).isEqualTo(WF_ID_2);
   }
 
   @Test

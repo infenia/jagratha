@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import type { WorkflowSummary, WorkflowExecutionStatus } from '../types/session';
 
 interface WorkflowCardProps {
@@ -28,20 +28,14 @@ const STATUS_LABELS: Record<WorkflowExecutionStatus | 'NOT_RUN', string> = {
 };
 
 export function WorkflowCard({ sessionId, workflow }: WorkflowCardProps) {
-  const navigate = useNavigate();
-
   const statusKey: WorkflowExecutionStatus | 'NOT_RUN' = workflow.status || 'NOT_RUN';
   const badgeClass = STATUS_BADGE_STYLES[statusKey];
   const badgeLabel = STATUS_LABELS[statusKey];
 
-  const handleClick = () => {
-    navigate(`/sessions/${sessionId}/workflow/${workflow.workflowId}`);
-  };
-
   return (
-    <button
-      onClick={handleClick}
-      className="group w-full cursor-pointer border border-outline-variant bg-surface p-6 text-left transition-standard hover:bg-surface-variant focus:outline-2 focus:outline-primary focus:outline-offset-2"
+    <Link
+      to={`/sessions/${sessionId}/workflow/${workflow.workflowId}`}
+      className="group block w-full cursor-pointer border border-outline-variant bg-surface p-6 text-left transition-standard hover:bg-surface-variant focus:outline-2 focus:outline-primary focus:outline-offset-2"
     >
       <div className="mb-4 flex items-start justify-between">
         <span className={`px-2 py-0.5 text-[10px] font-bold uppercase ${badgeClass}`}>
@@ -74,6 +68,6 @@ export function WorkflowCard({ sessionId, workflow }: WorkflowCardProps) {
           <span>{workflow.edgeCount} Edges</span>
         </div>
       </div>
-    </button>
+    </Link>
   );
 }

@@ -1,21 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { WorkflowCard } from '../WorkflowCard';
 import type { WorkflowSummary } from '../../types/session';
-
-const mockNavigate = vi.fn();
-vi.mock('react-router', async () => {
-  const actual = await vi.importActual('react-router');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
 
 const mockWorkflow: WorkflowSummary = {
   workflowId: 'wf1',
@@ -82,31 +73,15 @@ describe('WorkflowCard', () => {
     expect(screen.getByText('Not Run')).toBeInTheDocument();
   });
 
-  it('navigates on card click', async () => {
-    const user = userEvent.setup();
+  it('renders link with correct href', () => {
     render(
       <MemoryRouter>
         <WorkflowCard sessionId="sess-123" workflow={mockWorkflow} />
       </MemoryRouter>
     );
 
-    const button = screen.getByRole('button');
-    await user.click(button);
-    expect(mockNavigate).toHaveBeenCalledWith('/sessions/sess-123/workflow/wf1');
-  });
-
-  it('navigates on Enter key press', async () => {
-    const user = userEvent.setup();
-    render(
-      <MemoryRouter>
-        <WorkflowCard sessionId="sess-123" workflow={mockWorkflow} />
-      </MemoryRouter>
-    );
-
-    const button = screen.getByRole('button');
-    button.focus();
-    await user.keyboard('{Enter}');
-    expect(mockNavigate).toHaveBeenCalledWith('/sessions/sess-123/workflow/wf1');
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('href', '/sessions/sess-123/workflow/wf1');
   });
 
   it('displays "Pending" for PENDING status', () => {
