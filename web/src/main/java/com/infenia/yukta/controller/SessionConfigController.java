@@ -307,11 +307,7 @@ public class SessionConfigController {
                           sessionId,
                           workflowId);
                   final String errorMsg =
-                      "Workflow not found: '"
-                          + workflowId
-                          + "' in session: '"
-                          + sessionId
-                          + "'";
+                      "Workflow not found: '" + workflowId + "' in session: '" + sessionId + "'";
                   return buildNotFoundResponse(
                       "workflowId", errorMsg, "Workflow not found", exchange);
                 }))
@@ -487,11 +483,7 @@ public class SessionConfigController {
         ResponseEntity.status(HttpStatus.NOT_FOUND)
             .body(
                 ApiResponse.error(
-                    HttpStatus.NOT_FOUND.value(),
-                    "Not Found",
-                    errorCode,
-                    path,
-                    errors));
+                    HttpStatus.NOT_FOUND.value(), "Not Found", errorCode, path, errors));
     @SuppressWarnings("unchecked")
     final ResponseEntity<ApiResponse<T>> result = (ResponseEntity<ApiResponse<T>>) entity;
     return result;
