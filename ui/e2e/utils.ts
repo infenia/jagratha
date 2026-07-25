@@ -57,8 +57,8 @@ export async function waitForLoadingComplete(
   timeout = 5000
 ): Promise<void> {
   await page.waitForLoadState('networkidle', { timeout });
-  // Extra wait for font rendering and CSS settlement, especially important in CI
-  await page.waitForTimeout(500);
+  // Wait for fonts to load via document.fonts.ready API
+  await page.evaluate(() => document.fonts.ready);
 }
 
 /**

@@ -294,22 +294,28 @@ class SessionConfigControllerTest {
             Map.of(),
             "/path",
             Map.of("wf1", wf1, WF_ID_2, wf2));
+    final var sessionDetails =
+        new SessionDetails(
+            "s2", "Test Session", "desc", "initiator", List.of(), "/path", List.of("wf1", WF_ID_2));
     when(sessionService.getSessionConfig("s2")).thenReturn(Mono.just(config));
+    lenient()
+        .when(sessionMapper.sessionConfigResponseToSessionDetails(config))
+        .thenReturn(sessionDetails);
 
-    final var result =
-        webTestClient
-            .get()
-            .uri(API_SESSIONS + "/s2")
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectBody()
-            .jsonPath(DOLLAR_MESSAGE)
-            .isEqualTo(SESSION_DETAILS_RETRIEVED)
-            .jsonPath(DOLLAR_STATUS)
-            .isEqualTo(200)
-            .returnResult();
-    assertThat(result.getStatus().value()).isEqualTo(200);
+    webTestClient
+        .get()
+        .uri(API_SESSIONS + "/s2")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath(DOLLAR_DATA)
+        .exists()
+        .jsonPath(DOLLAR_MESSAGE)
+        .isEqualTo(SESSION_DETAILS_RETRIEVED)
+        .jsonPath(DOLLAR_STATUS)
+        .isEqualTo(200)
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(200));
   }
 
   @Test
@@ -759,6 +765,14 @@ class SessionConfigControllerTest {
         .expectBody()
         .jsonPath(DOLLAR_STATUS)
         .isEqualTo(404)
+        .jsonPath(DOLLAR_MESSAGE)
+        .exists()
+        .jsonPath("$.error")
+        .exists()
+        .jsonPath("$.path")
+        .exists()
+        .jsonPath("$.errors")
+        .isArray()
         .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(404));
 
     verify(sessionService).getSessionConfig("sess-missing");
@@ -779,7 +793,12 @@ class SessionConfigControllerTest {
         .uri(API_SESSIONS + "/sess-123/workflows")
         .exchange()
         .expectStatus()
-        .is5xxServerError();
+        .isEqualTo(500)
+        .expectBody()
+        .jsonPath(DOLLAR_STATUS)
+        .isEqualTo(500)
+        .jsonPath(DOLLAR_MESSAGE)
+        .exists();
 
     verify(sessionService).getSessionConfig("sess-123");
     verify(sessionService).getLatestExecutionStatusByWorkflow("sess-123");
@@ -820,7 +839,27 @@ class SessionConfigControllerTest {
         .jsonPath("$.data.workflows")
         .isArray()
         .jsonPath("$.data.workflows.length()")
-        .isEqualTo(2);
+        .isEqualTo(2)
+        .jsonPath("$.data.workflows[0].workflowId")
+        .exists()
+        .jsonPath("$.data.workflows[0].description")
+        .exists()
+        .jsonPath("$.data.workflows[0].nodeCount")
+        .isNumber()
+        .jsonPath("$.data.workflows[0].edgeCount")
+        .isNumber()
+        .jsonPath("$.data.workflows[0].status")
+        .isNotEmpty()
+        .jsonPath("$.data.workflows[1].workflowId")
+        .exists()
+        .jsonPath("$.data.workflows[1].description")
+        .exists()
+        .jsonPath("$.data.workflows[1].nodeCount")
+        .isNumber()
+        .jsonPath("$.data.workflows[1].edgeCount")
+        .isNumber()
+        .jsonPath("$.data.workflows[1].status")
+        .isNotEmpty();
 
     verify(sessionService).getSessionConfig("sess-multi");
     verify(sessionService).getLatestExecutionStatusByWorkflow("sess-multi");

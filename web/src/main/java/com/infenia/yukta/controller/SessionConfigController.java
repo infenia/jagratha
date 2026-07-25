@@ -378,7 +378,7 @@ public class SessionConfigController {
                                   "Workflow summaries retrieved",
                                   new WorkflowSummaries(summaries)));
                         }))
-        .doOnSuccess(
+        .doOnNext(
             _ ->
                 log.atInfo().log(
                     "getSessionWorkflows response sent successfully: sessionId={}", sessionId))
@@ -393,13 +393,23 @@ public class SessionConfigController {
                       SESSION_NOT_FOUND,
                       exchange);
                 }))
-        .doOnError(
-            error ->
-                log.atError()
-                    .log(
-                        "getSessionWorkflows error occurred: sessionId={}, error={}",
-                        sessionId,
-                        error.getMessage()));
+        .onErrorResume(
+            error -> {
+              log.atError()
+                  .log(
+                      "getSessionWorkflows error occurred: sessionId={}, error={}",
+                      sessionId,
+                      error.getMessage());
+              return Mono.just(
+                  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                      .body(
+                          ApiResponse.error(
+                              HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                              "Internal Server Error",
+                              error.getMessage(),
+                              exchange.getRequest().getPath().toString(),
+                              List.of())));
+            });
   }
 
   /**
