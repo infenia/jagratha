@@ -481,13 +481,6 @@ jobs:
         working-directory: ui
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Update E2E screenshot baselines (CI environment match)
-        working-directory: ui
-        run: pnpm test:e2e --project=chromium --update-snapshots
-        env:
-          CI: true
-          BASE_URL: http://localhost:5173
-
       - name: Run E2E tests
         working-directory: ui
         run: |
