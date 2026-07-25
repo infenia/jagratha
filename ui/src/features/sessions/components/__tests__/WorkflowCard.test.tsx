@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { WorkflowCard } from '../WorkflowCard';
 import type { WorkflowSummary } from '../../types/session';
@@ -81,17 +82,30 @@ describe('WorkflowCard', () => {
     expect(screen.getByText('Not Run')).toBeInTheDocument();
   });
 
-  it('navigates on card click', () => {
-    const { container } = render(
+  it('navigates on card click', async () => {
+    const user = userEvent.setup();
+    render(
       <MemoryRouter>
         <WorkflowCard sessionId="sess-123" workflow={mockWorkflow} />
       </MemoryRouter>
     );
 
-    const card = container.querySelector('.group');
-    if (card) {
-      card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    }
+    const button = screen.getByRole('button');
+    await user.click(button);
+    expect(mockNavigate).toHaveBeenCalledWith('/sessions/sess-123/workflow/wf1');
+  });
+
+  it('navigates on Enter key press', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <WorkflowCard sessionId="sess-123" workflow={mockWorkflow} />
+      </MemoryRouter>
+    );
+
+    const button = screen.getByRole('button');
+    button.focus();
+    await user.keyboard('{Enter}');
     expect(mockNavigate).toHaveBeenCalledWith('/sessions/sess-123/workflow/wf1');
   });
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useSessionDetails } from '../useSessionDetails';
 import { createTestWrapper } from '@/test/utils/testUtils';
@@ -27,9 +27,16 @@ const server = setupServer(
   })
 );
 
-server.listen();
-
 describe('useSessionDetails', () => {
+  beforeAll(() => {
+    server.listen();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+
   it('fetches session details when sessionId is provided', async () => {
     const { result } = renderHook(() => useSessionDetails('sess-123'), {
       wrapper: createTestWrapper(),

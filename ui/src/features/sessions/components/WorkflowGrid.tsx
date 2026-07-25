@@ -25,7 +25,7 @@ export function WorkflowGrid({ sessionId, workflows, filter, onFilterChange }: W
           Associated Workflows ({workflows.length})
         </h2>
         <div className="flex items-center gap-2 border border-outline-variant bg-surface-container px-3 py-1.5">
-          <span className="material-symbols-outlined text-sm text-on-surface-variant">
+          <span className="material-symbols-outlined text-sm text-on-surface-variant" aria-hidden="true">
             search
           </span>
           <input

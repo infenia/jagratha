@@ -82,10 +82,11 @@ export function SessionInfoPanel({ session }: SessionInfoPanelProps) {
               </h3>
               <button
                 onClick={handleCopyPath}
+                aria-label="Copy project path"
                 className="group flex items-center justify-between border border-outline-variant bg-surface p-2 hover:bg-surface-variant"
               >
                 <code className="truncate pr-4 text-xs text-on-surface">{session.projectPath}</code>
-                <span className="material-symbols-outlined text-sm transition-colors group-hover:text-primary"
+                <span className="material-symbols-outlined text-sm transition-colors group-hover:text-primary" aria-hidden="true"
                   style={{ color: copied ? 'var(--color-primary)' : undefined }}>
                   {copied ? 'check' : 'content_copy'}
                 </span>

@@ -39,15 +39,15 @@ export function WorkflowCard({ sessionId, workflow }: WorkflowCardProps) {
   };
 
   return (
-    <div
+    <button
       onClick={handleClick}
-      className="group cursor-pointer border border-outline-variant bg-surface p-6 transition-standard hover:bg-surface-variant"
+      className="group w-full cursor-pointer border border-outline-variant bg-surface p-6 text-left transition-standard hover:bg-surface-variant focus:outline-2 focus:outline-primary focus:outline-offset-2"
     >
       <div className="mb-4 flex items-start justify-between">
         <span className={`px-2 py-0.5 text-[10px] font-bold uppercase ${badgeClass}`}>
           {badgeLabel}
         </span>
-        <span className="material-symbols-outlined text-on-surface-variant transition-standard group-hover:translate-x-1">
+        <span className="material-symbols-outlined text-on-surface-variant transition-standard group-hover:translate-x-1" aria-hidden="true">
           arrow_forward
         </span>
       </div>
@@ -62,18 +62,18 @@ export function WorkflowCard({ sessionId, workflow }: WorkflowCardProps) {
 
       <div className="flex gap-4 text-xs font-medium text-on-surface">
         <div className="flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-sm text-on-surface-variant">
+          <span className="material-symbols-outlined text-sm text-on-surface-variant" aria-hidden="true">
             account_tree
           </span>
           <span>{workflow.nodeCount} Nodes</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-sm text-on-surface-variant">
+          <span className="material-symbols-outlined text-sm text-on-surface-variant" aria-hidden="true">
             rebase_edit
           </span>
           <span>{workflow.edgeCount} Edges</span>
         </div>
       </div>
-    </div>
+    </button>
   );
 }

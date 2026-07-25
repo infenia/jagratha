@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useSessionWorkflows } from '../useSessionWorkflows';
 import { createTestWrapper } from '@/test/utils/testUtils';
@@ -29,9 +29,16 @@ const server = setupServer(
   })
 );
 
-server.listen();
-
 describe('useSessionWorkflows', () => {
+  beforeAll(() => {
+    server.listen();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+
   it('fetches workflows when sessionId is provided', async () => {
     const { result } = renderHook(() => useSessionWorkflows('sess-123'), {
       wrapper: createTestWrapper(),
