@@ -307,8 +307,13 @@ public class SessionConfigController {
                           sessionId,
                           workflowId);
                   final String errorMsg =
-                      "Workflow not found: '" + workflowId + "' in session: '" + sessionId + "'";
-                  return buildNotFoundResponse("workflowId", errorMsg, "Workflow not found", exchange);
+                      "Workflow not found: '"
+                          + workflowId
+                          + "' in session: '"
+                          + sessionId
+                          + "'";
+                  return buildNotFoundResponse(
+                      "workflowId", errorMsg, "Workflow not found", exchange);
                 }))
         .doOnError(
             error ->
