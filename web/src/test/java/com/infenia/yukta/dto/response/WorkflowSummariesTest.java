@@ -9,18 +9,34 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /** Tests for WorkflowSummaries. */
+@SuppressWarnings("PMD.AtLeastOneConstructor")
 class WorkflowSummariesTest {
+
+  /** Workflow ID constant for testing. */
+  private static final String WF_ID_1 = "wf1";
+
+  /** Workflow ID constant for testing. */
+  private static final String WF_ID_2 = "wf2";
+
+  /** Workflow description constant. */
+  private static final String DESC_1 = "desc1";
+
+  /** Workflow description constant. */
+  private static final String DESC_2 = "desc2";
+
+  /** Workflow status constant. */
+  private static final String STATUS_SUCCESS = "SUCCESS";
 
   @Test
   void constructor_validInputs_createsRecord() {
     final List<WorkflowSummary> workflows =
         List.of(
-            new WorkflowSummary("wf1", "desc1", 5, 4, "SUCCESS"),
-            new WorkflowSummary("wf2", "desc2", 3, 2, null));
+            new WorkflowSummary(WF_ID_1, DESC_1, 5, 4, STATUS_SUCCESS),
+            new WorkflowSummary(WF_ID_2, DESC_2, 3, 2, null));
     final WorkflowSummaries summaries = new WorkflowSummaries(workflows);
 
     assertThat(summaries.workflows()).hasSize(2);
-    assertThat(summaries.workflows().get(0).workflowId()).isEqualTo("wf1");
+    assertThat(summaries.workflows().get(0).workflowId()).isEqualTo(WF_ID_1);
   }
 
   @Test
@@ -34,17 +50,18 @@ class WorkflowSummariesTest {
   @Test
   void workflows_modificationAttempt_throwsUnsupportedOperationException() {
     final List<WorkflowSummary> workflows =
-        List.of(new WorkflowSummary("wf1", "desc1", 5, 4, "SUCCESS"));
+        List.of(new WorkflowSummary(WF_ID_1, DESC_1, 5, 4, STATUS_SUCCESS));
     final WorkflowSummaries summaries = new WorkflowSummaries(workflows);
 
-    assertThatThrownBy(() -> summaries.workflows().add(new WorkflowSummary("wf2", "desc2", 3, 2, null)))
+    assertThatThrownBy(
+            () -> summaries.workflows().add(new WorkflowSummary(WF_ID_2, DESC_2, 3, 2, null)))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
   @Test
   void equals_sameValues_returnsTrue() {
     final List<WorkflowSummary> workflows =
-        List.of(new WorkflowSummary("wf1", "desc1", 5, 4, "SUCCESS"));
+        List.of(new WorkflowSummary(WF_ID_1, DESC_1, 5, 4, STATUS_SUCCESS));
     final WorkflowSummaries summaries1 = new WorkflowSummaries(workflows);
     final WorkflowSummaries summaries2 = new WorkflowSummaries(workflows);
 
@@ -54,17 +71,17 @@ class WorkflowSummariesTest {
   @Test
   void equals_differentValues_returnsFalse() {
     final WorkflowSummaries summaries1 =
-        new WorkflowSummaries(List.of(new WorkflowSummary("wf1", "desc1", 5, 4, "SUCCESS")));
+        new WorkflowSummaries(List.of(new WorkflowSummary(WF_ID_1, DESC_1, 5, 4, STATUS_SUCCESS)));
     final WorkflowSummaries summaries2 =
-        new WorkflowSummaries(List.of(new WorkflowSummary("wf2", "desc2", 3, 2, null)));
+        new WorkflowSummaries(List.of(new WorkflowSummary(WF_ID_2, DESC_2, 3, 2, null)));
 
     assertThat(summaries1).isNotEqualTo(summaries2);
   }
 
   @Test
-  void toString_containsWorkflows() {
+  void summariesToStringContainsFields() {
     final WorkflowSummaries summaries =
-        new WorkflowSummaries(List.of(new WorkflowSummary("wf1", "desc1", 5, 4, "SUCCESS")));
+        new WorkflowSummaries(List.of(new WorkflowSummary(WF_ID_1, DESC_1, 5, 4, STATUS_SUCCESS)));
     final String str = summaries.toString();
 
     assertThat(str).contains("WorkflowSummaries").contains("workflows");

@@ -319,15 +319,10 @@ public class SessionConfigController {
                   @SuppressWarnings("PMD.LawOfDemeter")
                   final var request = exchange.getRequest();
                   final String path = request.getPath().value();
+                  final String errorMsg =
+                      "Workflow not found: '" + workflowId + "' in session: '" + sessionId + "'";
                   final List<ApiResponse.FieldError> errors =
-                      List.of(
-                          new ApiResponse.FieldError(
-                              "workflowId",
-                              "Workflow not found: '"
-                                  + workflowId
-                                  + "' in session: '"
-                                  + sessionId
-                                  + "'"));
+                      List.of(new ApiResponse.FieldError("workflowId", errorMsg));
                   return ResponseEntity.status(HttpStatus.NOT_FOUND)
                       .body(
                           ApiResponse.error(
@@ -381,15 +376,12 @@ public class SessionConfigController {
         .getSessionConfig(sessionId)
         .flatMap(
             config ->
-                Mono.zip(
-                        sessionService.getSessionWorkflows(sessionId),
-                        sessionService.getLatestExecutionStatusByWorkflow(sessionId))
+                sessionService
+                    .getLatestExecutionStatusByWorkflow(sessionId)
                     .map(
-                        tuple -> {
-                          final var defs = tuple.getT1();
-                          final var statuses = tuple.getT2();
+                        statuses -> {
                           final var summaries =
-                              defs.values().stream()
+                              config.workflows().values().stream()
                                   .map(
                                       def ->
                                           new WorkflowSummary(

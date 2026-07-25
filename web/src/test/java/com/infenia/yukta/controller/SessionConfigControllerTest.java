@@ -13,9 +13,8 @@ import com.infenia.yukta.dto.request.WorkflowDefinitionRequest;
 import com.infenia.yukta.dto.request.WorkflowDefinitionRequest.NodeRequest;
 import com.infenia.yukta.dto.response.SessionDetails;
 import com.infenia.yukta.dto.response.SessionListItem;
-import com.infenia.yukta.dto.response.WorkflowSummaries;
-import com.infenia.yukta.dto.response.WorkflowSummary;
 import com.infenia.yukta.mapper.SessionMapper;
+import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.model.session.SessionConfigData;
 import com.infenia.yukta.model.session.SessionConfigResponse;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
@@ -723,8 +722,10 @@ class SessionConfigControllerTest {
   @Test
   void testGetSessionWorkflowsSuccess() {
     when(sessionService.getSessionConfig("sess-123"))
-        .thenReturn(Mono.just(new SessionConfigResponse("sess-123", "name", "desc", "user", Map.of(), "/path", Map.of())));
-    when(sessionService.getSessionWorkflows("sess-123")).thenReturn(Mono.just(Map.of()));
+        .thenReturn(
+            Mono.just(
+                new SessionConfigResponse(
+                    "sess-123", "name", "desc", "user", Map.of(), "/path", Map.of())));
     when(sessionService.getLatestExecutionStatusByWorkflow("sess-123"))
         .thenReturn(Mono.just(Map.of()));
 
@@ -742,7 +743,6 @@ class SessionConfigControllerTest {
         .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(200));
 
     verify(sessionService).getSessionConfig("sess-123");
-    verify(sessionService).getSessionWorkflows("sess-123");
     verify(sessionService).getLatestExecutionStatusByWorkflow("sess-123");
   }
 
@@ -767,8 +767,11 @@ class SessionConfigControllerTest {
   @Test
   void testGetSessionWorkflowsWithError() {
     when(sessionService.getSessionConfig("sess-123"))
-        .thenReturn(Mono.just(new SessionConfigResponse("sess-123", "name", "desc", "user", Map.of(), "/path", Map.of())));
-    when(sessionService.getSessionWorkflows("sess-123"))
+        .thenReturn(
+            Mono.just(
+                new SessionConfigResponse(
+                    "sess-123", "name", "desc", "user", Map.of(), "/path", Map.of())));
+    when(sessionService.getLatestExecutionStatusByWorkflow("sess-123"))
         .thenReturn(Mono.error(new RuntimeException("Service error")));
 
     webTestClient
@@ -779,6 +782,104 @@ class SessionConfigControllerTest {
         .is5xxServerError();
 
     verify(sessionService).getSessionConfig("sess-123");
-    verify(sessionService).getSessionWorkflows("sess-123");
+    verify(sessionService).getLatestExecutionStatusByWorkflow("sess-123");
+  }
+
+  @Test
+  void testGetSessionWorkflowsWithMultipleWorkflows() {
+    final var config =
+        new SessionConfigResponse(
+            "sess-multi",
+            "Multi Workflow",
+            "desc",
+            "user",
+            Map.of(),
+            "/path",
+            Map.of(
+                WF_ID_1, new WorkflowDefinition(WF_ID_1, "desc1", List.of(), List.of()),
+                WF_ID_2, new WorkflowDefinition(WF_ID_2, "desc2", List.of(), List.of())));
+    when(sessionService.getSessionConfig("sess-multi")).thenReturn(Mono.just(config));
+    when(sessionService.getLatestExecutionStatusByWorkflow("sess-multi"))
+        .thenReturn(
+            Mono.just(
+                Map.of(
+                    WF_ID_1,
+                    new WorkflowExecutionSummary("exec1", WF_ID_1, "SUCCESS", null, null),
+                    WF_ID_2,
+                    new WorkflowExecutionSummary("exec2", WF_ID_2, "RUNNING", null, null))));
+
+    webTestClient
+        .get()
+        .uri(API_SESSIONS + "/sess-multi/workflows")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath(DOLLAR_DATA)
+        .exists()
+        .jsonPath("$.data.workflows")
+        .isArray()
+        .jsonPath("$.data.workflows.length()")
+        .isEqualTo(2);
+
+    verify(sessionService).getSessionConfig("sess-multi");
+    verify(sessionService).getLatestExecutionStatusByWorkflow("sess-multi");
+  }
+
+  @Test
+  void testGetSessionWorkflowsWithWorkflowsButNoStatus() {
+    final var config =
+        new SessionConfigResponse(
+            "sess-unstatus",
+            "Unstatus",
+            "desc",
+            "user",
+            Map.of(),
+            "/path",
+            Map.of(WF_ID_1, new WorkflowDefinition(WF_ID_1, "desc1", List.of(), List.of())));
+    when(sessionService.getSessionConfig("sess-unstatus")).thenReturn(Mono.just(config));
+    when(sessionService.getLatestExecutionStatusByWorkflow("sess-unstatus"))
+        .thenReturn(Mono.just(Map.of()));
+
+    webTestClient
+        .get()
+        .uri(API_SESSIONS + "/sess-unstatus/workflows")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath(DOLLAR_DATA)
+        .exists()
+        .jsonPath("$.data.workflows[0].status")
+        .doesNotExist()
+        .consumeWith(response -> assertThat(response.getStatus().value()).isEqualTo(200));
+
+    verify(sessionService).getSessionConfig("sess-unstatus");
+    verify(sessionService).getLatestExecutionStatusByWorkflow("sess-unstatus");
+  }
+
+  @Test
+  void testGetSessionWorkflowsWithEmptyWorkflows() {
+    final var config =
+        new SessionConfigResponse(
+            "sess-empty-wf", "Empty", "desc", "user", Map.of(), "/path", Map.of());
+    when(sessionService.getSessionConfig("sess-empty-wf")).thenReturn(Mono.just(config));
+    when(sessionService.getLatestExecutionStatusByWorkflow("sess-empty-wf"))
+        .thenReturn(Mono.just(Map.of()));
+
+    webTestClient
+        .get()
+        .uri(API_SESSIONS + "/sess-empty-wf/workflows")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.data.workflows")
+        .isArray()
+        .jsonPath("$.data.workflows.length()")
+        .isEqualTo(0);
+
+    verify(sessionService).getSessionConfig("sess-empty-wf");
+    verify(sessionService).getLatestExecutionStatusByWorkflow("sess-empty-wf");
   }
 }
