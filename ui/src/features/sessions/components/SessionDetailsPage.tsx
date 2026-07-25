@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router';
 import { useSessionDetails } from '../hooks/useSessionDetails';
 import { useSessionWorkflows } from '../hooks/useSessionWorkflows';
@@ -13,6 +13,10 @@ export function SessionDetailsPage() {
   const { data: session, isLoading: sessionLoading, error: sessionError } = useSessionDetails(sessionId || '');
   const { data: workflows = [], isLoading: workflowsLoading, error: workflowsError } = useSessionWorkflows(sessionId || '');
   const [workflowFilter, setWorkflowFilter] = useState('');
+
+  useEffect(() => {
+    setWorkflowFilter('');
+  }, [sessionId]);
 
   if (sessionLoading || workflowsLoading) {
     return (

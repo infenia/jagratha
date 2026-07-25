@@ -21,9 +21,13 @@ export function SessionInfoPanel({ session }: SessionInfoPanelProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopyPath = async () => {
-    await navigator.clipboard.writeText(session.projectPath);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(session.projectPath);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
   };
 
   const initials = getInitials(session.initiator);
@@ -63,13 +67,13 @@ export function SessionInfoPanel({ session }: SessionInfoPanelProps) {
             </div>
           </div>
 
-          <div className="space-y-6 rounded bg-surface-container-high p-6">
+          <div className="space-y-6 bg-surface-container-high p-6">
             <div className="space-y-1">
               <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
                 Initiator
               </h3>
               <div className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-container text-[10px] font-bold text-on-primary-container">
+                <div className="flex h-6 w-6 items-center justify-center bg-primary-container text-[10px] font-bold text-on-primary-container">
                   {initials}
                 </div>
                 <p className="text-sm font-medium text-on-surface">{session.initiator}</p>

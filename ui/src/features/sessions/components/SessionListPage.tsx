@@ -119,8 +119,15 @@ export function SessionListPage() {
                   table.getRowModel().rows.map((row, idx) => (
                     <TableRow
                       key={row.id}
+                      tabIndex={0}
                       onClick={() => navigate(`/sessions/${row.original.sessionId}`)}
-                      className={`cursor-pointer border-b border-outline-variant py-3 hover:bg-surface-container-high ${
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/sessions/${row.original.sessionId}`);
+                        }
+                      }}
+                      className={`cursor-pointer border-b border-outline-variant py-3 hover:bg-surface-container-high focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${
                         idx % 2 === 1 ? 'bg-surface-container-low' : ''
                       }`}
                     >

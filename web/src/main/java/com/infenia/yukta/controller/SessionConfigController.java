@@ -118,21 +118,11 @@ public class SessionConfigController {
             Mono.fromSupplier(
                 () -> {
                   log.atWarn().log("getSessionDetails session not found: sessionId={}", sessionId);
-                  @SuppressWarnings("PMD.LawOfDemeter")
-                  final var request = exchange.getRequest();
-                  final String path = request.getPath().value();
-                  final List<ApiResponse.FieldError> errors =
-                      List.of(
-                          new ApiResponse.FieldError(
-                              "sessionId", "Session not found: '" + sessionId + "'"));
-                  return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                      .body(
-                          ApiResponse.error(
-                              HttpStatus.NOT_FOUND.value(),
-                              "Not Found",
-                              SESSION_NOT_FOUND,
-                              path,
-                              errors));
+                  return buildNotFoundResponse(
+                      "sessionId",
+                      "Session not found: '" + sessionId + "'",
+                      SESSION_NOT_FOUND,
+                      exchange);
                 }))
         .doOnError(
             error ->
@@ -316,21 +306,9 @@ public class SessionConfigController {
                           "getWorkflow workflow not found: sessionId={}, workflowId={}",
                           sessionId,
                           workflowId);
-                  @SuppressWarnings("PMD.LawOfDemeter")
-                  final var request = exchange.getRequest();
-                  final String path = request.getPath().value();
                   final String errorMsg =
                       "Workflow not found: '" + workflowId + "' in session: '" + sessionId + "'";
-                  final List<ApiResponse.FieldError> errors =
-                      List.of(new ApiResponse.FieldError("workflowId", errorMsg));
-                  return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                      .body(
-                          ApiResponse.error(
-                              HttpStatus.NOT_FOUND.value(),
-                              "Not Found",
-                              "Workflow not found",
-                              path,
-                              errors));
+                  return buildNotFoundResponse("workflowId", errorMsg, "Workflow not found", exchange);
                 }))
         .doOnError(
             error ->
@@ -408,21 +386,11 @@ public class SessionConfigController {
                 () -> {
                   log.atWarn()
                       .log("getSessionWorkflows session not found: sessionId={}", sessionId);
-                  @SuppressWarnings("PMD.LawOfDemeter")
-                  final var request = exchange.getRequest();
-                  final String path = request.getPath().value();
-                  final List<ApiResponse.FieldError> errors =
-                      List.of(
-                          new ApiResponse.FieldError(
-                              "sessionId", "Session not found: '" + sessionId + "'"));
-                  return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                      .body(
-                          ApiResponse.error(
-                              HttpStatus.NOT_FOUND.value(),
-                              "Not Found",
-                              SESSION_NOT_FOUND,
-                              path,
-                              errors));
+                  return buildNotFoundResponse(
+                      "sessionId",
+                      "Session not found: '" + sessionId + "'",
+                      SESSION_NOT_FOUND,
+                      exchange);
                 }))
         .doOnError(
             error ->
@@ -497,5 +465,30 @@ public class SessionConfigController {
                         "applyConfig error occurred: sessionId={}, error={}",
                         request.sessionId(),
                         error.getMessage()));
+  }
+
+  private <T> ResponseEntity<ApiResponse<T>> buildNotFoundResponse(
+      final String fieldName,
+      final String errorMessage,
+      final String errorCode,
+      final ServerWebExchange exchange) {
+    @SuppressWarnings("PMD.LawOfDemeter")
+    final var request = exchange.getRequest();
+    final String path = request.getPath().value();
+    final List<ApiResponse.FieldError> errors =
+        List.of(new ApiResponse.FieldError(fieldName, errorMessage));
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    final ResponseEntity entity =
+        ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(
+                ApiResponse.error(
+                    HttpStatus.NOT_FOUND.value(),
+                    "Not Found",
+                    errorCode,
+                    path,
+                    errors));
+    @SuppressWarnings("unchecked")
+    final ResponseEntity<ApiResponse<T>> result = (ResponseEntity<ApiResponse<T>>) entity;
+    return result;
   }
 }

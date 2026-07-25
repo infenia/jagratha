@@ -28,9 +28,9 @@ export default defineConfig({
   timeout: 30 * 1000,
   expect: { timeout: 5000 },
 
-  // Screenshot comparison
+  // Screenshot comparison (organized by test file name for better maintainability)
   snapshotDir: 'e2e/__snapshots__',
-  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{arg}-{projectName}-{platform}{ext}',
+  snapshotPathTemplate: '{snapshotDir}/{testFileName}/{arg}-{projectName}-{platform}{ext}',
 
   // Reporting
   reporter: [
