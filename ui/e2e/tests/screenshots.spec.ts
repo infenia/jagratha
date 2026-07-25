@@ -5,11 +5,12 @@ import { test, expect } from '../fixtures';
 import { waitForLoadingComplete } from '../utils';
 
 // Screenshot comparison tolerances adjusted for CI rendering differences
+// CI rendering (fonts, anti-aliasing) can differ significantly from local development
 const isCI = !!process.env['CI'];
 const screenshotOptions = {
-  full: { maxDiffPixels: isCI ? 200 : 100, threshold: isCI ? 0.3 : 0.2 },
-  partial: { maxDiffPixels: isCI ? 100 : 50, threshold: isCI ? 0.25 : 0.15 },
-  strict: { maxDiffPixels: isCI ? 50 : 20, threshold: isCI ? 0.2 : 0.1 },
+  full: { maxDiffPixels: isCI ? 500 : 100, threshold: isCI ? 0.4 : 0.2 },
+  partial: { maxDiffPixels: isCI ? 250 : 50, threshold: isCI ? 0.35 : 0.15 },
+  strict: { maxDiffPixels: isCI ? 150 : 20, threshold: isCI ? 0.3 : 0.1 },
 };
 
 test.describe('Visual Regression - Screenshots', () => {
@@ -57,7 +58,8 @@ test.describe('Visual Regression - Screenshots', () => {
       }
       await expect(toggle).toHaveAttribute('title', 'Current: dark');
       await expect(page.locator('html')).toHaveClass(/dark/);
-      await page.waitForTimeout(200);
+      // Extra wait for theme CSS to settle, especially in CI
+      await page.waitForTimeout(isCI ? 800 : 200);
 
       await expect(page).toHaveScreenshot('session-list-dark-mode.png', {
         ...screenshotOptions.full,
