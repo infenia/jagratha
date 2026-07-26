@@ -76,7 +76,7 @@ export function LogsPanel({ entries, isStreaming }: { entries: LogEntry[]; isStr
             STREAMING
           </span>
         )}
-        <div className="flex w-full flex-wrap items-center gap-4 sm:ml-auto sm:w-auto sm:flex-nowrap">
+        <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:items-center sm:gap-4">
           <div className="relative w-full sm:w-56">
             <span className="material-symbols-outlined pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-sm text-on-surface-variant">
               search
