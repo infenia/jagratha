@@ -27,6 +27,7 @@ import org.mapstruct.factory.Mappers;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 /**
  * Integration test for LogManagementController with historical + live log streaming.
@@ -237,7 +238,7 @@ class LogManagementControllerIntegrationTest {
                 null));
     when(mockControlBus.watchExecution(executionId, true)).thenReturn(Flux.never());
 
-    final var entries =
+    final var responseBody =
         webTestClient
             .get()
             .uri("/api/sessions/" + sessionId + "/executions/" + executionId + "/logs/entries")
@@ -246,14 +247,12 @@ class LogManagementControllerIntegrationTest {
             .expectStatus()
             .isOk()
             .returnResult(LogEntryResponse.class)
-            .getResponseBody()
-            .take(2)
-            .collectList()
-            .block();
+            .getResponseBody();
 
-    final var messages =
-        Objects.requireNonNull(entries).stream().map(LogEntryResponse::message).toList();
-    assertThat(messages).containsExactly("Historical entry", "Live entry");
-    assertThat(entries.getFirst().pluginId()).isEqualTo(PLUGIN_ID);
+    StepVerifier.create(responseBody.take(2))
+        .expectNextMatches(entry -> "Historical entry".equals(entry.message()) &&
+            PLUGIN_ID.equals(entry.pluginId()))
+        .expectNextMatches(entry -> "Live entry".equals(entry.message()))
+        .verifyComplete();
   }
 }
