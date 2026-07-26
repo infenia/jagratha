@@ -62,7 +62,7 @@ export function WorkflowDetailsPage() {
   const selectedExecution = executions.find(
     (execution) => execution.executionId === selectedExecutionId
   );
-  const executionStatus = progress?.status ?? selectedExecution?.status ?? null;
+  const executionStatus = progress?.status ?? selectedExecution?.summaryStatus ?? null;
 
   return (
     <div className="flex flex-1 flex-col bg-background" data-testid="workflow-details-page">
