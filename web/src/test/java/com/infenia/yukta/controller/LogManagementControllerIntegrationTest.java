@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.infenia.yukta.dto.response.LogEntryResponse;
 import com.infenia.yukta.logging.api.LogLevel;
 import com.infenia.yukta.logging.api.LogStream;
 import com.infenia.yukta.logging.api.PluginLogEntry;
@@ -37,6 +38,12 @@ import reactor.core.publisher.Flux;
 @NoArgsConstructor
 class LogManagementControllerIntegrationTest {
 
+  /** Test plugin identifier shared across log entry fixtures. */
+  private static final String PLUGIN_ID = "processor-1";
+
+  /** Test plugin display name shared across log entry fixtures. */
+  private static final String PLUGIN_NAME = "Processor";
+
   /** Web test client for testing controller endpoints. */
   private WebTestClient webTestClient;
 
@@ -46,16 +53,17 @@ class LogManagementControllerIntegrationTest {
   /** Mock plugin log store for testing. */
   private PluginLogStore mockLogStore;
 
+  /** Mock task tracker for testing the structured live log flux. */
+  private DefaultTaskTrackerService mockTaskTracker;
+
   @BeforeEach
   void setUp() {
     mockControlBus = mock(ControlBusGateway.class);
     mockLogStore = mock(PluginLogStore.class);
+    mockTaskTracker = mock(DefaultTaskTrackerService.class);
     final LogManagementController controller =
         new LogManagementController(
-            mockControlBus,
-            mockLogStore,
-            mock(DefaultTaskTrackerService.class),
-            Mappers.getMapper(WorkflowMapper.class));
+            mockControlBus, mockLogStore, mockTaskTracker, Mappers.getMapper(WorkflowMapper.class));
     webTestClient = WebTestClient.bindToController(controller).build();
   }
 
@@ -76,8 +84,8 @@ class LogManagementControllerIntegrationTest {
         new PluginLogEntry(
             executionId,
             sessionId,
-            "processor-1",
-            "Processor",
+            PLUGIN_ID,
+            PLUGIN_NAME,
             LogStream.STDOUT,
             "Historical line 1",
             LogLevel.INFO,
@@ -89,8 +97,8 @@ class LogManagementControllerIntegrationTest {
         new PluginLogEntry(
             executionId,
             sessionId,
-            "processor-1",
-            "Processor",
+            PLUGIN_ID,
+            PLUGIN_NAME,
             LogStream.STDOUT,
             "Historical line 2",
             LogLevel.INFO,
@@ -174,5 +182,78 @@ class LogManagementControllerIntegrationTest {
         .exchange()
         .expectStatus()
         .isOk();
+  }
+
+  /**
+   * Test that streamExecutionLogEntries emits structured historical entries then live entries over
+   * HTTP.
+   *
+   * <p>Verifies the {@code /entries} route serializes {@link LogEntryResponse} JSON correctly for
+   * both the historical and live phases of the stream.
+   */
+  @Test
+  void testStreamLogEntriesEmitsHistoryThenLive() {
+    final String sessionId = "session-321";
+    final String executionId = "exec-654";
+    final Instant now = Instant.now();
+
+    final PluginLogEntry historical =
+        new PluginLogEntry(
+            executionId,
+            sessionId,
+            PLUGIN_ID,
+            PLUGIN_NAME,
+            LogStream.STDOUT,
+            "Historical entry",
+            LogLevel.INFO,
+            now.minusSeconds(10),
+            null,
+            null);
+    final PluginLogEntry live =
+        new PluginLogEntry(
+            executionId,
+            sessionId,
+            PLUGIN_ID,
+            PLUGIN_NAME,
+            LogStream.STDOUT,
+            "Live entry",
+            LogLevel.INFO,
+            now,
+            null,
+            null);
+
+    when(mockLogStore.readExecution(executionId)).thenReturn(Flux.just(historical));
+    when(mockTaskTracker.getLogFlux()).thenReturn(Flux.just(live));
+
+    when(mockControlBus.getCurrentProgress(executionId))
+        .thenReturn(
+            new WorkflowProgress(
+                executionId,
+                sessionId,
+                "workflow-1",
+                "RUNNING",
+                List.of(),
+                LocalDateTime.now(ZoneOffset.UTC),
+                null));
+    when(mockControlBus.watchExecution(executionId, true)).thenReturn(Flux.never());
+
+    final var entries =
+        webTestClient
+            .get()
+            .uri("/api/sessions/" + sessionId + "/executions/" + executionId + "/logs/entries")
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .returnResult(LogEntryResponse.class)
+            .getResponseBody()
+            .take(2)
+            .collectList()
+            .block();
+
+    final var messages =
+        Objects.requireNonNull(entries).stream().map(LogEntryResponse::message).toList();
+    assertThat(messages).containsExactly("Historical entry", "Live entry");
+    assertThat(entries.getFirst().pluginId()).isEqualTo(PLUGIN_ID);
   }
 }

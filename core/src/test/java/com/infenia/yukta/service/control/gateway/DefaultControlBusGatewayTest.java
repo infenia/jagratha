@@ -1070,6 +1070,23 @@ class DefaultControlBusGatewayTest {
     verify(taskTracker).getHistory(sessionId);
   }
 
+  @Test
+  void getHistory_validSessionAndWorkflowId_delegatesToTaskTracker() {
+    // Given
+    final String sessionId = "session-2b";
+    final String workflowId = "workflow-2b";
+    final WorkflowExecutionSummary summary = mock(WorkflowExecutionSummary.class);
+    final List<WorkflowExecutionSummary> history = List.of(summary);
+    when(taskTracker.getHistory(sessionId, workflowId)).thenReturn(history);
+
+    // When
+    final List<WorkflowExecutionSummary> result = gateway.getHistory(sessionId, workflowId);
+
+    // Then
+    assertThat(result).isEqualTo(history);
+    verify(taskTracker).getHistory(sessionId, workflowId);
+  }
+
   // --- State Query Tests ---
 
   @Test

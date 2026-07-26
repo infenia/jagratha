@@ -337,6 +337,34 @@ class DefaultTaskTrackerServiceTest {
   }
 
   @Test
+  void testGetHistoryFiltersByWorkflowId() {
+    final String sessionId = "sess-scoped";
+    final String workflowId = "wf-scoped";
+    final String otherWorkflowId = "wf-other";
+
+    StepVerifier.create(
+            tracker.startWorkflow("exec-scoped-1", sessionId, workflowId, List.of("node1")))
+        .verifyComplete();
+    StepVerifier.create(
+            tracker.startWorkflow("exec-scoped-2", sessionId, otherWorkflowId, List.of("node1")))
+        .verifyComplete();
+
+    final List<com.infenia.yukta.model.execution.WorkflowExecutionSummary> history =
+        tracker.getHistory(sessionId, workflowId);
+
+    assertThat(history).hasSize(1);
+    assertThat(history.getFirst().executionId()).isEqualTo("exec-scoped-1");
+    assertThat(history.getFirst().workflowId()).isEqualTo(workflowId);
+  }
+
+  @Test
+  void testGetHistoryByWorkflowIdUnknownSession() {
+    final List<com.infenia.yukta.model.execution.WorkflowExecutionSummary> history =
+        tracker.getHistory("unknown-session", "unknown-workflow");
+    assertThat(history).isEmpty();
+  }
+
+  @Test
   void testRemoveSessionNonExistent() {
     // removeSession on non-existent session should not crash
     tracker.removeSession("non-existent-session");

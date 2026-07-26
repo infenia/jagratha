@@ -189,10 +189,7 @@ public class WorkflowDetailsController {
         .getSessionWorkflow(sessionId, workflowId)
         .map(
             definition -> {
-              final var executions =
-                  controlBus.getHistory(sessionId).stream()
-                      .filter(summary -> workflowId.equals(summary.workflowId()))
-                      .toList();
+              final var executions = controlBus.getHistory(sessionId, workflowId);
               return ResponseEntity.ok(
                   ApiResponse.success(
                       HttpStatus.OK.value(),
@@ -251,7 +248,7 @@ public class WorkflowDetailsController {
     return enriched;
   }
 
-  @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.UseConcurrentHashMap"})
+  @SuppressWarnings("PMD.UseConcurrentHashMap")
   private List<String> computeTopologicalOrder(final WorkflowDefinition definition) {
     final Map<String, WorkflowDefinition.Node> nodeMap = new HashMap<>();
     final Map<String, List<WorkflowNode>> adjacency = new HashMap<>();
@@ -294,7 +291,7 @@ public class WorkflowDetailsController {
           topologicalSortService.computeTopologicalOrder(workflowNodes, adjacency, parents).stream()
               .map(WorkflowNode::nodeId)
               .toList();
-    } catch (final RuntimeException e) {
+    } catch (final IllegalArgumentException e) {
       log.atWarn()
           .setCause(e)
           .addKeyValue(WORKFLOW_ID, definition.workflowId())

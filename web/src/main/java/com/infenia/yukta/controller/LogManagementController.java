@@ -140,6 +140,14 @@ public class LogManagementController {
 
               return historicalLogs.concatWith(liveLogs);
             })
+        .switchIfEmpty(
+            Flux.defer(
+                () -> {
+                  log.atDebug()
+                      .addKeyValue(EXECUTION_ID, executionId)
+                      .log("Unknown execution, streaming historical logs only");
+                  return logStore.readExecution(executionId).map(PluginLogEntry::format);
+                }))
         .doOnComplete(
             () -> log.atInfo().addKeyValue(EXECUTION_ID, executionId).log("Log stream completed"));
   }

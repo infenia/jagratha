@@ -46,9 +46,6 @@ class WorkflowDetailsControllerTest {
   /** Test workflow ID. */
   private static final String WORKFLOW_ID = "wf-982-xk-11";
 
-  /** Other workflow ID for history filtering. */
-  private static final String OTHER_WORKFLOW_ID = "wf-other";
-
   /** Trigger node ID. */
   private static final String TRIGGER_NODE = "data-ingress";
 
@@ -278,16 +275,14 @@ class WorkflowDetailsControllerTest {
   }
 
   @Test
-  void getWorkflowExecutions_filtersHistoryByWorkflowId() {
+  void getWorkflowExecutions_delegatesToWorkflowScopedHistory() {
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
         .thenReturn(Mono.just(diamondDefinition()));
     final LocalDateTime start = LocalDateTime.of(2026, 7, 26, 14, 22, 1);
-    when(controlBus.getHistory(SESSION_ID))
+    when(controlBus.getHistory(SESSION_ID, WORKFLOW_ID))
         .thenReturn(
             List.of(
                 new WorkflowExecutionSummary("exec-2", WORKFLOW_ID, "RUNNING", start, null),
-                new WorkflowExecutionSummary(
-                    "exec-foreign", OTHER_WORKFLOW_ID, "SUCCESS", start, start),
                 new WorkflowExecutionSummary("exec-1", WORKFLOW_ID, "SUCCESS", start, start)));
 
     webTestClient
@@ -309,7 +304,7 @@ class WorkflowDetailsControllerTest {
   void getWorkflowExecutions_neverRunWorkflow_returnsEmptyList() {
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
         .thenReturn(Mono.just(diamondDefinition()));
-    when(controlBus.getHistory(SESSION_ID)).thenReturn(List.of());
+    when(controlBus.getHistory(SESSION_ID, WORKFLOW_ID)).thenReturn(List.of());
 
     webTestClient
         .get()

@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
+import { useEffect, useState } from 'react';
 import { toNodeUiStatus, toTaskSequenceLabel } from '../lib/statusMapper';
 import { formatClockTime, formatDuration } from '../lib/timeFormat';
 import { cn } from '@/lib/utils';
 import type { NodeUiStatus, TaskProgress, WorkflowGraph } from '../types/workflow';
+
+/** How often the running-duration display refreshes between SSE updates. */
+const DURATION_REFRESH_MS = 1000;
 
 const STATUS_ICONS: Record<NodeUiStatus, string> = {
   completed: 'check_circle',
@@ -101,6 +105,19 @@ export function TaskSequenceList({
         endTime: null,
       }
   );
+
+  const hasRunningTask = tasks.some((task) => toNodeUiStatus(task.status) === 'running');
+
+  // Re-render on a fixed interval so running durations keep advancing between SSE updates;
+  // the interval only exists while a task is actually running.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!hasRunningTask) {
+      return undefined;
+    }
+    const id = setInterval(() => setTick((value) => value + 1), DURATION_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [hasRunningTask]);
 
   return (
     <div data-testid="task-sequence">

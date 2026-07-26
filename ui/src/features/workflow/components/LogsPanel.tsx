@@ -54,7 +54,7 @@ export function LogsPanel({ entries, isStreaming }: { entries: LogEntry[]; isStr
       data-testid="logs-panel"
       aria-label="Execution logs"
     >
-      <div className="flex h-11 items-center gap-3 px-4">
+      <div className="flex flex-wrap items-center gap-3 px-4 py-2 sm:h-11 sm:flex-nowrap sm:py-0">
         <button
           type="button"
           onClick={() => setCollapsed((value) => !value)}
@@ -76,8 +76,8 @@ export function LogsPanel({ entries, isStreaming }: { entries: LogEntry[]; isStr
             STREAMING
           </span>
         )}
-        <div className="ml-auto flex items-center gap-4">
-          <div className="relative">
+        <div className="flex w-full flex-wrap items-center gap-4 sm:ml-auto sm:w-auto sm:flex-nowrap">
+          <div className="relative w-full sm:w-56">
             <span className="material-symbols-outlined pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-sm text-on-surface-variant">
               search
             </span>
@@ -86,7 +86,7 @@ export function LogsPanel({ entries, isStreaming }: { entries: LogEntry[]; isStr
               onChange={(event) => setFilter(event.target.value)}
               placeholder="Filter logs..."
               aria-label="Filter logs"
-              className="h-7 w-56 pl-8 text-xs"
+              className="h-7 w-full pl-8 text-xs"
             />
           </div>
           <label className="flex cursor-pointer items-center gap-2 text-[10px] font-semibold tracking-wider text-on-surface-variant">

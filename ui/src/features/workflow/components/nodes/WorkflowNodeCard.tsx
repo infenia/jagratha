@@ -50,6 +50,8 @@ function outputHandleTop(index: number, count: number): string {
   return `${((index + 1) / (count + 1)) * 100}%`;
 }
 
+const HANDLE_CLASSES = 'size-2! border! border-outline! bg-surface!';
+
 /**
  * The canvas node placeholder shell.
  *
@@ -81,7 +83,7 @@ export function WorkflowNodeCard({ data }: NodeProps<WorkflowFlowNode>) {
         <Handle
           type="target"
           position={Position.Left}
-          className="size-2! rounded-full! border! border-outline! bg-surface!"
+          className={HANDLE_CLASSES}
           aria-label={`${node.nodeId} input`}
         />
       )}
@@ -93,7 +95,7 @@ export function WorkflowNodeCard({ data }: NodeProps<WorkflowFlowNode>) {
           position={Position.Right}
           style={{ top: outputHandleTop(index, outputPorts.length) }}
           title={port ?? 'output'}
-          className="size-2! rounded-full! border! border-outline! bg-surface!"
+          className={HANDLE_CLASSES}
           aria-label={`${node.nodeId} output ${port ?? 'default'}`}
         />
       ))}

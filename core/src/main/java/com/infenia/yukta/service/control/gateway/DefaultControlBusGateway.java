@@ -823,6 +823,22 @@ public class DefaultControlBusGateway implements ControlBusGateway, RestartCompl
     return history;
   }
 
+  @Override
+  public List<WorkflowExecutionSummary> getHistory(
+      final String sessionId, final String workflowId) {
+    log.atDebug()
+        .addKeyValue("sessionId", sessionId)
+        .addKeyValue("workflowId", workflowId)
+        .log("Fetching workflow execution history");
+    final List<WorkflowExecutionSummary> history = taskTracker.getHistory(sessionId, workflowId);
+    log.atDebug()
+        .addKeyValue("sessionId", sessionId)
+        .addKeyValue("workflowId", workflowId)
+        .addKeyValue("executionCount", history.size())
+        .log("Workflow execution history retrieved");
+    return history;
+  }
+
   // --- State Queries ---
 
   @Override

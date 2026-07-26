@@ -145,6 +145,16 @@ public interface TaskTrackerService {
   List<WorkflowExecutionSummary> getHistory(@SessionId String sessionId);
 
   /**
+   * Get history of executions for a single workflow within a session.
+   *
+   * @param sessionId the session identifier
+   * @param workflowId the workflow identifier
+   * @return list of workflow execution summaries for the given workflow
+   */
+  List<WorkflowExecutionSummary> getHistory(
+      @SessionId String sessionId, @WorkflowId String workflowId);
+
+  /**
    * List all active sessions being tracked.
    *
    * @return list of session IDs

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 Infenia Private Limited
 
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
 import { TaskSequenceList } from '../TaskSequenceList';
 import { createMockGraph, createMockProgress } from '@/test/factories/workflowFactory';
 import type { TaskProgress } from '../../types/workflow';
@@ -65,6 +65,26 @@ describe('TaskSequenceList', () => {
     });
     render(<TaskSequenceList graph={graph} tasksByNode={{}} />);
     expect(screen.getByTestId('task-item-ghost-node')).toHaveTextContent('module: unknown');
+  });
+
+  it('refreshes the running task duration on an interval without new SSE data', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-07-26T14:22:12'));
+      render(<TaskSequenceList graph={createMockGraph()} tasksByNode={tasksByNode()} />);
+
+      const running = screen.getByTestId('task-item-vectorize-batch');
+      const before = running.textContent;
+
+      act(() => {
+        vi.setSystemTime(new Date('2026-07-26T14:22:20'));
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(running.textContent).not.toEqual(before);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('marks failed tasks with the FAILED label and error styling', () => {
