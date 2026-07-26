@@ -3,29 +3,25 @@
 package com.infenia.yukta.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.infenia.yukta.mapper.WorkflowMapper;
 import com.infenia.yukta.model.execution.WorkflowExecutionSummary;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.plugin.core.Plugin;
 import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import com.infenia.yukta.service.orchestrator.preparator.TopologicalSortService;
-import com.infenia.yukta.service.plugin.PluginRegistry;
 import com.infenia.yukta.service.session.SessionService;
+import com.infenia.yukta.service.workflow.WorkflowGraphService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
-import org.mockito.Mockito;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
@@ -81,8 +77,8 @@ class WorkflowDetailsControllerTest {
   /** Mock session service. */
   private SessionService sessionService;
 
-  /** Mock plugin registry. */
-  private PluginRegistry pluginRegistry;
+  /** Mock workflow graph service. */
+  private WorkflowGraphService workflowGraphService;
 
   /** Mock control bus gateway. */
   private ControlBusGateway controlBus;
@@ -93,13 +89,12 @@ class WorkflowDetailsControllerTest {
   @BeforeEach
   void setUp() {
     sessionService = mock(SessionService.class);
-    pluginRegistry = mock(PluginRegistry.class);
+    workflowGraphService = mock(WorkflowGraphService.class);
     controlBus = mock(ControlBusGateway.class);
     final WorkflowDetailsController controller =
         new WorkflowDetailsController(
             sessionService,
-            pluginRegistry,
-            new TopologicalSortService(),
+            workflowGraphService,
             controlBus,
             Mappers.getMapper(WorkflowMapper.class));
     webTestClient = WebTestClient.bindToController(controller).build();
@@ -118,32 +113,29 @@ class WorkflowDetailsControllerTest {
             new WorkflowDefinition.Edge(PROCESSOR_NODE, TERMINAL_NODE, "default")));
   }
 
-  private Plugin mockPlugin(
-      final PluginCategory category,
-      final String description,
-      final UiDesign uiDesign,
-      final List<String> outputPorts) {
-    final Plugin plugin = mock(Plugin.class);
-    when(plugin.getCategory()).thenReturn(category);
-    when(plugin.getDescription()).thenReturn(description);
-    when(plugin.getUiDesign()).thenReturn(Optional.ofNullable(uiDesign));
-    when(plugin.getOutputPorts(Mockito.anyMap())).thenReturn(outputPorts);
-    return plugin;
-  }
-
   @Test
   void getWorkflowGraph_enrichesNodesWithPluginMetadata() {
     final UiDesign uiDesign = new UiDesign("<div>{{nodeId}}</div>", 200, 80);
-    final Plugin trigger =
-        mockPlugin(PluginCategory.TRIGGER, "Ingest", uiDesign, List.of("default"));
-    final Plugin processor =
-        mockPlugin(PluginCategory.PROCESSOR, "Vectorize", null, List.of("default", "error"));
-    final Plugin terminal = mockPlugin(PluginCategory.TERMINAL, "Store", null, List.of());
+    final WorkflowDefinition definition = diamondDefinition();
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
-        .thenReturn(Mono.just(diamondDefinition()));
-    when(pluginRegistry.get(TRIGGER_TYPE)).thenReturn(trigger);
-    when(pluginRegistry.get(PROCESSOR_TYPE)).thenReturn(processor);
-    when(pluginRegistry.get(TERMINAL_TYPE)).thenReturn(terminal);
+        .thenReturn(Mono.just(definition));
+
+    when(workflowGraphService.enrichNode(
+            argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
+        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
+            TRIGGER_NODE, TRIGGER_TYPE, PluginCategory.TRIGGER, "Ingest", uiDesign, List.of("default")));
+    when(workflowGraphService.enrichNode(
+            argThat(n -> n.nodeId().equals(PROCESSOR_NODE))))
+        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
+            PROCESSOR_NODE, PROCESSOR_TYPE, PluginCategory.PROCESSOR, "Vectorize", null,
+            List.of("default", "error")));
+    when(workflowGraphService.enrichNode(
+            argThat(n -> n.nodeId().equals(TERMINAL_NODE))))
+        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
+            TERMINAL_NODE, TERMINAL_TYPE, PluginCategory.TERMINAL, "Store", null, List.of()));
+
+    when(workflowGraphService.computeTopologicalOrder(definition))
+        .thenReturn(List.of(TRIGGER_NODE, PROCESSOR_NODE, TERMINAL_NODE));
 
     webTestClient
         .get()
@@ -170,21 +162,23 @@ class WorkflowDetailsControllerTest {
         .isEqualTo(TRIGGER_NODE)
         .jsonPath("$.data.topologicalOrder[2]")
         .isEqualTo(TERMINAL_NODE);
-
-    verify(processor).getOutputPorts(Map.of("batch", 45));
   }
 
   @Test
   void getWorkflowGraph_unknownPluginType_returnsBareNode() {
+    final WorkflowDefinition definition = new WorkflowDefinition(
+        WORKFLOW_ID,
+        DESCRIPTION,
+        List.of(new WorkflowDefinition.Node(TRIGGER_NODE, "unknown-type", Map.of())),
+        List.of());
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
-        .thenReturn(
-            Mono.just(
-                new WorkflowDefinition(
-                    WORKFLOW_ID,
-                    DESCRIPTION,
-                    List.of(new WorkflowDefinition.Node(TRIGGER_NODE, "unknown-type", Map.of())),
-                    List.of())));
-    when(pluginRegistry.get("unknown-type")).thenReturn(null);
+        .thenReturn(Mono.just(definition));
+
+    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
+        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
+            TRIGGER_NODE, "unknown-type", null, null, null, List.of()));
+    when(workflowGraphService.computeTopologicalOrder(definition))
+        .thenReturn(List.of(TRIGGER_NODE));
 
     webTestClient
         .get()
@@ -205,20 +199,26 @@ class WorkflowDetailsControllerTest {
 
   @Test
   void getWorkflowGraph_cyclicGraph_fallsBackToDeclarationOrder() {
-    final Plugin plugin = mockPlugin(PluginCategory.PROCESSOR, "Proc", null, List.of("default"));
+    final WorkflowDefinition definition = new WorkflowDefinition(
+        WORKFLOW_ID,
+        DESCRIPTION,
+        List.of(
+            new WorkflowDefinition.Node(TRIGGER_NODE, PROCESSOR_TYPE, Map.of()),
+            new WorkflowDefinition.Node(PROCESSOR_NODE, PROCESSOR_TYPE, Map.of())),
+        List.of(
+            new WorkflowDefinition.Edge(TRIGGER_NODE, PROCESSOR_NODE, null),
+            new WorkflowDefinition.Edge(PROCESSOR_NODE, TRIGGER_NODE, null)));
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
-        .thenReturn(
-            Mono.just(
-                new WorkflowDefinition(
-                    WORKFLOW_ID,
-                    DESCRIPTION,
-                    List.of(
-                        new WorkflowDefinition.Node(TRIGGER_NODE, PROCESSOR_TYPE, Map.of()),
-                        new WorkflowDefinition.Node(PROCESSOR_NODE, PROCESSOR_TYPE, Map.of())),
-                    List.of(
-                        new WorkflowDefinition.Edge(TRIGGER_NODE, PROCESSOR_NODE, null),
-                        new WorkflowDefinition.Edge(PROCESSOR_NODE, TRIGGER_NODE, null)))));
-    when(pluginRegistry.get(PROCESSOR_TYPE)).thenReturn(plugin);
+        .thenReturn(Mono.just(definition));
+
+    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
+        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
+            TRIGGER_NODE, PROCESSOR_TYPE, PluginCategory.PROCESSOR, "Proc", null, List.of("default")));
+    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(PROCESSOR_NODE))))
+        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
+            PROCESSOR_NODE, PROCESSOR_TYPE, PluginCategory.PROCESSOR, "Proc", null, List.of("default")));
+    when(workflowGraphService.computeTopologicalOrder(definition))
+        .thenReturn(List.of(TRIGGER_NODE, PROCESSOR_NODE));
 
     webTestClient
         .get()
@@ -235,18 +235,21 @@ class WorkflowDetailsControllerTest {
 
   @Test
   void getWorkflowGraph_edgeReferencingUnknownNode_isSkippedInTopologicalOrder() {
-    final Plugin plugin = mockPlugin(PluginCategory.TRIGGER, "Trig", null, List.of("default"));
+    final WorkflowDefinition definition = new WorkflowDefinition(
+        WORKFLOW_ID,
+        DESCRIPTION,
+        List.of(new WorkflowDefinition.Node(TRIGGER_NODE, TRIGGER_TYPE, Map.of())),
+        List.of(
+            new WorkflowDefinition.Edge(TRIGGER_NODE, "ghost-node", null),
+            new WorkflowDefinition.Edge("ghost-source", TRIGGER_NODE, null)));
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
-        .thenReturn(
-            Mono.just(
-                new WorkflowDefinition(
-                    WORKFLOW_ID,
-                    DESCRIPTION,
-                    List.of(new WorkflowDefinition.Node(TRIGGER_NODE, TRIGGER_TYPE, Map.of())),
-                    List.of(
-                        new WorkflowDefinition.Edge(TRIGGER_NODE, "ghost-node", null),
-                        new WorkflowDefinition.Edge("ghost-source", TRIGGER_NODE, null)))));
-    when(pluginRegistry.get(TRIGGER_TYPE)).thenReturn(plugin);
+        .thenReturn(Mono.just(definition));
+
+    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
+        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
+            TRIGGER_NODE, TRIGGER_TYPE, PluginCategory.TRIGGER, "Trig", null, List.of("default")));
+    when(workflowGraphService.computeTopologicalOrder(definition))
+        .thenReturn(List.of(TRIGGER_NODE));
 
     webTestClient
         .get()

@@ -8,20 +8,15 @@ import com.infenia.yukta.dto.response.WorkflowGraphNode;
 import com.infenia.yukta.mapper.WorkflowMapper;
 import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.model.workflow.WorkflowNode;
-import com.infenia.yukta.plugin.core.Plugin;
+import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
-import com.infenia.yukta.service.orchestrator.preparator.TopologicalSortService;
-import com.infenia.yukta.service.plugin.PluginRegistry;
 import com.infenia.yukta.service.session.SessionService;
+import com.infenia.yukta.service.workflow.WorkflowGraphService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -73,11 +68,8 @@ public class WorkflowDetailsController {
   /** The service for managing sessions. */
   private final SessionService sessionService;
 
-  /** The registry of available plugins. */
-  private final PluginRegistry pluginRegistry;
-
-  /** The service computing topological node order. */
-  private final TopologicalSortService topologicalSortService;
+  /** The core service for enriching workflow graphs. */
+  private final WorkflowGraphService workflowGraphService;
 
   /** The control bus gateway for execution history. */
   private final ControlBusGateway controlBus;
@@ -128,7 +120,9 @@ public class WorkflowDetailsController {
             definition ->
                 ResponseEntity.ok(
                     ApiResponse.success(
-                        HttpStatus.OK.value(), "Workflow graph retrieved", buildGraph(definition))))
+                        HttpStatus.OK.value(),
+                        "Workflow graph retrieved",
+                        buildGraph(definition))))
         .switchIfEmpty(
             Mono.fromSupplier(
                 () -> {
@@ -217,88 +211,25 @@ public class WorkflowDetailsController {
 
   private WorkflowGraph buildGraph(final WorkflowDefinition definition) {
     final List<WorkflowGraphNode> nodes =
-        definition.nodes().stream().map(this::enrichNode).toList();
+        definition.nodes().stream()
+            .map(
+                node -> {
+                  final var enriched = workflowGraphService.enrichNode(node);
+                  return new WorkflowGraphNode(
+                      enriched.nodeId(),
+                      enriched.type(),
+                      enriched.category(),
+                      enriched.description(),
+                      (UiDesign) enriched.uiDesign(),
+                      enriched.outputPorts());
+                })
+            .toList();
     return new WorkflowGraph(
         definition.workflowId(),
         definition.description(),
         nodes,
         workflowMapper.toGraphEdges(definition.edges()),
-        computeTopologicalOrder(definition));
-  }
-
-  private WorkflowGraphNode enrichNode(final WorkflowDefinition.Node node) {
-    final Plugin plugin = pluginRegistry.get(node.type());
-    final WorkflowGraphNode enriched;
-    if (plugin == null) {
-      log.atWarn()
-          .addKeyValue("nodeId", node.nodeId())
-          .addKeyValue("pluginType", node.type())
-          .log("Unknown plugin type for workflow node, returning bare node");
-      enriched = new WorkflowGraphNode(node.nodeId(), node.type(), null, null, null, List.of());
-    } else {
-      enriched =
-          new WorkflowGraphNode(
-              node.nodeId(),
-              node.type(),
-              plugin.getCategory(),
-              plugin.getDescription(),
-              plugin.getUiDesign().orElse(null),
-              plugin.getOutputPorts(node.config()));
-    }
-    return enriched;
-  }
-
-  @SuppressWarnings("PMD.UseConcurrentHashMap")
-  private List<String> computeTopologicalOrder(final WorkflowDefinition definition) {
-    final Map<String, WorkflowDefinition.Node> nodeMap = new HashMap<>();
-    final Map<String, List<WorkflowNode>> adjacency = new HashMap<>();
-    final Map<String, List<WorkflowNode>> parents = new HashMap<>();
-    definition
-        .nodes()
-        .forEach(
-            node -> {
-              nodeMap.put(node.nodeId(), node);
-              adjacency.put(node.nodeId(), new ArrayList<>());
-              parents.put(node.nodeId(), new ArrayList<>());
-            });
-    definition
-        .edges()
-        .forEach(
-            edge -> {
-              final WorkflowDefinition.Node source = nodeMap.get(edge.source());
-              final WorkflowDefinition.Node target = nodeMap.get(edge.target());
-              if (source == null || target == null) {
-                log.atWarn()
-                    .addKeyValue("source", edge.source())
-                    .addKeyValue("target", edge.target())
-                    .log("Edge references unknown node, skipping for topological order");
-                return;
-              }
-              adjacency
-                  .get(edge.source())
-                  .add(new WorkflowNode(target.nodeId(), target.type(), target.config()));
-              parents
-                  .get(edge.target())
-                  .add(new WorkflowNode(source.nodeId(), source.type(), source.config()));
-            });
-    final List<WorkflowNode> workflowNodes =
-        definition.nodes().stream()
-            .map(node -> new WorkflowNode(node.nodeId(), node.type(), node.config()))
-            .toList();
-    List<String> order;
-    try {
-      order =
-          topologicalSortService.computeTopologicalOrder(workflowNodes, adjacency, parents).stream()
-              .map(WorkflowNode::nodeId)
-              .toList();
-    } catch (final IllegalArgumentException e) {
-      log.atWarn()
-          .setCause(e)
-          .addKeyValue(WORKFLOW_ID, definition.workflowId())
-          .log("Topological sort failed, falling back to declaration order");
-      order = definition.nodes().stream().map(WorkflowDefinition.Node::nodeId).toList();
-    }
-    return order;
+        workflowGraphService.computeTopologicalOrder(definition));
   }
 
   private <T> ResponseEntity<ApiResponse<T>> buildNotFoundResponse(
