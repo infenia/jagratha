@@ -71,17 +71,19 @@ describe('TaskSequenceList', () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date('2026-07-26T14:22:12'));
-      render(<TaskSequenceList graph={createMockGraph()} tasksByNode={tasksByNode()} />);
+      const tasks = tasksByNode();
+      tasks['vectorize-batch'] = { ...tasks['vectorize-batch'], startTime: '2026-07-26T14:22:10' };
+      render(<TaskSequenceList graph={createMockGraph()} tasksByNode={tasks} />);
 
       const running = screen.getByTestId('task-item-vectorize-batch');
-      const before = running.textContent;
+      expect(running).toHaveTextContent('Dur: 2s');
 
       act(() => {
-        vi.setSystemTime(new Date('2026-07-26T14:22:20'));
+        vi.setSystemTime(new Date('2026-07-26T14:22:21'));
         vi.advanceTimersByTime(1000);
       });
 
-      expect(running.textContent).not.toEqual(before);
+      expect(running).toHaveTextContent('Dur: 11s');
     } finally {
       vi.useRealTimers();
     }
