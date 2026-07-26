@@ -67,6 +67,12 @@ class NoopEventSource {
   close() {
     this.readyState = 2;
   }
+  addEventListener(_type: string, _listener: EventListener | EventListenerObject): void {
+    // No-op; test code uses on* handlers instead
+  }
+  removeEventListener(_type: string, _listener: EventListener | EventListenerObject): void {
+    // No-op; test code uses on* handlers instead
+  }
 }
 Object.defineProperty(globalThis, 'EventSource', {
   writable: true,
