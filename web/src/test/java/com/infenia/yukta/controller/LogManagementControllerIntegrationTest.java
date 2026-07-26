@@ -10,8 +10,10 @@ import com.infenia.yukta.logging.api.LogLevel;
 import com.infenia.yukta.logging.api.LogStream;
 import com.infenia.yukta.logging.api.PluginLogEntry;
 import com.infenia.yukta.logging.api.PluginLogStore;
+import com.infenia.yukta.mapper.WorkflowMapper;
 import com.infenia.yukta.model.execution.WorkflowProgress;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
+import com.infenia.yukta.service.orchestrator.tracker.DefaultTaskTrackerService;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -20,6 +22,7 @@ import java.util.Objects;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
@@ -48,7 +51,11 @@ class LogManagementControllerIntegrationTest {
     mockControlBus = mock(ControlBusGateway.class);
     mockLogStore = mock(PluginLogStore.class);
     final LogManagementController controller =
-        new LogManagementController(mockControlBus, mockLogStore);
+        new LogManagementController(
+            mockControlBus,
+            mockLogStore,
+            mock(DefaultTaskTrackerService.class),
+            Mappers.getMapper(WorkflowMapper.class));
     webTestClient = WebTestClient.bindToController(controller).build();
   }
 
