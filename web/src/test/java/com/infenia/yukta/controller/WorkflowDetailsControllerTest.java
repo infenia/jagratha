@@ -120,19 +120,28 @@ class WorkflowDetailsControllerTest {
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
         .thenReturn(Mono.just(definition));
 
-    when(workflowGraphService.enrichNode(
-            argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
-        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
-            TRIGGER_NODE, TRIGGER_TYPE, PluginCategory.TRIGGER, "Ingest", uiDesign, List.of("default")));
-    when(workflowGraphService.enrichNode(
-            argThat(n -> n.nodeId().equals(PROCESSOR_NODE))))
-        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
-            PROCESSOR_NODE, PROCESSOR_TYPE, PluginCategory.PROCESSOR, "Vectorize", null,
-            List.of("default", "error")));
-    when(workflowGraphService.enrichNode(
-            argThat(n -> n.nodeId().equals(TERMINAL_NODE))))
-        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
-            TERMINAL_NODE, TERMINAL_TYPE, PluginCategory.TERMINAL, "Store", null, List.of()));
+    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
+        .thenReturn(
+            new WorkflowGraphService.EnrichedNodeMetadata(
+                TRIGGER_NODE,
+                TRIGGER_TYPE,
+                PluginCategory.TRIGGER,
+                "Ingest",
+                uiDesign,
+                List.of("default")));
+    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(PROCESSOR_NODE))))
+        .thenReturn(
+            new WorkflowGraphService.EnrichedNodeMetadata(
+                PROCESSOR_NODE,
+                PROCESSOR_TYPE,
+                PluginCategory.PROCESSOR,
+                "Vectorize",
+                null,
+                List.of("default", "error")));
+    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TERMINAL_NODE))))
+        .thenReturn(
+            new WorkflowGraphService.EnrichedNodeMetadata(
+                TERMINAL_NODE, TERMINAL_TYPE, PluginCategory.TERMINAL, "Store", null, List.of()));
 
     when(workflowGraphService.computeTopologicalOrder(definition))
         .thenReturn(List.of(TRIGGER_NODE, PROCESSOR_NODE, TERMINAL_NODE));
@@ -166,17 +175,19 @@ class WorkflowDetailsControllerTest {
 
   @Test
   void getWorkflowGraph_unknownPluginType_returnsBareNode() {
-    final WorkflowDefinition definition = new WorkflowDefinition(
-        WORKFLOW_ID,
-        DESCRIPTION,
-        List.of(new WorkflowDefinition.Node(TRIGGER_NODE, "unknown-type", Map.of())),
-        List.of());
+    final WorkflowDefinition definition =
+        new WorkflowDefinition(
+            WORKFLOW_ID,
+            DESCRIPTION,
+            List.of(new WorkflowDefinition.Node(TRIGGER_NODE, "unknown-type", Map.of())),
+            List.of());
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
         .thenReturn(Mono.just(definition));
 
     when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
-        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
-            TRIGGER_NODE, "unknown-type", null, null, null, List.of()));
+        .thenReturn(
+            new WorkflowGraphService.EnrichedNodeMetadata(
+                TRIGGER_NODE, "unknown-type", null, null, null, List.of()));
     when(workflowGraphService.computeTopologicalOrder(definition))
         .thenReturn(List.of(TRIGGER_NODE));
 
@@ -199,24 +210,37 @@ class WorkflowDetailsControllerTest {
 
   @Test
   void getWorkflowGraph_cyclicGraph_fallsBackToDeclarationOrder() {
-    final WorkflowDefinition definition = new WorkflowDefinition(
-        WORKFLOW_ID,
-        DESCRIPTION,
-        List.of(
-            new WorkflowDefinition.Node(TRIGGER_NODE, PROCESSOR_TYPE, Map.of()),
-            new WorkflowDefinition.Node(PROCESSOR_NODE, PROCESSOR_TYPE, Map.of())),
-        List.of(
-            new WorkflowDefinition.Edge(TRIGGER_NODE, PROCESSOR_NODE, null),
-            new WorkflowDefinition.Edge(PROCESSOR_NODE, TRIGGER_NODE, null)));
+    final WorkflowDefinition definition =
+        new WorkflowDefinition(
+            WORKFLOW_ID,
+            DESCRIPTION,
+            List.of(
+                new WorkflowDefinition.Node(TRIGGER_NODE, PROCESSOR_TYPE, Map.of()),
+                new WorkflowDefinition.Node(PROCESSOR_NODE, PROCESSOR_TYPE, Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge(TRIGGER_NODE, PROCESSOR_NODE, null),
+                new WorkflowDefinition.Edge(PROCESSOR_NODE, TRIGGER_NODE, null)));
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
         .thenReturn(Mono.just(definition));
 
     when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
-        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
-            TRIGGER_NODE, PROCESSOR_TYPE, PluginCategory.PROCESSOR, "Proc", null, List.of("default")));
+        .thenReturn(
+            new WorkflowGraphService.EnrichedNodeMetadata(
+                TRIGGER_NODE,
+                PROCESSOR_TYPE,
+                PluginCategory.PROCESSOR,
+                "Proc",
+                null,
+                List.of("default")));
     when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(PROCESSOR_NODE))))
-        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
-            PROCESSOR_NODE, PROCESSOR_TYPE, PluginCategory.PROCESSOR, "Proc", null, List.of("default")));
+        .thenReturn(
+            new WorkflowGraphService.EnrichedNodeMetadata(
+                PROCESSOR_NODE,
+                PROCESSOR_TYPE,
+                PluginCategory.PROCESSOR,
+                "Proc",
+                null,
+                List.of("default")));
     when(workflowGraphService.computeTopologicalOrder(definition))
         .thenReturn(List.of(TRIGGER_NODE, PROCESSOR_NODE));
 
@@ -235,19 +259,26 @@ class WorkflowDetailsControllerTest {
 
   @Test
   void getWorkflowGraph_edgeReferencingUnknownNode_isSkippedInTopologicalOrder() {
-    final WorkflowDefinition definition = new WorkflowDefinition(
-        WORKFLOW_ID,
-        DESCRIPTION,
-        List.of(new WorkflowDefinition.Node(TRIGGER_NODE, TRIGGER_TYPE, Map.of())),
-        List.of(
-            new WorkflowDefinition.Edge(TRIGGER_NODE, "ghost-node", null),
-            new WorkflowDefinition.Edge("ghost-source", TRIGGER_NODE, null)));
+    final WorkflowDefinition definition =
+        new WorkflowDefinition(
+            WORKFLOW_ID,
+            DESCRIPTION,
+            List.of(new WorkflowDefinition.Node(TRIGGER_NODE, TRIGGER_TYPE, Map.of())),
+            List.of(
+                new WorkflowDefinition.Edge(TRIGGER_NODE, "ghost-node", null),
+                new WorkflowDefinition.Edge("ghost-source", TRIGGER_NODE, null)));
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
         .thenReturn(Mono.just(definition));
 
     when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
-        .thenReturn(new WorkflowGraphService.EnrichedNodeMetadata(
-            TRIGGER_NODE, TRIGGER_TYPE, PluginCategory.TRIGGER, "Trig", null, List.of("default")));
+        .thenReturn(
+            new WorkflowGraphService.EnrichedNodeMetadata(
+                TRIGGER_NODE,
+                TRIGGER_TYPE,
+                PluginCategory.TRIGGER,
+                "Trig",
+                null,
+                List.of("default")));
     when(workflowGraphService.computeTopologicalOrder(definition))
         .thenReturn(List.of(TRIGGER_NODE));
 

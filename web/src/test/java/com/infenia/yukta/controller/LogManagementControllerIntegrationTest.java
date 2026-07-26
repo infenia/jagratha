@@ -250,8 +250,9 @@ class LogManagementControllerIntegrationTest {
             .getResponseBody();
 
     StepVerifier.create(responseBody.take(2))
-        .expectNextMatches(entry -> "Historical entry".equals(entry.message()) &&
-            PLUGIN_ID.equals(entry.pluginId()))
+        .expectNextMatches(
+            entry ->
+                "Historical entry".equals(entry.message()) && PLUGIN_ID.equals(entry.pluginId()))
         .expectNextMatches(entry -> "Live entry".equals(entry.message()))
         .verifyComplete();
   }

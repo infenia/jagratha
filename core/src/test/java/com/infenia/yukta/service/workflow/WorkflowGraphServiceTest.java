@@ -44,12 +44,13 @@ class WorkflowGraphServiceTest {
   @Test
   void enrichNode_withKnownPlugin_returnsEnrichedMetadata() {
     final UiDesign uiDesign = new UiDesign("<div>test</div>", 100, 50);
-    final Plugin plugin = mockPlugin(
-        PluginCategory.PROCESSOR, DESCRIPTION, uiDesign, List.of("output1", "output2"));
+    final Plugin plugin =
+        mockPlugin(PluginCategory.PROCESSOR, DESCRIPTION, uiDesign, List.of("output1", "output2"));
     when(pluginRegistry.get(PLUGIN_TYPE)).thenReturn(plugin);
 
-    final var result = service.enrichNode(
-        new WorkflowDefinition.Node(NODE_ID, PLUGIN_TYPE, Map.of("key", "value")));
+    final var result =
+        service.enrichNode(
+            new WorkflowDefinition.Node(NODE_ID, PLUGIN_TYPE, Map.of("key", "value")));
 
     assertThat(result)
         .isNotNull()
@@ -60,7 +61,12 @@ class WorkflowGraphServiceTest {
             WorkflowGraphService.EnrichedNodeMetadata::description,
             WorkflowGraphService.EnrichedNodeMetadata::uiDesign,
             WorkflowGraphService.EnrichedNodeMetadata::outputPorts)
-        .containsExactly(NODE_ID, PLUGIN_TYPE, PluginCategory.PROCESSOR, DESCRIPTION, uiDesign,
+        .containsExactly(
+            NODE_ID,
+            PLUGIN_TYPE,
+            PluginCategory.PROCESSOR,
+            DESCRIPTION,
+            uiDesign,
             List.of("output1", "output2"));
   }
 
@@ -68,7 +74,8 @@ class WorkflowGraphServiceTest {
   void enrichNode_withUnknownPlugin_returnsBareNode() {
     when(pluginRegistry.get(PLUGIN_TYPE)).thenReturn(null);
 
-    final var result = service.enrichNode(new WorkflowDefinition.Node(NODE_ID, PLUGIN_TYPE, Map.of()));
+    final var result =
+        service.enrichNode(new WorkflowDefinition.Node(NODE_ID, PLUGIN_TYPE, Map.of()));
 
     assertThat(result)
         .isNotNull()
@@ -84,11 +91,11 @@ class WorkflowGraphServiceTest {
 
   @Test
   void enrichNode_withPluginMissingUiDesign_returnsNullUiDesign() {
-    final Plugin plugin =
-        mockPlugin(PluginCategory.TRIGGER, "Trigger", null, List.of("default"));
+    final Plugin plugin = mockPlugin(PluginCategory.TRIGGER, "Trigger", null, List.of("default"));
     when(pluginRegistry.get(PLUGIN_TYPE)).thenReturn(plugin);
 
-    final var result = service.enrichNode(new WorkflowDefinition.Node(NODE_ID, PLUGIN_TYPE, Map.of()));
+    final var result =
+        service.enrichNode(new WorkflowDefinition.Node(NODE_ID, PLUGIN_TYPE, Map.of()));
 
     assertThat(result.uiDesign()).isNull();
     assertThat(result.description()).isEqualTo("Trigger");
@@ -99,13 +106,14 @@ class WorkflowGraphServiceTest {
     final var node1 = new WorkflowDefinition.Node("n1", "trigger", Map.of());
     final var node2 = new WorkflowDefinition.Node("n2", "processor", Map.of());
     final var node3 = new WorkflowDefinition.Node("n3", "terminal", Map.of());
-    final var definition = new WorkflowDefinition(
-        WORKFLOW_ID,
-        "Test",
-        List.of(node1, node2, node3),
-        List.of(
-            new WorkflowDefinition.Edge("n1", "n2", null),
-            new WorkflowDefinition.Edge("n2", "n3", null)));
+    final var definition =
+        new WorkflowDefinition(
+            WORKFLOW_ID,
+            "Test",
+            List.of(node1, node2, node3),
+            List.of(
+                new WorkflowDefinition.Edge("n1", "n2", null),
+                new WorkflowDefinition.Edge("n2", "n3", null)));
 
     final var node1Obj = new WorkflowNode("n1", "trigger", Map.of());
     final var node2Obj = new WorkflowNode("n2", "processor", Map.of());
@@ -122,13 +130,14 @@ class WorkflowGraphServiceTest {
   void computeTopologicalOrder_withCycle_fallsBackToDeclarationOrder() {
     final var node1 = new WorkflowDefinition.Node("n1", "processor", Map.of());
     final var node2 = new WorkflowDefinition.Node("n2", "processor", Map.of());
-    final var definition = new WorkflowDefinition(
-        WORKFLOW_ID,
-        "Test",
-        List.of(node1, node2),
-        List.of(
-            new WorkflowDefinition.Edge("n1", "n2", null),
-            new WorkflowDefinition.Edge("n2", "n1", null)));
+    final var definition =
+        new WorkflowDefinition(
+            WORKFLOW_ID,
+            "Test",
+            List.of(node1, node2),
+            List.of(
+                new WorkflowDefinition.Edge("n1", "n2", null),
+                new WorkflowDefinition.Edge("n2", "n1", null)));
 
     when(topologicalSortService.computeTopologicalOrder(anyList(), anyMap(), anyMap()))
         .thenThrow(new IllegalArgumentException("Cycle detected"));
@@ -141,13 +150,14 @@ class WorkflowGraphServiceTest {
   @Test
   void computeTopologicalOrder_withEdgeToUnknownNode_skipsEdge() {
     final var node1 = new WorkflowDefinition.Node("n1", "trigger", Map.of());
-    final var definition = new WorkflowDefinition(
-        WORKFLOW_ID,
-        "Test",
-        List.of(node1),
-        List.of(
-            new WorkflowDefinition.Edge("n1", "unknown-node", null),
-            new WorkflowDefinition.Edge("ghost-source", "n1", null)));
+    final var definition =
+        new WorkflowDefinition(
+            WORKFLOW_ID,
+            "Test",
+            List.of(node1),
+            List.of(
+                new WorkflowDefinition.Edge("n1", "unknown-node", null),
+                new WorkflowDefinition.Edge("ghost-source", "n1", null)));
 
     final var node1Obj = new WorkflowNode("n1", "trigger", Map.of());
     when(topologicalSortService.computeTopologicalOrder(anyList(), anyMap(), anyMap()))
@@ -172,8 +182,7 @@ class WorkflowGraphServiceTest {
   @Test
   void computeTopologicalOrder_withSingleNode_returnsNode() {
     final var node = new WorkflowDefinition.Node("n1", "processor", Map.of());
-    final var definition =
-        new WorkflowDefinition(WORKFLOW_ID, "Test", List.of(node), List.of());
+    final var definition = new WorkflowDefinition(WORKFLOW_ID, "Test", List.of(node), List.of());
 
     final var nodeObj = new WorkflowNode("n1", "processor", Map.of());
     when(topologicalSortService.computeTopologicalOrder(anyList(), anyMap(), anyMap()))
@@ -190,15 +199,16 @@ class WorkflowGraphServiceTest {
     final var n2 = new WorkflowDefinition.Node("n2", "processor", Map.of());
     final var n3 = new WorkflowDefinition.Node("n3", "processor", Map.of());
     final var n4 = new WorkflowDefinition.Node("n4", "terminal", Map.of());
-    final var definition = new WorkflowDefinition(
-        WORKFLOW_ID,
-        "Test",
-        List.of(n1, n2, n3, n4),
-        List.of(
-            new WorkflowDefinition.Edge("n1", "n2", null),
-            new WorkflowDefinition.Edge("n1", "n3", null),
-            new WorkflowDefinition.Edge("n2", "n4", null),
-            new WorkflowDefinition.Edge("n3", "n4", null)));
+    final var definition =
+        new WorkflowDefinition(
+            WORKFLOW_ID,
+            "Test",
+            List.of(n1, n2, n3, n4),
+            List.of(
+                new WorkflowDefinition.Edge("n1", "n2", null),
+                new WorkflowDefinition.Edge("n1", "n3", null),
+                new WorkflowDefinition.Edge("n2", "n4", null),
+                new WorkflowDefinition.Edge("n3", "n4", null)));
 
     final var n1Obj = new WorkflowNode("n1", "trigger", Map.of());
     final var n2Obj = new WorkflowNode("n2", "processor", Map.of());
@@ -217,7 +227,8 @@ class WorkflowGraphServiceTest {
     final Plugin plugin = mockPlugin(PluginCategory.TERMINAL, "Terminal", null, List.of());
     when(pluginRegistry.get(PLUGIN_TYPE)).thenReturn(plugin);
 
-    final var result = service.enrichNode(new WorkflowDefinition.Node(NODE_ID, PLUGIN_TYPE, Map.of()));
+    final var result =
+        service.enrichNode(new WorkflowDefinition.Node(NODE_ID, PLUGIN_TYPE, Map.of()));
 
     assertThat(result.outputPorts()).isEmpty();
   }

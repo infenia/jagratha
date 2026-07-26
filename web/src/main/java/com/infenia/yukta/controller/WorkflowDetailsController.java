@@ -120,9 +120,7 @@ public class WorkflowDetailsController {
             definition ->
                 ResponseEntity.ok(
                     ApiResponse.success(
-                        HttpStatus.OK.value(),
-                        "Workflow graph retrieved",
-                        buildGraph(definition))))
+                        HttpStatus.OK.value(), "Workflow graph retrieved", buildGraph(definition))))
         .switchIfEmpty(
             Mono.fromSupplier(
                 () -> {
