@@ -120,7 +120,8 @@ class WorkflowDetailsControllerTest {
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
         .thenReturn(Mono.just(definition));
 
-    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
+    when(workflowGraphService.enrichNode(
+            argThat(n -> n != null && n.nodeId().equals(TRIGGER_NODE))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 TRIGGER_NODE,
@@ -129,7 +130,8 @@ class WorkflowDetailsControllerTest {
                 "Ingest",
                 uiDesign,
                 List.of("default")));
-    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(PROCESSOR_NODE))))
+    when(workflowGraphService.enrichNode(
+            argThat(n -> n != null && n.nodeId().equals(PROCESSOR_NODE))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 PROCESSOR_NODE,
@@ -138,7 +140,8 @@ class WorkflowDetailsControllerTest {
                 "Vectorize",
                 null,
                 List.of("default", "error")));
-    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TERMINAL_NODE))))
+    when(workflowGraphService.enrichNode(
+            argThat(n -> n != null && n.nodeId().equals(TERMINAL_NODE))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 TERMINAL_NODE, TERMINAL_TYPE, PluginCategory.TERMINAL, "Store", null, List.of()));
@@ -223,7 +226,8 @@ class WorkflowDetailsControllerTest {
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
         .thenReturn(Mono.just(definition));
 
-    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
+    when(workflowGraphService.enrichNode(
+            argThat(n -> n != null && n.nodeId().equals(TRIGGER_NODE))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 TRIGGER_NODE,
@@ -232,7 +236,8 @@ class WorkflowDetailsControllerTest {
                 "Proc",
                 null,
                 List.of("default")));
-    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(PROCESSOR_NODE))))
+    when(workflowGraphService.enrichNode(
+            argThat(n -> n != null && n.nodeId().equals(PROCESSOR_NODE))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 PROCESSOR_NODE,
