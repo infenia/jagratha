@@ -140,18 +140,18 @@ public interface TaskTrackerService {
    * Get history of executions for a session.
    *
    * @param sessionId the session identifier
-   * @return list of workflow execution summaries
+   * @return Mono containing list of workflow execution summaries
    */
-  List<WorkflowExecutionSummary> getHistory(@SessionId String sessionId);
+  Mono<List<WorkflowExecutionSummary>> getHistory(@SessionId String sessionId);
 
   /**
    * Get history of executions for a single workflow within a session.
    *
    * @param sessionId the session identifier
    * @param workflowId the workflow identifier
-   * @return list of workflow execution summaries for the given workflow
+   * @return Mono containing list of workflow execution summaries for the given workflow
    */
-  List<WorkflowExecutionSummary> getHistory(
+  Mono<List<WorkflowExecutionSummary>> getHistory(
       @SessionId String sessionId, @WorkflowId String workflowId);
 
   /**

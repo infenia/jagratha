@@ -320,9 +320,10 @@ class WorkflowDetailsControllerTest {
     final LocalDateTime start = LocalDateTime.of(2026, 7, 26, 14, 22, 1);
     when(controlBus.getHistory(SESSION_ID, WORKFLOW_ID))
         .thenReturn(
-            List.of(
-                new WorkflowExecutionSummary("exec-2", WORKFLOW_ID, "RUNNING", start, null),
-                new WorkflowExecutionSummary("exec-1", WORKFLOW_ID, "SUCCESS", start, start)));
+            Mono.just(
+                List.of(
+                    new WorkflowExecutionSummary("exec-2", WORKFLOW_ID, "RUNNING", start, null),
+                    new WorkflowExecutionSummary("exec-1", WORKFLOW_ID, "SUCCESS", start, start))));
 
     webTestClient
         .get()
@@ -343,7 +344,7 @@ class WorkflowDetailsControllerTest {
   void getWorkflowExecutions_neverRunWorkflow_returnsEmptyList() {
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
         .thenReturn(Mono.just(diamondDefinition()));
-    when(controlBus.getHistory(SESSION_ID, WORKFLOW_ID)).thenReturn(List.of());
+    when(controlBus.getHistory(SESSION_ID, WORKFLOW_ID)).thenReturn(Mono.just(List.of()));
 
     webTestClient
         .get()

@@ -177,15 +177,17 @@ public class WorkflowDetailsController {
         .log("getWorkflowExecutions requested");
     return sessionService
         .getSessionWorkflow(sessionId, workflowId)
-        .map(
-            definition -> {
-              final var executions = controlBus.getHistory(sessionId, workflowId);
-              return ResponseEntity.ok(
-                  ApiResponse.success(
-                      HttpStatus.OK.value(),
-                      "Workflow executions retrieved",
-                      new WorkflowExecutions(executions)));
-            })
+        .flatMap(
+            definition ->
+                controlBus
+                    .getHistory(sessionId, workflowId)
+                    .map(
+                        executions ->
+                            ResponseEntity.ok(
+                                ApiResponse.success(
+                                    HttpStatus.OK.value(),
+                                    "Workflow executions retrieved",
+                                    new WorkflowExecutions(executions)))))
         .switchIfEmpty(
             Mono.fromSupplier(
                 () -> {

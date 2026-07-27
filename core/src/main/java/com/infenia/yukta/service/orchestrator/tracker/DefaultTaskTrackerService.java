@@ -503,23 +503,26 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
    * Get history of executions for a session.
    *
    * @param sessionId the session identifier
-   * @return list of workflow execution summaries
+   * @return Mono containing list of workflow execution summaries
    */
   @Override
-  public List<WorkflowExecutionSummary> getHistory(@SessionId final String sessionId) {
-    final Map<String, WorkflowState> states = sessionStates.get(sessionId);
-    List<WorkflowExecutionSummary> history = Collections.emptyList();
-    if (states != null) {
-      history =
-          states.values().stream()
-              .map(
-                  s ->
-                      new WorkflowExecutionSummary(
-                          s.executionId, s.workflowId, s.status, s.startTime, s.endTime))
-              .sorted((a, b) -> b.startTime().compareTo(a.startTime()))
-              .toList();
-    }
-    return history;
+  public Mono<List<WorkflowExecutionSummary>> getHistory(@SessionId final String sessionId) {
+    return Mono.fromCallable(
+        () -> {
+          final Map<String, WorkflowState> states = sessionStates.get(sessionId);
+          List<WorkflowExecutionSummary> history = Collections.emptyList();
+          if (states != null) {
+            history =
+                states.values().stream()
+                    .map(
+                        s ->
+                            new WorkflowExecutionSummary(
+                                s.executionId, s.workflowId, s.status, s.startTime, s.endTime))
+                    .sorted((a, b) -> b.startTime().compareTo(a.startTime()))
+                    .toList();
+          }
+          return history;
+        });
   }
 
   /**
@@ -527,25 +530,28 @@ public class DefaultTaskTrackerService implements TaskTrackerService {
    *
    * @param sessionId the session identifier
    * @param workflowId the workflow identifier
-   * @return list of workflow execution summaries for the given workflow
+   * @return Mono containing list of workflow execution summaries for the given workflow
    */
   @Override
-  public List<WorkflowExecutionSummary> getHistory(
+  public Mono<List<WorkflowExecutionSummary>> getHistory(
       @SessionId final String sessionId, @WorkflowId final String workflowId) {
-    final Map<String, WorkflowState> states = sessionStates.get(sessionId);
-    List<WorkflowExecutionSummary> history = Collections.emptyList();
-    if (states != null) {
-      history =
-          states.values().stream()
-              .filter(s -> workflowId.equals(s.workflowId))
-              .map(
-                  s ->
-                      new WorkflowExecutionSummary(
-                          s.executionId, s.workflowId, s.status, s.startTime, s.endTime))
-              .sorted((a, b) -> b.startTime().compareTo(a.startTime()))
-              .toList();
-    }
-    return history;
+    return Mono.fromCallable(
+        () -> {
+          final Map<String, WorkflowState> states = sessionStates.get(sessionId);
+          List<WorkflowExecutionSummary> history = Collections.emptyList();
+          if (states != null) {
+            history =
+                states.values().stream()
+                    .filter(s -> workflowId.equals(s.workflowId))
+                    .map(
+                        s ->
+                            new WorkflowExecutionSummary(
+                                s.executionId, s.workflowId, s.status, s.startTime, s.endTime))
+                    .sorted((a, b) -> b.startTime().compareTo(a.startTime()))
+                    .toList();
+          }
+          return history;
+        });
   }
 
   /**
