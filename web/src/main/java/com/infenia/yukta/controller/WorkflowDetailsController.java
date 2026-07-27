@@ -8,7 +8,6 @@ import com.infenia.yukta.dto.response.WorkflowGraphNode;
 import com.infenia.yukta.mapper.WorkflowMapper;
 import com.infenia.yukta.model.api.ApiResponse;
 import com.infenia.yukta.model.workflow.WorkflowDefinition;
-import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.service.control.gateway.ControlBusGateway;
 import com.infenia.yukta.service.session.SessionService;
 import com.infenia.yukta.service.workflow.WorkflowGraphService;
@@ -34,7 +33,6 @@ import reactor.core.publisher.Mono;
  * <p>Serves the workflow DAG enriched with plugin metadata for UI canvas rendering, plus the
  * per-workflow execution history.
  */
-@SuppressWarnings({"PMD.ExcessiveImports", "PMD.CouplingBetweenObjects"})
 @RestController
 @RequestMapping("/api/sessions/{sessionId}/workflows/{workflowId}")
 @RequiredArgsConstructor
@@ -218,7 +216,7 @@ public class WorkflowDetailsController {
                       enriched.type(),
                       enriched.category(),
                       enriched.description(),
-                      (UiDesign) enriched.uiDesign(),
+                      enriched.uiDesign(),
                       enriched.outputPorts());
                 })
             .toList();

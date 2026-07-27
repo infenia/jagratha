@@ -121,7 +121,7 @@ class WorkflowDetailsControllerTest {
         .thenReturn(Mono.just(definition));
 
     when(workflowGraphService.enrichNode(
-            argThat(n -> n != null && n.nodeId().equals(TRIGGER_NODE))))
+            argThat(n -> n != null && TRIGGER_NODE.equals(n.nodeId()))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 TRIGGER_NODE,
@@ -131,7 +131,7 @@ class WorkflowDetailsControllerTest {
                 uiDesign,
                 List.of("default")));
     when(workflowGraphService.enrichNode(
-            argThat(n -> n != null && n.nodeId().equals(PROCESSOR_NODE))))
+            argThat(n -> n != null && PROCESSOR_NODE.equals(n.nodeId()))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 PROCESSOR_NODE,
@@ -141,7 +141,7 @@ class WorkflowDetailsControllerTest {
                 null,
                 List.of("default", "error")));
     when(workflowGraphService.enrichNode(
-            argThat(n -> n != null && n.nodeId().equals(TERMINAL_NODE))))
+            argThat(n -> n != null && TERMINAL_NODE.equals(n.nodeId()))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 TERMINAL_NODE, TERMINAL_TYPE, PluginCategory.TERMINAL, "Store", null, List.of()));
@@ -187,7 +187,7 @@ class WorkflowDetailsControllerTest {
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
         .thenReturn(Mono.just(definition));
 
-    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
+    when(workflowGraphService.enrichNode(argThat(n -> TRIGGER_NODE.equals(n.nodeId()))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 TRIGGER_NODE, "unknown-type", null, null, null, List.of()));
@@ -227,7 +227,7 @@ class WorkflowDetailsControllerTest {
         .thenReturn(Mono.just(definition));
 
     when(workflowGraphService.enrichNode(
-            argThat(n -> n != null && n.nodeId().equals(TRIGGER_NODE))))
+            argThat(n -> n != null && TRIGGER_NODE.equals(n.nodeId()))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 TRIGGER_NODE,
@@ -237,7 +237,7 @@ class WorkflowDetailsControllerTest {
                 null,
                 List.of("default")));
     when(workflowGraphService.enrichNode(
-            argThat(n -> n != null && n.nodeId().equals(PROCESSOR_NODE))))
+            argThat(n -> n != null && PROCESSOR_NODE.equals(n.nodeId()))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 PROCESSOR_NODE,
@@ -275,7 +275,7 @@ class WorkflowDetailsControllerTest {
     when(sessionService.getSessionWorkflow(SESSION_ID, WORKFLOW_ID))
         .thenReturn(Mono.just(definition));
 
-    when(workflowGraphService.enrichNode(argThat(n -> n.nodeId().equals(TRIGGER_NODE))))
+    when(workflowGraphService.enrichNode(argThat(n -> TRIGGER_NODE.equals(n.nodeId()))))
         .thenReturn(
             new WorkflowGraphService.EnrichedNodeMetadata(
                 TRIGGER_NODE,
