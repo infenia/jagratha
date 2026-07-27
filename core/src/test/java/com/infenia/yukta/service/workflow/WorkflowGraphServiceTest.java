@@ -22,7 +22,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /** Unit tests for {@link WorkflowGraphService}. */
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({
+  "PMD.TooManyStaticImports",
+  "PMD.AtLeastOneConstructor",
+  "PMD.TooManyMethods",
+  "PMD.CommentRequired",
+  "PMD.AvoidDuplicateLiterals",
+  "PMD.ShortVariable"
+})
 class WorkflowGraphServiceTest {
 
   private static final String NODE_ID = "test-node";
@@ -231,6 +238,24 @@ class WorkflowGraphServiceTest {
         service.enrichNode(new WorkflowDefinition.Node(NODE_ID, PLUGIN_TYPE, Map.of()));
 
     assertThat(result.outputPorts()).isEmpty();
+  }
+
+  @Test
+  void enrichedNodeMetadata_withNullOutputPorts_remainsNull() {
+    final var metadata =
+        new WorkflowGraphService.EnrichedNodeMetadata(
+            NODE_ID, PLUGIN_TYPE, PluginCategory.PROCESSOR, "Processor", null, null);
+    assertThat(metadata.outputPorts()).isNull();
+  }
+
+  @Test
+  void enrichedNodeMetadata_withMutableOutputPorts_makesCopyImmutable() {
+    final var mutableList = new java.util.ArrayList<>(List.of("port1", "port2"));
+    final var metadata =
+        new WorkflowGraphService.EnrichedNodeMetadata(
+            NODE_ID, PLUGIN_TYPE, PluginCategory.PROCESSOR, "Processor", null, mutableList);
+    mutableList.add("port3");
+    assertThat(metadata.outputPorts()).containsExactly("port1", "port2");
   }
 
   private Plugin mockPlugin(

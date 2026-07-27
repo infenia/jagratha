@@ -9,6 +9,7 @@ import com.infenia.yukta.plugin.core.PluginCategory;
 import com.infenia.yukta.plugin.core.UiDesign;
 import com.infenia.yukta.service.orchestrator.preparator.TopologicalSortService;
 import com.infenia.yukta.service.plugin.PluginRegistry;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,20 +24,28 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class WorkflowGraphService {
 
+  /** The registry of available plugins. */
+  private final PluginRegistry pluginRegistry;
+
+  /** The service computing topological node order. */
+  private final TopologicalSortService topologicalSortService;
+
   /** Plugin metadata for a node. */
+  @SuppressFBWarnings("EI_EXPOSE_REP")
   public record EnrichedNodeMetadata(
       String nodeId,
       String type,
       PluginCategory category,
       String description,
       UiDesign uiDesign,
-      List<String> outputPorts) {}
-
-  /** The registry of available plugins. */
-  private final PluginRegistry pluginRegistry;
-
-  /** The service computing topological node order. */
-  private final TopologicalSortService topologicalSortService;
+      List<String> outputPorts) {
+    /** Compact constructor ensuring outputPorts is immutable. */
+    public EnrichedNodeMetadata {
+      if (outputPorts != null) {
+        outputPorts = List.copyOf(outputPorts);
+      }
+    }
+  }
 
   /**
    * Enriches a workflow node with plugin metadata.
@@ -46,20 +55,24 @@ public class WorkflowGraphService {
    */
   public EnrichedNodeMetadata enrichNode(final WorkflowDefinition.Node node) {
     final Plugin plugin = pluginRegistry.get(node.type());
+    final EnrichedNodeMetadata enriched;
     if (plugin == null) {
       log.atWarn()
           .addKeyValue("nodeId", node.nodeId())
           .addKeyValue("pluginType", node.type())
           .log("Unknown plugin type for workflow node, returning bare node");
-      return new EnrichedNodeMetadata(node.nodeId(), node.type(), null, null, null, List.of());
+      enriched = new EnrichedNodeMetadata(node.nodeId(), node.type(), null, null, null, List.of());
+    } else {
+      enriched =
+          new EnrichedNodeMetadata(
+              node.nodeId(),
+              node.type(),
+              plugin.getCategory(),
+              plugin.getDescription(),
+              plugin.getUiDesign().orElse(null),
+              plugin.getOutputPorts(node.config()));
     }
-    return new EnrichedNodeMetadata(
-        node.nodeId(),
-        node.type(),
-        plugin.getCategory(),
-        plugin.getDescription(),
-        plugin.getUiDesign().orElse(null),
-        plugin.getOutputPorts(node.config()));
+    return enriched;
   }
 
   /**
